@@ -414,6 +414,11 @@ namespace PICSUpdater
                     new MySqlParameter("@AppId", appid)
                 });
 
+            DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppId",
+                new MySqlParameter[] { 
+                    new MySqlParameter("@AppId", appid)
+                });
+
             foreach (String key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
