@@ -121,15 +121,12 @@ namespace PICSUpdater
                         }
                         else if 
                         (
-                        keynamecheck.Equals("extended_us ca mx pr bs pa bz cr sv gt hn ni ve co gy sr gf br pe bo py uy ar cl ec") ||
+                        keynamecheck.StartsWith("extended_us ") ||
+                        keynamecheck.StartsWith("extended_im ") ||
                         keynamecheck.Equals("extended_de") ||
                         keynamecheck.Equals("extended_jp") ||
                         keynamecheck.Equals("extended_af ax al dz as ad ao ai aq ag am aw at az au nz bh bd bb by be bj bm bt ba bw bv io bn bg bf bi kh cm cv ky cf td cn cx cc km cg cd ck ci hr cy cz dk dj dm do eg gq er ee et fk fo fj fi fr pf tf ga gm ge de gh gi gr gl gd gp gu gn gw gg ht hm va hk hu is in id ie im il it jm jp je jo kz ke ki kr kw kg la lv lb ls lr li lt lu mo mk mg mw my mv ml mt mh mq mr mu yt fm md mc mn me ms ma mz na nr np nl an nc nz ne ng nu nf mp no om pk pw ps pg ph pn pl pt qa re ro ru rw sh kn lc pm vc ws sm st sa sn rs sc sl sg sk si sb so za gs es lk sj sz se ch tw tj tz th tl tg tk to tt tn tr tm tc tv ug ua ae gb um uz vu vn vg vi wf eh ye zm zw") ||
-                        keynamecheck.Equals("extended_us ca mx pr bs pa bz cr sv gt hn ni ve co gy sr gf br pe bo py uy ar cl ec") ||
-                        keynamecheck.Equals("extended_im je gs gb uk fr de es ru it se fi no dk pl ch at ie nl be lu gg ru") ||
-                        keynamecheck.Equals("extended_us ca mx pr") ||
                         keynamecheck.Equals("extended_cn") ||
-                        keynamecheck.Equals("extended_im je gs gb gg uk") ||
                         keynamecheck.Equals("extended_us")
                         )
                         {
