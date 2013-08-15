@@ -37,6 +37,8 @@ namespace PICSUpdater
 
         public static void Run()
         {
+            DebugLog.AddListener( ( category, msg ) => Console.WriteLine( "[SteamKit] {0}: {1}", category, msg ) );
+
             manager = new CallbackManager(steamClient);
 
             new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
