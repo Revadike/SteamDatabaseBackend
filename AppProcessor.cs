@@ -10,7 +10,7 @@ using System.Text;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 using System.IO;
-using Jayrock.Json;
+using Newtonsoft.Json;
 
 namespace PICSUpdater
 {
@@ -306,7 +306,7 @@ namespace PICSUpdater
                 else
                 {
                     List<KeyValue> subkeys = keyval.Children;
-                    w.WriteMember(keyval.Name.ToString());
+                    w.WritePropertyName(keyval.Name.ToString());
                     WriteKey(w, subkeys);
                 }
             }
@@ -315,8 +315,8 @@ namespace PICSUpdater
 
         private static void WriteSubkey(JsonWriter w, string name, string value)
         {
-            w.WriteMember(name);
-            w.WriteString(value);
+            w.WritePropertyName(name);
+            w.WriteValue(value);
         }
         private string GetDBString(string SqlFieldName, MySqlDataReader Reader)
         {
