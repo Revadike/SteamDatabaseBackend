@@ -4,6 +4,8 @@ The application that keeps SteamDB up to date with the latest changes. Most of i
 
 ## Requirements
 - [SteamKit2](https://github.com/SteamRE/SteamKit)
+- [Json.NET](http://james.newtonking.com/projects/json-net.aspx)
+- [MySQL .NET connector](http://dev.mysql.com/downloads/connector/net/)
 
 ## Reporting issues
 You can report issues in our main repository [over here](https://github.com/SteamDatabase/SteamDatabase).
