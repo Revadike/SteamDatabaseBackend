@@ -52,7 +52,6 @@ namespace PICSUpdater
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
 
-
             if (File.Exists(PrevChangeFile))
             {
                 PreviousChange = uint.Parse(File.ReadAllText(PrevChangeFile).ToString());
@@ -109,19 +108,19 @@ namespace PICSUpdater
                 GetPICSChanges();
             }
 
-            if(ConfigurationManager.AppSettings["fullrun"].Equals("1")){
-         
-            uint buildlistcount = 0;
-            List<uint> appIdList = new List<uint>();
-            List<uint> packagesList = new List<uint>();
-            while (buildlistcount < 250000)
+            if(!ConfigurationManager.AppSettings["fullrun"].Equals("0"))
             {
-                appIdList.Add(buildlistcount);
-                //packagesList.Add(buildlistcount);
-                buildlistcount++;
-            }
-            steamApps.PICSGetProductInfo(appIdList, packagesList, false, false);
+                uint buildlistcount = 0;
+                List<uint> appIdList = new List<uint>();
+                List<uint> packagesList = new List<uint>();
+                while (buildlistcount < 250000)
+                {
+                    appIdList.Add(buildlistcount);
+                    //packagesList.Add(buildlistcount);
+                    buildlistcount++;
+                }
 
+                steamApps.PICSGetProductInfo(appIdList, packagesList, false, false);
             }
         }
 
