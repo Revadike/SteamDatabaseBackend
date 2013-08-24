@@ -262,8 +262,13 @@ namespace PICSUpdater
             }
             foreach (var unknownapp in callback.UnknownApps)
             {
-                new System.Threading.Thread(AppPro.ProcessUnknownApp).Start(unknownapp);
-                System.Threading.Thread.Sleep(20);
+                //Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
+                if (ConfigurationManager.AppSettings["fullrun"].Equals("0") || ConfigurationManager.AppSettings["fullrun"].Equals("2"))
+                {
+                    new System.Threading.Thread(AppPro.ProcessUnknownApp).Start(unknownapp);
+                    System.Threading.Thread.Sleep(20);
+                }
+               
             }
             foreach (var unknownpack in callback.UnknownPackages)
             {
