@@ -81,13 +81,8 @@ namespace PICSUpdater
                     {
                         if (kv2.Children.Count == 0)
                         {
-                            if (!kv2.Name.Equals("extended") && !kv2.Name.Equals("depotids") &&  !kv2.Name.Equals("appids") && !kv2.Name.Equals("AppItems") && !kv2.Name.Equals("name") && !kv2.Name.Equals("packageid"))
+                            if (kv2.Name != null && !kv2.Name.Equals("") && !kv2.Name.Equals("extended") && !kv2.Name.Equals("depotids") &&  !kv2.Name.Equals("appids") && !kv2.Name.Equals("AppItems") && !kv2.Name.Equals("name") && !kv2.Name.Equals("packageid"))
                             {
-                                if (kv2.Name == null || kv2.Name.Equals(""))
-                                {
-                                    Console.WriteLine("Making empty root_ keyname here KV Name: " + kv.Name + " SubID: " + subb.Key);
-                                }
-
                                 DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
                                     new MySqlParameter[]
                                     {
