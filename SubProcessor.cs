@@ -16,18 +16,18 @@ namespace PICSUpdater
 {
     class SubProcessor
     {
-        public void ProcessSub(object sub)
+        public void ProcessSub(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
             if (Steam.fullRunOption > 0)
             {
-                Console.WriteLine("Processing Sub: {0}", sub);
+                Console.WriteLine("Processing Sub: {0}", SubID);
             }
 
             Dictionary<string, string> subdata = new Dictionary<string, string>();
-            KeyValuePair<UInt32, SteamApps.PICSProductInfoCallback.PICSProductInfo> subb = (KeyValuePair<UInt32, SteamApps.PICSProductInfoCallback.PICSProductInfo>)sub;
+            
             MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter[]
                 {
-                    new MySqlParameter("@SubID", subb.Key)
+                    new MySqlParameter("@SubID", SubID)
                 });
             while (Reader.Read())
             {
@@ -40,7 +40,7 @@ namespace PICSUpdater
 
             MySqlDataReader mainsubReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
                 {
-                    new MySqlParameter("@SubID", subb.Key)
+                    new MySqlParameter("@SubID", SubID)
                 });
             if(mainsubReader.Read())
             {
@@ -52,7 +52,7 @@ namespace PICSUpdater
             List<string> subapps = new List<string>();
             MySqlDataReader SubAppsReader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'app'", new MySqlParameter[]
                 {
-                    new MySqlParameter("@SubID", subb.Key)
+                    new MySqlParameter("@SubID", SubID)
                 });
             while (SubAppsReader.Read())
             {
@@ -64,7 +64,7 @@ namespace PICSUpdater
             List<string> subdepots = new List<string>();
             MySqlDataReader SubDepotsReader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'depot'", new MySqlParameter[]
                 {
-                    new MySqlParameter("@SubID", subb.Key)
+                    new MySqlParameter("@SubID", SubID)
                 });
             while (SubDepotsReader.Read())
             {
@@ -73,7 +73,7 @@ namespace PICSUpdater
             SubDepotsReader.Close();
             SubDepotsReader.Dispose();
 
-            foreach (KeyValue kv in subb.Value.KeyValues.Children)
+            foreach (KeyValue kv in ProductInfo.KeyValues.Children)
             {
                 if (kv.Children.Count != 0)
                 {
@@ -91,19 +91,19 @@ namespace PICSUpdater
                                     });
                                 if (kv2.Value != null)
                                 {
-                                    MakeSubsInfo(subb.Key, "root_" + kv2.Name.ToString(), kv2.Value.ToString());
+                                    MakeSubsInfo(SubID, "root_" + kv2.Name.ToString(), kv2.Value.ToString());
 
                                     if (subdata.ContainsKey("root_" + kv2.Name.ToString()))
                                     {
                                         if (!subdata["root_" + kv2.Name.ToString()].Equals(kv2.Value.ToString()))
                                         {
-                                            MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_key", "root_" + kv2.Name.ToString(), subdata["root_" + kv2.Name.ToString()].ToString(), kv2.Value.ToString());
+                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "root_" + kv2.Name.ToString(), subdata["root_" + kv2.Name.ToString()].ToString(), kv2.Value.ToString());
                                         }
                                         subdata.Remove("root_" + kv2.Name.ToString());
                                     }
                                     else
                                     {
-                                        MakeHistory(subb.Key, subb.Value.ChangeNumber, "created_key", "root_" + kv2.Name.ToString(), "", kv2.Value.ToString());
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "root_" + kv2.Name.ToString(), "", kv2.Value.ToString());
                                     }
                                 }
 
@@ -113,14 +113,14 @@ namespace PICSUpdater
                                 DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Subs(SubID, Name) VALUES(@SubID, @Name) ON DUPLICATE KEY UPDATE Name=@Name",
                                 new MySqlParameter[]
                                     {
-                                        new MySqlParameter("@SubID", subb.Key),
+                                        new MySqlParameter("@SubID", SubID),
                                         new MySqlParameter("@Name", kv2.Value)
                                     });
                                 if (PackageName.Equals(""))
                                 {
-                                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "created_sub");
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
                                 }else if(!PackageName.Equals(kv2.Value.ToString())){
-                                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
                                 }
                             }
                         }
@@ -137,19 +137,19 @@ namespace PICSUpdater
                                         new MySqlParameter("@KeyValueName", kv3.Name.ToString())
                                     });
 
-                                    MakeSubsInfo(subb.Key, "extended_" + kv3.Name.ToString(), kv3.Value.ToString());
+                                    MakeSubsInfo(SubID, "extended_" + kv3.Name.ToString(), kv3.Value.ToString());
 
                                     if (subdata.ContainsKey("extended_" + kv3.Name.ToString()))
                                     {
                                         if (!subdata["extended_" + kv3.Name.ToString()].Equals(kv3.Value.ToString()))
                                         {
-                                            MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_key", "extended_" + kv3.Name.ToString(), subdata["extended_" + kv3.Name.ToString()].ToString(), kv3.Value.ToString());
+                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "extended_" + kv3.Name.ToString(), subdata["extended_" + kv3.Name.ToString()].ToString(), kv3.Value.ToString());
                                         }
                                         subdata.Remove("extended_" + kv3.Name.ToString());
                                     }
                                     else
                                     {
-                                        MakeHistory(subb.Key, subb.Value.ChangeNumber, "created_key", "extended_" + kv3.Name.ToString(), "", kv3.Value.ToString());
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "extended_" + kv3.Name.ToString(), "", kv3.Value.ToString());
                                     }
                                 }
                             }
@@ -162,7 +162,7 @@ namespace PICSUpdater
                                     DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
                                     new MySqlParameter[]
                                     {
-                                        new MySqlParameter("@SubID", subb.Key),
+                                        new MySqlParameter("@SubID", SubID),
                                         new MySqlParameter("@AppID", kv3.Value),
                                         new MySqlParameter("@Type", type)
                                     });
@@ -171,7 +171,7 @@ namespace PICSUpdater
                                     {
                                         if (!subapps.Contains(kv3.Value))
                                         {
-                                            MakeHistory(subb.Key, subb.Value.ChangeNumber, "added_to_sub", "0", "", kv3.Value, true);
+                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "0", "", kv3.Value, true);
                                         }
                                         else
                                         {
@@ -183,7 +183,7 @@ namespace PICSUpdater
                                     {
                                         if (!subdepots.Contains(kv3.Value))
                                         {
-                                            MakeHistory(subb.Key, subb.Value.ChangeNumber, "added_to_sub", "1", "", kv3.Value, true);
+                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "1", "", kv3.Value, true);
                                         }
                                         else
                                         {
@@ -212,18 +212,18 @@ namespace PICSUpdater
                                         new MySqlParameter("@KeyName", "marlamin" + "_" + kv2.Name)
                                     });
 
-                                MakeSubsInfo(subb.Key, "marlamin_" + kv2.Name, json);
+                                MakeSubsInfo(SubID, "marlamin_" + kv2.Name, json);
 
                                 if (subdata.ContainsKey("marlamin_" + kv2.Name.ToString()))
                                 {
                                     if (!subdata["marlamin_" + kv2.Name.ToString()].Equals(json))
                                     {
-                                        MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json); 
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json); 
                                     }
                                 }
                                 else
                                 {
-                                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "created_key", "marlamin_" + kv2.Name.ToString(), "", json);
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "marlamin_" + kv2.Name.ToString(), "", json);
                                 }
                                 subdata.Remove("marlamin" + "_" + kv2.Name);
                             }
@@ -239,10 +239,10 @@ namespace PICSUpdater
                     DbWorker.ExecuteNonQuery("DELETE FROM SubsInfo WHERE `SubID` = @SubID AND `Key` = (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1)",
                     new MySqlParameter[]
                     {
-                        new MySqlParameter("@SubID", subb.Key),
+                        new MySqlParameter("@SubID", SubID),
                         new MySqlParameter("@KeyName", key)
                     });
-                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "removed_key", key, subdata[key].ToString(), "");
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key].ToString(), "");
                 }
                
             }
@@ -250,19 +250,19 @@ namespace PICSUpdater
             {
                 DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'app'", 
                 new MySqlParameter[] { 
-                    new MySqlParameter("@SubID", subb.Key),
+                    new MySqlParameter("@SubID", SubID),
                     new MySqlParameter("@Key", key)
                 });
-                MakeHistory(subb.Key, subb.Value.ChangeNumber, "removed_from_sub", "0", key, "", true);
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "0", key, "", true);
             }
             foreach (String key in subdepots)
             {
                 DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'depot'",
                 new MySqlParameter[] { 
-                    new MySqlParameter("@SubID", subb.Key),
+                    new MySqlParameter("@SubID", SubID),
                     new MySqlParameter("@Key", key)
                 });
-                MakeHistory(subb.Key, subb.Value.ChangeNumber, "removed_from_sub", "1", key, "", true);
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "1", key, "", true);
             }
         }
 

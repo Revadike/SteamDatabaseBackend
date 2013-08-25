@@ -333,7 +333,7 @@ namespace PICSUpdater
 
                 Task.Factory.StartNew(() =>
                 {
-                    SubPro.ProcessSub(workaround);
+                    SubPro.ProcessSub(workaround.Key, workaround.Value);
                 });
             }
 
