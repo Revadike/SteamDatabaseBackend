@@ -404,7 +404,7 @@ namespace PICSUpdater
             MainReader.Dispose();
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT * FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
+            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
                 {
                     new MySqlParameter("AppID", appid)
                 });

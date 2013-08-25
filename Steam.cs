@@ -33,17 +33,26 @@ namespace PICSUpdater
         static SubProcessor SubPro = new SubProcessor();
 
         static public uint fullRunOption;
+        static private Boolean fullRun = false;
 
         public static void GetPICSChanges()
         {
             steamApps.PICSGetChangesSince(PreviousChange, true, true);
         }
 
+        public static void SendChatMessage(SteamID target, string message)
+        {
+            steamFriends.SendChatMessage(target, EChatEntryType.ChatMsg, message);
+        }
+
         public static void Run()
         {
-            DebugLog.AddListener( ( category, msg ) => Console.WriteLine( "[SteamKit] {0}: {1}", category, msg ) );
-
             uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
+
+            if (fullRunOption == 0)
+            {
+                DebugLog.AddListener(( category, msg ) => Console.WriteLine("[SteamKit] {0}: {1}", category, msg));
+            }
 
             manager = new CallbackManager(steamClient);
 
@@ -60,7 +69,9 @@ namespace PICSUpdater
 
             if (File.Exists(PrevChangeFile))
             {
-                PreviousChange = uint.Parse(File.ReadAllText(PrevChangeFile).ToString());
+                PreviousChange = uint.Parse(File.ReadAllText(PrevChangeFile));
+
+                Console.WriteLine("Previous changelist was {0}", PreviousChange);
             }
             else
             {
@@ -111,15 +122,23 @@ namespace PICSUpdater
 
             Console.WriteLine("Logged on.");
 
+            // Prevent bugs
+            if (fullRun)
+            {
+                return;
+            }
+
             if (fullRunOption > 0)
             {
+                fullRun = true;
+
                 Console.WriteLine("Running full update with option \"{0}\"", fullRunOption);
 
                 uint i = 0;
                 List<uint> appsList = new List<uint>();
                 List<uint> packagesList = new List<uint>();
 
-                for(i = 0; i <= 300000; i++)
+                for (i = 0; i <= 300000; i++)
                 {
                     appsList.Add(i);
                 }
@@ -140,7 +159,7 @@ namespace PICSUpdater
 
                 if (fullRunOption == 1)
                 {
-                    for(i = 0; i <= 50000; i++)
+                    for (i = 0; i <= 50000; i++)
                     {
                         packagesList.Add(i);
                     }
@@ -150,8 +169,10 @@ namespace PICSUpdater
 
                 steamApps.PICSGetProductInfo(appsList, packagesList, false, false);
             }
-
-            GetPICSChanges();
+            else
+            {
+                GetPICSChanges();
+            }
         }
 
         static void OnLoggedOff(SteamUser.LoggedOffCallback callback)
@@ -168,51 +189,60 @@ namespace PICSUpdater
         {
             if (callback.Message.ToString() == "retry")
             {
-                steamFriends.SendChatMessage(callback.Sender, EChatEntryType.ChatMsg, "Sent previous changelist again!");
                 GetPICSChanges();
+                SendChatMessage(callback.Sender, "Sent previous changelist again");
             }
             else if (callback.Message.ToString() == "lastchangelist")
             {
-                steamFriends.SendChatMessage(callback.Sender, EChatEntryType.ChatMsg, PreviousChange.ToString());
+                SendChatMessage(callback.Sender, string.Format("Last changelist is {0}", PreviousChange));
             }
             else if (callback.Message.ToString().Contains("forceapp"))
             {
                 string[] exploded = callback.Message.ToString().Split(' ');
                 uint appid;
-                if (exploded.Count() == 2)
-                {
-                    if (uint.TryParse(exploded[1], out appid))
-                    {
-                        steamApps.PICSGetProductInfo(appid, null, false, false);
-                    }
-                }
 
+                if (exploded.Count() == 2 && uint.TryParse(exploded[1], out appid))
+                {
+                    steamApps.PICSGetProductInfo(appid, null, false, false);
+                    SendChatMessage(callback.Sender, string.Format("Forced app {0}", appid));
+                }
+                else
+                {
+                    SendChatMessage(callback.Sender, "Failed to parse your AppID");
+                }
             }
             else if (callback.Message.ToString().Contains("forcesub"))
             {
                 string[] exploded = callback.Message.ToString().Split(' ');
                 uint subid;
-                if (exploded.Count() == 2)
+
+                if (exploded.Count() == 2 && uint.TryParse(exploded[1], out subid))
                 {
-                    if (uint.TryParse(exploded[1], out subid))
-                    {
-                        steamApps.PICSGetProductInfo(null, subid, false, false);
-                    }
+                    steamApps.PICSGetProductInfo(null, subid, false, false);
+                    SendChatMessage(callback.Sender, string.Format("Forced package {0}", subid));
+                }
+                else
+                {
+                    SendChatMessage(callback.Sender, "Failed to parse your SubID");
                 }
             }
         }
 
         static void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
         {
-            if (PreviousChange.Equals(0))
+            if (fullRun)
+            {
+                Console.WriteLine("Received changedlist while processing a full run, ignoring.");
+                return;
+            }
+            else if (PreviousChange == 0)
             {
                 Console.WriteLine("PreviousChange was 0. Rolling back by one changelist.");
                 PreviousChange = callback.CurrentChangeNumber - 1;
                 GetPICSChanges();
                 return;
             }
-
-            if (PreviousChange != callback.CurrentChangeNumber)
+            else if (PreviousChange != callback.CurrentChangeNumber)
             {
                 Console.WriteLine("Got changelist {0}, previous is {1}", callback.CurrentChangeNumber, PreviousChange);
 
@@ -287,9 +317,11 @@ namespace PICSUpdater
             {
                 Console.WriteLine("AppID: {0}", app.Key);
 
+                var workaround = app;
+
                 Task.Factory.StartNew(() =>
                 {
-                    AppPro.ProcessApp(app.Key, app.Value);
+                    AppPro.ProcessApp(workaround.Key, workaround.Value);
                 });
             }
 
@@ -297,9 +329,11 @@ namespace PICSUpdater
             {
                 Console.WriteLine("SubID: {0}", package.Key);
 
+                var workaround = package;
+
                 Task.Factory.StartNew(() =>
                 {
-                    SubPro.ProcessSub(package);
+                    SubPro.ProcessSub(workaround);
                 });
             }
 
@@ -308,9 +342,11 @@ namespace PICSUpdater
             {
                 foreach (var app in callback.UnknownApps)
                 {
+                    var workaround = app;
+
                     Task.Factory.StartNew(() =>
                     {
-                        AppPro.ProcessUnknownApp(app);
+                        AppPro.ProcessUnknownApp(workaround);
                     });
                 }
 
