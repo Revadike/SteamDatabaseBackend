@@ -4,6 +4,6 @@
     <add key="fullrun" value="0"/>
     <add key="steam-username" value="username"/>
     <add key="steam-password" value="password"/>
-    <add key="mysql-cstring" value="server=localhost;port=3306;userid=user;password=password;database=database;charset=utf8"/>
+    <add key="mysql-cstring" value="server=localhost;port=3306;userid=user;password=password;database=database;charset=utf8;pooling=true"/>
   </appSettings>
 </configuration>
