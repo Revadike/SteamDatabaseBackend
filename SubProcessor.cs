@@ -16,10 +16,6 @@ namespace PICSUpdater
 {
     class SubProcessor
     {
-        private string GetDBString(string SqlFieldName, MySqlDataReader Reader)
-        {
-            return Reader[SqlFieldName].Equals(DBNull.Value) ? String.Empty : Reader.GetString(SqlFieldName);
-        }
         public void ProcessSub(object sub)
         {
             if (Steam.fullRunOption > 0)
@@ -35,7 +31,7 @@ namespace PICSUpdater
                 });
             while (Reader.Read())
             {
-                subdata.Add(GetDBString("Name", Reader), GetDBString("Value", Reader));
+                subdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
             }
             Reader.Close();
             Reader.Dispose();
@@ -48,7 +44,7 @@ namespace PICSUpdater
                 });
             if(mainsubReader.Read())
             {
-                PackageName = GetDBString("Name", mainsubReader);
+                PackageName = DbWorker.GetString("Name", mainsubReader);
             }
             mainsubReader.Close();
             mainsubReader.Dispose();
@@ -60,7 +56,7 @@ namespace PICSUpdater
                 });
             while (SubAppsReader.Read())
             {
-                subapps.Add(GetDBString("AppID", SubAppsReader));
+                subapps.Add(DbWorker.GetString("AppID", SubAppsReader));
             }
             SubAppsReader.Close();
             SubAppsReader.Dispose();
@@ -72,7 +68,7 @@ namespace PICSUpdater
                 });
             while (SubDepotsReader.Read())
             {
-                subdepots.Add(GetDBString("AppID", SubDepotsReader));
+                subdepots.Add(DbWorker.GetString("AppID", SubDepotsReader));
             }
             SubDepotsReader.Close();
             SubDepotsReader.Dispose();

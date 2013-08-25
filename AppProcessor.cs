@@ -24,39 +24,54 @@ namespace PICSUpdater
             }
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
                 {
                 new MySqlParameter("AppID", AppID)
-                });
-            while (Reader.Read())
+                }))
             {
-                appdata.Add(GetDBString("Name", Reader), GetDBString("Value", Reader));
+                while (Reader.Read())
+                {
+                    appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                }
+                Reader.Close();
+                Reader.Dispose();
             }
-            Reader.Close();
-            Reader.Dispose();
 
             String AppName = "";
             String AppType = "";
 
-            MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
                 {
                 new MySqlParameter("AppID", AppID)
-                });
-
-            if (MainReader.Read())
+                }))
             {
-                AppName = GetDBString("Name", MainReader);
-                AppType = GetDBString("AppType", MainReader);
+                if (Reader.Read())
+                {
+                    AppName = DbWorker.GetString("Name", Reader);
+                    AppType = DbWorker.GetString("AppType", Reader);
+                }
+                Reader.Close();
+                Reader.Dispose();
             }
-            MainReader.Close();
-            MainReader.Dispose();
 
             if (ProductInfo.KeyValues["common"]["name"].Value != null)
             {
                 string newAppType = "0";
                 if (!ProductInfo.KeyValues["common"]["type"].Equals(""))
                 {
-                    newAppType = getType(ProductInfo.KeyValues["common"]["type"].Value); // Value.ToString() ?? other part of code had this // also this is the only time getType() is used, you can get rid of it, if you want
+                    using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter[]
+                    {
+                        new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)
+                    }))
+                    {
+                        if (Reader.Read())
+                        {
+                            newAppType = DbWorker.GetString("AppType", Reader);
+                        }
+                        Reader.Close();
+                        Reader.Dispose();
+                    }
                 }
 
                 if (AppName.Equals("") || AppName.StartsWith("SteamDB Unknown App"))
@@ -132,9 +147,9 @@ namespace PICSUpdater
                         (
                         keynamecheck.StartsWith("extended_us ") ||
                         keynamecheck.StartsWith("extended_im ") ||
+                        keynamecheck.StartsWith("extended_af ax al dz as ad ao ai aq ag ") ||
                         keynamecheck.Equals("extended_de") ||
                         keynamecheck.Equals("extended_jp") ||
-                        keynamecheck.Equals("extended_af ax al dz as ad ao ai aq ag am aw at az au nz bh bd bb by be bj bm bt ba bw bv io bn bg bf bi kh cm cv ky cf td cn cx cc km cg cd ck ci hr cy cz dk dj dm do eg gq er ee et fk fo fj fi fr pf tf ga gm ge de gh gi gr gl gd gp gu gn gw gg ht hm va hk hu is in id ie im il it jm jp je jo kz ke ki kr kw kg la lv lb ls lr li lt lu mo mk mg mw my mv ml mt mh mq mr mu yt fm md mc mn me ms ma mz na nr np nl an nc nz ne ng nu nf mp no om pk pw ps pg ph pn pl pt qa re ro ru rw sh kn lc pm vc ws sm st sa sn rs sc sl sg sk si sb so za gs es lk sj sz se ch tw tj tz th tl tg tk to tt tn tr tm tc tv ug ua ae gb um uz vu vn vg vi wf eh ye zm zw") ||
                         keynamecheck.Equals("extended_cn") ||
                         keynamecheck.Equals("extended_us")
                         )
@@ -328,27 +343,6 @@ namespace PICSUpdater
             w.WriteValue(value);
         }
 
-        private string GetDBString(string SqlFieldName, MySqlDataReader Reader)
-        {
-            return Reader[SqlFieldName].Equals(DBNull.Value) ? String.Empty : Reader.GetString(SqlFieldName);
-        }
-
-        private string getType(string type)
-        {
-            string newtype = "0";
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter[]
-                {
-                    new MySqlParameter("type", type)
-                });
-            while (Reader.Read())
-            {
-                newtype = GetDBString("AppType", Reader);
-            }
-            Reader.Close();
-            Reader.Dispose();
-            return newtype;
-        }
-
         private static void MakeAppsInfo(uint AppID, string KeyName = "", string Value = "")
         {
             DbWorker.ExecuteNonQuery("INSERT INTO AppsInfo VALUES (@AppId, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE Value=@Value",
@@ -369,6 +363,7 @@ namespace PICSUpdater
             parameters.Add(new MySqlParameter("@KeyName", KeyName));
             parameters.Add(new MySqlParameter("@OldValue", OldValue));
             parameters.Add(new MySqlParameter("@NewValue", NewValue));
+
             if (keyoverride == true || KeyName.Equals(""))
             {
                 DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)",
@@ -379,68 +374,74 @@ namespace PICSUpdater
                 DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @OldValue, @NewValue)",
                 parameters.ToArray());
             }
-            parameters.Clear();
+
+            //parameters.Clear();
         }
 
-        public void ProcessUnknownApp(object app)
+        public void ProcessUnknownApp(uint AppID)
         {
-            uint appid = (uint)app;
-            Console.WriteLine("Unknown AppID: {0}", appid);
+            Console.WriteLine("Unknown AppID: {0}", AppID);
 
-            MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
+            String AppName = "";
+
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
                 {
-                    new MySqlParameter("AppID", appid)
-                });
-
-            if (!MainReader.Read())
+                new MySqlParameter("AppID", AppID)
+                }))
             {
+                if (!MainReader.Read())
+                {
+                    MainReader.Close();
+                    MainReader.Dispose();
+                    return;
+                }
+
+                AppName = DbWorker.GetString("Name", MainReader);
                 MainReader.Close();
                 MainReader.Dispose();
-                return;
             }
-            
-            String AppName = GetDBString("Name", MainReader);
-            MainReader.Close();
-            MainReader.Dispose();
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
                 {
-                    new MySqlParameter("AppID", appid)
-                });
-            while (Reader.Read())
+                new MySqlParameter("AppID", AppID)
+                }))
             {
-                appdata.Add(GetDBString("Name", Reader), GetDBString("Value", Reader));
+                while (Reader.Read())
+                {
+                    appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                }
+                Reader.Close();
+                Reader.Dispose();
             }
-            Reader.Close();
-            Reader.Dispose();
 
             DbWorker.ExecuteNonQuery("DELETE FROM Apps WHERE AppID = @AppId",
                 new MySqlParameter[] { 
-                    new MySqlParameter("@AppId", appid)
+                new MySqlParameter("@AppId", AppID)
                 });
 
             DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE AppID = @AppId",
                 new MySqlParameter[] { 
-                    new MySqlParameter("@AppId", appid)
+                new MySqlParameter("@AppId", AppID)
                 });
 
             DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppId",
                 new MySqlParameter[] { 
-                    new MySqlParameter("@AppId", appid)
+                new MySqlParameter("@AppId", AppID)
                 });
 
             foreach (String key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {
-                    MakeHistory(appid, 0, "removed_key", key, appdata[key].ToString(), "");
+                    MakeHistory(AppID, 0, "removed_key", key, appdata[key].ToString(), "");
                 }
             }
 
             if (!AppName.StartsWith("SteamDB Unknown App"))
             {
-                MakeHistory(appid, 0, "deleted_app", "0", AppName, "", true);
+                MakeHistory(AppID, 0, "deleted_app", "0", AppName, "", true);
             }
         }
     }

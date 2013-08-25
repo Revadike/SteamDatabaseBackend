@@ -340,9 +340,9 @@ namespace PICSUpdater
             // Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
             if (fullRunOption != 1)
             {
-                foreach (var app in callback.UnknownApps)
+                foreach (uint app in callback.UnknownApps)
                 {
-                    var workaround = app;
+                    uint workaround = app;
 
                     Task.Factory.StartNew(() =>
                     {
@@ -350,7 +350,7 @@ namespace PICSUpdater
                     });
                 }
 
-                foreach (var package in callback.UnknownPackages)
+                foreach (uint package in callback.UnknownPackages)
                 {
                     Console.WriteLine("Unknown SubID: {0} - We don't handle these yet", package);
                 }

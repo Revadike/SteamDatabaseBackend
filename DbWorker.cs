@@ -16,6 +16,7 @@ namespace PICSUpdater
     public static class DbWorker
     {
         private static string ConnectionString = ConfigurationManager.AppSettings["mysql-cstring"];
+
         public static MySqlDataReader ExecuteReader(string text)
         {
             return MySqlHelper.ExecuteReader(ConnectionString, text);
@@ -34,6 +35,13 @@ namespace PICSUpdater
         public static int ExecuteNonQuery(string text, MySqlParameter[] parameters)
         {
             return MySqlHelper.ExecuteNonQuery(ConnectionString, text, parameters);
+        }
+
+        public static string GetString(string SqlFieldName, MySqlDataReader Reader)
+        {
+            var ordinal = Reader.GetOrdinal(SqlFieldName);
+
+            return Reader.IsDBNull(ordinal) ? String.Empty : Reader.GetString(ordinal);
         }
     }
 }
