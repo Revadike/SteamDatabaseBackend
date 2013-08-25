@@ -10,6 +10,7 @@ using System.Text;
 using System.IO;
 using System.Configuration;
 using System.Threading;
+using System.Threading.Tasks;
 using SteamKit2;
 using MySql.Data.MySqlClient;
 
@@ -17,7 +18,9 @@ namespace PICSUpdater
 {
     class Steam
     {
-        static SteamClient steamClient = new SteamClient();
+        // TODO: Remove statics
+
+        public static SteamClient steamClient = new SteamClient();
         static SteamUser steamUser = steamClient.GetHandler<SteamUser>();
         static SteamApps steamApps = steamClient.GetHandler<SteamApps>();
         static SteamFriends steamFriends = steamClient.GetHandler<SteamFriends>();
@@ -26,9 +29,10 @@ namespace PICSUpdater
 
         static uint PreviousChange = 0;
         static string PrevChangeFile = @"lastchangenumber";
-        static Boolean LoggedIn = false;
         static AppProcessor AppPro = new AppProcessor();
         static SubProcessor SubPro = new SubProcessor();
+
+        static public uint fullRunOption;
 
         public static void GetPICSChanges()
         {
@@ -38,6 +42,8 @@ namespace PICSUpdater
         public static void Run()
         {
             DebugLog.AddListener( ( category, msg ) => Console.WriteLine( "[SteamKit] {0}: {1}", category, msg ) );
+
+            uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
 
             manager = new CallbackManager(steamClient);
 
@@ -70,6 +76,7 @@ namespace PICSUpdater
                 manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
             }
         }
+
         static void OnConnected(SteamClient.ConnectedCallback callback)
         {
             if (callback.Result != EResult.OK)
@@ -88,7 +95,6 @@ namespace PICSUpdater
 
         static void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            LoggedIn = false;
             Console.WriteLine("Disconnected from Steam. Retrying in 15 seconds..");
             Thread.Sleep(TimeSpan.FromSeconds(15));
             steamClient.Connect();
@@ -98,30 +104,59 @@ namespace PICSUpdater
         {
             if (callback.Result != EResult.OK)
             {
-                Console.WriteLine("Login failed. Retrying in 2 seconds..");
+                Console.WriteLine("Failed to login: {0}", callback.Result);
                 Thread.Sleep(TimeSpan.FromSeconds(2));
-            }
-            else
-            {
-                Console.WriteLine("Logged on.");
-                LoggedIn = true;
-                GetPICSChanges();
+                return;
             }
 
-            if(!ConfigurationManager.AppSettings["fullrun"].Equals("0"))
+            Console.WriteLine("Logged on.");
+
+            if (fullRunOption > 0)
             {
-                uint buildlistcount = 0;
-                List<uint> appIdList = new List<uint>();
+                Console.WriteLine("Running full update with option \"{0}\"", fullRunOption);
+
+                uint i = 0;
+                List<uint> appsList = new List<uint>();
                 List<uint> packagesList = new List<uint>();
-                while (buildlistcount < 250000)
+
+                for(i = 0; i <= 300000; i++)
                 {
-                    appIdList.Add(buildlistcount);
-                    //packagesList.Add(buildlistcount);
-                    buildlistcount++;
+                    appsList.Add(i);
                 }
 
-                steamApps.PICSGetProductInfo(appIdList, packagesList, false, false);
+                using (dynamic steamAppsAPI = WebAPI.GetInterface("ISteamApps"))
+                {
+                    KeyValue kvApps = steamAppsAPI.GetAppList();
+                    List<uint> appsListAPI = new List<uint>();
+
+                    // TODO: Make this look nicer
+                    foreach (KeyValue app in kvApps[ "apps" ][ "app" ].Children)
+                    {
+                        appsListAPI.Add((uint)app["appid"].AsInteger());
+                    }
+
+                    appsList = appsList.Union(appsListAPI).ToList();
+                }
+
+                if (fullRunOption == 1)
+                {
+                    for(i = 0; i <= 50000; i++)
+                    {
+                        packagesList.Add(i);
+                    }
+                }
+
+                Console.WriteLine("Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
+
+                steamApps.PICSGetProductInfo(appsList, packagesList, false, false);
             }
+
+            GetPICSChanges();
+        }
+
+        static void OnLoggedOff(SteamUser.LoggedOffCallback callback)
+        {
+            Console.WriteLine("Logged off of Steam");
         }
 
         static void OnAccountInfo(SteamUser.AccountInfoCallback callback)
@@ -179,7 +214,8 @@ namespace PICSUpdater
 
             if (PreviousChange != callback.CurrentChangeNumber)
             {
-                Console.WriteLine(PreviousChange + " and " + callback.CurrentChangeNumber + " differ!");
+                Console.WriteLine("Got changelist {0}, previous is {1}", callback.CurrentChangeNumber, PreviousChange);
+
                 List<uint> appslist = new List<uint>();
                 List<uint> packageslist = new List<uint>();
                 DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE date = NOW()",
@@ -247,33 +283,42 @@ namespace PICSUpdater
 
         static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID job)
         {
-            foreach (var callbackapp in callback.Apps)
+            foreach (var app in callback.Apps)
             {
-                Console.WriteLine("AppID: " + callbackapp.Key);
-                new System.Threading.Thread(AppPro.ProcessApp).Start(callbackapp);
-                System.Threading.Thread.Sleep(20);
-            }
-            foreach (var callbackpack in callback.Packages)
-            {
-                Console.WriteLine("SubID: " + callbackpack.Key);
-                new System.Threading.Thread(SubPro.ProcessSub).Start(callbackpack);
-                System.Threading.Thread.Sleep(20);
-            }
-            foreach (var unknownapp in callback.UnknownApps)
-            {
-                //Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
-                if (ConfigurationManager.AppSettings["fullrun"].Equals("0") || ConfigurationManager.AppSettings["fullrun"].Equals("2"))
+                Console.WriteLine("AppID: {0}", app.Key);
+
+                Task.Factory.StartNew(() =>
                 {
-                    new System.Threading.Thread(AppPro.ProcessUnknownApp).Start(unknownapp);
-                    System.Threading.Thread.Sleep(20);
-                }
-               
+                    AppPro.ProcessApp(app.Key, app.Value);
+                });
             }
-            foreach (var unknownpack in callback.UnknownPackages)
+
+            foreach (var package in callback.Packages)
             {
-                Console.WriteLine("Got an unknown Sub. We don't handle these yet. (" + unknownpack + ")");
+                Console.WriteLine("SubID: {0}", package.Key);
+
+                Task.Factory.StartNew(() =>
+                {
+                    SubPro.ProcessSub(package);
+                });
+            }
+
+            // Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
+            if (fullRunOption != 1)
+            {
+                foreach (var app in callback.UnknownApps)
+                {
+                    Task.Factory.StartNew(() =>
+                    {
+                        AppPro.ProcessUnknownApp(app);
+                    });
+                }
+
+                foreach (var package in callback.UnknownPackages)
+                {
+                    Console.WriteLine("Unknown SubID: {0} - We don't handle these yet", package);
+                }
             }
         }
-
     }
 }

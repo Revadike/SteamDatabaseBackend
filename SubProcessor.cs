@@ -22,10 +22,14 @@ namespace PICSUpdater
         }
         public void ProcessSub(object sub)
         {
-            
+            if (Steam.fullRunOption > 0)
+            {
+                Console.WriteLine("Processing Sub: {0}", sub);
+            }
+
             Dictionary<string, string> subdata = new Dictionary<string, string>();
             KeyValuePair<UInt32, SteamApps.PICSProductInfoCallback.PICSProductInfo> subb = (KeyValuePair<UInt32, SteamApps.PICSProductInfoCallback.PICSProductInfo>)sub;
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT * FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter[]
+            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter[]
                 {
                     new MySqlParameter("@SubID", subb.Key)
                 });
@@ -36,15 +40,15 @@ namespace PICSUpdater
             Reader.Close();
             Reader.Dispose();
 
-            Dictionary<string, string> mainsubdata = new Dictionary<string, string>();
+            String PackageName = "";
 
-            MySqlDataReader mainsubReader = DbWorker.ExecuteReader(@"SELECT * FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
+            MySqlDataReader mainsubReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
                 {
                     new MySqlParameter("@SubID", subb.Key)
                 });
-            while (mainsubReader.Read())
+            if(mainsubReader.Read())
             {
-                mainsubdata.Add("Name", GetDBString("Name", mainsubReader));
+                PackageName = GetDBString("Name", mainsubReader);
             }
             mainsubReader.Close();
             mainsubReader.Dispose();
@@ -121,11 +125,11 @@ namespace PICSUpdater
                                         new MySqlParameter("@SubID", subb.Key),
                                         new MySqlParameter("@Name", kv2.Value)
                                     });
-                                if (mainsubdata.Count == 0)
+                                if (PackageName.Equals(""))
                                 {
                                     MakeHistory(subb.Key, subb.Value.ChangeNumber, "created_sub");
-                                }else if(!mainsubdata["Name"].Equals(kv2.Value.ToString())){
-                                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_info", "10", mainsubdata["Name"].ToString(), kv2.Value.ToString(), true);
+                                }else if(!PackageName.Equals(kv2.Value.ToString())){
+                                    MakeHistory(subb.Key, subb.Value.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
                                 }
                             }
                         }
