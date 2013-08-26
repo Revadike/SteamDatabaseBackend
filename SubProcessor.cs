@@ -18,7 +18,7 @@ namespace PICSUpdater
     {
         public void ProcessSub(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
-            if (Steam.fullRunOption > 0)
+            if (Program.steam.fullRunOption > 0)
             {
                 Console.WriteLine("Processing Sub: {0}", SubID);
             }

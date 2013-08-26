@@ -5,48 +5,57 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
 using System.Configuration;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SteamKit2;
 using MySql.Data.MySqlClient;
+using SteamKit2;
+using System.Linq;
 
 namespace PICSUpdater
 {
     class Steam
     {
-        // TODO: Remove statics
+        public SteamClient steamClient;
+        private SteamUser steamUser;
+        private SteamApps steamApps;
+        public SteamFriends steamFriends;
 
-        public static SteamClient steamClient = new SteamClient();
-        static SteamUser steamUser = steamClient.GetHandler<SteamUser>();
-        static SteamApps steamApps = steamClient.GetHandler<SteamApps>();
-        static SteamFriends steamFriends = steamClient.GetHandler<SteamFriends>();
+        public CallbackManager manager;
 
-        static CallbackManager manager;
+        private uint PreviousChange = 0;
+        private AppProcessor AppPro = new AppProcessor();
+        private SubProcessor SubPro = new SubProcessor();
 
-        static uint PreviousChange = 0;
-        static string PrevChangeFile = @"lastchangenumber";
-        static AppProcessor AppPro = new AppProcessor();
-        static SubProcessor SubPro = new SubProcessor();
+        public uint fullRunOption;
+        private bool fullRun = false;
+        public bool isRunning = true;
 
-        static public uint fullRunOption;
-        static private Boolean fullRun = false;
+        public SteamProxy ircSteam;
 
-        public static void GetPICSChanges()
+        public void GetPICSChanges()
         {
             steamApps.PICSGetChangesSince(PreviousChange, true, true);
         }
 
-        public static void SendChatMessage(SteamID target, string message)
+        /*public void SendChatMessage(SteamID target, string message)
         {
             steamFriends.SendChatMessage(target, EChatEntryType.ChatMsg, message);
-        }
+        }*/
 
-        public static void Run()
+        public void Run()
         {
+            steamClient = new SteamClient();
+            steamUser = steamClient.GetHandler<SteamUser>();
+            steamApps = steamClient.GetHandler<SteamApps>();
+            steamFriends = steamClient.GetHandler<SteamFriends>();
+
+            manager = new CallbackManager(steamClient);
+
+            ircSteam = new SteamProxy();
+
             uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
 
             if (fullRunOption == 0)
@@ -54,33 +63,25 @@ namespace PICSUpdater
                 DebugLog.AddListener(( category, msg ) => Console.WriteLine("[SteamKit] {0}: {1}", category, msg));
             }
 
-            manager = new CallbackManager(steamClient);
-
             new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
             new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, manager);
 
             new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, manager);
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, manager);
 
-            new Callback<SteamFriends.FriendMsgCallback>(OnFriendMsg, manager);
+            //new Callback<SteamFriends.FriendMsgCallback>(OnFriendMsg, manager);
 
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
 
-            if (File.Exists(PrevChangeFile))
+            if (ConfigurationManager.AppSettings["last-changenumber"] != null)
             {
-                PreviousChange = uint.Parse(File.ReadAllText(PrevChangeFile));
+                PreviousChange = uint.Parse(ConfigurationManager.AppSettings["last-changenumber"]);
 
                 Console.WriteLine("Previous changelist was {0}", PreviousChange);
             }
-            else
-            {
-                File.WriteAllText(PrevChangeFile, "0");
-            }
 
             steamClient.Connect();
-
-            bool isRunning = true;
 
             while (isRunning == true)
             {
@@ -88,10 +89,12 @@ namespace PICSUpdater
             }
         }
 
-        static void OnConnected(SteamClient.ConnectedCallback callback)
+        private void OnConnected(SteamClient.ConnectedCallback callback)
         {
             if (callback.Result != EResult.OK)
             {
+                CommandHandler.SendEmote(Program.channelAnnounce, "failed to connect: {0}", callback.Result.ToString());
+
                 throw new Exception("Could not connect: " + callback.Result);
             }
 
@@ -104,23 +107,35 @@ namespace PICSUpdater
             });
         }
 
-        static void OnDisconnected(SteamClient.DisconnectedCallback callback)
+        private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            Console.WriteLine("Disconnected from Steam. Retrying in 15 seconds..");
+            if (!isRunning)
+            {
+                Console.WriteLine("Disconnected from Steam");
+                return;
+            }
+
+            Console.WriteLine("Disconnected from Steam. Retrying in 15 seconds...");
             Thread.Sleep(TimeSpan.FromSeconds(15));
             steamClient.Connect();
         }
 
-        static void OnLoggedOn(SteamUser.LoggedOnCallback callback)
+        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             if (callback.Result != EResult.OK)
             {
                 Console.WriteLine("Failed to login: {0}", callback.Result);
+
+                CommandHandler.SendEmote(Program.channelAnnounce, "failed to log in: {0}", callback.Result.ToString());
+
                 Thread.Sleep(TimeSpan.FromSeconds(2));
+
                 return;
             }
 
-            Console.WriteLine("Logged on.");
+            Console.WriteLine("Logged on");
+
+            CommandHandler.SendEmote(Program.channelAnnounce, "is now logged in.");
 
             // Prevent bugs
             if (fullRun)
@@ -167,25 +182,31 @@ namespace PICSUpdater
 
                 Console.WriteLine("Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
 
+                CommandHandler.Send(Program.channelAnnounce, "Running a full run. Requesting {0} apps and {1} packages {2}(option: {3})", appsList.Count, packagesList.Count, Colors.DARK_GRAY, fullRunOption);
+
                 steamApps.PICSGetProductInfo(appsList, packagesList, false, false);
             }
             else
             {
                 GetPICSChanges();
+
+                ircSteam.PlayGame(440);
             }
         }
 
-        static void OnLoggedOff(SteamUser.LoggedOffCallback callback)
+        private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             Console.WriteLine("Logged off of Steam");
+
+            CommandHandler.SendEmote(Program.channelAnnounce, "logged off of Steam.");
         }
 
-        static void OnAccountInfo(SteamUser.AccountInfoCallback callback)
+        private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             steamFriends.SetPersonaState(EPersonaState.Busy);
         }
 
-        static void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
+        /*private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
         {
             if (callback.Message.ToString() == "retry")
             {
@@ -226,9 +247,9 @@ namespace PICSUpdater
                     SendChatMessage(callback.Sender, "Failed to parse your SubID");
                 }
             }
-        }
+        }*/
 
-        static void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
+        private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
         {
             if (fullRun)
             {
@@ -248,6 +269,10 @@ namespace PICSUpdater
 
                 List<uint> appslist = new List<uint>();
                 List<uint> packageslist = new List<uint>();
+
+                Dictionary<uint, uint> appslistIRC = new Dictionary<uint, uint>();
+                Dictionary<uint, uint> packageslistIRC = new Dictionary<uint, uint>();
+
                 DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE date = NOW()",
                 new MySqlParameter[]
                                     {
@@ -257,6 +282,8 @@ namespace PICSUpdater
                 foreach (var callbackapp in callback.AppChanges)
                 {
                     appslist.Add(callbackapp.Key);
+                    appslistIRC.Add(callbackapp.Value.ID, callbackapp.Value.ChangeNumber);
+
                     DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP WHERE AppID = @AppID",
                     new MySqlParameter[]
                             {
@@ -281,6 +308,8 @@ namespace PICSUpdater
                 foreach (var callbackpack in callback.PackageChanges)
                 {
                     packageslist.Add(callbackpack.Key);
+                    packageslistIRC.Add(callbackpack.Value.ID, callbackpack.Value.ChangeNumber);
+
                     DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID",
                     new MySqlParameter[]
                             {
@@ -303,15 +332,26 @@ namespace PICSUpdater
                 }
 
                 PreviousChange = callback.CurrentChangeNumber;
-                File.WriteAllText(PrevChangeFile, callback.CurrentChangeNumber.ToString());
+
+                ConfigurationManager.AppSettings["last-changenumber"] = callback.CurrentChangeNumber.ToString();
+                //ConfigurationManager.Save(ConfigurationSaveMode.Modified);
+
                 steamApps.PICSGetProductInfo(appslist, packageslist, false, false);
+
+                if (!callback.RequiresFullUpdate)
+                {
+                    System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        ircSteam.OnPICSChanges(callback.CurrentChangeNumber, appslistIRC, packageslistIRC);
+                    });
+                }
             }
 
             //TODO, get rid of this and do it every second anyhow
             GetPICSChanges();
         }
 
-        static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID job)
+        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID job)
         {
             foreach (var app in callback.Apps)
             {

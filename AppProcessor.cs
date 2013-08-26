@@ -5,12 +5,12 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
 using MySql.Data.MySqlClient;
-using SteamKit2;
-using System.IO;
 using Newtonsoft.Json;
+using SteamKit2;
+using System.Linq;
 
 namespace PICSUpdater
 {
@@ -18,7 +18,7 @@ namespace PICSUpdater
     {
         public void ProcessApp(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
-            if (Steam.fullRunOption > 0)
+            if (Program.steam.fullRunOption > 0)
             {
                 Console.WriteLine("Processing AppID: {0}", AppID);
             }
