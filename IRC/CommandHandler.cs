@@ -104,8 +104,52 @@ namespace PICSUpdater
                     {
                         if (user.IsOp && e.Data.Nick == user.Nick)
                         {
-                            Program.steam.GetPICSChanges();
-                            SendEmote(e.Data.Channel, "forced check");
+                            if (e.Data.MessageArray.Length == 3)
+                            {
+                                uint target;
+
+                                if (!uint.TryParse(e.Data.MessageArray[2], out target))
+                                {
+                                    Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+
+                                    break;
+                                }
+
+                                switch (e.Data.MessageArray[1])
+                                {
+                                    case "app":
+                                    {
+                                        Program.steam.steamApps.PICSGetProductInfo(target, null, false, false);
+
+                                        Send(e.Data.Channel, "Forced update for AppID {0}{1}", Colors.OLIVE, target);
+
+                                        break;
+                                    }
+                                    case "sub":
+                                    {
+                                        Program.steam.steamApps.PICSGetProductInfo(null, target, false, false);
+
+                                        Send(e.Data.Channel, "Forced update for SubID {0}{1}", Colors.OLIVE, target);
+
+                                        break;
+                                    }
+                                    default:
+                                    {
+                                        Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+
+                                        break;
+                                    }
+                                }
+                            }
+                            else if (e.Data.MessageArray.Length == 1)
+                            {
+                                Program.steam.GetPICSChanges();
+                                Send(e.Data.Channel, "Check forced");
+                            }
+                            else
+                            {
+                                Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+                            }
 
                             break;
                         }

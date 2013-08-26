@@ -19,8 +19,8 @@ namespace PICSUpdater
     class Steam
     {
         public SteamClient steamClient;
-        private SteamUser steamUser;
-        private SteamApps steamApps;
+        public SteamUser steamUser;
+        public SteamApps steamApps;
         public SteamFriends steamFriends;
 
         public CallbackManager manager;
@@ -56,11 +56,6 @@ namespace PICSUpdater
             }
         }
 
-        /*public void SendChatMessage(SteamID target, string message)
-        {
-            steamFriends.SendChatMessage(target, EChatEntryType.ChatMsg, message);
-        }*/
-
         public void Run()
         {
             steamClient = new SteamClient();
@@ -84,8 +79,6 @@ namespace PICSUpdater
 
             new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, manager);
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, manager);
-
-            //new Callback<SteamFriends.FriendMsgCallback>(OnFriendMsg, manager);
 
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
@@ -144,7 +137,7 @@ namespace PICSUpdater
                 return;
             }
 
-            Console.WriteLine("Logged on");
+            Console.WriteLine("Logged in");
 
             CommandHandler.SendEmote(Program.channelAnnounce, "is now logged in.");
 
@@ -216,49 +209,6 @@ namespace PICSUpdater
         {
             steamFriends.SetPersonaState(EPersonaState.Busy);
         }
-
-        /*private void OnFriendMsg(SteamFriends.FriendMsgCallback callback)
-        {
-            if (callback.Message.ToString() == "retry")
-            {
-                GetPICSChanges();
-                SendChatMessage(callback.Sender, "Sent previous changelist again");
-            }
-            else if (callback.Message.ToString() == "lastchangelist")
-            {
-                SendChatMessage(callback.Sender, string.Format("Last changelist is {0}", PreviousChange));
-            }
-            else if (callback.Message.ToString().Contains("forceapp"))
-            {
-                string[] exploded = callback.Message.ToString().Split(' ');
-                uint appid;
-
-                if (exploded.Count() == 2 && uint.TryParse(exploded[1], out appid))
-                {
-                    steamApps.PICSGetProductInfo(appid, null, false, false);
-                    SendChatMessage(callback.Sender, string.Format("Forced app {0}", appid));
-                }
-                else
-                {
-                    SendChatMessage(callback.Sender, "Failed to parse your AppID");
-                }
-            }
-            else if (callback.Message.ToString().Contains("forcesub"))
-            {
-                string[] exploded = callback.Message.ToString().Split(' ');
-                uint subid;
-
-                if (exploded.Count() == 2 && uint.TryParse(exploded[1], out subid))
-                {
-                    steamApps.PICSGetProductInfo(null, subid, false, false);
-                    SendChatMessage(callback.Sender, string.Format("Forced package {0}", subid));
-                }
-                else
-                {
-                    SendChatMessage(callback.Sender, "Failed to parse your SubID");
-                }
-            }
-        }*/
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
         {
