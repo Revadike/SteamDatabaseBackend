@@ -40,6 +40,22 @@ namespace PICSUpdater
             steamApps.PICSGetChangesSince(PreviousChange, true, true);
         }
 
+        private void GetLastChangeNumber()
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
+            {
+                if (Reader.Read())
+                {
+                    PreviousChange = Reader.GetUInt32("ChangeID");
+
+                    Console.WriteLine("Previous changelist was {0}", PreviousChange);
+                }
+
+                Reader.Close();
+                Reader.Dispose();
+            }
+        }
+
         /*public void SendChatMessage(SteamID target, string message)
         {
             steamFriends.SendChatMessage(target, EChatEntryType.ChatMsg, message);
@@ -74,12 +90,7 @@ namespace PICSUpdater
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
 
-            if (ConfigurationManager.AppSettings["last-changenumber"] != null)
-            {
-                PreviousChange = uint.Parse(ConfigurationManager.AppSettings["last-changenumber"]);
-
-                Console.WriteLine("Previous changelist was {0}", PreviousChange);
-            }
+            GetLastChangeNumber();
 
             steamClient.Connect();
 
@@ -332,9 +343,6 @@ namespace PICSUpdater
                 }
 
                 PreviousChange = callback.CurrentChangeNumber;
-
-                ConfigurationManager.AppSettings["last-changenumber"] = callback.CurrentChangeNumber.ToString();
-                //ConfigurationManager.Save(ConfigurationSaveMode.Modified);
 
                 steamApps.PICSGetProductInfo(appslist, packageslist, false, false);
 
