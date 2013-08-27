@@ -51,7 +51,7 @@ namespace PICSUpdater
                 {
                     PreviousChange = Reader.GetUInt32("ChangeID");
 
-                    Console.WriteLine("Previous changelist was {0}", PreviousChange);
+                    Log.WriteInfo("Steam", "Previous changelist was {0}", PreviousChange);
                 }
 
                 Reader.Close();
@@ -75,7 +75,7 @@ namespace PICSUpdater
 
             if (fullRunOption == 0)
             {
-                DebugLog.AddListener(( category, msg ) => Console.WriteLine("[SteamKit] {0}: {1}", category, msg));
+                DebugLog.AddListener(new SteamKitLogger());
             }
 
             timer = new System.Timers.Timer();
@@ -103,7 +103,7 @@ namespace PICSUpdater
 
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
-            //Console.WriteLine(DateTime.Now.ToString("o"));
+            //Log.WriteDebug("Steam", DateTime.Now.ToString("o"));
 
             GetPICSChanges();
         }
@@ -117,7 +117,7 @@ namespace PICSUpdater
                 throw new Exception("Could not connect: " + callback.Result);
             }
 
-            Console.WriteLine("Connected! Logging in...");
+            Log.WriteInfo("Steam", "Connected! Logging in...");
 
             steamUser.LogOn(new SteamUser.LogOnDetails
             {
@@ -132,12 +132,14 @@ namespace PICSUpdater
 
             if (!isRunning)
             {
-                Console.WriteLine("Disconnected from Steam");
+                Log.WriteInfo("Steam", "Disconnected from Steam");
                 return;
             }
 
-            Console.WriteLine("Disconnected from Steam. Retrying in 15 seconds...");
+            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in 15 seconds...");
+
             Thread.Sleep(TimeSpan.FromSeconds(15));
+
             steamClient.Connect();
         }
 
@@ -145,7 +147,7 @@ namespace PICSUpdater
         {
             if (callback.Result != EResult.OK)
             {
-                Console.WriteLine("Failed to login: {0}", callback.Result);
+                Log.WriteError("Steam", "Failed to login: {0}", callback.Result);
 
                 CommandHandler.SendEmote(Program.channelAnnounce, "failed to log in: {0}", callback.Result.ToString());
 
@@ -154,9 +156,9 @@ namespace PICSUpdater
                 return;
             }
 
-            Console.WriteLine("Logged in");
+            Log.WriteInfo("Steam", "Logged in");
 
-            CommandHandler.SendEmote(Program.channelAnnounce, "is now logged in.");
+            CommandHandler.SendEmote(Program.channelAnnounce, "is now logged in. Server time: {0}", callback.ServerTime);
 
             // Prevent bugs
             if (fullRun)
@@ -168,7 +170,7 @@ namespace PICSUpdater
             {
                 fullRun = true;
 
-                Console.WriteLine("Running full update with option \"{0}\"", fullRunOption);
+                Log.WriteInfo("Steam", "Running full update with option \"{0}\"", fullRunOption);
 
                 uint i = 0;
                 List<uint> appsList = new List<uint>();
@@ -201,7 +203,7 @@ namespace PICSUpdater
                     }
                 }
 
-                Console.WriteLine("Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
+                Log.WriteInfo("Steam", "Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
 
                 CommandHandler.Send(Program.channelAnnounce, "Running a full run. Requesting {0} apps and {1} packages {2}(option: {3})", appsList.Count, packagesList.Count, Colors.DARK_GRAY, fullRunOption);
 
@@ -217,7 +219,7 @@ namespace PICSUpdater
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Console.WriteLine("Logged off of Steam");
+            Log.WriteInfo("Steam", "Logged off of Steam");
 
             CommandHandler.SendEmote(Program.channelAnnounce, "logged off of Steam.");
         }
@@ -231,18 +233,18 @@ namespace PICSUpdater
         {
             if (fullRun)
             {
-                Console.WriteLine("Received changelist while processing a full run, ignoring.");
+                Log.WriteInfo("Steam", "Received changelist while processing a full run, ignoring.");
                 return;
             }
             else if (PreviousChange == 0)
             {
-                Console.WriteLine("PreviousChange was 0. Rolling back by one changelist.");
+                Log.WriteInfo("Steam", "PreviousChange was 0. Rolling back by one changelist.");
                 PreviousChange = callback.CurrentChangeNumber - 1;
                 return;
             }
             else if (PreviousChange != callback.CurrentChangeNumber)
             {
-                Console.WriteLine("Got changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
+                Log.WriteInfo("Steam", "Got changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
 
                 System.Threading.ThreadPool.QueueUserWorkItem(delegate
                 {
@@ -332,7 +334,7 @@ namespace PICSUpdater
 
             foreach (var app in callback.Apps)
             {
-                Console.WriteLine("AppID: {0}", app.Key);
+                Log.WriteDebug("Steam", "AppID: {0}", app.Key);
 
                 var workaround = app;
 
@@ -344,7 +346,7 @@ namespace PICSUpdater
 
             foreach (var package in callback.Packages)
             {
-                Console.WriteLine("SubID: {0}", package.Key);
+                Log.WriteDebug("Steam", "SubID: {0}", package.Key);
 
                 var workaround = package;
 
@@ -369,7 +371,7 @@ namespace PICSUpdater
 
                 foreach (uint package in callback.UnknownPackages)
                 {
-                    Console.WriteLine("Unknown SubID: {0} - We don't handle these yet", package);
+                    Log.WriteWarn("Steam", "Unknown SubID: {0} - We don't handle these yet", package);
                 }
             }
         }

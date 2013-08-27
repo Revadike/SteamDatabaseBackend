@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.IO;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 using SteamKit2.GC;
@@ -87,7 +88,7 @@ namespace PICSUpdater
             }
             else
             {
-                Console.WriteLine("Loaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
+                Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
             }
         }
 
@@ -235,7 +236,7 @@ namespace PICSUpdater
 
         public void OnProductInfo(IRCRequest request, SteamApps.PICSProductInfoCallback callback)
         {
-            Console.WriteLine("Product info for IRC request completed for {0} in {1} (ResponsePending: {2})", request.Requester, request.Channel, callback.ResponsePending.ToString());
+            Log.WriteInfo("IRC Proxy", "Product info request completed for {0} in {1} (ResponsePending: {2})", request.Requester, request.Channel, callback.ResponsePending.ToString());
 
             if (request.Type == SteamProxy.IRCRequestType.TYPE_SUB)
             {
@@ -257,7 +258,7 @@ namespace PICSUpdater
 
                 try
                 {
-                    kv.SaveToFile(string.Format("sub/{0}.vdf", info.ID), false);
+                    kv.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sub", string.Format("{0}.vdf", info.ID)), false);
                 }
                 catch (Exception e)
                 {
@@ -287,7 +288,7 @@ namespace PICSUpdater
 
                 try
                 {
-                    info.KeyValues.SaveToFile(string.Format("app/{0}.vdf", info.ID), false);
+                    info.KeyValues.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app", string.Format("{0}.vdf", info.ID)), false);
                 }
                 catch (Exception e)
                 {

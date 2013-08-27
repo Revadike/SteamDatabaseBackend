@@ -20,7 +20,7 @@ namespace PICSUpdater
         {
             if (Program.steam.fullRunOption > 0)
             {
-                Console.WriteLine("Processing AppID: {0}", AppID);
+                Log.WriteInfo("App Processor", "AppID: {0}", AppID);
             }
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
@@ -155,7 +155,7 @@ namespace PICSUpdater
                         keynamecheck.Equals("extended_us")
                         )
                         {
-                            Console.WriteLine("Dammit Valve, why these long keynames: {0} - {1} ", AppID, keynamecheck);
+                            Log.WriteWarn("App Processor", "Dammit Valve, why these long keynames: {0} - {1} ", AppID, keynamecheck);
                             continue;
                         }
 
@@ -361,7 +361,7 @@ namespace PICSUpdater
 
         public void ProcessUnknown(uint AppID)
         {
-            Console.WriteLine("Unknown AppID: {0}", AppID);
+            Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
             String AppName = "";
 

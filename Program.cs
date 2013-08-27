@@ -24,13 +24,13 @@ namespace PICSUpdater
         {
             if (ConfigurationManager.AppSettings["steam-username"] == null || ConfigurationManager.AppSettings["steam-password"] == null)
             {
-                Console.WriteLine("Is config missing? It should be in " + ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
+                Log.WriteError("Main", "Is config missing? It should be in " + ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
                 return;
             }
 
             Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
             {
-                Console.WriteLine("Exiting...");
+                Log.WriteInfo("Main", "Exiting...");
 
                 steam.isRunning = false;
 
@@ -68,8 +68,7 @@ namespace PICSUpdater
             }
             catch(Exception e)
             {
-                Console.WriteLine("Exception: {0}", e.Message);
-                //Console.WriteLine(e.StackTrace);
+                Log.WriteError("Main", "Exception: {0}", e.Message);
             }
         }
 
@@ -82,7 +81,7 @@ namespace PICSUpdater
             }
             catch(Exception e)
             {
-                Console.WriteLine("Exception while exiting: {0}", e.Message);
+                Log.WriteError("Main", "Exception while exiting: {0}", e.Message);
             }
         }
     }

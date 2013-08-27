@@ -20,7 +20,7 @@ namespace PICSUpdater
         {
             if (Program.steam.fullRunOption > 0)
             {
-                Console.WriteLine("Processing Sub: {0}", SubID);
+                Log.WriteInfo("Sub Processor", "Processing Sub: {0}", SubID);
             }
 
             Dictionary<string, string> subdata = new Dictionary<string, string>();
