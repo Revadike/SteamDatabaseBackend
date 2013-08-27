@@ -231,7 +231,7 @@ namespace PICSUpdater
         {
             if (fullRun)
             {
-                Console.WriteLine("Received changedlist while processing a full run, ignoring.");
+                Console.WriteLine("Received changelist while processing a full run, ignoring.");
                 return;
             }
             else if (PreviousChange == 0)
@@ -242,83 +242,75 @@ namespace PICSUpdater
             }
             else if (PreviousChange != callback.CurrentChangeNumber)
             {
-                Console.WriteLine("Got changelist {0}, previous is {1}", callback.CurrentChangeNumber, PreviousChange);
+                Console.WriteLine("Got changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
 
-                List<uint> appslist = new List<uint>();
-                List<uint> packageslist = new List<uint>();
-
-                Dictionary<uint, uint> appslistIRC = new Dictionary<uint, uint>();
-                Dictionary<uint, uint> packageslistIRC = new Dictionary<uint, uint>();
-
-                DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE date = NOW()",
-                new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@ChangeID", callback.CurrentChangeNumber)
-                                    });
-
-                foreach (var callbackapp in callback.AppChanges)
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate
                 {
-                    appslist.Add(callbackapp.Key);
-                    appslistIRC.Add(callbackapp.Value.ID, callbackapp.Value.ChangeNumber);
+                    ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
+                });
 
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP WHERE AppID = @AppID",
-                    new MySqlParameter[]
-                            {
-                                new MySqlParameter("@AppID", callbackapp.Key)
-                            });
-                    if (!callback.CurrentChangeNumber.Equals(callbackapp.Value.ChangeNumber))
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Changelists (ChangeID) VALUES (@ChangeID)",
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                {
+                    DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = CURRENT_TIMESTAMP()",
                         new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber)
-                                    });
-                    }
-                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsApps (ChangeID, AppID) VALUES (@ChangeID, @AppID)",
-                    new MySqlParameter[]
+                        {
+                            new MySqlParameter("@ChangeID", callback.CurrentChangeNumber)
+                        });
+
+                    foreach (var callbackapp in callback.AppChanges)
+                    {
+                        DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP() WHERE AppID = @AppID",
+                            new MySqlParameter[]
+                            {
+                                new MySqlParameter("@AppID", callbackapp.Value.ID)
+                            });
+
+                        if (callback.CurrentChangeNumber != callbackapp.Value.ChangeNumber)
+                        {
+                            DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date",
+                                new MySqlParameter[]
+                                {
+                                    new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber)
+                                });
+                        }
+
+                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsApps (ChangeID, AppID) VALUES (@ChangeID, @AppID)",
+                            new MySqlParameter[]
                             {
                                 new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber),
-                                new MySqlParameter("@AppID", callbackapp.Key)
+                                new MySqlParameter("@AppID", callbackapp.Value.ID)
                             });
-                }
-
-                foreach (var callbackpack in callback.PackageChanges)
-                {
-                    packageslist.Add(callbackpack.Key);
-                    packageslistIRC.Add(callbackpack.Value.ID, callbackpack.Value.ChangeNumber);
-
-                    DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID",
-                    new MySqlParameter[]
-                            {
-                                new MySqlParameter("@SubID", callbackpack.Key)
-                            });
-                    if (!callback.CurrentChangeNumber.Equals(callbackpack.Value.ChangeNumber))
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Changelists (ChangeID) VALUES (@ChangeID)",
-                        new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber)
-                                    });
                     }
-                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsSubs (ChangeID, SubID) VALUES (@ChangeID, @SubID)",
-                    new MySqlParameter[]
+
+                    foreach (var callbackpack in callback.PackageChanges)
+                    {
+                        DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID",
+                            new MySqlParameter[]
+                            {
+                                new MySqlParameter("@SubID", callbackpack.Value.ID)
+                            });
+
+                        if (callback.CurrentChangeNumber != callbackpack.Value.ChangeNumber)
+                        {
+                            DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date",
+                                new MySqlParameter[]
+                                {
+                                    new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber)
+                                });
+                        }
+
+                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsSubs (ChangeID, SubID) VALUES (@ChangeID, @SubID)",
+                            new MySqlParameter[]
                             {
                                 new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber),
-                                new MySqlParameter("@SubID", callbackpack.Key)
+                                new MySqlParameter("@SubID", callbackpack.Value.ID)
                             });
-                }
+                    }
+                });
+
+                steamApps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
 
                 PreviousChange = callback.CurrentChangeNumber;
-
-                steamApps.PICSGetProductInfo(appslist, packageslist, false, false);
-
-                if (!callback.RequiresFullUpdate)
-                {
-                    System.Threading.ThreadPool.QueueUserWorkItem(delegate
-                    {
-                        ircSteam.OnPICSChanges(callback.CurrentChangeNumber, appslistIRC, packageslistIRC);
-                    });
-                }
             }
         }
 
@@ -335,11 +327,6 @@ namespace PICSUpdater
                     ircSteam.OnProductInfo(request, callback);
                 });
 
-                /*Task.Factory.StartNew(() =>
-                {
-                    ircSteam.OnProductInfo(request, callback);
-                });*/
-
                 return;
             }
 
@@ -351,7 +338,7 @@ namespace PICSUpdater
 
                 Task.Factory.StartNew(() =>
                 {
-                    AppPro.ProcessApp(workaround.Key, workaround.Value);
+                    AppPro.Process(workaround.Key, workaround.Value);
                 });
             }
 
@@ -363,7 +350,7 @@ namespace PICSUpdater
 
                 Task.Factory.StartNew(() =>
                 {
-                    SubPro.ProcessSub(workaround.Key, workaround.Value);
+                    SubPro.Process(workaround.Key, workaround.Value);
                 });
             }
 
@@ -376,7 +363,7 @@ namespace PICSUpdater
 
                     Task.Factory.StartNew(() =>
                     {
-                        AppPro.ProcessUnknownApp(workaround);
+                        AppPro.ProcessUnknown(workaround);
                     });
                 }
 

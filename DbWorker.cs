@@ -9,6 +9,8 @@ using System.Configuration;
 using System.Text;
 using MySql.Data;
 using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
+using SteamKit2;
 using System.Linq;
 
 namespace PICSUpdater
@@ -22,7 +24,7 @@ namespace PICSUpdater
             return MySqlHelper.ExecuteReader(ConnectionString, text);
         }
 
-        public static MySqlDataReader ExecuteReader(string text, MySqlParameter[] parameters)
+        public static MySqlDataReader ExecuteReader(string text, params MySqlParameter[] parameters)
         {
             return MySqlHelper.ExecuteReader(ConnectionString, text, parameters);
         }
@@ -42,6 +44,27 @@ namespace PICSUpdater
             var ordinal = Reader.GetOrdinal(SqlFieldName);
 
             return Reader.IsDBNull(ordinal) ? String.Empty : Reader.GetString(ordinal);
+        }
+
+        public static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)
+        {
+            w.WriteStartObject();
+
+            foreach (KeyValue keyval in keys)
+            {
+                if (keyval.Children.Count > 0)
+                {
+                    w.WritePropertyName(keyval.Name);
+                    JsonifyKeyValue(w, keyval.Children);
+                }
+                else if (keyval.Value != null)
+                {
+                    w.WritePropertyName(keyval.Name);
+                    w.WriteValue(keyval.Value);
+                }
+            }
+
+            w.WriteEndObject();
         }
     }
 }

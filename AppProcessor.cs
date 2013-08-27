@@ -16,7 +16,7 @@ namespace PICSUpdater
 {
     class AppProcessor
     {
-        public void ProcessApp(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        public void Process(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
             if (Program.steam.fullRunOption > 0)
             {
@@ -34,8 +34,6 @@ namespace PICSUpdater
                 {
                     appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
-                Reader.Close();
-                Reader.Dispose();
             }
 
             String AppName = "";
@@ -51,8 +49,6 @@ namespace PICSUpdater
                     AppName = DbWorker.GetString("Name", Reader);
                     AppType = DbWorker.GetString("AppType", Reader);
                 }
-                Reader.Close();
-                Reader.Dispose();
             }
 
             if (ProductInfo.KeyValues["common"]["name"].Value != null)
@@ -69,21 +65,25 @@ namespace PICSUpdater
                         {
                             newAppType = DbWorker.GetString("AppType", Reader);
                         }
-                        Reader.Close();
-                        Reader.Dispose();
                     }
                 }
 
                 if (AppName.Equals("") || AppName.StartsWith("SteamDB Unknown App"))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppId, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@Type", newAppType), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value.ToString()) });
+                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppId, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
+                        new MySqlParameter[]
+                        {
+                            new MySqlParameter("@AppId", AppID),
+                            new MySqlParameter("@Type", newAppType),
+                            new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
+                        });
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_app");
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "10", "", ProductInfo.KeyValues["common"]["name"].Value.ToString(), true);
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "10", "", ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
-                else if (!AppName.Equals(ProductInfo.KeyValues["common"]["name"].Value.ToString()))
+                else if (!AppName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppId", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value.ToString()) });
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "10", AppName, ProductInfo.KeyValues["common"]["name"].Value.ToString(), true);
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppId", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value) });
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "10", AppName, ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
 
                 if (AppType.Equals("") || AppType.Equals("0"))
@@ -99,12 +99,12 @@ namespace PICSUpdater
                 }
             }
 
-            #region HugeQuery
             if (ProductInfo.KeyValues == null)
             {
                 return;
             }
 
+            #region HugeQuery
             foreach (KeyValue section in ProductInfo.KeyValues.Children)
             {
                 String sectionName = section.Name;
@@ -137,13 +137,14 @@ namespace PICSUpdater
                 {
                     foreach (KeyValue keyvalue in section.Children)
                     {
-                        String keynamecheck = sectionName.ToLower() + "_" + keyvalue.Name.ToString();
+                        String keynamecheck = sectionName.ToLower() + "_" + keyvalue.Name;
+
                         if (keynamecheck.Equals("common_type") || keynamecheck.Equals("common_gameid") || keynamecheck.Equals("common_name") || keynamecheck.Equals("extended_order"))
                         {
                             continue;
                         }
                         // TODO: This is godlike hackiness
-                        else if 
+                        else if
                         (
                         keynamecheck.StartsWith("extended_us ") ||
                         keynamecheck.StartsWith("extended_im ") ||
@@ -161,14 +162,14 @@ namespace PICSUpdater
                         List<KeyValue> subvalues = keyvalue.Children;
                         if (subvalues.Count == 0)
                         {
-                            if (!keyvalue.Value.ToString().Equals(""))
+                            if (!keyvalue.Value.Equals(""))
                             {
                                 if (appdata.ContainsKey(keynamecheck))
                                 {
-                                    if (!appdata[keynamecheck].Equals(keyvalue.Value.ToString()))
+                                    if (!appdata[keynamecheck].Equals(keyvalue.Value))
                                     {
-                                        MakeAppsInfo(AppID, keynamecheck, keyvalue.Value.ToString());
-                                        MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck].ToString(), keyvalue.Value.ToString());
+                                        MakeAppsInfo(AppID, keynamecheck, keyvalue.Value);
+                                        MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck], keyvalue.Value);
                                     }
                                 }
                                 else
@@ -177,10 +178,10 @@ namespace PICSUpdater
                                     new MySqlParameter[]
                                     {
                                         new MySqlParameter("@KeyValueNameSection", keynamecheck),
-                                        new MySqlParameter("@KeyValueName", keyvalue.Name.ToString())
+                                        new MySqlParameter("@KeyValueName", keyvalue.Name)
                                     });
-                                    MakeAppsInfo(AppID, keynamecheck, keyvalue.Value.ToString());
-                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", keynamecheck, "", keyvalue.Value.ToString());
+                                    MakeAppsInfo(AppID, keynamecheck, keyvalue.Value);
+                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", keynamecheck, "", keyvalue.Value);
                                 }
                                 appdata.Remove(keynamecheck);
                             }
@@ -203,14 +204,15 @@ namespace PICSUpdater
                             }
                             else
                             {
-                                StringBuilder sb = new StringBuilder();
-                                StringWriter sw = new StringWriter(sb);
-                                using (JsonWriter w = new JsonTextWriter(sw))
+                                using(StringWriter sw = new StringWriter(new StringBuilder()))
                                 {
-                                    List<KeyValue> fullarray = keyvalue.Children;
-                                    WriteKey(w, fullarray);
+                                    using (JsonWriter w = new JsonTextWriter(sw))
+                                    {
+                                        DbWorker.JsonifyKeyValue(w, keyvalue.Children);
+                                    }
+
+                                    generated_value = sw.ToString();
                                 }
-                                generated_value = sw.ToString();
                             }
 
                             if (appdata.ContainsKey(keynamecheck))
@@ -218,20 +220,22 @@ namespace PICSUpdater
                                 if (!appdata[keynamecheck].Equals(generated_value))
                                 {
                                     MakeAppsInfo(AppID, keynamecheck, generated_value);
-                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck].ToString(), generated_value);
+                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck], generated_value);
                                 }
                             }
                             else
                             {
                                 DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@KeyValueNameSection", keynamecheck),
-                                    new MySqlParameter("@KeyValueName", keyvalue.Name.ToString())
-                                });
+                                    new MySqlParameter[]
+                                    {
+                                        new MySqlParameter("@KeyValueNameSection", keynamecheck),
+                                        new MySqlParameter("@KeyValueName", keyvalue.Name)
+                                    });
+
                                 MakeAppsInfo(AppID, keynamecheck, generated_value);
                                 MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", keynamecheck, "", generated_value);
                             }
+
                             appdata.Remove(keynamecheck);
                         }
                         // more stuff in sub arrays?
@@ -239,18 +243,19 @@ namespace PICSUpdater
                 }
                 else
                 {
-                    sectionName = "marlamin" + "_" + section.Name.ToString().ToLower();
-                    StringBuilder sb = new StringBuilder();
-                    StringWriter sw = new StringWriter(sb);
-                    String json = "";
-                    using (JsonWriter w = new JsonTextWriter(sw))
-                    {
-                        List<KeyValue> fullarray = section.Children;
-                        WriteKey(w, fullarray);
-                    }
-                    json = sw.ToString();
+                    sectionName = "marlamin" + "_" + section.Name.ToLower();
 
-                    List<MySqlParameter> parameters = new List<MySqlParameter>();
+                    string json = "";
+
+                    using(StringWriter sw = new StringWriter(new StringBuilder()))
+                    {
+                        using (JsonWriter w = new JsonTextWriter(sw))
+                        {
+                            DbWorker.JsonifyKeyValue(w, section.Children);
+                        }
+
+                        json = sw.ToString();
+                    }
 
                     if (appdata.ContainsKey(sectionName))
                     {
@@ -264,27 +269,31 @@ namespace PICSUpdater
                     {
                         DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames (Type, Name, DisplayName) VALUES (99, @KeyName, @KeyName)",
                             new MySqlParameter[]
-                        {
-                            new MySqlParameter("@KeyName", sectionName)
-                        });
+                            {
+                                new MySqlParameter("@KeyName", sectionName)
+                            });
+
                         MakeAppsInfo(AppID, sectionName, json);
                         MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", sectionName, "", json);
                     }
+
                     appdata.Remove(sectionName);
                 }
             }
+            #endregion
 
             foreach (String key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {
                     DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppId AND `Key` = (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1)",
-                    new MySqlParameter[]
-                    {
-                        new MySqlParameter("@AppId", AppID),
-                        new MySqlParameter("@KeyName", key)
-                    });
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "removed_key", key, appdata[key].ToString(), "");
+                        new MySqlParameter[]
+                        {
+                            new MySqlParameter("@AppId", AppID),
+                            new MySqlParameter("@KeyName", key)
+                        });
+
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "removed_key", key, appdata[key], "");
                 }
             }
 
@@ -293,10 +302,12 @@ namespace PICSUpdater
                 if (AppName.Equals(""))
                 {
                     //we never knew it
-                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, Name) VALUES (@AppId, @AppName)", new MySqlParameter[] { 
-                        new MySqlParameter("@AppId", AppID), 
-                        new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID) 
-                    });
+                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, Name) VALUES (@AppId, @AppName)",
+                        new MySqlParameter[]
+                        {
+                            new MySqlParameter("@AppId", AppID),
+                            new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
+                        });
                 }
                 else
                 {
@@ -304,54 +315,26 @@ namespace PICSUpdater
                     if (!AppName.StartsWith("SteamDB Unknown App"))
                     {
                         MakeHistory(AppID, ProductInfo.ChangeNumber, "deleted_app", "0", AppName, "", true);
+
                         DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName, AppType = 0 WHERE AppID = @AppId",
                             new MySqlParameter[] {
-                            new MySqlParameter("@AppId", AppID), 
-                            new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID) 
+                                new MySqlParameter("@AppId", AppID),
+                                new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
                             });
                     }
                 }
             }
-            #endregion
-        }
-            
-        private static void WriteKey(JsonWriter w, List<KeyValue> keys)
-        {
-            w.WriteStartObject();
-            foreach (KeyValue keyval in keys)
-            {
-                if (keyval.Children.Count == 0)
-                {
-                    if (keyval.Value != null)
-                    {
-                        WriteSubkey(w, keyval.Name.ToString(), keyval.Value.ToString());
-                    }
-                }
-                else
-                {
-                    List<KeyValue> subkeys = keyval.Children;
-                    w.WritePropertyName(keyval.Name.ToString());
-                    WriteKey(w, subkeys);
-                }
-            }
-            w.WriteEndObject();
-        }
-
-        private static void WriteSubkey(JsonWriter w, string name, string value)
-        {
-            w.WritePropertyName(name);
-            w.WriteValue(value);
         }
 
         private static void MakeAppsInfo(uint AppID, string KeyName = "", string Value = "")
         {
             DbWorker.ExecuteNonQuery("INSERT INTO AppsInfo VALUES (@AppId, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE Value=@Value",
-            new MySqlParameter[]
-                    {
-                        new MySqlParameter("@AppId", AppID),
-                        new MySqlParameter("@KeyName", KeyName),
-                        new MySqlParameter("@Value", Value)
-                    });
+                new MySqlParameter[]
+                {
+                    new MySqlParameter("@AppId", AppID),
+                    new MySqlParameter("@KeyName", KeyName),
+                    new MySqlParameter("@Value", Value)
+                });
         }
 
         private static void MakeHistory(uint AppID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
@@ -367,75 +350,69 @@ namespace PICSUpdater
             if (keyoverride == true || KeyName.Equals(""))
             {
                 DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)",
-                parameters.ToArray());
+                    parameters.ToArray());
             }
             else
             {
                 DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @OldValue, @NewValue)",
-                parameters.ToArray());
+                    parameters.ToArray());
             }
-
-            //parameters.Clear();
         }
 
-        public void ProcessUnknownApp(uint AppID)
+        public void ProcessUnknown(uint AppID)
         {
             Console.WriteLine("Unknown AppID: {0}", AppID);
 
             String AppName = "";
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
-                {
-                new MySqlParameter("AppID", AppID)
-                }))
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID",
+                    new MySqlParameter[]
+                    {
+                        new MySqlParameter("AppID", AppID)
+                    }))
             {
                 if (!MainReader.Read())
                 {
-                    MainReader.Close();
-                    MainReader.Dispose();
                     return;
                 }
 
                 AppName = DbWorker.GetString("Name", MainReader);
-                MainReader.Close();
-                MainReader.Dispose();
             }
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
-                {
-                new MySqlParameter("AppID", AppID)
-                }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId",
+                    new MySqlParameter[]
+                    {
+                        new MySqlParameter("AppID", AppID)
+                    }))
             {
                 while (Reader.Read())
                 {
                     appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
-                Reader.Close();
-                Reader.Dispose();
             }
 
             DbWorker.ExecuteNonQuery("DELETE FROM Apps WHERE AppID = @AppId",
-                new MySqlParameter[] { 
-                new MySqlParameter("@AppId", AppID)
+                new MySqlParameter[] {
+                    new MySqlParameter("@AppId", AppID)
                 });
 
             DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE AppID = @AppId",
-                new MySqlParameter[] { 
-                new MySqlParameter("@AppId", AppID)
+                new MySqlParameter[] {
+                    new MySqlParameter("@AppId", AppID)
                 });
 
             DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppId",
-                new MySqlParameter[] { 
-                new MySqlParameter("@AppId", AppID)
+                new MySqlParameter[] {
+                    new MySqlParameter("@AppId", AppID)
                 });
 
             foreach (String key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {
-                    MakeHistory(AppID, 0, "removed_key", key, appdata[key].ToString(), "");
+                    MakeHistory(AppID, 0, "removed_key", key, appdata[key], "");
                 }
             }
 

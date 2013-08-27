@@ -77,7 +77,7 @@ namespace PICSUpdater
         {
             try
             {
-                irc.WriteLine("QUIT :Exiting, will be back shortly!", Priority.Critical);
+                irc.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
                 irc.Disconnect();
             }
             catch(Exception e)

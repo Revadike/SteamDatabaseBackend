@@ -16,7 +16,7 @@ namespace PICSUpdater
 {
     class SubProcessor
     {
-        public void ProcessSub(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        public void Process(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
             if (Program.steam.fullRunOption > 0)
             {
@@ -24,7 +24,7 @@ namespace PICSUpdater
             }
 
             Dictionary<string, string> subdata = new Dictionary<string, string>();
-            
+
             MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter[]
                 {
                     new MySqlParameter("@SubID", SubID)
@@ -177,7 +177,7 @@ namespace PICSUpdater
                                         {
                                             subapps.Remove(kv3.Value);
                                         }
-                                        
+
                                     }
                                     else if (type == "depot")
                                     {
@@ -199,8 +199,7 @@ namespace PICSUpdater
                                 String json = "";
                                 using (JsonWriter w = new JsonTextWriter(sw))
                                 {
-                                    List<KeyValue> fullarray = kv2.Children;
-                                    WriteKey(w, fullarray);
+                                    DbWorker.JsonifyKeyValue(w, kv2.Children);
                                 }
                                 json = sw.ToString();
 
@@ -218,7 +217,7 @@ namespace PICSUpdater
                                 {
                                     if (!subdata["marlamin_" + kv2.Name.ToString()].Equals(json))
                                     {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json); 
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json);
                                     }
                                 }
                                 else
@@ -244,12 +243,12 @@ namespace PICSUpdater
                     });
                     MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key].ToString(), "");
                 }
-               
+
             }
             foreach (String key in subapps)
             {
-                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'app'", 
-                new MySqlParameter[] { 
+                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'app'",
+                new MySqlParameter[] {
                     new MySqlParameter("@SubID", SubID),
                     new MySqlParameter("@Key", key)
                 });
@@ -258,7 +257,7 @@ namespace PICSUpdater
             foreach (String key in subdepots)
             {
                 DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'depot'",
-                new MySqlParameter[] { 
+                new MySqlParameter[] {
                     new MySqlParameter("@SubID", SubID),
                     new MySqlParameter("@Key", key)
                 });
@@ -276,6 +275,7 @@ namespace PICSUpdater
                         new MySqlParameter("@Value", Value)
                     });
         }
+
         private static void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
             List<MySqlParameter> parameters = new List<MySqlParameter>();
@@ -296,34 +296,6 @@ namespace PICSUpdater
                 parameters.ToArray());
             }
             parameters.Clear();
-        }
-
-        private static void WriteKey(JsonWriter w, List<KeyValue> keys)
-        {
-            w.WriteStartObject();
-            foreach (KeyValue keyval in keys)
-            {
-                if (keyval.Children.Count == 0)
-                {
-                    if (keyval.Value != null)
-                    {
-                        WriteSubkey(w, keyval.Name.ToString(), keyval.Value.ToString());
-                    }
-                }
-                else
-                {
-                    List<KeyValue> subkeys = keyval.Children;
-                    w.WriteValue(keyval.Name.ToString());
-                    WriteKey(w, subkeys);
-                }
-            }
-            w.WriteEndObject();
-        }
-
-        private static void WriteSubkey(JsonWriter w, string name, string value)
-        {
-            w.WritePropertyName(name);
-            w.WriteValue(value);
         }
     }
 }

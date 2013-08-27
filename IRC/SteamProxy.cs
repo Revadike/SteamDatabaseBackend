@@ -55,7 +55,7 @@ namespace PICSUpdater
 
         public void ReloadImportant(string channel)
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppID FROM ImportantApps WHERE `Announce` = 1"))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT AppID FROM ImportantApps WHERE `Announce` = 1"))
             {
                 importantApps.Clear();
 
@@ -68,7 +68,7 @@ namespace PICSUpdater
                 Reader.Dispose();
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT SubID FROM ImportantSubs"))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT SubID FROM ImportantSubs"))
             {
                 importantSubs.Clear();
 
@@ -95,7 +95,7 @@ namespace PICSUpdater
         {
             String name = "";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
             {
                 new MySqlParameter("SubID", SubID)
             }))
@@ -115,7 +115,7 @@ namespace PICSUpdater
         {
             String name = "";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
             {
                 new MySqlParameter("AppID", AppID)
             }))
@@ -131,7 +131,7 @@ namespace PICSUpdater
 
             if (name.Equals("") || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
             {
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter[]
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter[]
                 {
                     new MySqlParameter("AppID", AppID)
                 }))
@@ -304,39 +304,36 @@ namespace PICSUpdater
             }
         }
 
-        public void OnPICSChanges(uint changeNumber, Dictionary<uint, uint> appList, Dictionary<uint, uint> packageList)
+        public void OnPICSChanges(uint changeNumber, SteamApps.PICSChangesCallback callback)
         {
             string Message = string.Format("Received changelist {0}{1}{2} with {3}{4}{5} apps and {6}{7}{8} packages -{9} http://steamdb.info/changelist/{10}/",
                                            Colors.OLIVE, changeNumber, Colors.NORMAL,
-                                           appList.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, appList.Count, Colors.NORMAL,
-                                           packageList.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, packageList.Count, Colors.NORMAL,
+                                           callback.AppChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.AppChanges.Count, Colors.NORMAL,
+                                           callback.PackageChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.PackageChanges.Count, Colors.NORMAL,
                                            Colors.DARK_BLUE, changeNumber);
 
             CommandHandler.Send(Program.channelAnnounce, "{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
 
-            if(appList.Count >= 50 || packageList.Count >= 50)
+            if(callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
             {
                 CommandHandler.Send(Program.channelMain, Message);
             }
 
-            ProcessAppChanges(changeNumber, appList);
-            ProcessSubChanges(changeNumber, packageList);
-
-            //ProcessAppChanges(changeNumber, appList.OrderBy(key => key.Value).ToDictionary(pair => pair.Key, pair => pair.Value));
-            //ProcessSubChanges(packageList.OrderBy(key => key.Value).ToDictionary(pair => pair.Key, pair => pair.Value));
+            ProcessAppChanges(changeNumber, callback.AppChanges);
+            ProcessSubChanges(changeNumber, callback.PackageChanges);
         }
 
-        private void ProcessAppChanges(uint changeNumber, Dictionary<uint, uint> appList)
+        private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList)
         {
             string name = "";
             bool isImportant = false;
 
             foreach (var app in appList)
             {
-                name = GetAppName(app.Key);
-                isImportant = importantApps.Contains(app.Key);
+                name = GetAppName(app.Value.ID);
+                isImportant = importantApps.Contains(app.Value.ID);
 
-                /*if (changeNumber != app.Value)
+                /*if (changeNumber != app.Value.ChangeNumber)
                 {
                     changeNumber = app.Value;
 
@@ -345,62 +342,60 @@ namespace PICSUpdater
 
                 if (isImportant)
                 {
-                    CommandHandler.Send(Program.channelMain, "Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Key);
+                    CommandHandler.Send(Program.channelMain, "Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ID);
                 }
 
                 if (name.Equals(""))
                 {
-                    //CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}{2}", Colors.GREEN, app.Key, Colors.NORMAL);
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, app.Key, Colors.NORMAL);
+                    name = string.Format("{0}{1}{2}", Colors.GREEN, app.Value.ID, Colors.NORMAL);
                 }
                 else
                 {
-                    //CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}{2} - {3}", isImportant ? Colors.OLIVE : Colors.LIGHT_GRAY, app.Key, Colors.NORMAL, name);
-                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, app.Key, Colors.NORMAL, name);
+                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, app.Value.ID, Colors.NORMAL, name);
                 }
 
-                if (changeNumber != app.Value)
+                if (changeNumber != app.Value.ChangeNumber)
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  App: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, app.Value, Colors.NORMAL, Colors.DARK_BLUE, app.Value);
+                    CommandHandler.Send(Program.channelAnnounce, "  App: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, app.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ChangeNumber);
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  App: {0}", name);
+                    CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : "");
                 }
             }
         }
 
-        private void ProcessSubChanges(uint changeNumber, Dictionary<uint, uint> packageList)
+        private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList)
         {
             string name = "";
             bool isImportant = false;
 
             foreach (var package in packageList)
             {
-                name = GetPackageName(package.Key);
-                isImportant = importantSubs.Contains(package.Key);
+                name = GetPackageName(package.Value.ID);
+                isImportant = importantSubs.Contains(package.Value.ID);
 
                 if (isImportant)
                 {
-                    CommandHandler.Send(Program.channelMain, "Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value);
+                    CommandHandler.Send(Program.channelMain, "Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ID);
                 }
 
                 if (name.Equals(""))
                 {
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, package.Key, Colors.NORMAL);
+                    name = string.Format("{0}{1}{2}", Colors.GREEN, package.Value.ID, Colors.NORMAL);
                 }
                 else
                 {
-                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, package.Key, Colors.NORMAL, name);
+                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, package.Value.ID, Colors.NORMAL, name);
                 }
 
-                if (changeNumber != package.Value)
+                if (changeNumber != package.Value.ChangeNumber)
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, package.Value, Colors.NORMAL, Colors.DARK_BLUE, package.Value);
+                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, package.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ChangeNumber);
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0}", name);
+                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : "");
                 }
             }
         }
@@ -410,7 +405,7 @@ namespace PICSUpdater
             var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>( EMsg.ClientGamesPlayedNoDataBlob );
 
             clientMsg.Body.games_played.Add( new CMsgClientGamesPlayed.GamePlayed
-                                            {
+            {
                 game_id = AppID
             } );
 
