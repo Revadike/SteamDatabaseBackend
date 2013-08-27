@@ -22,6 +22,7 @@ namespace PICSUpdater
         public SteamUser steamUser;
         public SteamApps steamApps;
         public SteamFriends steamFriends;
+        public SteamUserStats steamUserStats;
 
         public CallbackManager manager;
 
@@ -62,6 +63,7 @@ namespace PICSUpdater
             steamUser = steamClient.GetHandler<SteamUser>();
             steamApps = steamClient.GetHandler<SteamApps>();
             steamFriends = steamClient.GetHandler<SteamFriends>();
+            steamUserStats = steamClient.GetHandler<SteamUserStats>();
 
             manager = new CallbackManager(steamClient);
 
@@ -309,8 +311,27 @@ namespace PICSUpdater
             GetPICSChanges();
         }
 
-        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID job)
+        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
         {
+            var request = ircSteam.IRCRequests.Find(r => r.JobID == jobID);
+
+            if (request != null)
+            {
+                ircSteam.IRCRequests.Remove(request);
+
+                System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                {
+                    ircSteam.OnProductInfo(request, callback);
+                });
+
+                /*Task.Factory.StartNew(() =>
+                {
+                    ircSteam.OnProductInfo(request, callback);
+                });*/
+
+                return;
+            }
+
             foreach (var app in callback.Apps)
             {
                 Console.WriteLine("AppID: {0}", app.Key);

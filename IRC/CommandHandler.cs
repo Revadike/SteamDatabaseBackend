@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
@@ -36,10 +35,18 @@ namespace PICSUpdater
                 {
                     uint appid;
 
-                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1].ToString(), out appid))
+                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out appid))
                     {
-                        //Steam.DumpApp(appid);
-                        Send(e.Data.Channel, "{0}Not yet implemented :(", Colors.RED);
+                        var jobID = Program.steam.steamApps.PICSGetProductInfo(appid, null, false, false);
+
+                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        {
+                            JobID = jobID,
+                            Target = appid,
+                            Type = SteamProxy.IRCRequestType.TYPE_APP,
+                            Channel = e.Data.Channel,
+                            Requester = e.Data.Nick
+                        } );
                     }
                     else
                     {
@@ -52,10 +59,18 @@ namespace PICSUpdater
                 {
                     uint subid;
 
-                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1].ToString(), out subid))
+                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out subid))
                     {
-                        //Steam.DumpSub(subid);
-                        Send(e.Data.Channel, "{0}Not yet implemented :(", Colors.RED);
+                        var jobID = Program.steam.steamApps.PICSGetProductInfo(null, subid, false, false);
+
+                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        {
+                            JobID = jobID,
+                            Target = subid,
+                            Type = SteamProxy.IRCRequestType.TYPE_SUB,
+                            Channel = e.Data.Channel,
+                            Requester = e.Data.Nick
+                        } );
                     }
                     else
                     {
@@ -66,12 +81,20 @@ namespace PICSUpdater
                 }
                 case "!numplayers":
                 {
-                    uint targetapp;
+                    uint appid;
 
-                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1].ToString(), out targetapp))
+                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out appid))
                     {
-                        //Steam.getNumPlayers(targetapp);
-                        Send(e.Data.Channel, "{0}Not yet implemented :(", Colors.RED);
+                        var jobID = Program.steam.steamUserStats.GetNumberOfCurrentPlayers(appid);
+
+                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        {
+                            JobID = jobID,
+                            Target = appid,
+                            Type = SteamProxy.IRCRequestType.TYPE_PLAYERS,
+                            Channel = e.Data.Channel,
+                            Requester = e.Data.Nick
+                        } );
                     }
                     else
                     {

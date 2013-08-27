@@ -16,18 +16,39 @@ namespace PICSUpdater
 {
     class SteamProxy
     {
+        public enum IRCRequestType { TYPE_APP, TYPE_SUB, TYPE_PLAYERS };
+
+        public class IRCRequest
+        {
+            public JobID JobID { get; set; }
+
+            public string Channel { get; set; }
+            public string Requester { get; set; }
+
+            public IRCRequestType Type { get; set; }
+
+            public uint Target { get; set; }
+        }
+
+        public List<IRCRequest> IRCRequests { get; private set; }
+
         private static SteamID steamLUG = new SteamID(103582791431044413UL);
         private static string channelSteamLUG = "#steamlug";
 
         private uint lastSchemaVersion = 0;
 
-        private List<uint> importantApps = new List<uint>();
-        private List<uint> importantSubs = new List<uint>();
+        private List<uint> importantApps;
+        private List<uint> importantSubs;
 
         public SteamProxy()
         {
             new Callback<SteamFriends.ClanStateCallback>(OnClanState, Program.steam.manager);
             new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, Program.steam.manager);
+            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers, Program.steam.manager);
+
+            IRCRequests = new List<IRCRequest>();
+            importantApps = new List<uint>();
+            importantSubs = new List<uint>();
 
             ReloadImportant("");
         }
@@ -181,6 +202,105 @@ namespace PICSUpdater
                         CommandHandler.Send(Program.channelMain, Message);
                     }
                 }
+            }
+        }
+
+        public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback, JobID jobID)
+        {
+            var request = IRCRequests.Find(r => r.JobID == jobID);
+
+            if (request == null)
+            {
+                return;
+            }
+
+            IRCRequests.Remove(request);
+
+            if (callback.Result != EResult.OK)
+            {
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
+            }
+            else
+            {
+                string name = GetAppName(request.Target);
+
+                if (name.Equals(""))
+                {
+                    name = string.Format("AppID {0}", request.Target);
+                }
+
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"));
+            }
+        }
+
+        public void OnProductInfo(IRCRequest request, SteamApps.PICSProductInfoCallback callback)
+        {
+            Console.WriteLine("Product info for IRC request completed for {0} in {1} (ResponsePending: {2})", request.Requester, request.Channel, callback.ResponsePending.ToString());
+
+            if (request.Type == SteamProxy.IRCRequestType.TYPE_SUB)
+            {
+                if (!callback.Packages.ContainsKey(request.Target))
+                {
+                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+
+                    return;
+                }
+
+                var info = callback.Packages[request.Target];
+                var kv = info.KeyValues.Children.FirstOrDefault(); // Blame VoiDeD
+                string name = string.Format("AppID {0}", info.ID);
+
+                if (kv["name"].Value != null)
+                {
+                    name = kv["name"].AsString();
+                }
+
+                try
+                {
+                    kv.SaveToFile(string.Format("sub/{0}.vdf", info.ID), false);
+                }
+                catch (Exception e)
+                {
+                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+
+                    return;
+                }
+
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, info.ID, Colors.NORMAL, info.MissingToken ? " (mising token)" : "");
+            }
+            else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
+            {
+                if (!callback.Apps.ContainsKey(request.Target))
+                {
+                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+
+                    return;
+                }
+
+                var info = callback.Apps[request.Target];
+                string name = string.Format("AppID {0}", info.ID);
+
+                if (info.KeyValues["common"]["name"].Value != null)
+                {
+                    name = info.KeyValues["common"]["name"].AsString();
+                }
+
+                try
+                {
+                    info.KeyValues.SaveToFile(string.Format("app/{0}.vdf", info.ID), false);
+                }
+                catch (Exception e)
+                {
+                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+
+                    return;
+                }
+
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, info.ID, Colors.NORMAL, info.MissingToken ? " (mising token)" : "");
+            }
+            else
+            {
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Requester, Colors.NORMAL);
             }
         }
 
