@@ -36,6 +36,8 @@ namespace PICSUpdater
 
         public SteamProxy ircSteam;
 
+        public System.Timers.Timer timer;
+
         public void GetPICSChanges()
         {
             steamApps.PICSGetChangesSince(PreviousChange, true, true);
@@ -76,6 +78,10 @@ namespace PICSUpdater
                 DebugLog.AddListener(( category, msg ) => Console.WriteLine("[SteamKit] {0}: {1}", category, msg));
             }
 
+            timer = new System.Timers.Timer();
+            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            timer.Interval = 1000;
+
             new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
             new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, manager);
 
@@ -93,6 +99,13 @@ namespace PICSUpdater
             {
                 manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
             }
+        }
+
+        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            //Console.WriteLine(DateTime.Now.ToString("o"));
+
+            GetPICSChanges();
         }
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
@@ -115,6 +128,8 @@ namespace PICSUpdater
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
+            timer.Stop();
+
             if (!isRunning)
             {
                 Console.WriteLine("Disconnected from Steam");
@@ -194,7 +209,7 @@ namespace PICSUpdater
             }
             else
             {
-                GetPICSChanges();
+                timer.Start();
 
                 ircSteam.PlayGame(440);
             }
@@ -223,7 +238,6 @@ namespace PICSUpdater
             {
                 Console.WriteLine("PreviousChange was 0. Rolling back by one changelist.");
                 PreviousChange = callback.CurrentChangeNumber - 1;
-                GetPICSChanges();
                 return;
             }
             else if (PreviousChange != callback.CurrentChangeNumber)
@@ -306,9 +320,6 @@ namespace PICSUpdater
                     });
                 }
             }
-
-            //TODO, get rid of this and do it every second anyhow
-            GetPICSChanges();
         }
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)

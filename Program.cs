@@ -34,17 +34,11 @@ namespace PICSUpdater
 
                 steam.isRunning = false;
 
-                try
-                {
-                    CommandHandler.Send(channelAnnounce, "{0}Good bye friends :(", Colors.DARK_GREEN);
-                    irc.Disconnect();
-                }
-                catch(Exception e2)
-                {
-                    Console.WriteLine("Exception while exiting: {0}", e2.Message);
-                }
+                steam.timer.Stop();
 
                 steam.steamClient.Disconnect();
+
+                KillIRC();
             };
 
             irc.Encoding = System.Text.Encoding.UTF8;
@@ -69,16 +63,27 @@ namespace PICSUpdater
                 steamThread.Start();
 
                 irc.Listen();
-                irc.Disconnect();
+
+                KillIRC();
             }
             catch(Exception e)
             {
                 Console.WriteLine("Exception: {0}", e.Message);
                 //Console.WriteLine(e.StackTrace);
             }
+        }
 
-            //new Thread(new ThreadStart(Steam.Run)).Start();
-            steam.Run();
+        static void KillIRC()
+        {
+            try
+            {
+                irc.WriteLine("QUIT :Exiting, will be back shortly!", Priority.Critical);
+                irc.Disconnect();
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("Exception while exiting: {0}", e.Message);
+            }
         }
     }
 }
