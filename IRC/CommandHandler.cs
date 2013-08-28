@@ -39,7 +39,7 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamApps.PICSGetProductInfo(appid, null, false, false);
 
-                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
@@ -63,7 +63,7 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamApps.PICSGetProductInfo(null, subid, false, false);
 
-                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = subid,
@@ -87,7 +87,7 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamUserStats.GetNumberOfCurrentPlayers(appid);
 
-                        Program.steam.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
@@ -111,7 +111,7 @@ namespace PICSUpdater
                     {
                         if (user.IsOp && e.Data.Nick == user.Nick)
                         {
-                            Program.steam.ircSteam.ReloadImportant(e.Data.Channel);
+                            Program.ircSteam.ReloadImportant(e.Data.Channel);
 
                             break;
                         }

@@ -34,8 +34,6 @@ namespace PICSUpdater
         private bool fullRun = false;
         public bool isRunning = true;
 
-        public SteamProxy ircSteam;
-
         public System.Timers.Timer timer;
 
         public void GetPICSChanges()
@@ -68,8 +66,6 @@ namespace PICSUpdater
             steamUserStats = steamClient.GetHandler<SteamUserStats>();
 
             manager = new CallbackManager(steamClient);
-
-            ircSteam = new SteamProxy();
 
             uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
 
@@ -213,7 +209,7 @@ namespace PICSUpdater
             {
                 timer.Start();
 
-                ircSteam.PlayGame(440);
+                Program.ircSteam.PlayGame(440);
             }
         }
 
@@ -248,7 +244,7 @@ namespace PICSUpdater
 
                 System.Threading.ThreadPool.QueueUserWorkItem(delegate
                 {
-                    ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
+                    Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
                 });
 
                 System.Threading.ThreadPool.QueueUserWorkItem(delegate
@@ -318,15 +314,15 @@ namespace PICSUpdater
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
         {
-            var request = ircSteam.IRCRequests.Find(r => r.JobID == jobID);
+            var request = Program.ircSteam.IRCRequests.Find(r => r.JobID == jobID);
 
             if (request != null)
             {
-                ircSteam.IRCRequests.Remove(request);
+                Program.ircSteam.IRCRequests.Remove(request);
 
                 System.Threading.ThreadPool.QueueUserWorkItem(delegate
                 {
-                    ircSteam.OnProductInfo(request, callback);
+                    Program.ircSteam.OnProductInfo(request, callback);
                 });
 
                 return;

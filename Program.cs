@@ -14,6 +14,7 @@ namespace PICSUpdater
 {
     class Program
     {
+        public static SteamProxy ircSteam = new SteamProxy();
         public static Steam steam = new Steam();
         public static IrcClient irc = new IrcClient();
         public static string channelMain = ConfigurationManager.AppSettings["main-channel"];
