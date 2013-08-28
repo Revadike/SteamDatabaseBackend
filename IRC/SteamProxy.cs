@@ -149,6 +149,11 @@ namespace PICSUpdater
 
         public void OnClanState(SteamFriends.ClanStateCallback callback)
         {
+            if (callback.Events.Count == 0 && callback.Announcements.Count == 0)
+            {
+                return;
+            }
+
             string ClanName = callback.ClanName;
             string Message = "";
 
@@ -312,8 +317,15 @@ namespace PICSUpdater
                 CommandHandler.Send(Program.channelMain, Message);
             }
 
-            ProcessAppChanges(changeNumber, callback.AppChanges);
-            ProcessSubChanges(changeNumber, callback.PackageChanges);
+            if (callback.AppChanges.Count > 0)
+            {
+                ProcessAppChanges(changeNumber, callback.AppChanges);
+            }
+
+            if (callback.PackageChanges.Count > 0)
+            {
+                ProcessSubChanges(changeNumber, callback.PackageChanges);
+            }
         }
 
         private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList)
