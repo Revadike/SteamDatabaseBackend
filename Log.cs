@@ -46,7 +46,6 @@ namespace PICSUpdater
             }
         }
 
-
         public static void WriteDebug( string component, string format, params object[] args )
         {
             WriteLine( Category.Debug, component, format, args );
@@ -69,10 +68,10 @@ namespace PICSUpdater
 
         public static void WriteLine( Category category, string component, string format, params object[] args )
         {
-#if !DEBUG
-            if ( category == Category.Debug )
-                return; // don't print debug messages in release builds
-#endif
+//#if !DEBUG
+//            if ( category == Category.Debug )
+//                return; // don't print debug messages in release builds
+//#endif
 
             string logLine = string.Format(
                 "{0} [{1}] {2}: {3}{4}",
@@ -97,7 +96,6 @@ namespace PICSUpdater
                 Console.WriteLine( "Unable to log to file: {0}", ex.Message );
             }
         }
-
 
         static string GetLogFile()
         {
