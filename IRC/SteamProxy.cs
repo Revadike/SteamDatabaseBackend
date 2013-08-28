@@ -66,9 +66,6 @@ namespace PICSUpdater
                 {
                     importantApps.Add(Reader.GetUInt32("AppID"));
                 }
-
-                Reader.Close();
-                Reader.Dispose();
             }
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT SubID FROM ImportantSubs"))
@@ -79,9 +76,6 @@ namespace PICSUpdater
                 {
                     importantSubs.Add(Reader.GetUInt32("SubID"));
                 }
-
-                Reader.Close();
-                Reader.Dispose();
             }
 
             if (!channel.Equals(""))
@@ -107,9 +101,6 @@ namespace PICSUpdater
                 {
                     name = DbWorker.GetString("Name", Reader);
                 }
-
-                Reader.Close();
-                Reader.Dispose();
             }
             return name;
         }
@@ -127,9 +118,6 @@ namespace PICSUpdater
                 {
                     name = DbWorker.GetString("Name", Reader);
                 }
-
-                Reader.Close();
-                Reader.Dispose();
             }
 
             if (name.Equals("") || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
@@ -143,14 +131,16 @@ namespace PICSUpdater
                     {
                         string nameOld = DbWorker.GetString("NewValue", Reader);
 
+                        if (name.Equals(""))
+                        {
+                            name = string.Format("AppID {0}", AppID);
+                        }
+
                         if (!name.Equals(nameOld))
                         {
                             name = string.Format ("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameOld, Colors.NORMAL);
                         }
                     }
-
-                    Reader.Close();
-                    Reader.Dispose();
                 }
             }
 
@@ -170,15 +160,13 @@ namespace PICSUpdater
             if (ClanName == "")
             {
                 ClanName = "Group";
-            }
-            else
-            {
-                ClanName = string.Format("{0}{1}{2}", Colors.OLIVE, ClanName, Colors.NORMAL);
+
+                Log.WriteError("IRC Proxy", "ClanID: {0} - no group name", callback.ClanID);
             }
 
             foreach (var announcement in callback.Announcements)
             {
-                Message = string.Format("{0} announcement: {1}{2}{3} -{4} http://steamcommunity.com/gid/{5}/announcements/detail/{6}", ClanName, Colors.GREEN, announcement.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
+                Message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, announcement.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
 
                 CommandHandler.Send(Program.channelMain, Message);
 
@@ -193,7 +181,7 @@ namespace PICSUpdater
             {
                 if (groupevent.JustPosted == true)
                 {
-                    Message = string.Format("{0} event: {1}{2}{3} -{4} http://steamcommunity.com/gid/{5}/events/{6}", ClanName, Colors.GREEN, groupevent.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
+                    Message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, groupevent.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
 
                     // Send events only to steamlug channel
                     if (callback.ClanID == steamLUG)
@@ -477,11 +465,16 @@ namespace PICSUpdater
 
                 if (msg.Body.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
                 {
-                    var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
-
-                    gc.Send(clientHello, AppID);
+                    GameCoordinatorHello(AppID, gc);
                 }
             }
+        }
+
+        public static void GameCoordinatorHello(uint AppID, SteamGameCoordinator gc)
+        {
+            var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
+
+            gc.Send(clientHello, AppID);
         }
     }
 }

@@ -45,7 +45,7 @@ namespace PICSUpdater
 
         private void GetLastChangeNumber()
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
             {
                 if (Reader.Read())
                 {
@@ -53,9 +53,6 @@ namespace PICSUpdater
 
                     Log.WriteInfo("Steam", "Previous changelist was {0}", PreviousChange);
                 }
-
-                Reader.Close();
-                Reader.Dispose();
             }
         }
 

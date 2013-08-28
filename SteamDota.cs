@@ -54,9 +54,7 @@ namespace PICSUpdater
 
                 Thread.Sleep(TimeSpan.FromSeconds(3));
 
-                var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
-
-                gameCoordinator.Send(clientHello, DOTA_2);
+                SteamProxy.GameCoordinatorHello(DOTA_2, gameCoordinator);
             }
         }
 
