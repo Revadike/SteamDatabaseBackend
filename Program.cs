@@ -9,17 +9,20 @@ using System;
 using System.Configuration;
 using System.Threading;
 using Meebey.SmartIrc4net;
+using SteamKit2;
 
 namespace PICSUpdater
 {
     class Program
     {
-        public static SteamProxy ircSteam = new SteamProxy();
-        public static Steam steam = new Steam();
         public static IrcClient irc = new IrcClient();
+        public static Steam steam = new Steam();
+        public static SteamDota steamDota = new SteamDota();
+        public static SteamProxy ircSteam = new SteamProxy();
         public static string channelMain = ConfigurationManager.AppSettings["main-channel"];
         public static string channelAnnounce = ConfigurationManager.AppSettings["announce-channel"];
-        private static Thread steamThread;
+
+        public static uint fullRunOption;
 
         static void Main(string[] args)
         {
@@ -29,21 +32,30 @@ namespace PICSUpdater
                 return;
             }
 
+            uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
+
+            if (ConfigurationManager.AppSettings["steamKitDebug"].Equals("1"))
+            {
+                DebugLog.AddListener(new SteamKitLogger());
+                DebugLog.Enabled = true;
+            }
+
             Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
             {
                 Log.WriteInfo("Main", "Exiting...");
 
                 steam.isRunning = false;
+                steamDota.isRunning = false;
 
-                steam.timer.Stop();
-
-                steam.steamClient.Disconnect();
+                try { steam.timer.Stop();                 } catch( Exception e2 ) { Log.WriteError("Main", "Exception: {0}", e2.Message); }
+                try { steam.steamClient.Disconnect();     } catch( Exception e3 ) { Log.WriteError("Main", "Exception: {0}", e3.Message); }
+                try { steamDota.steamClient.Disconnect(); } catch( Exception e4 ) { Log.WriteError("Main", "Exception: {0}", e4.Message); }
 
                 KillIRC();
             };
 
             irc.Encoding = System.Text.Encoding.UTF8;
-            irc.SendDelay = 1500;
+            irc.SendDelay = 1000;
             irc.AutoRetry = true;
             irc.AutoRejoin = true;
             irc.AutoRelogin = true;
@@ -53,15 +65,20 @@ namespace PICSUpdater
             irc.OnChannelMessage += new IrcEventHandler(CommandHandler.OnChannelMessage);
 
             string[] serverList = { ConfigurationManager.AppSettings["irc-server"] };
+            string[] channels = { channelAnnounce, channelMain };
 
             try
             {
                 irc.Connect(serverList, int.Parse(ConfigurationManager.AppSettings["irc-port"]));
                 irc.Login("SteamDB", "http://steamdb.info/", 0, "SteamDB");
-                irc.RfcJoin(channelAnnounce);
+                irc.RfcJoin(channels);
 
-                steamThread = new Thread(new ThreadStart(steam.Run));
-                steamThread.Start();
+                if (ConfigurationManager.AppSettings["steam2-username"].Length > 0 && ConfigurationManager.AppSettings["steam2-password"].Length > 0)
+                {
+                    new Thread(new ThreadStart(steamDota.Run)).Start();
+                }
+
+                new Thread(new ThreadStart(steam.Run)).Start();
 
                 irc.Listen();
 

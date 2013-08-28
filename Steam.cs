@@ -18,6 +18,8 @@ namespace PICSUpdater
 {
     class Steam
     {
+        const uint TEAM_FORTRESS_2 = 440;
+
         public SteamClient steamClient;
         public SteamUser steamUser;
         public SteamApps steamApps;
@@ -30,7 +32,6 @@ namespace PICSUpdater
         private AppProcessor AppPro = new AppProcessor();
         private SubProcessor SubPro = new SubProcessor();
 
-        public uint fullRunOption;
         private bool fullRun = false;
         public bool isRunning = true;
 
@@ -67,13 +68,6 @@ namespace PICSUpdater
 
             manager = new CallbackManager(steamClient);
 
-            uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
-
-            if (fullRunOption == 0)
-            {
-                DebugLog.AddListener(new SteamKitLogger());
-            }
-
             timer = new System.Timers.Timer();
             timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
             timer.Interval = 1000;
@@ -83,9 +77,13 @@ namespace PICSUpdater
 
             new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, manager);
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, manager);
+            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, manager);
+
+            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, manager);
 
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
+
 
             GetLastChangeNumber();
 
@@ -162,11 +160,11 @@ namespace PICSUpdater
                 return;
             }
 
-            if (fullRunOption > 0)
+            if (Program.fullRunOption > 0)
             {
                 fullRun = true;
 
-                Log.WriteInfo("Steam", "Running full update with option \"{0}\"", fullRunOption);
+                Log.WriteInfo("Steam", "Running full update with option \"{0}\"", Program.fullRunOption);
 
                 uint i = 0;
                 List<uint> appsList = new List<uint>();
@@ -191,7 +189,7 @@ namespace PICSUpdater
                     appsList = appsList.Union(appsListAPI).ToList();
                 }
 
-                if (fullRunOption == 1)
+                if (Program.fullRunOption == 1)
                 {
                     for (i = 0; i <= 50000; i++)
                     {
@@ -201,7 +199,7 @@ namespace PICSUpdater
 
                 Log.WriteInfo("Steam", "Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
 
-                CommandHandler.Send(Program.channelAnnounce, "Running a full run. Requesting {0} apps and {1} packages {2}(option: {3})", appsList.Count, packagesList.Count, Colors.DARK_GRAY, fullRunOption);
+                CommandHandler.Send(Program.channelAnnounce, "Running a full run. Requesting {0} apps and {1} packages {2}(option: {3})", appsList.Count, packagesList.Count, Colors.DARK_GRAY, Program.fullRunOption);
 
                 steamApps.PICSGetProductInfo(appsList, packagesList, false, false);
             }
@@ -209,7 +207,7 @@ namespace PICSUpdater
             {
                 timer.Start();
 
-                Program.ircSteam.PlayGame(440);
+                SteamProxy.PlayGame(steamClient, TEAM_FORTRESS_2);
             }
         }
 
@@ -223,6 +221,11 @@ namespace PICSUpdater
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             steamFriends.SetPersonaState(EPersonaState.Busy);
+        }
+
+        private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
+        {
+            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback);
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
@@ -353,7 +356,7 @@ namespace PICSUpdater
             }
 
             // Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
-            if (fullRunOption != 1)
+            if (Program.fullRunOption != 1)
             {
                 foreach (uint app in callback.UnknownApps)
                 {

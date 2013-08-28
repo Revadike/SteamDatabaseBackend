@@ -18,7 +18,7 @@ namespace PICSUpdater
     {
         public void Process(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
-            if (Program.steam.fullRunOption > 0)
+            if (Program.fullRunOption > 0)
             {
                 Log.WriteInfo("App Processor", "AppID: {0}", AppID);
             }

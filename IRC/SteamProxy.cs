@@ -31,12 +31,18 @@ namespace PICSUpdater
             public uint Target { get; set; }
         }
 
+        public class GCInfo
+        {
+            public uint AppID;
+            public uint LastVersion;
+            public uint LastSchemaVersion;
+        }
+
         public List<IRCRequest> IRCRequests { get; private set; }
+        public static List<GCInfo> GCInfos = new List<GCInfo>();
 
         private static SteamID steamLUG = new SteamID(103582791431044413UL);
         private static string channelSteamLUG = "#steamlug";
-
-        private uint lastSchemaVersion = 0;
 
         private List<uint> importantApps;
         private List<uint> importantSubs;
@@ -44,7 +50,6 @@ namespace PICSUpdater
         public SteamProxy()
         {
             new Callback<SteamFriends.ClanStateCallback>(OnClanState, Program.steam.manager);
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, Program.steam.manager);
             new JobCallback<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers, Program.steam.manager);
 
             IRCRequests = new List<IRCRequest>();
@@ -92,7 +97,7 @@ namespace PICSUpdater
             }
         }
 
-        private string GetPackageName(uint SubID)
+        private static string GetPackageName(uint SubID)
         {
             String name = "";
 
@@ -112,7 +117,7 @@ namespace PICSUpdater
             return name;
         }
 
-        private string GetAppName(uint AppID)
+        private static string GetAppName(uint AppID)
         {
             String name = "";
 
@@ -401,48 +406,69 @@ namespace PICSUpdater
             }
         }
 
-        public void PlayGame(uint AppID)
+        public static void PlayGame(SteamClient client, uint AppID)
         {
-            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>( EMsg.ClientGamesPlayedNoDataBlob );
+            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>( EMsg.ClientGamesPlayed );
 
             clientMsg.Body.games_played.Add( new CMsgClientGamesPlayed.GamePlayed
             {
                 game_id = AppID
             } );
 
-            Program.steam.steamClient.Send( clientMsg );
+            client.Send(clientMsg);
         }
 
-        private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
+        public static void GameCoordinatorMessage(uint AppID, SteamGameCoordinator.MessageCallback callback)
         {
+            GCInfo info = GCInfos.Find(r => r.AppID == AppID);
+
+            if (info == null)
+            {
+                info = new GCInfo
+                {
+                    AppID = AppID,
+                    LastVersion = 0,
+                    LastSchemaVersion = 0
+                };
+
+                GCInfos.Add(info);
+            }
+
             if (callback.EMsg == (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgUpdateItemSchema>(callback.Message);
 
-                if (lastSchemaVersion != 0 && lastSchemaVersion != msg.Body.item_schema_version)
+                Log.WriteInfo("IRC Proxy", "{0} Schema: {1} (current: {2})", AppID, msg.Body.item_schema_version, info.LastSchemaVersion);
+
+                if (info.LastSchemaVersion != 0 && info.LastSchemaVersion != msg.Body.item_schema_version)
                 {
-                    CommandHandler.Send(Program.channelMain, "New TF2 item schema {0}(version {1}){2} -{3} {4}", Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
+                    CommandHandler.Send(Program.channelMain, "{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
                 }
 
-                lastSchemaVersion = msg.Body.item_schema_version;
+                info.LastSchemaVersion = msg.Body.item_schema_version;
             }
             else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(callback.Message);
 
-                CommandHandler.Send(Program.channelMain, "GC system message:{0} {1}", Colors.OLIVE, msg.Body.message);
+                CommandHandler.Send(Program.channelMain, "{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
             }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
 
-                CommandHandler.Send(Program.channelAnnounce, "New GC session {0}(version: {1})", Colors.DARK_GRAY, msg.Body.version);
+                if (info.LastVersion != 0 && info.LastVersion != msg.Body.version)
+                {
+                    CommandHandler.Send(Program.channelAnnounce, "New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
+                }
+
+                info.LastVersion = msg.Body.version;
             }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus || callback.EMsg == 4008 /* tf2's k_EMsgGCClientGoodbye */)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(callback.Message);
 
-                CommandHandler.Send(Program.channelAnnounce, "GC status:{0} {1}", Colors.OLIVE, msg.Body.status);
+                CommandHandler.Send(Program.channelAnnounce, "{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.status);
             }
         }
     }
