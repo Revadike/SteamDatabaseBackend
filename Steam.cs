@@ -25,6 +25,7 @@ namespace PICSUpdater
         public SteamApps steamApps;
         public SteamFriends steamFriends;
         public SteamUserStats steamUserStats;
+        private SteamGameCoordinator gameCoordinator;
 
         public CallbackManager manager;
 
@@ -65,6 +66,7 @@ namespace PICSUpdater
             steamApps = steamClient.GetHandler<SteamApps>();
             steamFriends = steamClient.GetHandler<SteamFriends>();
             steamUserStats = steamClient.GetHandler<SteamUserStats>();
+            gameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
 
             manager = new CallbackManager(steamClient);
 
@@ -228,7 +230,7 @@ namespace PICSUpdater
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
         {
-            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback);
+            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback, gameCoordinator);
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)

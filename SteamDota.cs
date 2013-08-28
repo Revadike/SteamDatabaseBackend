@@ -14,6 +14,7 @@ namespace PICSUpdater
         public SteamClient steamClient;
         private SteamUser steamUser;
         private SteamFriends steamFriends;
+        private SteamGameCoordinator gameCoordinator;
 
         public bool isRunning = true;
 
@@ -22,6 +23,7 @@ namespace PICSUpdater
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
             steamFriends = steamClient.GetHandler<SteamFriends>();
+            gameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
 
             CallbackManager manager = new CallbackManager(steamClient);
 
@@ -41,7 +43,7 @@ namespace PICSUpdater
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
         {
-            SteamProxy.GameCoordinatorMessage(DOTA_2, callback);
+            SteamProxy.GameCoordinatorMessage(DOTA_2, callback, gameCoordinator);
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -54,7 +56,7 @@ namespace PICSUpdater
 
                 var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
 
-                steamClient.GetHandler<SteamGameCoordinator>().Send(clientHello, DOTA_2);
+                gameCoordinator.Send(clientHello, DOTA_2);
             }
         }
 

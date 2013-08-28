@@ -417,7 +417,7 @@ namespace PICSUpdater
             client.Send(clientMsg);
         }
 
-        public static void GameCoordinatorMessage(uint AppID, SteamGameCoordinator.MessageCallback callback)
+        public static void GameCoordinatorMessage(uint AppID, SteamGameCoordinator.MessageCallback callback, SteamGameCoordinator gc)
         {
             GCInfo info = GCInfos.Find(r => r.AppID == AppID);
 
@@ -437,7 +437,7 @@ namespace PICSUpdater
             {
                 var msg = new ClientGCMsgProtobuf<CMsgUpdateItemSchema>(callback.Message);
 
-                Log.WriteInfo("IRC Proxy", "{0} Schema: {1} (current: {2})", AppID, msg.Body.item_schema_version, info.LastSchemaVersion);
+                Log.WriteInfo(string.Format("GC {0}", AppID), "Schema change from {0} to {1}", info.LastSchemaVersion, msg.Body.item_schema_version);
 
                 if (info.LastSchemaVersion != 0 && info.LastSchemaVersion != msg.Body.item_schema_version)
                 {
@@ -450,6 +450,8 @@ namespace PICSUpdater
             {
                 var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
 
+                Log.WriteInfo(string.Format("GC {0}", AppID), "Version change from {0} to {1}", info.LastVersion, msg.Body.version);
+
                 if (/*info.LastVersion != 0 &&*/ info.LastVersion != msg.Body.version)
                 {
                     CommandHandler.Send(Program.channelAnnounce, "New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
@@ -461,13 +463,24 @@ namespace PICSUpdater
             {
                 var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(callback.Message);
 
+                Log.WriteInfo(string.Format("GC {0}", AppID), "Message: {0}", msg.Body.message);
+
                 CommandHandler.Send(Program.channelMain, "{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
             }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus || callback.EMsg == 4008 /* tf2's k_EMsgGCClientGoodbye */)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(callback.Message);
 
+                Log.WriteInfo(string.Format("GC {0}", AppID), "Status: {0}", msg.Body.status);
+
                 CommandHandler.Send(Program.channelAnnounce, "{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.status);
+
+                if (msg.Body.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
+                {
+                    var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
+
+                    gc.Send(clientHello, AppID);
+                }
             }
         }
     }
