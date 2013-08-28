@@ -84,6 +84,9 @@ namespace PICSUpdater
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
 
+            // irc specific
+            new Callback<SteamFriends.ClanStateCallback>(Program.ircSteam.OnClanState, Program.steam.manager);
+            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(Program.ircSteam.OnNumberOfPlayers, Program.steam.manager);
 
             GetLastChangeNumber();
 

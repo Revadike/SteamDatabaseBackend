@@ -49,9 +49,6 @@ namespace PICSUpdater
 
         public SteamProxy()
         {
-            new Callback<SteamFriends.ClanStateCallback>(OnClanState, Program.steam.manager);
-            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers, Program.steam.manager);
-
             IRCRequests = new List<IRCRequest>();
             importantApps = new List<uint>();
             importantSubs = new List<uint>();
@@ -80,7 +77,7 @@ namespace PICSUpdater
 
                 while (Reader.Read())
                 {
-                    importantSubs.Add(Reader.GetUInt32("Sub"));
+                    importantSubs.Add(Reader.GetUInt32("SubID"));
                 }
 
                 Reader.Close();
@@ -160,7 +157,7 @@ namespace PICSUpdater
             return name;
         }
 
-        private void OnClanState(SteamFriends.ClanStateCallback callback)
+        public void OnClanState(SteamFriends.ClanStateCallback callback)
         {
             string ClanName = callback.ClanName;
             string Message = "";
@@ -222,6 +219,8 @@ namespace PICSUpdater
 
             IRCRequests.Remove(request);
 
+            Log.WriteInfo("IRC Proxy", "Numplayers request completed for {0} in {1}", request.Requester, request.Channel);
+
             if (callback.Result != EResult.OK)
             {
                 CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
@@ -241,7 +240,7 @@ namespace PICSUpdater
 
         public void OnProductInfo(IRCRequest request, SteamApps.PICSProductInfoCallback callback)
         {
-            Log.WriteInfo("IRC Proxy", "Product info request completed for {0} in {1} (ResponsePending: {2})", request.Requester, request.Channel, callback.ResponsePending.ToString());
+            Log.WriteInfo("IRC Proxy", "Product info request completed for {0} in {1}", request.Requester, request.Channel);
 
             if (request.Type == SteamProxy.IRCRequestType.TYPE_SUB)
             {
@@ -447,22 +446,22 @@ namespace PICSUpdater
 
                 info.LastSchemaVersion = msg.Body.item_schema_version;
             }
-            else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
-            {
-                var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(callback.Message);
-
-                CommandHandler.Send(Program.channelMain, "{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
-            }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome)
             {
                 var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
 
-                if (info.LastVersion != 0 && info.LastVersion != msg.Body.version)
+                if (/*info.LastVersion != 0 &&*/ info.LastVersion != msg.Body.version)
                 {
                     CommandHandler.Send(Program.channelAnnounce, "New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
                 }
 
                 info.LastVersion = msg.Body.version;
+            }
+            else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
+            {
+                var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(callback.Message);
+
+                CommandHandler.Send(Program.channelMain, "{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
             }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus || callback.EMsg == 4008 /* tf2's k_EMsgGCClientGoodbye */)
             {
