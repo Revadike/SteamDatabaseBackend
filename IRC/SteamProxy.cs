@@ -36,6 +36,7 @@ namespace PICSUpdater
             public uint AppID;
             public uint LastVersion;
             public uint LastSchemaVersion;
+            public GCConnectionStatus LastStatus;
         }
 
         public List<IRCRequest> IRCRequests { get; private set; }
@@ -427,7 +428,8 @@ namespace PICSUpdater
                 {
                     AppID = AppID,
                     LastVersion = 0,
-                    LastSchemaVersion = 0
+                    LastSchemaVersion = 0,
+                    LastStatus = GCConnectionStatus.GCConnectionStatus_NO_STEAM
                 };
 
                 GCInfos.Add(info);
@@ -437,10 +439,10 @@ namespace PICSUpdater
             {
                 var msg = new ClientGCMsgProtobuf<CMsgUpdateItemSchema>(callback.Message);
 
-                Log.WriteInfo(string.Format("GC {0}", AppID), "Schema change from {0} to {1}", info.LastSchemaVersion, msg.Body.item_schema_version);
-
                 if (info.LastSchemaVersion != 0 && info.LastSchemaVersion != msg.Body.item_schema_version)
                 {
+                    Log.WriteInfo(string.Format("GC {0}", AppID), "Schema change from {0} to {1}", info.LastSchemaVersion, msg.Body.item_schema_version);
+
                     CommandHandler.Send(Program.channelMain, "{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
                 }
 
@@ -450,14 +452,21 @@ namespace PICSUpdater
             {
                 var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
 
-                Log.WriteInfo(string.Format("GC {0}", AppID), "Version change from {0} to {1}", info.LastVersion, msg.Body.version);
-
-                if (/*info.LastVersion != 0 &&*/ info.LastVersion != msg.Body.version)
+                if (info.LastVersion != msg.Body.version)
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
-                }
+                    Log.WriteInfo(string.Format("GC {0}", AppID), "Version change from {0} to {1}", info.LastVersion, msg.Body.version);
 
-                info.LastVersion = msg.Body.version;
+                    string message = string.Format("New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
+
+                    if(info.LastVersion != 0)
+                    {
+                        CommandHandler.Send(Program.channelMain, message);
+                    }
+
+                    CommandHandler.Send(Program.channelAnnounce, message);
+
+                    info.LastVersion = msg.Body.version;
+                }
             }
             else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
             {
@@ -473,7 +482,16 @@ namespace PICSUpdater
 
                 Log.WriteInfo(string.Format("GC {0}", AppID), "Status: {0}", msg.Body.status);
 
-                CommandHandler.Send(Program.channelAnnounce, "{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.status);
+                string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.status);
+
+                if (info.LastStatus != msg.Body.status)
+                {
+                    CommandHandler.Send(Program.channelMain, message);
+
+                    info.LastStatus = msg.Body.status;
+                }
+
+                CommandHandler.Send(Program.channelAnnounce, message);
 
                 if (msg.Body.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
                 {
