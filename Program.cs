@@ -54,6 +54,13 @@ namespace PICSUpdater
                 KillIRC();
             };
 
+            if (fullRunOption > 0)
+            {
+                new Thread(new ThreadStart(steam.Run)).Start();
+
+                return;
+            }
+
             irc.Encoding = System.Text.Encoding.UTF8;
             irc.SendDelay = 1000;
             irc.AutoRetry = true;
