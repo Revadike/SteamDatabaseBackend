@@ -2,8 +2,6 @@ using System;
 using System.Configuration;
 using System.Threading;
 using SteamKit2;
-using SteamKit2.GC.Internal;
-using SteamKit2.GC;
 
 namespace PICSUpdater
 {

@@ -2,10 +2,7 @@
  * Log.cs copied from VoiDeD's IRC bot at https://github.com/VoiDeD/steam-irc-bot/blob/master/SteamIrcBot/Utils/Log.cs
  */
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Linq;
 using SteamKit2;
 
 namespace PICSUpdater

@@ -10,7 +10,6 @@ using System.Text;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
-using System.Linq;
 
 namespace PICSUpdater
 {

@@ -6,13 +6,10 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using System.Linq;
 
 namespace PICSUpdater
 {
@@ -45,6 +42,14 @@ namespace PICSUpdater
 
         private void GetLastChangeNumber()
         {
+            // If we're in a full run, request all changes from #1
+            if (!fullRun && Program.fullRunOption > 0)
+            {
+                PreviousChange = 1;
+
+                return;
+            }
+
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
             {
                 if (Reader.Read())
@@ -168,42 +173,7 @@ namespace PICSUpdater
 
                 Log.WriteInfo("Steam", "Running full update with option \"{0}\"", Program.fullRunOption);
 
-                uint i = 0;
-                List<uint> appsList = new List<uint>();
-                List<uint> packagesList = new List<uint>();
-
-                for (i = 0; i <= 300000; i++)
-                {
-                    appsList.Add(i);
-                }
-
-                using (dynamic steamAppsAPI = WebAPI.GetInterface("ISteamApps"))
-                {
-                    KeyValue kvApps = steamAppsAPI.GetAppList();
-                    List<uint> appsListAPI = new List<uint>();
-
-                    // TODO: Make this look nicer
-                    foreach (KeyValue app in kvApps[ "apps" ][ "app" ].Children)
-                    {
-                        appsListAPI.Add((uint)app["appid"].AsInteger());
-                    }
-
-                    appsList = appsList.Union(appsListAPI).ToList();
-                }
-
-                if (Program.fullRunOption == 1)
-                {
-                    for (i = 0; i <= 50000; i++)
-                    {
-                        packagesList.Add(i);
-                    }
-                }
-
-                Log.WriteInfo("Steam", "Requesting {0} apps and {1} packages", appsList.Count, packagesList.Count);
-
-                CommandHandler.Send(Program.channelAnnounce, "Running a full run. Requesting {0} apps and {1} packages {2}(option: {3})", appsList.Count, packagesList.Count, Colors.DARK_GRAY, Program.fullRunOption);
-
-                steamApps.PICSGetProductInfo(appsList, packagesList, false, false);
+                GetPICSChanges();
             }
             else
             {
@@ -234,7 +204,20 @@ namespace PICSUpdater
         {
             if (fullRun)
             {
-                Log.WriteInfo("Steam", "Received changelist while processing a full run, ignoring.");
+                // Hackiness to prevent processing legit changelists after our request
+                if (PreviousChange == 1)
+                {
+                    PreviousChange = 2;
+
+                    Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
+
+                    steamApps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
+                }
+                else
+                {
+                    Log.WriteWarn("Steam", "Got changelist {0}, but ignoring it because we're in a full run", callback.CurrentChangeNumber);
+                }
+
                 return;
             }
             else if (PreviousChange == callback.CurrentChangeNumber)

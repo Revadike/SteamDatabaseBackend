@@ -4,13 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Configuration;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using Meebey.SmartIrc4net;
-using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace PICSUpdater
