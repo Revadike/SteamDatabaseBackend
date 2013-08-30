@@ -11,6 +11,8 @@ TestResults
 # User-specific files
 *.suo
 *.user
+*.userprefs
+*.sln
 *.sln.docstates
 *.config
 *.csproj
