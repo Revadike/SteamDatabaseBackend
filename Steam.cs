@@ -181,9 +181,7 @@ namespace PICSUpdater
             }
 
 #if DEBUG
-            steamApps.PICSGetProductInfo(440, null, false, false);
-            steamApps.PICSGetProductInfo(17520, null, false, false);
-            steamApps.PICSGetProductInfo(null, 10, false, false);
+            steamApps.PICSGetProductInfo(440, 29197, false, false);
 #endif
         }
 

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
+using System.Linq;
 
 namespace PICSUpdater
 {
@@ -32,7 +33,7 @@ namespace PICSUpdater
 
             Dictionary<string, string> subdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 while (Reader.Read())
                 {
@@ -41,10 +42,9 @@ namespace PICSUpdater
             }
 
             string PackageName = "";
-            List<int> subapps = new List<int>();
-            List<int> subdepots = new List<int>();
+            List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Subs WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 if (Reader.Read())
                 {
@@ -52,31 +52,16 @@ namespace PICSUpdater
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'app'", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 while (Reader.Read())
                 {
-                    subapps.Add(Reader.GetInt32("AppID"));
-                }
-            }
-
-            // TODO: Combine into a single query/list
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'depot'", new MySqlParameter("@SubID", SubID)))
-            {
-                while (Reader.Read())
-                {
-                    subdepots.Add(Reader.GetInt32("AppID"));
+                    apps.Add(new KeyValuePair<string, string>(Reader.GetString("Type"), Reader.GetString("AppID")));
                 }
             }
 
             foreach (KeyValue kv in ProductInfo.KeyValues.Children)
             {
-                if (kv.Children.Count == 0)
-                {
-                    Log.WriteDebug("Sub Processor", "SubID {0}: Empty children? {1} - {2}", SubID, kv.Name, kv.Value);
-                    continue;
-                }
-
                 foreach (KeyValue kv2 in kv.Children)
                 {
                     if (kv2.Children.Count == 0)
@@ -155,40 +140,28 @@ namespace PICSUpdater
                         }
                         else if (kv2.Name == "appids" || kv2.Name == "depotids")
                         {
-                            String type;
-                            if (kv2.Name == "appids") { type = "app"; } else { type = "depot"; }
+                            string type = kv2.Name.Replace("ids", ""); // Remove "ids", so we get app from appids and depot from depotids
+
                             foreach (KeyValue kv3 in kv2.Children)
                             {
-                                DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
-                                new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@SubID", SubID),
-                                    new MySqlParameter("@AppID", kv3.Value),
-                                    new MySqlParameter("@Type", type)
-                                });
+                                var app = apps.Where(x => x.Key == type && x.Value == kv3.Value);
 
-                                if (type == "app")
+                                if (app.Any())
                                 {
-                                    if (!subapps.Contains(kv3.AsInteger()))
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "0", "", kv3.Value, true);
-                                    }
-                                    else
-                                    {
-                                        subapps.Remove(kv3.AsInteger());
-                                    }
-
+                                    // This combination of appid+type already exists, don't do anything
+                                    apps.Remove(app.First());
                                 }
-                                else if (type == "depot")
+                                else
                                 {
-                                    if (!subdepots.Contains(kv3.AsInteger()))
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "1", "", kv3.Value, true);
-                                    }
-                                    else
-                                    {
-                                        subdepots.Remove(kv3.AsInteger());
-                                    }
+                                    DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
+                                                             new MySqlParameter("@SubID", SubID),
+                                                             new MySqlParameter("@AppID", kv3.Value),
+                                                             new MySqlParameter("@Type", type)
+                                    );
+
+                                    Console.WriteLine("New: " + kv3.Value + " - " + type);
+
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", "", kv3.Value, true); // TODO: Remove legacy 0/1 and replace with type
                                 }
                             }
                         }
@@ -237,24 +210,17 @@ namespace PICSUpdater
 
             }
 
-            foreach (int AppID in subapps)
+            foreach (var app in apps)
             {
-                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @AppID AND `Type` = 'app'",
+                Console.WriteLine("TO be deleted: " + app.Value + " - " + app.Key);
+
+                DbWorker.ExecuteNonQuery("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type",
                                          new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@AppID", AppID)
+                                         new MySqlParameter("@AppID", app.Value),
+                                         new MySqlParameter("@Type", app.Key)
                 );
 
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "0", AppID.ToString(), "", true);
-            }
-
-            foreach (int AppID in subdepots)
-            {
-                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @AppID AND `Type` = 'depot'",
-                                         new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@AppID", AppID)
-                );
-
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "1", AppID.ToString(), "", true);
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, "", true); // TODO: Remove legacy 0/1 and replace with type
             }
         }
 
