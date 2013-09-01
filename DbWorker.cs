@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
+using System.Text;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -26,12 +28,7 @@ namespace PICSUpdater
             return MySqlHelper.ExecuteReader(ConnectionString, text, parameters);
         }
 
-        public static int ExecuteNonQuery(string text)
-        {
-            return ExecuteNonQuery(text, null);
-        }
-
-        public static int ExecuteNonQuery(string text, MySqlParameter[] parameters)
+        public static int ExecuteNonQuery(string text, params MySqlParameter[] parameters)
         {
             return MySqlHelper.ExecuteNonQuery(ConnectionString, text, parameters);
         }
@@ -43,7 +40,24 @@ namespace PICSUpdater
             return Reader.IsDBNull(ordinal) ? String.Empty : Reader.GetString(ordinal);
         }
 
-        public static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)
+        public static string JsonifyKeyValue(KeyValue keys)
+        {
+            string value = "";
+
+            using(StringWriter sw = new StringWriter(new StringBuilder()))
+            {
+                using (JsonWriter w = new JsonTextWriter(sw))
+                {
+                    DbWorker.JsonifyKeyValue(w, keys.Children);
+                }
+
+                value = sw.ToString();
+            }
+
+            return value;
+        }
+
+        private static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)
         {
             w.WriteStartObject();
 
@@ -54,7 +68,7 @@ namespace PICSUpdater
                     w.WritePropertyName(keyval.Name);
                     JsonifyKeyValue(w, keyval.Children);
                 }
-                else if (keyval.Value != null)
+                else if (keyval.Value != null) // TODO: Should we be writing null keys anyway?
                 {
                     w.WritePropertyName(keyval.Name);
                     w.WriteValue(keyval.Value);

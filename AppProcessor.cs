@@ -5,11 +5,10 @@
  */
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
+using System.Linq;
 
 namespace PICSUpdater
 {
@@ -17,17 +16,24 @@ namespace PICSUpdater
     {
         public void Process(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
+#if DEBUG
+            if (true)
+#else
             if (Program.fullRunOption > 0)
+#endif
             {
                 Log.WriteInfo("App Processor", "AppID: {0}", AppID);
             }
 
+            if (ProductInfo.KeyValues == null)
+            {
+                Log.WriteWarn("App Processor", "AppID {0} is empty, wot do I do?", AppID);
+                return;
+            }
+
             Dictionary<string, string> appdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId", new MySqlParameter[]
-                {
-                new MySqlParameter("AppID", AppID)
-                }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
@@ -35,13 +41,10 @@ namespace PICSUpdater
                 }
             }
 
-            String AppName = "";
-            String AppType = "";
+            string AppName = "";
+            string AppType = "";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
-                {
-                new MySqlParameter("AppID", AppID)
-                }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (Reader.Read())
                 {
@@ -53,12 +56,10 @@ namespace PICSUpdater
             if (ProductInfo.KeyValues["common"]["name"].Value != null)
             {
                 string newAppType = "0";
-                if (!ProductInfo.KeyValues["common"]["type"].Equals(""))
+
+                if (!ProductInfo.KeyValues["common"]["type"].Value.Equals(""))
                 {
-                    using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter[]
-                    {
-                        new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)
-                    }))
+                    using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)))
                     {
                         if (Reader.Read())
                         {
@@ -69,228 +70,126 @@ namespace PICSUpdater
 
                 if (AppName.Equals("") || AppName.StartsWith("SteamDB Unknown App"))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppId, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@AppId", AppID),
-                            new MySqlParameter("@Type", newAppType),
-                            new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
-                        });
+                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppID, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@Type", newAppType),
+                                             new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
+                    );
+
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_app");
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "10", "", ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
                 else if (!AppName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppId", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value) });
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value));
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "10", AppName, ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
 
                 if (AppType.Equals("") || AppType.Equals("0"))
                 {
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "9", "", newAppType, true);
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppId", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@type", newAppType) });
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@type", newAppType));
                 }
-
                 else if (!AppType.Equals(newAppType))
                 {
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "9", AppType, newAppType, true);
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppId", new MySqlParameter[] { new MySqlParameter("@AppId", AppID), new MySqlParameter("@type", newAppType) });
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@type", newAppType));
                 }
-            }
-
-            if (ProductInfo.KeyValues == null)
-            {
-                return;
             }
 
             #region HugeQuery
             foreach (KeyValue section in ProductInfo.KeyValues.Children)
             {
-                String sectionName = section.Name;
+                string sectionName = section.Name.ToLower();
 
                 if (sectionName == "appid" || sectionName == "public_only")
                 {
                     continue;
                 }
 
-                if (sectionName == "change_number")
+                if (sectionName == "change_number") // Carefully handle change_number
                 {
-                    if (!appdata.ContainsKey("marlamin_change_number"))
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames(Name, DisplayName) VALUES('marlamin_change_number', 'change_number')");
-                        MakeAppsInfo(AppID, "marlamin_change_number", section.Value);
-                        MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", "marlamin_change_number", "", section.Value);
-                    }
-                    else
-                    {
-                        if (!appdata["marlamin_change_number"].Equals(section.Value))
-                        {
-                            MakeAppsInfo(AppID, "marlamin_change_number", section.Value);
-                            MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", "marlamin_change_number", appdata["marlamin_change_number"], section.Value);
-                        }
-                    }
+                    sectionName = "marlamin_change_number";
 
-                    appdata.Remove("marlamin_change_number");
+                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, "marlamin_change_number", "change_number", section.AsString());
+
+                    appdata.Remove(sectionName);
                 }
                 else if (sectionName == "common" || sectionName == "extended")
                 {
+                    string keyName = "";
+
                     foreach (KeyValue keyvalue in section.Children)
                     {
-                        String keynamecheck = sectionName.ToLower() + "_" + keyvalue.Name;
+                        keyName = string.Format("{0}_{1}", sectionName, keyvalue.Name);
 
-                        if (keynamecheck.Equals("common_type") || keynamecheck.Equals("common_gameid") || keynamecheck.Equals("common_name") || keynamecheck.Equals("extended_order"))
+                        if (keyName.Equals("common_type") || keyName.Equals("common_gameid") || keyName.Equals("common_name") || keyName.Equals("extended_order"))
                         {
+                            // Ignore common keys that are either duplicated or serve no real purpose
                             continue;
                         }
                         // TODO: This is godlike hackiness
                         else if
                         (
-                        keynamecheck.StartsWith("extended_us ") ||
-                        keynamecheck.StartsWith("extended_im ") ||
-                        keynamecheck.StartsWith("extended_af ax al dz as ad ao ai aq ag ") ||
-                        keynamecheck.Equals("extended_de") ||
-                        keynamecheck.Equals("extended_jp") ||
-                        keynamecheck.Equals("extended_cn") ||
-                        keynamecheck.Equals("extended_us")
+                            keyName.StartsWith("extended_us ") ||
+                            keyName.StartsWith("extended_im ") ||
+                            keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ") ||
+                            keyName.Equals("extended_de") ||
+                            keyName.Equals("extended_jp") ||
+                            keyName.Equals("extended_cn") ||
+                            keyName.Equals("extended_us")
                         )
                         {
-                            Log.WriteWarn("App Processor", "Dammit Valve, why these long keynames: {0} - {1} ", AppID, keynamecheck);
+                            Log.WriteWarn("App Processor", "Dammit Valve, why these long keynames: {0} - {1} ", AppID, keyName);
+
                             continue;
                         }
 
-                        List<KeyValue> subvalues = keyvalue.Children;
-                        if (subvalues.Count == 0)
+                        string value = "";
+
+                        if(keyvalue.Children.Count > 0)
                         {
-                            if (!keyvalue.Value.Equals(""))
+                            if (keyName.Equals("common_languages"))
                             {
-                                if (appdata.ContainsKey(keynamecheck))
-                                {
-                                    if (!appdata[keynamecheck].Equals(keyvalue.Value))
-                                    {
-                                        MakeAppsInfo(AppID, keynamecheck, keyvalue.Value);
-                                        MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck], keyvalue.Value);
-                                    }
-                                }
-                                else
-                                {
-                                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@KeyValueNameSection", keynamecheck),
-                                        new MySqlParameter("@KeyValueName", keyvalue.Name)
-                                    });
-                                    MakeAppsInfo(AppID, keynamecheck, keyvalue.Value);
-                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", keynamecheck, "", keyvalue.Value);
-                                }
-                                appdata.Remove(keynamecheck);
-                            }
-                        }
-                        else
-                        {
-                            string generated_value = "";
-                            if (keynamecheck.Equals("common_languages"))
-                            {
-                                int language_count = 1;
-                                foreach (KeyValue subvalue in subvalues)
-                                {
-                                    generated_value += subvalue.Name;
-                                    if (language_count != subvalues.Count)
-                                    {
-                                        generated_value += ",";
-                                    }
-                                    language_count++;
-                                }
+                                value = string.Join(",", keyvalue.Children.Select(x => x.Name));
                             }
                             else
                             {
-                                using(StringWriter sw = new StringWriter(new StringBuilder()))
-                                {
-                                    using (JsonWriter w = new JsonTextWriter(sw))
-                                    {
-                                        DbWorker.JsonifyKeyValue(w, keyvalue.Children);
-                                    }
-
-                                    generated_value = sw.ToString();
-                                }
+                                value = DbWorker.JsonifyKeyValue(keyvalue);
                             }
-
-                            if (appdata.ContainsKey(keynamecheck))
-                            {
-                                if (!appdata[keynamecheck].Equals(generated_value))
-                                {
-                                    MakeAppsInfo(AppID, keynamecheck, generated_value);
-                                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", keynamecheck, appdata[keynamecheck], generated_value);
-                                }
-                            }
-                            else
-                            {
-                                DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@KeyValueNameSection", keynamecheck),
-                                        new MySqlParameter("@KeyValueName", keyvalue.Name)
-                                    });
-
-                                MakeAppsInfo(AppID, keynamecheck, generated_value);
-                                MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", keynamecheck, "", generated_value);
-                            }
-
-                            appdata.Remove(keynamecheck);
                         }
-                        // more stuff in sub arrays?
+                        else if (!keyvalue.Value.Equals(""))
+                        {
+                            value = keyvalue.Value;
+                        }
+
+                        if(!value.Equals(""))
+                        {
+                            ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, keyName, keyvalue.Name, value);
+
+                            appdata.Remove(keyName);
+                        }
                     }
                 }
                 else
                 {
-                    sectionName = "marlamin" + "_" + section.Name.ToLower();
+                    sectionName = string.Format("marlamin_{0}", sectionName);
 
-                    string json = "";
-
-                    using(StringWriter sw = new StringWriter(new StringBuilder()))
-                    {
-                        using (JsonWriter w = new JsonTextWriter(sw))
-                        {
-                            DbWorker.JsonifyKeyValue(w, section.Children);
-                        }
-
-                        json = sw.ToString();
-                    }
-
-                    if (appdata.ContainsKey(sectionName))
-                    {
-                        if (!appdata[sectionName].Equals(json))
-                        {
-                            MakeAppsInfo(AppID, sectionName, json);
-                            MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_key", sectionName, appdata[sectionName], json);
-                        }
-                    }
-                    else
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNames (Type, Name, DisplayName) VALUES (99, @KeyName, @KeyName)",
-                            new MySqlParameter[]
-                            {
-                                new MySqlParameter("@KeyName", sectionName)
-                            });
-
-                        MakeAppsInfo(AppID, sectionName, json);
-                        MakeHistory(AppID, ProductInfo.ChangeNumber, "created_key", sectionName, "", json);
-                    }
+                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
 
                     appdata.Remove(sectionName);
                 }
             }
             #endregion
 
-            foreach (String key in appdata.Keys)
+            foreach (string key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {
-                    DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppId AND `Key` = (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1)",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@AppId", AppID),
-                            new MySqlParameter("@KeyName", key)
-                        });
+                    DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppID AND `Key` = (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1)",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@KeyName", key)
+                    );
 
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "removed_key", key, appdata[key], "");
                 }
@@ -298,77 +197,95 @@ namespace PICSUpdater
 
             if (ProductInfo.KeyValues["common"]["name"].Value == null)
             {
-                if (AppName.Equals(""))
+                if (AppName.Equals("")) // We never knew it
                 {
-                    //we never knew it
-                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, Name) VALUES (@AppId, @AppName)",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@AppId", AppID),
-                            new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
-                        });
+                    DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, Name) VALUES (@AppID, @AppName)",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
+                    );
+                }
+                else if (!AppName.StartsWith("SteamDB Unknown App")) // App name is not empty in db
+                {
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "deleted_app", "0", AppName, "", true);
+
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName, AppType = 0 WHERE AppID = @AppID",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
+                    );
+                }
+            }
+        }
+
+        private static void ProcessKey(uint AppID, uint ChangeNumber, Dictionary<string, string> appData, string keyName, string displayName, string value)
+        {
+            if (!appData.ContainsKey(keyName))
+            {
+                if (displayName.Equals("jsonHack"))
+                {
+                    const uint DB_TYPE_JSON = 86; // TODO: Verify this
+
+                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNames(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`",
+                                             new MySqlParameter("@Name", keyName),
+                                             new MySqlParameter("@Type", DB_TYPE_JSON)
+                    );
                 }
                 else
                 {
-                    //app name is not empty in db
-                    if (!AppName.StartsWith("SteamDB Unknown App"))
-                    {
-                        MakeHistory(AppID, ProductInfo.ChangeNumber, "deleted_app", "0", AppName, "", true);
-
-                        DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName, AppType = 0 WHERE AppID = @AppId",
-                            new MySqlParameter[] {
-                                new MySqlParameter("@AppId", AppID),
-                                new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
-                            });
-                    }
+                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNames(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `ID` = `ID`",
+                                             new MySqlParameter("@Name", keyName),
+                                             new MySqlParameter("@DisplayName", displayName)
+                    );
                 }
+
+                MakeAppsInfo(AppID, keyName, value);
+                MakeHistory(AppID, ChangeNumber, "created_key", keyName, "", value);
+            }
+            else if (!appData[keyName].Equals(value))
+            {
+                MakeAppsInfo(AppID, keyName, value);
+                MakeHistory(AppID, ChangeNumber, "modified_key", keyName, appData[keyName], value);
             }
         }
 
         private static void MakeAppsInfo(uint AppID, string KeyName = "", string Value = "")
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO AppsInfo VALUES (@AppId, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE Value=@Value",
-                new MySqlParameter[]
-                {
-                    new MySqlParameter("@AppId", AppID),
-                    new MySqlParameter("@KeyName", KeyName),
-                    new MySqlParameter("@Value", Value)
-                });
+            DbWorker.ExecuteNonQuery("INSERT INTO `AppsInfo` VALUES (@AppID, (SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
+                                     new MySqlParameter("@AppID", AppID),
+                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@Value", Value)
+            );
         }
 
         private static void MakeHistory(uint AppID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
-            List<MySqlParameter> parameters = new List<MySqlParameter>();
-            parameters.Add(new MySqlParameter("@AppID", AppID));
-            parameters.Add(new MySqlParameter("@ChangeID", ChangeNumber));
-            parameters.Add(new MySqlParameter("@Action", Action));
-            parameters.Add(new MySqlParameter("@KeyName", KeyName));
-            parameters.Add(new MySqlParameter("@OldValue", OldValue));
-            parameters.Add(new MySqlParameter("@NewValue", NewValue));
+            string query = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 
             if (keyoverride == true || KeyName.Equals(""))
             {
-                DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)",
-                    parameters.ToArray());
+                query += "(@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)";
             }
             else
             {
-                DbWorker.ExecuteNonQuery("INSERT INTO AppsHistory (ChangeID, AppID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @AppID, @Action, (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1), @OldValue, @NewValue)",
-                    parameters.ToArray());
+                query += "(@ChangeID, @AppID, @Action, (SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1), @OldValue, @NewValue)";
             }
+
+            DbWorker.ExecuteNonQuery(query,
+                                     new MySqlParameter("@AppID", AppID),
+                                     new MySqlParameter("@ChangeID", ChangeNumber),
+                                     new MySqlParameter("@Action", Action),
+                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@OldValue", OldValue),
+                                     new MySqlParameter("@NewValue", NewValue)
+            );
         }
 
         public void ProcessUnknown(uint AppID)
         {
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
-            String AppName = "";
+            string AppName = "";
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID",
-                    new MySqlParameter[]
-                    {
-                        new MySqlParameter("AppID", AppID)
-                    }))
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (!MainReader.Read())
                 {
@@ -380,11 +297,7 @@ namespace PICSUpdater
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppId",
-                    new MySqlParameter[]
-                    {
-                        new MySqlParameter("AppID", AppID)
-                    }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
@@ -392,22 +305,11 @@ namespace PICSUpdater
                 }
             }
 
-            DbWorker.ExecuteNonQuery("DELETE FROM Apps WHERE AppID = @AppId",
-                new MySqlParameter[] {
-                    new MySqlParameter("@AppId", AppID)
-                });
+            DbWorker.ExecuteNonQuery("DELETE FROM Apps WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
+            DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
+            DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
 
-            DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE AppID = @AppId",
-                new MySqlParameter[] {
-                    new MySqlParameter("@AppId", AppID)
-                });
-
-            DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppId",
-                new MySqlParameter[] {
-                    new MySqlParameter("@AppId", AppID)
-                });
-
-            foreach (String key in appdata.Keys)
+            foreach (string key in appdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {

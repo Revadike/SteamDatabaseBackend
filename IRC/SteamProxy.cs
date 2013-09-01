@@ -93,10 +93,7 @@ namespace PICSUpdater
         {
             String name = "";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
-            {
-                new MySqlParameter("SubID", SubID)
-            }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter("SubID", SubID)))
             {
                 if (Reader.Read())
                 {
@@ -110,10 +107,7 @@ namespace PICSUpdater
         {
             String name = "";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter[]
-            {
-                new MySqlParameter("AppID", AppID)
-            }))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (Reader.Read())
                 {
@@ -123,10 +117,7 @@ namespace PICSUpdater
 
             if (name.Equals("") || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
             {
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter[]
-                {
-                    new MySqlParameter("AppID", AppID)
-                }))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", AppID)))
                 {
                     if (Reader.Read())
                     {

@@ -56,7 +56,19 @@ namespace PICSUpdater
 
             if (fullRunOption > 0)
             {
-                new Thread(new ThreadStart(steam.Run)).Start();
+                Log.WriteInfo("Main", "Running full update with option \"{0}\"", fullRunOption);
+
+                RunSteam();
+
+                return;
+            }
+
+            if (ConfigurationManager.AppSettings["irc-server"].Length == 0 || ConfigurationManager.AppSettings["irc-port"].Length == 0)
+            {
+                Log.WriteInfo("Main", "Starting without IRC bot");
+
+                RunDoto();
+                RunSteam();
 
                 return;
             }
@@ -80,12 +92,8 @@ namespace PICSUpdater
                 irc.Login("SteamDB", "http://steamdb.info/", 0, "SteamDB");
                 irc.RfcJoin(channels);
 
-                if (ConfigurationManager.AppSettings["steam2-username"].Length > 0 && ConfigurationManager.AppSettings["steam2-password"].Length > 0)
-                {
-                    new Thread(new ThreadStart(steamDota.Run)).Start();
-                }
-
-                new Thread(new ThreadStart(steam.Run)).Start();
+                RunDoto();
+                RunSteam();
 
                 irc.Listen();
 
@@ -94,6 +102,24 @@ namespace PICSUpdater
             catch(Exception e)
             {
                 Log.WriteError("Main", "Exception: {0}", e.Message);
+                Log.WriteError("Main", "Stacktrace: {0}", e.StackTrace);
+            }
+        }
+
+        static void RunSteam()
+        {
+#if DEBUG
+            steam.Run();
+#else
+            new Thread(new ThreadStart(steam.Run)).Start();
+#endif
+        }
+
+        static void RunDoto()
+        {
+            if (ConfigurationManager.AppSettings["steam2-username"].Length > 0 && ConfigurationManager.AppSettings["steam2-password"].Length > 0)
+            {
+                new Thread(new ThreadStart(steamDota.Run)).Start();
             }
         }
 

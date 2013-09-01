@@ -5,8 +5,6 @@
  */
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -17,284 +15,279 @@ namespace PICSUpdater
     {
         public void Process(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
+#if DEBUG
+            if (true)
+#else
             if (Program.fullRunOption > 0)
+#endif
             {
-                Log.WriteInfo("Sub Processor", "Processing Sub: {0}", SubID);
+                Log.WriteInfo("Sub Processor", "SubID: {0}", SubID);
+            }
+
+            if (ProductInfo.KeyValues == null)
+            {
+                Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
+                return;
             }
 
             Dictionary<string, string> subdata = new Dictionary<string, string>();
 
-            MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter[]
-                {
-                    new MySqlParameter("@SubID", SubID)
-                });
-            while (Reader.Read())
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
             {
-                subdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
-            }
-            Reader.Close();
-            Reader.Dispose();
-
-            String PackageName = "";
-
-            MySqlDataReader mainsubReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Subs WHERE SubID = @SubID", new MySqlParameter[]
+                while (Reader.Read())
                 {
-                    new MySqlParameter("@SubID", SubID)
-                });
-            if(mainsubReader.Read())
-            {
-                PackageName = DbWorker.GetString("Name", mainsubReader);
+                    subdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                }
             }
-            mainsubReader.Close();
-            mainsubReader.Dispose();
 
-            List<string> subapps = new List<string>();
-            MySqlDataReader SubAppsReader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'app'", new MySqlParameter[]
-                {
-                    new MySqlParameter("@SubID", SubID)
-                });
-            while (SubAppsReader.Read())
-            {
-                subapps.Add(DbWorker.GetString("AppID", SubAppsReader));
-            }
-            SubAppsReader.Close();
-            SubAppsReader.Dispose();
+            string PackageName = "";
+            List<int> subapps = new List<int>();
+            List<int> subdepots = new List<int>();
 
-            List<string> subdepots = new List<string>();
-            MySqlDataReader SubDepotsReader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'depot'", new MySqlParameter[]
-                {
-                    new MySqlParameter("@SubID", SubID)
-                });
-            while (SubDepotsReader.Read())
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Subs WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
             {
-                subdepots.Add(DbWorker.GetString("AppID", SubDepotsReader));
+                if (Reader.Read())
+                {
+                    PackageName = DbWorker.GetString("Name", Reader);
+                }
             }
-            SubDepotsReader.Close();
-            SubDepotsReader.Dispose();
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'app'", new MySqlParameter("@SubID", SubID)))
+            {
+                while (Reader.Read())
+                {
+                    subapps.Add(Reader.GetInt32("AppID"));
+                }
+            }
+
+            // TODO: Combine into a single query/list
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppID FROM SubsApps WHERE SubID = @SubID AND Type = 'depot'", new MySqlParameter("@SubID", SubID)))
+            {
+                while (Reader.Read())
+                {
+                    subdepots.Add(Reader.GetInt32("AppID"));
+                }
+            }
 
             foreach (KeyValue kv in ProductInfo.KeyValues.Children)
             {
-                if (kv.Children.Count != 0)
+                if (kv.Children.Count == 0)
                 {
-                    foreach (KeyValue kv2 in kv.Children)
+                    Log.WriteDebug("Sub Processor", "SubID {0}: Empty children? {1} - {2}", SubID, kv.Name, kv.Value);
+                    continue;
+                }
+
+                foreach (KeyValue kv2 in kv.Children)
+                {
+                    if (kv2.Children.Count == 0)
                     {
-                        if (kv2.Children.Count == 0)
+                        if (kv2.Name != null && !kv2.Name.Equals("") && !kv2.Name.Equals("extended") && !kv2.Name.Equals("depotids") &&  !kv2.Name.Equals("appids") && !kv2.Name.Equals("AppItems") && !kv2.Name.Equals("name") && !kv2.Name.Equals("packageid"))
                         {
-                            if (kv2.Name != null && !kv2.Name.Equals("") && !kv2.Name.Equals("extended") && !kv2.Name.Equals("depotids") &&  !kv2.Name.Equals("appids") && !kv2.Name.Equals("AppItems") && !kv2.Name.Equals("name") && !kv2.Name.Equals("packageid"))
+                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
+                                new MySqlParameter[]
+                                {
+                                    new MySqlParameter("@KeyValueNameSection", "root_" + kv2.Name.ToString()),
+                                    new MySqlParameter("@KeyValueName", kv2.Name.ToString())
+                                });
+                            if (kv2.Value != null)
+                            {
+                                MakeSubsInfo(SubID, "root_" + kv2.Name.ToString(), kv2.Value.ToString());
+
+                                if (subdata.ContainsKey("root_" + kv2.Name.ToString()))
+                                {
+                                    if (!subdata["root_" + kv2.Name.ToString()].Equals(kv2.Value.ToString()))
+                                    {
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "root_" + kv2.Name.ToString(), subdata["root_" + kv2.Name.ToString()].ToString(), kv2.Value.ToString());
+                                    }
+                                    subdata.Remove("root_" + kv2.Name.ToString());
+                                }
+                                else
+                                {
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "root_" + kv2.Name.ToString(), "", kv2.Value.ToString());
+                                }
+                            }
+
+                        }
+                        else if (kv2.Name.Equals("name"))
+                        {
+                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Subs(SubID, Name) VALUES(@SubID, @Name) ON DUPLICATE KEY UPDATE Name=@Name",
+                            new MySqlParameter[]
+                                {
+                                    new MySqlParameter("@SubID", SubID),
+                                    new MySqlParameter("@Name", kv2.Value)
+                                });
+                            if (PackageName.Equals(""))
+                            {
+                                MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
+                            }else if(!PackageName.Equals(kv2.Value.ToString())){
+                                MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (kv2.Name == "extended")
+                        {
+                            foreach (KeyValue kv3 in kv2.Children)
                             {
                                 DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@KeyValueNameSection", "root_" + kv2.Name.ToString()),
-                                        new MySqlParameter("@KeyValueName", kv2.Name.ToString())
-                                    });
-                                if (kv2.Value != null)
+                                new MySqlParameter[]
                                 {
-                                    MakeSubsInfo(SubID, "root_" + kv2.Name.ToString(), kv2.Value.ToString());
+                                    new MySqlParameter("@KeyValueNameSection", "extended_" + kv3.Name.ToString()),
+                                    new MySqlParameter("@KeyValueName", kv3.Name.ToString())
+                                });
 
-                                    if (subdata.ContainsKey("root_" + kv2.Name.ToString()))
+                                MakeSubsInfo(SubID, "extended_" + kv3.Name.ToString(), kv3.Value.ToString());
+
+                                if (subdata.ContainsKey("extended_" + kv3.Name.ToString()))
+                                {
+                                    if (!subdata["extended_" + kv3.Name.ToString()].Equals(kv3.Value.ToString()))
                                     {
-                                        if (!subdata["root_" + kv2.Name.ToString()].Equals(kv2.Value.ToString()))
-                                        {
-                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "root_" + kv2.Name.ToString(), subdata["root_" + kv2.Name.ToString()].ToString(), kv2.Value.ToString());
-                                        }
-                                        subdata.Remove("root_" + kv2.Name.ToString());
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "extended_" + kv3.Name.ToString(), subdata["extended_" + kv3.Name.ToString()].ToString(), kv3.Value.ToString());
+                                    }
+                                    subdata.Remove("extended_" + kv3.Name.ToString());
+                                }
+                                else
+                                {
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "extended_" + kv3.Name.ToString(), "", kv3.Value.ToString());
+                                }
+                            }
+                        }
+                        else if (kv2.Name == "appids" || kv2.Name == "depotids")
+                        {
+                            String type;
+                            if (kv2.Name == "appids") { type = "app"; } else { type = "depot"; }
+                            foreach (KeyValue kv3 in kv2.Children)
+                            {
+                                DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
+                                new MySqlParameter[]
+                                {
+                                    new MySqlParameter("@SubID", SubID),
+                                    new MySqlParameter("@AppID", kv3.Value),
+                                    new MySqlParameter("@Type", type)
+                                });
+
+                                if (type == "app")
+                                {
+                                    if (!subapps.Contains(kv3.AsInteger()))
+                                    {
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "0", "", kv3.Value, true);
                                     }
                                     else
                                     {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "root_" + kv2.Name.ToString(), "", kv2.Value.ToString());
+                                        subapps.Remove(kv3.AsInteger());
                                     }
-                                }
 
-                            }
-                            else if (kv2.Name.Equals("name"))
-                            {
-                                DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Subs(SubID, Name) VALUES(@SubID, @Name) ON DUPLICATE KEY UPDATE Name=@Name",
-                                new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@SubID", SubID),
-                                        new MySqlParameter("@Name", kv2.Value)
-                                    });
-                                if (PackageName.Equals(""))
+                                }
+                                else if (type == "depot")
                                 {
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
-                                }else if(!PackageName.Equals(kv2.Value.ToString())){
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
+                                    if (!subdepots.Contains(kv3.AsInteger()))
+                                    {
+                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "1", "", kv3.Value, true);
+                                    }
+                                    else
+                                    {
+                                        subdepots.Remove(kv3.AsInteger());
+                                    }
                                 }
                             }
                         }
                         else
                         {
-                            if (kv2.Name == "extended")
-                            {
-                                foreach (KeyValue kv3 in kv2.Children)
+                            String json = DbWorker.JsonifyKeyValue(kv2);
+
+                            List<MySqlParameter> parameters = new List<MySqlParameter>();
+
+                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs (Type, Name, DisplayName) VALUES (99, @KeyName, @KeyName)",
+                                new MySqlParameter[]
                                 {
-                                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@KeyValueNameSection", "extended_" + kv3.Name.ToString()),
-                                        new MySqlParameter("@KeyValueName", kv3.Name.ToString())
-                                    });
+                                    new MySqlParameter("@KeyName", "marlamin" + "_" + kv2.Name)
+                                });
 
-                                    MakeSubsInfo(SubID, "extended_" + kv3.Name.ToString(), kv3.Value.ToString());
+                            MakeSubsInfo(SubID, "marlamin_" + kv2.Name, json);
 
-                                    if (subdata.ContainsKey("extended_" + kv3.Name.ToString()))
-                                    {
-                                        if (!subdata["extended_" + kv3.Name.ToString()].Equals(kv3.Value.ToString()))
-                                        {
-                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "extended_" + kv3.Name.ToString(), subdata["extended_" + kv3.Name.ToString()].ToString(), kv3.Value.ToString());
-                                        }
-                                        subdata.Remove("extended_" + kv3.Name.ToString());
-                                    }
-                                    else
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "extended_" + kv3.Name.ToString(), "", kv3.Value.ToString());
-                                    }
-                                }
-                            }
-                            else if (kv2.Name == "appids" || kv2.Name == "depotids")
+                            if (subdata.ContainsKey("marlamin_" + kv2.Name.ToString()))
                             {
-                                String type;
-                                if (kv2.Name == "appids") { type = "app"; } else { type = "depot"; }
-                                foreach (KeyValue kv3 in kv2.Children)
+                                if (!subdata["marlamin_" + kv2.Name.ToString()].Equals(json))
                                 {
-                                    DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@SubID", SubID),
-                                        new MySqlParameter("@AppID", kv3.Value),
-                                        new MySqlParameter("@Type", type)
-                                    });
-
-                                    if (type == "app")
-                                    {
-                                        if (!subapps.Contains(kv3.Value))
-                                        {
-                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "0", "", kv3.Value, true);
-                                        }
-                                        else
-                                        {
-                                            subapps.Remove(kv3.Value);
-                                        }
-
-                                    }
-                                    else if (type == "depot")
-                                    {
-                                        if (!subdepots.Contains(kv3.Value))
-                                        {
-                                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", "1", "", kv3.Value, true);
-                                        }
-                                        else
-                                        {
-                                            subdepots.Remove(kv3.Value);
-                                        }
-                                    }
+                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json);
                                 }
                             }
                             else
                             {
-                                StringBuilder sb = new StringBuilder();
-                                StringWriter sw = new StringWriter(sb);
-                                String json = "";
-                                using (JsonWriter w = new JsonTextWriter(sw))
-                                {
-                                    DbWorker.JsonifyKeyValue(w, kv2.Children);
-                                }
-                                json = sw.ToString();
-
-                                List<MySqlParameter> parameters = new List<MySqlParameter>();
-
-                                DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs (Type, Name, DisplayName) VALUES (99, @KeyName, @KeyName)",
-                                    new MySqlParameter[]
-                                    {
-                                        new MySqlParameter("@KeyName", "marlamin" + "_" + kv2.Name)
-                                    });
-
-                                MakeSubsInfo(SubID, "marlamin_" + kv2.Name, json);
-
-                                if (subdata.ContainsKey("marlamin_" + kv2.Name.ToString()))
-                                {
-                                    if (!subdata["marlamin_" + kv2.Name.ToString()].Equals(json))
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json);
-                                    }
-                                }
-                                else
-                                {
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "marlamin_" + kv2.Name.ToString(), "", json);
-                                }
-                                subdata.Remove("marlamin" + "_" + kv2.Name);
+                                MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "marlamin_" + kv2.Name.ToString(), "", json);
                             }
+                            subdata.Remove("marlamin" + "_" + kv2.Name);
                         }
                     }
                 }
-
             }
-            foreach (String key in subdata.Keys)
+
+            foreach (string key in subdata.Keys)
             {
                 if (!key.StartsWith("website"))
                 {
                     DbWorker.ExecuteNonQuery("DELETE FROM SubsInfo WHERE `SubID` = @SubID AND `Key` = (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1)",
-                    new MySqlParameter[]
-                    {
-                        new MySqlParameter("@SubID", SubID),
-                        new MySqlParameter("@KeyName", key)
-                    });
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key].ToString(), "");
+                                             new MySqlParameter("@SubID", SubID),
+                                             new MySqlParameter("@KeyName", key)
+                    );
+
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key], "");
                 }
 
             }
-            foreach (String key in subapps)
+
+            foreach (int AppID in subapps)
             {
-                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'app'",
-                new MySqlParameter[] {
-                    new MySqlParameter("@SubID", SubID),
-                    new MySqlParameter("@Key", key)
-                });
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "0", key, "", true);
+                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @AppID AND `Type` = 'app'",
+                                         new MySqlParameter("@SubID", SubID),
+                                         new MySqlParameter("@AppID", AppID)
+                );
+
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "0", AppID.ToString(), "", true);
             }
-            foreach (String key in subdepots)
+
+            foreach (int AppID in subdepots)
             {
-                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @Key AND `Type` = 'depot'",
-                new MySqlParameter[] {
-                    new MySqlParameter("@SubID", SubID),
-                    new MySqlParameter("@Key", key)
-                });
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "1", key, "", true);
+                DbWorker.ExecuteNonQuery("DELETE FROM SubsApps WHERE SubID = @SubID AND AppID = @AppID AND `Type` = 'depot'",
+                                         new MySqlParameter("@SubID", SubID),
+                                         new MySqlParameter("@AppID", AppID)
+                );
+
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", "1", AppID.ToString(), "", true);
             }
         }
 
         private static void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "")
         {
             DbWorker.ExecuteNonQuery("INSERT INTO SubsInfo VALUES (@SubID, (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE Value=@Value",
-            new MySqlParameter[]
-                    {
-                        new MySqlParameter("@SubID", SubID),
-                        new MySqlParameter("@KeyName", KeyName),
-                        new MySqlParameter("@Value", Value)
-                    });
+                                     new MySqlParameter("@SubID", SubID),
+                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@Value", Value)
+            );
         }
 
         private static void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
-            List<MySqlParameter> parameters = new List<MySqlParameter>();
-            parameters.Add(new MySqlParameter("@SubID", SubID));
-            parameters.Add(new MySqlParameter("@ChangeID", ChangeNumber));
-            parameters.Add(new MySqlParameter("@Action", Action));
-            parameters.Add(new MySqlParameter("@KeyName", KeyName));
-            parameters.Add(new MySqlParameter("@OldValue", OldValue));
-            parameters.Add(new MySqlParameter("@NewValue", NewValue));
+            string query = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
+
             if (keyoverride == true || KeyName.Equals(""))
             {
-                DbWorker.ExecuteNonQuery("INSERT INTO SubsHistory (ChangeID, SubID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @SubID, @Action, @KeyName, @OldValue, @NewValue)",
-                parameters.ToArray());
+                query += "(@ChangeID, @SubID, @Action, @KeyName, @OldValue, @NewValue)";
             }
             else
             {
-                DbWorker.ExecuteNonQuery("INSERT INTO SubsHistory (ChangeID, SubID, `Action`, `Key`, OldValue, NewValue) VALUES (@ChangeID, @SubID, @Action, (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1), @OldValue, @NewValue)",
-                parameters.ToArray());
+                query += "(@ChangeID, @SubID, @Action, (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1), @OldValue, @NewValue)";
             }
-            parameters.Clear();
+
+            DbWorker.ExecuteNonQuery(query,
+                                     new MySqlParameter("@SubID", SubID),
+                                     new MySqlParameter("@ChangeID", ChangeNumber),
+                                     new MySqlParameter("@Action", Action),
+                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@OldValue", OldValue),
+                                     new MySqlParameter("@NewValue", NewValue)
+                                     );
         }
     }
 }

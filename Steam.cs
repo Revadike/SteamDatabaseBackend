@@ -171,8 +171,6 @@ namespace PICSUpdater
             {
                 fullRun = true;
 
-                Log.WriteInfo("Steam", "Running full update with option \"{0}\"", Program.fullRunOption);
-
                 GetPICSChanges();
             }
             else
@@ -181,6 +179,12 @@ namespace PICSUpdater
 
                 SteamProxy.PlayGame(steamClient, TEAM_FORTRESS_2);
             }
+
+#if DEBUG
+            steamApps.PICSGetProductInfo(440, null, false, false);
+            steamApps.PICSGetProductInfo(17520, null, false, false);
+            steamApps.PICSGetProductInfo(null, 10, false, false);
+#endif
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
@@ -234,11 +238,7 @@ namespace PICSUpdater
                 Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
             });
 
-            DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = CURRENT_TIMESTAMP()",
-                new MySqlParameter[]
-                {
-                    new MySqlParameter("@ChangeID", callback.CurrentChangeNumber)
-                });
+            DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
@@ -251,50 +251,30 @@ namespace PICSUpdater
                 {
                     if (callback.CurrentChangeNumber != callbackapp.Value.ChangeNumber)
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date",
-                                                 new MySqlParameter[]
-                                                 {
-                            new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber)
-                        });
+                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date", new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber));
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP() WHERE AppID = @AppID",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@AppID", callbackapp.Value.ID)
-                        });
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP() WHERE AppID = @AppID", new MySqlParameter("@AppID", callbackapp.Value.ID));
 
                     DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsApps (ChangeID, AppID) VALUES (@ChangeID, @AppID)",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber),
-                            new MySqlParameter("@AppID", callbackapp.Value.ID)
-                        });
+                                             new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber),
+                                             new MySqlParameter("@AppID", callbackapp.Value.ID)
+                   );
                 }
 
                 foreach (var callbackpack in callback.PackageChanges)
                 {
                     if (callback.CurrentChangeNumber != callbackpack.Value.ChangeNumber)
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date",
-                                                 new MySqlParameter[]
-                                                 {
-                            new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber)
-                        });
+                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date", new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber));
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@SubID", callbackpack.Value.ID)
-                        });
+                    DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID", new MySqlParameter("@SubID", callbackpack.Value.ID));
 
                     DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsSubs (ChangeID, SubID) VALUES (@ChangeID, @SubID)",
-                        new MySqlParameter[]
-                        {
-                            new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber),
-                            new MySqlParameter("@SubID", callbackpack.Value.ID)
-                        });
+                                             new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber),
+                                             new MySqlParameter("@SubID", callbackpack.Value.ID)
+                    );
                 }
             });
 
