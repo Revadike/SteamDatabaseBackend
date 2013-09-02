@@ -50,7 +50,7 @@ namespace PICSUpdater
             {
                 SteamProxy.PlayGame(steamClient, DOTA_2);
 
-                Thread.Sleep(TimeSpan.FromSeconds(3));
+                Thread.Sleep(TimeSpan.FromSeconds(2));
 
                 SteamProxy.GameCoordinatorHello(DOTA_2, gameCoordinator);
             }

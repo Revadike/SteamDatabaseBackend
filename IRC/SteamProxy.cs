@@ -457,6 +457,11 @@ namespace PICSUpdater
                     CommandHandler.Send(Program.channelAnnounce, message);
 
                     info.LastVersion = msg.Body.version;
+
+                    DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Version`) VALUES(@AppID, @Version) ON DUPLICATE KEY UPDATE `Version` = @Version",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@Version", msg.Body.version)
+                    );
                 }
             }
             else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
@@ -488,6 +493,11 @@ namespace PICSUpdater
                 {
                     GameCoordinatorHello(AppID, gc);
                 }
+
+                DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
+                                         new MySqlParameter("@AppID", AppID),
+                                         new MySqlParameter("@Status", msg.Body.status.ToString())
+                );
             }
         }
 
