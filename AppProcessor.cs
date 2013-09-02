@@ -14,6 +14,9 @@ namespace PICSUpdater
 {
     class AppProcessor
     {
+        private const string DATABASE_NAME_TYPE = "10";
+        private const string STEAMDB_UNKNOWN = "SteamDB Unknown App ";
+
         public void Process(uint AppID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
 #if DEBUG
@@ -33,7 +36,7 @@ namespace PICSUpdater
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
@@ -41,15 +44,15 @@ namespace PICSUpdater
                 }
             }
 
-            string AppName = "";
-            string AppType = "";
+            string appName = "";
+            string appType = "0";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (Reader.Read())
                 {
-                    AppName = DbWorker.GetString("Name", Reader);
-                    AppType = DbWorker.GetString("AppType", Reader);
+                    appName = DbWorker.GetString("Name", Reader);
+                    appType = DbWorker.GetString("AppType", Reader);
                 }
             }
 
@@ -59,16 +62,17 @@ namespace PICSUpdater
 
                 if (!ProductInfo.KeyValues["common"]["type"].Value.Equals(""))
                 {
-                    using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)))
+                    using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)))
                     {
                         if (Reader.Read())
                         {
                             newAppType = DbWorker.GetString("AppType", Reader);
                         }
+                        // TODO: otherwise create it?
                     }
                 }
 
-                if (AppName.Equals("") || AppName.StartsWith("SteamDB Unknown App"))
+                if (appName.Equals("") || appName.StartsWith(STEAMDB_UNKNOWN))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppID, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
                                              new MySqlParameter("@AppID", AppID),
@@ -77,27 +81,38 @@ namespace PICSUpdater
                     );
 
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_app");
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "10", "", ProductInfo.KeyValues["common"]["name"].Value, true);
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", DATABASE_NAME_TYPE, "", ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
-                else if (!AppName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
+                else if (!appName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value));
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "10", AppName, ProductInfo.KeyValues["common"]["name"].Value, true);
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppID",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
+                    );
+
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", DATABASE_NAME_TYPE, appName, ProductInfo.KeyValues["common"]["name"].Value, true);
                 }
 
-                if (AppType.Equals("") || AppType.Equals("0"))
+                if (appType.Equals("0"))
                 {
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @Type WHERE AppID = @AppID",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@Type", newAppType)
+                    );
+
                     MakeHistory(AppID, ProductInfo.ChangeNumber, "created_info", "9", "", newAppType, true);
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@type", newAppType));
                 }
-                else if (!AppType.Equals(newAppType))
+                else if (!appType.Equals(newAppType))
                 {
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "9", AppType, newAppType, true);
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @type WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID), new MySqlParameter("@type", newAppType));
+                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @Type WHERE AppID = @AppID",
+                                             new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@Type", newAppType)
+                    );
+
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "modified_info", "9", appType, newAppType, true);
                 }
             }
 
-            #region HugeQuery
             foreach (KeyValue section in ProductInfo.KeyValues.Children)
             {
                 string sectionName = section.Name.ToLower();
@@ -158,7 +173,7 @@ namespace PICSUpdater
                                 value = DbWorker.JsonifyKeyValue(keyvalue);
                             }
                         }
-                        else if (!keyvalue.Value.Equals(""))
+                        else if (!string.IsNullOrEmpty(keyvalue.Value))
                         {
                             value = keyvalue.Value;
                         }
@@ -180,7 +195,6 @@ namespace PICSUpdater
                     appdata.Remove(sectionName);
                 }
             }
-            #endregion
 
             foreach (string key in appdata.Keys)
             {
@@ -197,21 +211,21 @@ namespace PICSUpdater
 
             if (ProductInfo.KeyValues["common"]["name"].Value == null)
             {
-                if (AppName.Equals("")) // We never knew it
+                if (appName.Equals("")) // We don't have the app in our database yet
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, Name) VALUES (@AppID, @AppName)",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
+                                             new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
                     );
                 }
-                else if (!AppName.StartsWith("SteamDB Unknown App")) // App name is not empty in db
+                else if (!appName.StartsWith(STEAMDB_UNKNOWN)) // We do have the app, but it has a default name
                 {
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "deleted_app", "0", AppName, "", true);
-
                     DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName, AppType = 0 WHERE AppID = @AppID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", "SteamDB Unknown App " + AppID)
+                                             new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
                     );
+
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "deleted_app", "0", appName, "", true);
                 }
             }
         }
@@ -285,7 +299,7 @@ namespace PICSUpdater
 
             string AppName = "";
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader(@"SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (!MainReader.Read())
                 {
@@ -297,7 +311,7 @@ namespace PICSUpdater
 
             Dictionary<string, string> appdata = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(@"SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
@@ -317,7 +331,7 @@ namespace PICSUpdater
                 }
             }
 
-            if (!AppName.StartsWith("SteamDB Unknown App"))
+            if (!AppName.StartsWith(STEAMDB_UNKNOWN))
             {
                 MakeHistory(AppID, 0, "deleted_app", "0", AppName, "", true);
             }

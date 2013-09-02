@@ -14,6 +14,8 @@ namespace PICSUpdater
 {
     class SubProcessor
     {
+        private const string DATABASE_NAME_TYPE = "10";
+
         public void Process(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
         {
 #if DEBUG
@@ -25,12 +27,14 @@ namespace PICSUpdater
                 Log.WriteInfo("Sub Processor", "SubID: {0}", SubID);
             }
 
-            if (ProductInfo.KeyValues == null)
+            if (ProductInfo.KeyValues == null || ProductInfo.KeyValues.Children.Count == 0)
             {
                 Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
                 return;
             }
 
+            string packageName = "";
+            List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
             Dictionary<string, string> subdata = new Dictionary<string, string>();
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
@@ -41,14 +45,11 @@ namespace PICSUpdater
                 }
             }
 
-            string PackageName = "";
-            List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
-
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 if (Reader.Read())
                 {
-                    PackageName = DbWorker.GetString("Name", Reader);
+                    packageName = DbWorker.GetString("Name", Reader);
                 }
             }
 
@@ -60,139 +61,94 @@ namespace PICSUpdater
                 }
             }
 
-            foreach (KeyValue kv in ProductInfo.KeyValues.Children)
+            var kv = ProductInfo.KeyValues.Children.FirstOrDefault();
+
+            if (kv["name"].Value != null)
             {
-                foreach (KeyValue kv2 in kv.Children)
+                if (packageName.Equals(""))
                 {
-                    if (kv2.Children.Count == 0)
+                    DbWorker.ExecuteNonQuery("INSERT INTO Subs (SubID, Name) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
+                                             new MySqlParameter("@SubID", SubID),
+                                             new MySqlParameter("@Name", kv["name"].Value)
+                    );
+
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_info", DATABASE_NAME_TYPE, "", kv["name"].Value, true);
+                }
+                else if (!packageName.Equals(kv["name"].Value))
+                {
+                    DbWorker.ExecuteNonQuery("UPDATE Subs SET Name = @Name WHERE SubID = @SubID",
+                                             new MySqlParameter("@SubID", SubID),
+                                             new MySqlParameter("@Name", kv["name"].Value)
+                    );
+
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value, true);
+                }
+            }
+
+            foreach (KeyValue section in kv.Children)
+            {
+                string sectionName = section.Name.ToLower();
+
+                if (string.IsNullOrEmpty(sectionName) || sectionName.Equals("packageid") || sectionName.Equals("name"))
+                {
+                    // Ignore common keys
+                    continue;
+                }
+
+                if (sectionName.Equals("appids") || sectionName.Equals("depotids"))
+                {
+                    string type = sectionName.Replace("ids", ""); // Remove "ids", so we get app from appids and depot from depotids
+
+                    foreach (KeyValue childrenApp in section.Children)
                     {
-                        if (kv2.Name != null && !kv2.Name.Equals("") && !kv2.Name.Equals("extended") && !kv2.Name.Equals("depotids") &&  !kv2.Name.Equals("appids") && !kv2.Name.Equals("AppItems") && !kv2.Name.Equals("name") && !kv2.Name.Equals("packageid"))
+                        var app = apps.Where(x => x.Key == type && x.Value == childrenApp.Value);
+
+                        if (app.Any())
                         {
-                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@KeyValueNameSection", "root_" + kv2.Name.ToString()),
-                                    new MySqlParameter("@KeyValueName", kv2.Name.ToString())
-                                });
-                            if (kv2.Value != null)
-                            {
-                                MakeSubsInfo(SubID, "root_" + kv2.Name.ToString(), kv2.Value.ToString());
-
-                                if (subdata.ContainsKey("root_" + kv2.Name.ToString()))
-                                {
-                                    if (!subdata["root_" + kv2.Name.ToString()].Equals(kv2.Value.ToString()))
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "root_" + kv2.Name.ToString(), subdata["root_" + kv2.Name.ToString()].ToString(), kv2.Value.ToString());
-                                    }
-                                    subdata.Remove("root_" + kv2.Name.ToString());
-                                }
-                                else
-                                {
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "root_" + kv2.Name.ToString(), "", kv2.Value.ToString());
-                                }
-                            }
-
-                        }
-                        else if (kv2.Name.Equals("name"))
-                        {
-                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO Subs(SubID, Name) VALUES(@SubID, @Name) ON DUPLICATE KEY UPDATE Name=@Name",
-                            new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@SubID", SubID),
-                                    new MySqlParameter("@Name", kv2.Value)
-                                });
-                            if (PackageName.Equals(""))
-                            {
-                                MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
-                            }else if(!PackageName.Equals(kv2.Value.ToString())){
-                                MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", "10", PackageName, kv2.Value.ToString(), true);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (kv2.Name == "extended")
-                        {
-                            foreach (KeyValue kv3 in kv2.Children)
-                            {
-                                DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs(Name, DisplayName) VALUES(@KeyValueNameSection, @KeyValueName)",
-                                new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@KeyValueNameSection", "extended_" + kv3.Name.ToString()),
-                                    new MySqlParameter("@KeyValueName", kv3.Name.ToString())
-                                });
-
-                                MakeSubsInfo(SubID, "extended_" + kv3.Name.ToString(), kv3.Value.ToString());
-
-                                if (subdata.ContainsKey("extended_" + kv3.Name.ToString()))
-                                {
-                                    if (!subdata["extended_" + kv3.Name.ToString()].Equals(kv3.Value.ToString()))
-                                    {
-                                        MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "extended_" + kv3.Name.ToString(), subdata["extended_" + kv3.Name.ToString()].ToString(), kv3.Value.ToString());
-                                    }
-                                    subdata.Remove("extended_" + kv3.Name.ToString());
-                                }
-                                else
-                                {
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "extended_" + kv3.Name.ToString(), "", kv3.Value.ToString());
-                                }
-                            }
-                        }
-                        else if (kv2.Name == "appids" || kv2.Name == "depotids")
-                        {
-                            string type = kv2.Name.Replace("ids", ""); // Remove "ids", so we get app from appids and depot from depotids
-
-                            foreach (KeyValue kv3 in kv2.Children)
-                            {
-                                var app = apps.Where(x => x.Key == type && x.Value == kv3.Value);
-
-                                if (app.Any())
-                                {
-                                    // This combination of appid+type already exists, don't do anything
-                                    apps.Remove(app.First());
-                                }
-                                else
-                                {
-                                    DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
-                                                             new MySqlParameter("@SubID", SubID),
-                                                             new MySqlParameter("@AppID", kv3.Value),
-                                                             new MySqlParameter("@Type", type)
-                                    );
-
-                                    Console.WriteLine("New: " + kv3.Value + " - " + type);
-
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", "", kv3.Value, true); // TODO: Remove legacy 0/1 and replace with type
-                                }
-                            }
+                            // This combination of appid+type already exists, don't do anything
+                            apps.Remove(app.First());
                         }
                         else
                         {
-                            String json = DbWorker.JsonifyKeyValue(kv2);
+                            DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
+                                                     new MySqlParameter("@SubID", SubID),
+                                                     new MySqlParameter("@AppID", childrenApp.Value),
+                                                     new MySqlParameter("@Type", type)
+                            );
 
-                            List<MySqlParameter> parameters = new List<MySqlParameter>();
-
-                            DbWorker.ExecuteNonQuery("INSERT IGNORE INTO KeyNamesSubs (Type, Name, DisplayName) VALUES (99, @KeyName, @KeyName)",
-                                new MySqlParameter[]
-                                {
-                                    new MySqlParameter("@KeyName", "marlamin" + "_" + kv2.Name)
-                                });
-
-                            MakeSubsInfo(SubID, "marlamin_" + kv2.Name, json);
-
-                            if (subdata.ContainsKey("marlamin_" + kv2.Name.ToString()))
-                            {
-                                if (!subdata["marlamin_" + kv2.Name.ToString()].Equals(json))
-                                {
-                                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_key", "marlamin_" + kv2.Name.ToString(), subdata["marlamin_" + kv2.Name.ToString()].ToString(), json);
-                                }
-                            }
-                            else
-                            {
-                                MakeHistory(SubID, ProductInfo.ChangeNumber, "created_key", "marlamin_" + kv2.Name.ToString(), "", json);
-                            }
-                            subdata.Remove("marlamin" + "_" + kv2.Name);
+                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", "", childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
                         }
                     }
+                }
+                else if (sectionName.Equals("extended"))
+                {
+                    string keyName = "";
+
+                    foreach (KeyValue children in section.Children)
+                    {
+                        keyName = string.Format("{0}_{1}", sectionName, children.Name);
+
+                        ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, keyName, children.Name, children.Value);
+
+                        subdata.Remove(keyName);
+                    }
+                }
+                else if(section.Children.Count > 0)
+                {
+                    sectionName = string.Format("root_{0}", sectionName);
+
+                    ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
+
+                    subdata.Remove(sectionName);
+                }
+                else if(!string.IsNullOrEmpty(section.Value))
+                {
+                    string keyName = string.Format("root_{0}", sectionName);
+
+                    ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, keyName, sectionName, section.Value);
+
+                    subdata.Remove(keyName);
                 }
             }
 
@@ -212,8 +168,6 @@ namespace PICSUpdater
 
             foreach (var app in apps)
             {
-                Console.WriteLine("TO be deleted: " + app.Value + " - " + app.Key);
-
                 DbWorker.ExecuteNonQuery("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type",
                                          new MySqlParameter("@SubID", SubID),
                                          new MySqlParameter("@AppID", app.Value),
@@ -221,6 +175,53 @@ namespace PICSUpdater
                 );
 
                 MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, "", true); // TODO: Remove legacy 0/1 and replace with type
+            }
+
+            // I believe this can't happen with packages, but let's just be sure
+            if (kv["name"].Value == null)
+            {
+                if (packageName.Equals("")) // We don't have the app in our database yet
+                {
+                    // Don't do anything then
+                    Log.WriteError("Sub Processor", "Got a package without a name, and we don't have it in our database: {0}", SubID);
+                }
+                else
+                {
+                    //MakeHistory(SubID, ProductInfo.ChangeNumber, "deleted_sub", "0", packageName, "", true);
+
+                    Log.WriteError("Sub Processor", "Got a package without a name, but we have it in our database: {0}", SubID);
+                }
+            }
+        }
+
+        private static void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
+        {
+            if (!subData.ContainsKey(keyName))
+            {
+                if (displayName.Equals("jsonHack"))
+                {
+                    const uint DB_TYPE_JSON = 86; // TODO: Verify this
+
+                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`",
+                                             new MySqlParameter("@Name", keyName),
+                                             new MySqlParameter("@Type", DB_TYPE_JSON)
+                    );
+                }
+                else
+                {
+                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `ID` = `ID`",
+                                             new MySqlParameter("@Name", keyName),
+                                             new MySqlParameter("@DisplayName", displayName)
+                    );
+                }
+
+                MakeSubsInfo(SubID, keyName, value);
+                MakeHistory(SubID, ChangeNumber, "created_key", keyName, "", value);
+            }
+            else if (!subData[keyName].Equals(value))
+            {
+                MakeSubsInfo(SubID, keyName, value);
+                MakeHistory(SubID, ChangeNumber, "modified_key", keyName, subData[keyName], value);
             }
         }
 
