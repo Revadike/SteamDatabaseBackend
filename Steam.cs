@@ -59,6 +59,12 @@ namespace PICSUpdater
                     Log.WriteInfo("Steam", "Previous changelist was {0}", PreviousChange);
                 }
             }
+
+            if (PreviousChange == 0)
+            {
+                Log.WriteWarn("Steam", "Looks like there are no changelists in the database.");
+                Log.WriteWarn("Steam", "If you want to fill up your database first, restart with \"fullrun\" parameter set to 1.");
+            }
         }
 
         public void Run()
