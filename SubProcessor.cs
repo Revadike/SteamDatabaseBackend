@@ -20,7 +20,7 @@ namespace PICSUpdater
 #if DEBUG
             if (true)
 #else
-            if (Program.fullRunOption > 0)
+            if (Settings.Current.FullRun > 0)
 #endif
             {
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);

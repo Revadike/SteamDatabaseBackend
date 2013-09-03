@@ -5,7 +5,6 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Text;
 using MySql.Data.MySqlClient;
@@ -16,21 +15,19 @@ namespace PICSUpdater
 {
     public static class DbWorker
     {
-        private static string ConnectionString = ConfigurationManager.AppSettings["mysql-cstring"];
-
         public static MySqlDataReader ExecuteReader(string text)
         {
-            return MySqlHelper.ExecuteReader(ConnectionString, text);
+            return MySqlHelper.ExecuteReader(Settings.Current.ConnectionString, text);
         }
 
         public static MySqlDataReader ExecuteReader(string text, params MySqlParameter[] parameters)
         {
-            return MySqlHelper.ExecuteReader(ConnectionString, text, parameters);
+            return MySqlHelper.ExecuteReader(Settings.Current.ConnectionString, text, parameters);
         }
 
         public static int ExecuteNonQuery(string text, params MySqlParameter[] parameters)
         {
-            return MySqlHelper.ExecuteNonQuery(ConnectionString, text, parameters);
+            return MySqlHelper.ExecuteNonQuery(Settings.Current.ConnectionString, text, parameters);
         }
 
         public static string GetString(string SqlFieldName, MySqlDataReader Reader)

@@ -5,7 +5,6 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Threading;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
@@ -43,7 +42,7 @@ namespace PICSUpdater
         private void GetLastChangeNumber()
         {
             // If we're in a full run, request all changes from #1
-            if (!fullRun && Program.fullRunOption > 0)
+            if (!fullRun && Settings.Current.FullRun > 0)
             {
                 PreviousChange = 1;
 
@@ -117,7 +116,7 @@ namespace PICSUpdater
         {
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.SendEmote(Program.channelAnnounce, "failed to connect: {0}", callback.Result.ToString());
+                IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result.ToString());
 
                 throw new Exception("Could not connect: " + callback.Result);
             }
@@ -126,8 +125,8 @@ namespace PICSUpdater
 
             steamUser.LogOn(new SteamUser.LogOnDetails
             {
-                Username = ConfigurationManager.AppSettings["steam-username"],
-                Password = ConfigurationManager.AppSettings["steam-password"]
+                Username = Settings.Current.Steam.Username,
+                Password = Settings.Current.Steam.Password
             });
         }
 
@@ -154,7 +153,7 @@ namespace PICSUpdater
             {
                 Log.WriteError("Steam", "Failed to login: {0}", callback.Result);
 
-                CommandHandler.SendEmote(Program.channelAnnounce, "failed to log in: {0}", callback.Result.ToString());
+                IRC.SendEmoteAnnounce("failed to log in: {0}", callback.Result.ToString());
 
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
@@ -163,7 +162,7 @@ namespace PICSUpdater
 
             Log.WriteInfo("Steam", "Logged in");
 
-            CommandHandler.SendEmote(Program.channelAnnounce, "is now logged in. Server time: {0}", callback.ServerTime);
+            IRC.SendEmoteAnnounce("is now logged in. Server time: {0}", callback.ServerTime);
 
             // Prevent bugs
             if (fullRun)
@@ -171,7 +170,7 @@ namespace PICSUpdater
                 return;
             }
 
-            if (Program.fullRunOption > 0)
+            if (Settings.Current.FullRun > 0)
             {
                 fullRun = true;
 
@@ -193,7 +192,7 @@ namespace PICSUpdater
         {
             Log.WriteInfo("Steam", "Logged off of Steam");
 
-            CommandHandler.SendEmote(Program.channelAnnounce, "logged off of Steam.");
+            IRC.SendEmoteAnnounce("logged off of Steam.");
         }
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
@@ -324,7 +323,7 @@ namespace PICSUpdater
             }
 
             // Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
-            if (Program.fullRunOption != 1)
+            if (Settings.Current.FullRun != 1)
             {
                 foreach (uint app in callback.UnknownApps)
                 {

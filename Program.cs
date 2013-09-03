@@ -6,7 +6,6 @@
  * Future non-SteamKit stuff should go in this file.
  */
 using System;
-using System.Configuration;
 using System.Threading;
 using Meebey.SmartIrc4net;
 using SteamKit2;
@@ -19,22 +18,26 @@ namespace PICSUpdater
         public static Steam steam = new Steam();
         public static SteamDota steamDota = new SteamDota();
         public static SteamProxy ircSteam = new SteamProxy();
-        public static string channelMain = ConfigurationManager.AppSettings["main-channel"];
-        public static string channelAnnounce = ConfigurationManager.AppSettings["announce-channel"];
-
-        public static uint fullRunOption;
 
         public static void Main(string[] args)
         {
-            if (ConfigurationManager.AppSettings["steam-username"] == null || ConfigurationManager.AppSettings["steam-password"] == null)
+            try
             {
-                Log.WriteError("Main", "Is config missing? It should be in " + ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).FilePath);
+                Settings.Load();
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Settings", "{0}", e.Message);
+
                 return;
             }
 
-            uint.TryParse(ConfigurationManager.AppSettings["fullrun"], out fullRunOption);
+            if (!Settings.Validate())
+            {
+                return;
+            }
 
-            if (ConfigurationManager.AppSettings["steamKitDebug"].Equals("1"))
+            if (Settings.Current.SteamKitDebug)
             {
                 DebugLog.AddListener(new SteamKitLogger());
                 DebugLog.Enabled = true;
@@ -54,24 +57,24 @@ namespace PICSUpdater
                 KillIRC();
             };
 
-            if (fullRunOption > 0)
+            if (Settings.Current.FullRun > 0)
             {
-                Log.WriteInfo("Main", "Running full update with option \"{0}\"", fullRunOption);
+                Log.WriteInfo("Main", "Running full update with option \"{0}\"", Settings.Current.FullRun);
 
                 RunSteam();
 
                 return;
             }
 
-            if (ConfigurationManager.AppSettings["irc-server"].Length == 0 || ConfigurationManager.AppSettings["irc-port"].Length == 0)
+            if (!Settings.CanConnectToIRC())
             {
-                Log.WriteInfo("Main", "Starting without IRC bot");
-
                 RunDoto();
                 RunSteam();
 
                 return;
             }
+
+            ircSteam.ReloadImportant();
 
             irc.Encoding = System.Text.Encoding.UTF8;
             irc.SendDelay = 1000;
@@ -83,13 +86,13 @@ namespace PICSUpdater
             irc.ActiveChannelSyncing = true;
             irc.OnChannelMessage += new IrcEventHandler(CommandHandler.OnChannelMessage);
 
-            string[] serverList = { ConfigurationManager.AppSettings["irc-server"] };
-            string[] channels = { channelAnnounce, channelMain };
+            //string[] serverList = { ConfigurationManager.AppSettings["irc-server"] };
+            string[] channels = { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce };
 
             try
             {
-                irc.Connect(serverList, int.Parse(ConfigurationManager.AppSettings["irc-port"]));
-                irc.Login("SteamDB", "http://steamdb.info/", 0, "SteamDB");
+                irc.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port);
+                irc.Login(Settings.Current.IRC.Nickname, "http://steamdb.info/", 0, Settings.Current.IRC.Nickname);
                 irc.RfcJoin(channels);
 
                 RunDoto();
@@ -117,7 +120,7 @@ namespace PICSUpdater
 
         private static void RunDoto()
         {
-            if (ConfigurationManager.AppSettings["steam2-username"].Length > 0 && ConfigurationManager.AppSettings["steam2-password"].Length > 0)
+            if (Settings.CanUseDota())
             {
                 new Thread(new ThreadStart(steamDota.Run)).Start();
             }

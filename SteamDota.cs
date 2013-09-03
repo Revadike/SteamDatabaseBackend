@@ -1,5 +1,9 @@
+/*
+ * Copyright (c) 2013, SteamDB. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
 using System;
-using System.Configuration;
 using System.Threading;
 using SteamKit2;
 
@@ -72,8 +76,8 @@ namespace PICSUpdater
 
             steamUser.LogOn(new SteamUser.LogOnDetails
             {
-                Username = ConfigurationManager.AppSettings["steam2-username"],
-                Password = ConfigurationManager.AppSettings["steam2-password"]
+                Username = Settings.Current.SteamDota.Username,
+                Password = Settings.Current.SteamDota.Password
             });
         }
 

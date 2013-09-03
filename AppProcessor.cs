@@ -21,7 +21,7 @@ namespace PICSUpdater
 #if DEBUG
             if (true)
 #else
-            if (Program.fullRunOption > 0)
+            if (Settings.Current.FullRun > 0)
 #endif
             {
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
@@ -341,7 +341,7 @@ namespace PICSUpdater
         {
             string query = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 
-            if (keyoverride == true || KeyName.Equals(string.Empty))
+            if (keyoverride || KeyName.Equals(string.Empty))
             {
                 query += "(@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)";
             }

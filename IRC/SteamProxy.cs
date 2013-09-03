@@ -45,26 +45,17 @@ namespace PICSUpdater
             public GCConnectionStatus LastStatus;
         }
 
-        public List<IRCRequest> IRCRequests { get; private set; }
+        public List<IRCRequest> IRCRequests = new List<IRCRequest>();
 
         public static List<GCInfo> GCInfos = new List<GCInfo>();
 
         private static SteamID steamLUG = new SteamID(103582791431044413UL);
         private static string channelSteamLUG = "#steamlug";
 
-        private List<uint> importantApps;
-        private List<uint> importantSubs;
+        private List<uint> importantApps = new List<uint>();
+        private List<uint> importantSubs = new List<uint>();
 
-        public SteamProxy()
-        {
-            IRCRequests = new List<IRCRequest>();
-            importantApps = new List<uint>();
-            importantSubs = new List<uint>();
-
-            ReloadImportant(string.Empty);
-        }
-
-        public void ReloadImportant(string channel)
+        public void ReloadImportant(string channel = "")
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT AppID FROM ImportantApps WHERE `Announce` = 1"))
             {
@@ -88,7 +79,7 @@ namespace PICSUpdater
 
             if (!channel.Equals(string.Empty))
             {
-                CommandHandler.SendEmote(channel, "reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
+                IRC.Send(channel, "reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
             }
             else
             {
@@ -173,12 +164,12 @@ namespace PICSUpdater
             {
                 Message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, announcement.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
 
-                CommandHandler.Send(Program.channelMain, Message);
+                IRC.SendMain(Message);
 
                 // Additionally send announcements to steamlug channel
                 if (callback.ClanID.Equals(steamLUG))
                 {
-                    CommandHandler.Send(channelSteamLUG, Message);
+                    IRC.Send(channelSteamLUG, Message);
                 }
             }
 
@@ -191,11 +182,11 @@ namespace PICSUpdater
                     // Send events only to steamlug channel
                     if (callback.ClanID.Equals(steamLUG))
                     {
-                        CommandHandler.Send(channelSteamLUG, Message);
+                        IRC.Send(channelSteamLUG, Message);
                     }
                     else
                     {
-                        CommandHandler.Send(Program.channelMain, Message);
+                        IRC.SendMain(Message);
                     }
                 }
             }
@@ -216,7 +207,7 @@ namespace PICSUpdater
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
+                IRC.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
             }
             else
             {
@@ -227,7 +218,7 @@ namespace PICSUpdater
                     name = string.Format("AppID {0}", request.Target);
                 }
 
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"));
+                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"));
             }
         }
 
@@ -239,7 +230,7 @@ namespace PICSUpdater
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    IRC.Send(request.Channel, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -259,12 +250,12 @@ namespace PICSUpdater
                 }
                 catch (Exception e)
                 {
-                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+                    IRC.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
 
                     return;
                 }
 
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}",
+                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}",
                                     Colors.OLIVE, request.Requester, Colors.NORMAL,
                                     Colors.OLIVE, name, Colors.NORMAL,
                                     Colors.DARK_BLUE, info.ID, Colors.NORMAL,
@@ -275,7 +266,7 @@ namespace PICSUpdater
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    IRC.Send(request.Channel, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -294,12 +285,12 @@ namespace PICSUpdater
                 }
                 catch (Exception e)
                 {
-                    CommandHandler.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+                    IRC.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
 
                     return;
                 }
 
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}",
+                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}",
                                     Colors.OLIVE, request.Requester, Colors.NORMAL,
                                     Colors.OLIVE, name, Colors.NORMAL,
                                     Colors.DARK_BLUE, info.ID, Colors.NORMAL,
@@ -308,7 +299,7 @@ namespace PICSUpdater
             }
             else
             {
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Requester, Colors.NORMAL);
+                IRC.Send(request.Channel, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Requester, Colors.NORMAL);
             }
         }
 
@@ -321,12 +312,12 @@ namespace PICSUpdater
                                            Colors.DARK_BLUE, changeNumber
                              );
 
-            CommandHandler.Send(Program.channelAnnounce, "{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
-
             if (callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
             {
-                CommandHandler.Send(Program.channelMain, Message);
+                IRC.SendMain(Message);
             }
+
+            IRC.SendAnnounce("{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
 
             if (callback.AppChanges.Count > 0)
             {
@@ -358,7 +349,7 @@ namespace PICSUpdater
 
                 if (isImportant)
                 {
-                    CommandHandler.Send(Program.channelMain, "Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ID);
+                    IRC.SendMain("Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ID);
                 }
 
                 if (name.Equals(string.Empty))
@@ -372,11 +363,11 @@ namespace PICSUpdater
 
                 if (changeNumber != app.Value.ChangeNumber)
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  App: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, app.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ChangeNumber);
+                    IRC.SendAnnounce("  App: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, app.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ChangeNumber);
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : string.Empty);
+                    IRC.SendAnnounce("  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : string.Empty);
                 }
             }
         }
@@ -393,7 +384,7 @@ namespace PICSUpdater
 
                 if (isImportant)
                 {
-                    CommandHandler.Send(Program.channelMain, "Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ID);
+                    IRC.SendMain("Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ID);
                 }
 
                 if (name.Equals(string.Empty))
@@ -407,11 +398,11 @@ namespace PICSUpdater
 
                 if (changeNumber != package.Value.ChangeNumber)
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, package.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ChangeNumber);
+                    IRC.SendAnnounce("  Package: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, package.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ChangeNumber);
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : string.Empty);
+                    IRC.SendAnnounce("  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : string.Empty);
                 }
             }
         }
@@ -453,7 +444,7 @@ namespace PICSUpdater
                 {
                     Log.WriteInfo(string.Format("GC {0}", AppID), "Schema change from {0} to {1}", info.LastSchemaVersion, msg.Body.item_schema_version);
 
-                    CommandHandler.Send(Program.channelMain, "{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
+                    IRC.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
                 }
 
                 info.LastSchemaVersion = msg.Body.item_schema_version;
@@ -470,10 +461,10 @@ namespace PICSUpdater
 
                     if (info.LastVersion != 0)
                     {
-                        CommandHandler.Send(Program.channelMain, message);
+                        IRC.SendMain(message);
                     }
 
-                    CommandHandler.Send(Program.channelAnnounce, message);
+                    IRC.SendAnnounce(message);
 
                     info.LastVersion = msg.Body.version;
 
@@ -490,7 +481,7 @@ namespace PICSUpdater
 
                 Log.WriteInfo(string.Format("GC {0}", AppID), "Message: {0}", msg.Body.message);
 
-                CommandHandler.Send(Program.channelMain, "{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
+                IRC.SendMain("{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
             }
             else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus || callback.EMsg == 4008 /* tf2's k_EMsgGCClientGoodbye */)
             {
@@ -502,12 +493,12 @@ namespace PICSUpdater
 
                 if (info.LastStatus != msg.Body.status)
                 {
-                    CommandHandler.Send(Program.channelMain, message);
+                    IRC.SendMain(message);
 
                     info.LastStatus = msg.Body.status;
                 }
 
-                CommandHandler.Send(Program.channelAnnounce, message);
+                IRC.SendAnnounce(message);
 
                 if (msg.Body.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
                 {

@@ -9,18 +9,8 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    public class CommandHandler
+    public static class CommandHandler
     {
-        public static void Send(string channel, string format, params object[] args)
-        {
-            Program.irc.SendMessage(SendType.Message, channel, string.Format(format, args));
-        }
-
-        public static void SendEmote(string channel, string format, params object[] args)
-        {
-            Program.irc.SendMessage(SendType.Action, channel, string.Format(format, args));
-        }
-
         public static void OnChannelMessage(object sender, IrcEventArgs e)
         {
             switch (e.Data.MessageArray[0])
@@ -44,7 +34,7 @@ namespace PICSUpdater
                     }
                     else
                     {
-                        Send(e.Data.Channel, "Usage:{0} !app <appid>", Colors.OLIVE);
+                        IRC.Send(e.Data.Channel, "Usage:{0} !app <appid>", Colors.OLIVE);
                     }
 
                     break;
@@ -69,7 +59,7 @@ namespace PICSUpdater
                     }
                     else
                     {
-                        Send(e.Data.Channel, "Usage:{0} !sub <subid>", Colors.OLIVE);
+                        IRC.Send(e.Data.Channel, "Usage:{0} !sub <subid>", Colors.OLIVE);
                     }
 
                     break;
@@ -94,7 +84,7 @@ namespace PICSUpdater
                     }
                     else
                     {
-                        Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
+                        IRC.Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
                     }
 
                     break;
@@ -131,7 +121,7 @@ namespace PICSUpdater
 
                                 if (!uint.TryParse(e.Data.MessageArray[2], out target))
                                 {
-                                    Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+                                    IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
 
                                     break;
                                 }
@@ -142,7 +132,7 @@ namespace PICSUpdater
                                     {
                                         Program.steam.steamApps.PICSGetProductInfo(target, null, false, false);
 
-                                        Send(e.Data.Channel, "Forced update for AppID {0}{1}", Colors.OLIVE, target);
+                                        IRC.Send(e.Data.Channel, "Forced update for AppID {0}{1}", Colors.OLIVE, target);
 
                                         break;
                                     }
@@ -151,14 +141,14 @@ namespace PICSUpdater
                                     {
                                         Program.steam.steamApps.PICSGetProductInfo(null, target, false, false);
 
-                                        Send(e.Data.Channel, "Forced update for SubID {0}{1}", Colors.OLIVE, target);
+                                        IRC.Send(e.Data.Channel, "Forced update for SubID {0}{1}", Colors.OLIVE, target);
 
                                         break;
                                     }
 
                                     default:
                                     {
-                                        Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+                                        IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
 
                                         break;
                                     }
@@ -167,11 +157,11 @@ namespace PICSUpdater
                             else if (e.Data.MessageArray.Length == 1)
                             {
                                 Program.steam.GetPICSChanges();
-                                Send(e.Data.Channel, "Check forced");
+                                IRC.Send(e.Data.Channel, "Check forced");
                             }
                             else
                             {
-                                Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+                                IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
                             }
 
                             break;

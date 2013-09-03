@@ -1,0 +1,30 @@
+{
+	"ConnectionString": "server=127.0.0.1;port=3306;userid=test;password=test;database=test;charset=utf8;pooling=true",
+	
+	"FullRun": 0,
+	"SteamKitDebug": 0,
+	
+	"Steam":
+	{
+		"Username": "steam-username",
+		"Password": "steam-password"
+	},
+	
+	"SteamDota":
+	{
+		"Username": "",
+		"Password": ""
+	},
+	
+	"IRC":
+	{
+		"Server": "example.com",
+		"Port": 0,
+		"Nickname": "SteamDB",
+		"Channel":
+		{
+			"Main": "#steamdb-test",
+			"Announce": "#steamdb-test"
+		}
+	}
+}
