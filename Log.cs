@@ -7,7 +7,7 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    class SteamKitLogger : IDebugListener
+    public class SteamKitLogger : IDebugListener
     {
         public void WriteLine( string category, string msg )
         {
@@ -15,7 +15,7 @@ namespace PICSUpdater
         }
     }
 
-    static class Log
+    public static class Log
     {
         const string LOG_DIRECTORY = "logs";
 

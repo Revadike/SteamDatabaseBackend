@@ -9,16 +9,16 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    class CommandHandler
+    public class CommandHandler
     {
-        public static void Send( string channel, string format, params object[] args )
+        public static void Send(string channel, string format, params object[] args)
         {
-            Program.irc.SendMessage( SendType.Message, channel, string.Format( format, args ) );
+            Program.irc.SendMessage(SendType.Message, channel, string.Format(format, args));
         }
 
-        public static void SendEmote( string channel, string format, params object[] args )
+        public static void SendEmote(string channel, string format, params object[] args)
         {
-            Program.irc.SendMessage( SendType.Action, channel, string.Format( format, args ) );
+            Program.irc.SendMessage(SendType.Action, channel, string.Format(format, args));
         }
 
         public static void OnChannelMessage(object sender, IrcEventArgs e)
@@ -33,14 +33,14 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamApps.PICSGetProductInfo(appid, null, false, false);
 
-                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
                             Type = SteamProxy.IRCRequestType.TYPE_APP,
                             Channel = e.Data.Channel,
                             Requester = e.Data.Nick
-                        } );
+                        });
                     }
                     else
                     {
@@ -49,6 +49,7 @@ namespace PICSUpdater
 
                     break;
                 }
+
                 case "!sub":
                 {
                     uint subid;
@@ -57,14 +58,14 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamApps.PICSGetProductInfo(null, subid, false, false);
 
-                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = subid,
                             Type = SteamProxy.IRCRequestType.TYPE_SUB,
                             Channel = e.Data.Channel,
                             Requester = e.Data.Nick
-                        } );
+                        });
                     }
                     else
                     {
@@ -73,6 +74,7 @@ namespace PICSUpdater
 
                     break;
                 }
+
                 case "!numplayers":
                 {
                     uint appid;
@@ -81,14 +83,14 @@ namespace PICSUpdater
                     {
                         var jobID = Program.steam.steamUserStats.GetNumberOfCurrentPlayers(appid);
 
-                        Program.ircSteam.IRCRequests.Add( new SteamProxy.IRCRequest
+                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
                             Type = SteamProxy.IRCRequestType.TYPE_PLAYERS,
                             Channel = e.Data.Channel,
                             Requester = e.Data.Nick
-                        } );
+                        });
                     }
                     else
                     {
@@ -97,6 +99,7 @@ namespace PICSUpdater
 
                     break;
                 }
+
                 case "!reload":
                 {
                     Channel ircChannel = Program.irc.GetChannel(e.Data.Channel);
@@ -113,6 +116,7 @@ namespace PICSUpdater
 
                     break;
                 }
+
                 case "!force":
                 {
                     Channel ircChannel = Program.irc.GetChannel(e.Data.Channel);
@@ -142,6 +146,7 @@ namespace PICSUpdater
 
                                         break;
                                     }
+
                                     case "sub":
                                     {
                                         Program.steam.steamApps.PICSGetProductInfo(null, target, false, false);
@@ -150,6 +155,7 @@ namespace PICSUpdater
 
                                         break;
                                     }
+
                                     default:
                                     {
                                         Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);

@@ -13,7 +13,7 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    class Program
+    public class Program
     {
         public static IrcClient irc = new IrcClient();
         public static Steam steam = new Steam();
@@ -24,7 +24,7 @@ namespace PICSUpdater
 
         public static uint fullRunOption;
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             if (ConfigurationManager.AppSettings["steam-username"] == null || ConfigurationManager.AppSettings["steam-password"] == null)
             {
@@ -47,9 +47,9 @@ namespace PICSUpdater
                 steam.isRunning = false;
                 steamDota.isRunning = false;
 
-                try { steam.timer.Stop();                 } catch( Exception e2 ) { Log.WriteError("Main", "Exception: {0}", e2.Message); }
-                try { steam.steamClient.Disconnect();     } catch( Exception e3 ) { Log.WriteError("Main", "Exception: {0}", e3.Message); }
-                try { steamDota.steamClient.Disconnect(); } catch( Exception e4 ) { Log.WriteError("Main", "Exception: {0}", e4.Message); }
+                try { steam.timer.Stop();                 } catch (Exception e2) { Log.WriteError("Main", "Exception: {0}", e2.Message); }
+                try { steam.steamClient.Disconnect();     } catch (Exception e3) { Log.WriteError("Main", "Exception: {0}", e3.Message); }
+                try { steamDota.steamClient.Disconnect(); } catch (Exception e4) { Log.WriteError("Main", "Exception: {0}", e4.Message); }
 
                 KillIRC();
             };
@@ -99,14 +99,14 @@ namespace PICSUpdater
 
                 KillIRC();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.WriteError("Main", "Exception: {0}", e.Message);
                 Log.WriteError("Main", "Stacktrace: {0}", e.StackTrace);
             }
         }
 
-        static void RunSteam()
+        private static void RunSteam()
         {
 #if DEBUG
             steam.Run();
@@ -115,7 +115,7 @@ namespace PICSUpdater
 #endif
         }
 
-        static void RunDoto()
+        private static void RunDoto()
         {
             if (ConfigurationManager.AppSettings["steam2-username"].Length > 0 && ConfigurationManager.AppSettings["steam2-password"].Length > 0)
             {
@@ -123,14 +123,14 @@ namespace PICSUpdater
             }
         }
 
-        static void KillIRC()
+        private static void KillIRC()
         {
             try
             {
                 irc.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
                 irc.Disconnect();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Log.WriteError("Main", "Exception while exiting: {0}", e.Message);
             }

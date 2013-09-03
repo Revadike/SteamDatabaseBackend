@@ -6,24 +6,30 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
 using SteamKit2.Internal;
-using System.Linq;
 
 namespace PICSUpdater
 {
-    class SteamProxy
+    public class SteamProxy
     {
-        public enum IRCRequestType { TYPE_APP, TYPE_SUB, TYPE_PLAYERS };
+        public enum IRCRequestType
+        {
+            TYPE_APP,
+            TYPE_SUB,
+            TYPE_PLAYERS
+        }
 
         public class IRCRequest
         {
             public JobID JobID { get; set; }
 
             public string Channel { get; set; }
+
             public string Requester { get; set; }
 
             public IRCRequestType Type { get; set; }
@@ -40,6 +46,7 @@ namespace PICSUpdater
         }
 
         public List<IRCRequest> IRCRequests { get; private set; }
+
         public static List<GCInfo> GCInfos = new List<GCInfo>();
 
         private static SteamID steamLUG = new SteamID(103582791431044413UL);
@@ -54,7 +61,7 @@ namespace PICSUpdater
             importantApps = new List<uint>();
             importantSubs = new List<uint>();
 
-            ReloadImportant("");
+            ReloadImportant(string.Empty);
         }
 
         public void ReloadImportant(string channel)
@@ -79,7 +86,7 @@ namespace PICSUpdater
                 }
             }
 
-            if (!channel.Equals(""))
+            if (!channel.Equals(string.Empty))
             {
                 CommandHandler.SendEmote(channel, "reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
             }
@@ -91,7 +98,7 @@ namespace PICSUpdater
 
         private static string GetPackageName(uint SubID)
         {
-            String name = "";
+            string name = string.Empty;
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter("SubID", SubID)))
             {
@@ -100,12 +107,13 @@ namespace PICSUpdater
                     name = DbWorker.GetString("Name", Reader);
                 }
             }
+
             return name;
         }
 
         private static string GetAppName(uint AppID)
         {
-            String name = "";
+            string name = string.Empty;
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
@@ -115,7 +123,7 @@ namespace PICSUpdater
                 }
             }
 
-            if (name.Equals("") || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
+            if (name.Equals(string.Empty) || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
             {
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", AppID)))
                 {
@@ -123,14 +131,14 @@ namespace PICSUpdater
                     {
                         string nameOld = DbWorker.GetString("NewValue", Reader);
 
-                        if (name.Equals(""))
+                        if (name.Equals(string.Empty))
                         {
                             name = string.Format("AppID {0}", AppID);
                         }
 
                         if (!name.Equals(nameOld))
                         {
-                            name = string.Format ("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameOld, Colors.NORMAL);
+                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameOld, Colors.NORMAL);
                         }
                     }
                 }
@@ -147,14 +155,14 @@ namespace PICSUpdater
             }
 
             string ClanName = callback.ClanName;
-            string Message = "";
+            string Message = string.Empty;
 
-            if (ClanName == null)
+            if (ClanName.Equals(null))
             {
                 ClanName = Program.steam.steamFriends.GetClanName(callback.ClanID);
             }
 
-            if (ClanName == "")
+            if (ClanName.Equals(string.Empty))
             {
                 ClanName = "Group";
 
@@ -168,20 +176,20 @@ namespace PICSUpdater
                 CommandHandler.Send(Program.channelMain, Message);
 
                 // Additionally send announcements to steamlug channel
-                if (callback.ClanID == steamLUG)
+                if (callback.ClanID.Equals(steamLUG))
                 {
                     CommandHandler.Send(channelSteamLUG, Message);
                 }
             }
 
-            foreach(var groupevent in callback.Events)
+            foreach (var groupevent in callback.Events)
             {
-                if (groupevent.JustPosted == true)
+                if (groupevent.JustPosted)
                 {
                     Message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, groupevent.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
 
                     // Send events only to steamlug channel
-                    if (callback.ClanID == steamLUG)
+                    if (callback.ClanID.Equals(steamLUG))
                     {
                         CommandHandler.Send(channelSteamLUG, Message);
                     }
@@ -214,7 +222,7 @@ namespace PICSUpdater
             {
                 string name = GetAppName(request.Target);
 
-                if (name.Equals(""))
+                if (name.Equals(string.Empty))
                 {
                     name = string.Format("AppID {0}", request.Target);
                 }
@@ -256,7 +264,12 @@ namespace PICSUpdater
                     return;
                 }
 
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, info.ID, Colors.NORMAL, info.MissingToken ? " (mising token)" : "");
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}",
+                                    Colors.OLIVE, request.Requester, Colors.NORMAL,
+                                    Colors.OLIVE, name, Colors.NORMAL,
+                                    Colors.DARK_BLUE, info.ID, Colors.NORMAL,
+                                    info.MissingToken ? " (mising token)" : string.Empty
+                );
             }
             else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
             {
@@ -286,7 +299,12 @@ namespace PICSUpdater
                     return;
                 }
 
-                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, info.ID, Colors.NORMAL, info.MissingToken ? " (mising token)" : "");
+                CommandHandler.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}",
+                                    Colors.OLIVE, request.Requester, Colors.NORMAL,
+                                    Colors.OLIVE, name, Colors.NORMAL,
+                                    Colors.DARK_BLUE, info.ID, Colors.NORMAL,
+                                    info.MissingToken ? " (mising token)" : string.Empty
+                );
             }
             else
             {
@@ -300,11 +318,12 @@ namespace PICSUpdater
                                            Colors.OLIVE, changeNumber, Colors.NORMAL,
                                            callback.AppChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.AppChanges.Count, Colors.NORMAL,
                                            callback.PackageChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.PackageChanges.Count, Colors.NORMAL,
-                                           Colors.DARK_BLUE, changeNumber);
+                                           Colors.DARK_BLUE, changeNumber
+                             );
 
             CommandHandler.Send(Program.channelAnnounce, "{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
 
-            if(callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
+            if (callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
             {
                 CommandHandler.Send(Program.channelMain, Message);
             }
@@ -322,7 +341,7 @@ namespace PICSUpdater
 
         private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList)
         {
-            string name = "";
+            string name = string.Empty;
             bool isImportant = false;
 
             foreach (var app in appList)
@@ -342,7 +361,7 @@ namespace PICSUpdater
                     CommandHandler.Send(Program.channelMain, "Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ID);
                 }
 
-                if (name.Equals(""))
+                if (name.Equals(string.Empty))
                 {
                     name = string.Format("{0}{1}{2}", Colors.GREEN, app.Value.ID, Colors.NORMAL);
                 }
@@ -357,14 +376,14 @@ namespace PICSUpdater
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : "");
+                    CommandHandler.Send(Program.channelAnnounce, "  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : string.Empty);
                 }
             }
         }
 
         private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList)
         {
-            string name = "";
+            string name = string.Empty;
             bool isImportant = false;
 
             foreach (var package in packageList)
@@ -377,7 +396,7 @@ namespace PICSUpdater
                     CommandHandler.Send(Program.channelMain, "Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ID);
                 }
 
-                if (name.Equals(""))
+                if (name.Equals(string.Empty))
                 {
                     name = string.Format("{0}{1}{2}", Colors.GREEN, package.Value.ID, Colors.NORMAL);
                 }
@@ -392,19 +411,19 @@ namespace PICSUpdater
                 }
                 else
                 {
-                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : "");
+                    CommandHandler.Send(Program.channelAnnounce, "  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : string.Empty);
                 }
             }
         }
 
         public static void PlayGame(SteamClient client, uint AppID)
         {
-            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>( EMsg.ClientGamesPlayed );
+            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
 
-            clientMsg.Body.games_played.Add( new CMsgClientGamesPlayed.GamePlayed
+            clientMsg.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed
             {
                 game_id = AppID
-            } );
+            });
 
             client.Send(clientMsg);
         }
@@ -449,7 +468,7 @@ namespace PICSUpdater
 
                     string message = string.Format("New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
 
-                    if(info.LastVersion != 0)
+                    if (info.LastVersion != 0)
                     {
                         CommandHandler.Send(Program.channelMain, message);
                     }
@@ -458,8 +477,9 @@ namespace PICSUpdater
 
                     info.LastVersion = msg.Body.version;
 
-                    DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Version`) VALUES(@AppID, @Version) ON DUPLICATE KEY UPDATE `Version` = @Version",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`, `Version`) VALUES(@AppID, @Status, @Version) ON DUPLICATE KEY UPDATE `Status` = @Status, `Version` = @Version",
                                              new MySqlParameter("@AppID", AppID),
+                                             new MySqlParameter("@Status", GCConnectionStatus.GCConnectionStatus_HAVE_SESSION.ToString()),
                                              new MySqlParameter("@Version", msg.Body.version)
                     );
                 }
@@ -503,7 +523,7 @@ namespace PICSUpdater
 
         public static void GameCoordinatorHello(uint AppID, SteamGameCoordinator gc)
         {
-            var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>( ( uint )EGCBaseClientMsg.k_EMsgGCClientHello );
+            var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
 
             gc.Send(clientHello, AppID);
         }

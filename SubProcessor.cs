@@ -5,14 +5,13 @@
  */
 using System;
 using System.Collections.Generic;
-using MySql.Data.MySqlClient;
-using Newtonsoft.Json;
-using SteamKit2;
 using System.Linq;
+using MySql.Data.MySqlClient;
+using SteamKit2;
 
 namespace PICSUpdater
 {
-    class SubProcessor
+    public class SubProcessor
     {
         private const string DATABASE_NAME_TYPE = "10";
 
@@ -24,7 +23,7 @@ namespace PICSUpdater
             if (Program.fullRunOption > 0)
 #endif
             {
-                Log.WriteInfo("Sub Processor", "SubID: {0}", SubID);
+                Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
             if (ProductInfo.KeyValues == null || ProductInfo.KeyValues.Children.Count == 0)
@@ -33,7 +32,7 @@ namespace PICSUpdater
                 return;
             }
 
-            string packageName = "";
+            string packageName = string.Empty;
             List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
             Dictionary<string, string> subdata = new Dictionary<string, string>();
 
@@ -65,7 +64,7 @@ namespace PICSUpdater
 
             if (kv["name"].Value != null)
             {
-                if (packageName.Equals(""))
+                if (packageName.Equals(string.Empty))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO Subs (SubID, Name) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
@@ -73,7 +72,7 @@ namespace PICSUpdater
                     );
 
                     MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_info", DATABASE_NAME_TYPE, "", kv["name"].Value, true);
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value, true);
                 }
                 else if (!packageName.Equals(kv["name"].Value))
                 {
@@ -98,7 +97,7 @@ namespace PICSUpdater
 
                 if (sectionName.Equals("appids") || sectionName.Equals("depotids"))
                 {
-                    string type = sectionName.Replace("ids", ""); // Remove "ids", so we get app from appids and depot from depotids
+                    string type = sectionName.Replace("ids", string.Empty); // Remove "ids", so we get app from appids and depot from depotids
 
                     foreach (KeyValue childrenApp in section.Children)
                     {
@@ -117,13 +116,13 @@ namespace PICSUpdater
                                                      new MySqlParameter("@Type", type)
                             );
 
-                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", "", childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
+                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", string.Empty, childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
                         }
                     }
                 }
                 else if (sectionName.Equals("extended"))
                 {
-                    string keyName = "";
+                    string keyName = string.Empty;
 
                     foreach (KeyValue children in section.Children)
                     {
@@ -134,7 +133,7 @@ namespace PICSUpdater
                         subdata.Remove(keyName);
                     }
                 }
-                else if(section.Children.Count > 0)
+                else if (section.Children.Count > 0)
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
@@ -142,7 +141,7 @@ namespace PICSUpdater
 
                     subdata.Remove(sectionName);
                 }
-                else if(!string.IsNullOrEmpty(section.Value))
+                else if (!string.IsNullOrEmpty(section.Value))
                 {
                     string keyName = string.Format("root_{0}", sectionName);
 
@@ -161,9 +160,8 @@ namespace PICSUpdater
                                              new MySqlParameter("@KeyName", key)
                     );
 
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key], "");
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key], string.Empty);
                 }
-
             }
 
             foreach (var app in apps)
@@ -174,20 +172,20 @@ namespace PICSUpdater
                                          new MySqlParameter("@Type", app.Key)
                 );
 
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, "", true); // TODO: Remove legacy 0/1 and replace with type
+                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
             }
 
             // I believe this can't happen with packages, but let's just be sure
             if (kv["name"].Value == null)
             {
-                if (packageName.Equals("")) // We don't have the app in our database yet
+                if (packageName.Equals(string.Empty)) // We don't have the app in our database yet
                 {
                     // Don't do anything then
                     Log.WriteError("Sub Processor", "Got a package without a name, and we don't have it in our database: {0}", SubID);
                 }
                 else
                 {
-                    //MakeHistory(SubID, ProductInfo.ChangeNumber, "deleted_sub", "0", packageName, "", true);
+                    ////MakeHistory(SubID, ProductInfo.ChangeNumber, "deleted_sub", "0", packageName, "", true);
 
                     Log.WriteError("Sub Processor", "Got a package without a name, but we have it in our database: {0}", SubID);
                 }
@@ -198,25 +196,39 @@ namespace PICSUpdater
         {
             if (!subData.ContainsKey(keyName))
             {
-                if (displayName.Equals("jsonHack"))
-                {
-                    const uint DB_TYPE_JSON = 86; // TODO: Verify this
+                string ID = string.Empty;
 
-                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`",
-                                             new MySqlParameter("@Name", keyName),
-                                             new MySqlParameter("@Type", DB_TYPE_JSON)
-                    );
-                }
-                else
+                // Try to get ID from database to prevent autoindex bugginess and for faster performance (select > insert)
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `ID` = `ID`",
-                                             new MySqlParameter("@Name", keyName),
-                                             new MySqlParameter("@DisplayName", displayName)
-                    );
+                    if (Reader.Read())
+                    {
+                        ID = DbWorker.GetString("ID", Reader);
+                    }
                 }
 
-                MakeSubsInfo(SubID, keyName, value);
-                MakeHistory(SubID, ChangeNumber, "created_key", keyName, "", value);
+                if (ID.Equals(string.Empty))
+                {
+                    if (displayName.Equals("jsonHack"))
+                    {
+                        const uint DB_TYPE_JSON = 86; // TODO: Verify this
+
+                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                                                 new MySqlParameter("@Name", keyName),
+                                                 new MySqlParameter("@Type", DB_TYPE_JSON)
+                        );
+                    }
+                    else
+                    {
+                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                                                 new MySqlParameter("@Name", keyName),
+                                                 new MySqlParameter("@DisplayName", displayName)
+                        );
+                    }
+                }
+
+                MakeSubsInfo(SubID, keyName, value, ID);
+                MakeHistory(SubID, ChangeNumber, "created_key", keyName, string.Empty, value);
             }
             else if (!subData[keyName].Equals(value))
             {
@@ -225,20 +237,32 @@ namespace PICSUpdater
             }
         }
 
-        private static void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "")
+        private static void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "", string ID = "")
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO SubsInfo VALUES (@SubID, (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE Value=@Value",
-                                     new MySqlParameter("@SubID", SubID),
-                                     new MySqlParameter("@KeyName", KeyName),
-                                     new MySqlParameter("@Value", Value)
-            );
+            // If ID is passed, we don't have to make a subquery
+            if (ID.Equals(string.Empty))
+            {
+                DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
+                                         new MySqlParameter("@SubID", SubID),
+                                         new MySqlParameter("@KeyName", KeyName),
+                                         new MySqlParameter("@Value", Value)
+                );
+            }
+            else
+            {
+                DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, @ID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
+                                         new MySqlParameter("@SubID", SubID),
+                                         new MySqlParameter("@ID", ID),
+                                         new MySqlParameter("@Value", Value)
+                );
+            }
         }
 
         private static void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
             string query = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 
-            if (keyoverride == true || KeyName.Equals(""))
+            if (keyoverride == true || KeyName.Equals(string.Empty))
             {
                 query += "(@ChangeID, @SubID, @Action, @KeyName, @OldValue, @NewValue)";
             }
@@ -254,7 +278,7 @@ namespace PICSUpdater
                                      new MySqlParameter("@KeyName", KeyName),
                                      new MySqlParameter("@OldValue", OldValue),
                                      new MySqlParameter("@NewValue", NewValue)
-                                     );
+            );
         }
     }
 }

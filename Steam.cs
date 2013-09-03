@@ -13,9 +13,9 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    class Steam
+    public class Steam
     {
-        const uint TEAM_FORTRESS_2 = 440;
+        private const uint TEAM_FORTRESS_2 = 440;
 
         public SteamClient steamClient;
         public SteamUser steamUser;
@@ -102,7 +102,7 @@ namespace PICSUpdater
 
             steamClient.Connect();
 
-            while (isRunning == true)
+            while (isRunning)
             {
                 manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
             }
@@ -110,8 +110,6 @@ namespace PICSUpdater
 
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
-            //Log.WriteDebug("Steam", DateTime.Now.ToString("o"));
-
             GetPICSChanges();
         }
 
@@ -263,7 +261,7 @@ namespace PICSUpdater
                     DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsApps (ChangeID, AppID) VALUES (@ChangeID, @AppID)",
                                              new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber),
                                              new MySqlParameter("@AppID", callbackapp.Value.ID)
-                   );
+                    );
                 }
 
                 foreach (var callbackpack in callback.PackageChanges)

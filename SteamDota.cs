@@ -7,7 +7,7 @@ namespace PICSUpdater
 {
     public class SteamDota
     {
-        const uint DOTA_2 = 570;
+        private const uint DOTA_2 = 570;
 
         public SteamClient steamClient;
         private SteamUser steamUser;
@@ -33,7 +33,7 @@ namespace PICSUpdater
 
             steamClient.Connect();
 
-            while (isRunning == true)
+            while (isRunning)
             {
                 manager.RunWaitCallbacks(TimeSpan.FromSeconds(5));
             }

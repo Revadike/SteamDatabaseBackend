@@ -37,14 +37,14 @@ namespace PICSUpdater
         {
             var ordinal = Reader.GetOrdinal(SqlFieldName);
 
-            return Reader.IsDBNull(ordinal) ? String.Empty : Reader.GetString(ordinal);
+            return Reader.IsDBNull(ordinal) ? string.Empty : Reader.GetString(ordinal);
         }
 
         public static string JsonifyKeyValue(KeyValue keys)
         {
-            string value = "";
+            string value = string.Empty;
 
-            using(StringWriter sw = new StringWriter(new StringBuilder()))
+            using (StringWriter sw = new StringWriter(new StringBuilder()))
             {
                 using (JsonWriter w = new JsonTextWriter(sw))
                 {
