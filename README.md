@@ -1,9 +1,10 @@
-# SteamDB Updater
+# SteamDB Updater *(and IRC bot)*
 
-The application that keeps SteamDB up to date with the latest changes. Most of it is in dire need of a good look-over/rewrite by someone more proficient in C#. I'm surprised it even works!
+The application that keeps SteamDB up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on FreeNode.
 
 ## Requirements
 - [SteamKit2](https://github.com/SteamRE/SteamKit)
+- [SmartIRC4NET](https://github.com/meebey/SmartIrc4net)
 - [Json.NET](http://james.newtonking.com/projects/json-net.aspx)
 - [MySQL .NET connector](http://dev.mysql.com/downloads/connector/net/)
 
