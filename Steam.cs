@@ -140,9 +140,13 @@ namespace PICSUpdater
                 return;
             }
 
-            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in 15 seconds...");
+            const uint RETRY_DELAY = 15;
 
-            Thread.Sleep(TimeSpan.FromSeconds(15));
+            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
+
+            IRC.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
+
+            Thread.Sleep(TimeSpan.FromSeconds(RETRY_DELAY));
 
             steamClient.Connect();
         }
