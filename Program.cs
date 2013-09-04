@@ -85,15 +85,13 @@ namespace PICSUpdater
             irc.AutoRejoinOnKick = true;
             irc.ActiveChannelSyncing = true;
             irc.OnChannelMessage += new IrcEventHandler(CommandHandler.OnChannelMessage);
-
-            //string[] serverList = { ConfigurationManager.AppSettings["irc-server"] };
-            string[] channels = { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce };
+            irc.OnConnected += CommandHandler.OnConnected;
 
             try
             {
-                irc.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port);
-                irc.Login(Settings.Current.IRC.Nickname, "http://steamdb.info/", 0, Settings.Current.IRC.Nickname);
-                irc.RfcJoin(channels);
+                irc.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
+                irc.Login(Settings.Current.IRC.Nickname, "http://steamdb.info/", 4, Settings.Current.IRC.Nickname);
+                irc.RfcJoin(new string[] {Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce});
 
                 RunDoto();
                 RunSteam();
@@ -111,11 +109,7 @@ namespace PICSUpdater
 
         private static void RunSteam()
         {
-#if DEBUG
-            steam.Run();
-#else
             new Thread(new ThreadStart(steam.Run)).Start();
-#endif
         }
 
         private static void RunDoto()

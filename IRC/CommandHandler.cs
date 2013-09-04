@@ -11,6 +11,11 @@ namespace PICSUpdater
 {
     public static class CommandHandler
     {
+        public static void OnConnected(object sender, EventArgs e)
+        {
+            Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
+        }
+
         public static void OnChannelMessage(object sender, IrcEventArgs e)
         {
             switch (e.Data.MessageArray[0])
@@ -67,9 +72,16 @@ namespace PICSUpdater
 
                 case "!numplayers":
                 {
+                    if (e.Data.MessageArray.Length != 2)
+                    {
+                        IRC.Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
+
+                        break;
+                    }
+
                     uint appid;
 
-                    if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out appid))
+                    if (uint.TryParse(e.Data.MessageArray[1], out appid))
                     {
                         var jobID = Program.steam.steamUserStats.GetNumberOfCurrentPlayers(appid);
 
@@ -82,9 +94,9 @@ namespace PICSUpdater
                             Requester = e.Data.Nick
                         });
                     }
-                    else
+                    else if (e.Data.MessageArray[1].ToLower().Equals("\x68\x6C\x33"))
                     {
-                        IRC.Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
+                        IRC.Send(e.Data.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, "\x48\x61\x6C\x66\x2D\x4C\x69\x66\x65\x20\x33", Colors.NORMAL, Colors.YELLOW, "\x7e\x34\x30\x30");
                     }
 
                     break;

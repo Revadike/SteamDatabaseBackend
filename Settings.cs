@@ -42,7 +42,7 @@ namespace PICSUpdater
 
         public static bool CanConnectToIRC()
         {
-            if (string.IsNullOrWhiteSpace(Current.IRC.Server) || Current.IRC.Port <= 0)
+            if (Current.IRC.Servers.Length == 0 || Current.IRC.Port <= 0)
             {
                 Log.WriteWarn("Settings", "Missing IRC details in settings file, not connecting");
                 return false;
@@ -79,7 +79,7 @@ namespace PICSUpdater
 
         public class IRCJSON
         {
-            public string Server;
+            public string[] Servers;
             public int Port;
             public string Nickname;
             public IRCChannelsJSON Channel;

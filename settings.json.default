@@ -18,7 +18,11 @@
 	
 	"IRC":
 	{
-		"Server": "example.com",
+		"Servers":
+		[
+			"1.example.com",
+			"2.example.com"
+		],
 		"Port": 0,
 		"Nickname": "SteamDB",
 		"Channel":

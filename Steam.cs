@@ -62,7 +62,7 @@ namespace PICSUpdater
             if (PreviousChange == 0)
             {
                 Log.WriteWarn("Steam", "Looks like there are no changelists in the database.");
-                Log.WriteWarn("Steam", "If you want to fill up your database first, restart with \"fullrun\" parameter set to 1.");
+                Log.WriteWarn("Steam", "If you want to fill up your database first, restart with \"FullRun\" setting set to 1.");
             }
         }
 
@@ -79,7 +79,7 @@ namespace PICSUpdater
 
             timer = new System.Timers.Timer();
             timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
-            timer.Interval = 1000;
+            timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
 
             new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
             new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, manager);
