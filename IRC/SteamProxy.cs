@@ -111,11 +111,21 @@ namespace PICSUpdater
         {
             string name = string.Empty;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Subs WHERE SubID = @SubID", new MySqlParameter("SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
             {
                 if (Reader.Read())
                 {
                     name = DbWorker.GetString("Name", Reader);
+
+                    if (name.StartsWith("Steam Sub"))
+                    {
+                        string nameStore = DbWorker.GetString("NameStore", Reader);
+
+                        if (!string.IsNullOrEmpty(nameStore))
+                        {
+                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
+                        }
+                    }
                 }
             }
 
@@ -125,31 +135,38 @@ namespace PICSUpdater
         private static string GetAppName(uint AppID)
         {
             string name = string.Empty;
+            string nameStore = string.Empty;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT Name FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 if (Reader.Read())
                 {
                     name = DbWorker.GetString("Name", Reader);
+                    nameStore = DbWorker.GetString("StoreName", Reader);
                 }
             }
 
             if (name.Equals(string.Empty) || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
             {
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT NewValue FROM AppsHistory WHERE AppID = @AppID AND Action = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", AppID)))
+                if (!string.IsNullOrEmpty(nameStore))
+                {
+                    return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
+                }
+
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `NewValue` FROM `AppsHistory` WHERE `AppID` = @AppID AND `Action` = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", AppID)))
                 {
                     if (Reader.Read())
                     {
-                        string nameOld = DbWorker.GetString("NewValue", Reader);
+                        nameStore = DbWorker.GetString("NewValue", Reader);
 
                         if (name.Equals(string.Empty))
                         {
                             name = string.Format("AppID {0}", AppID);
                         }
 
-                        if (!name.Equals(nameOld))
+                        if (!name.Equals(nameStore))
                         {
-                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameOld, Colors.NORMAL);
+                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
                         }
                     }
                 }
