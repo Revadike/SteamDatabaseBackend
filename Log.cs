@@ -7,17 +7,9 @@ using SteamKit2;
 
 namespace PICSUpdater
 {
-    public class SteamKitLogger : IDebugListener
-    {
-        public void WriteLine( string category, string msg )
-        {
-            Log.WriteDebug( category, msg );
-        }
-    }
-
     public static class Log
     {
-        const string LOG_DIRECTORY = "logs";
+        private const string LOG_DIRECTORY = "logs";
 
         public enum Category
         {
@@ -27,84 +19,81 @@ namespace PICSUpdater
             Error,
         }
 
-        static object logLock = new object();
+        public class SteamKitLogger : IDebugListener
+        {
+            public void WriteLine(string category, string msg)
+            {
+                Log.WriteDebug(category, msg);
+            }
+        }
+
+        private static object logLock = new object();
 
         static Log()
         {
             try
             {
-                string logsDir = Path.Combine( AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY );
-                Directory.CreateDirectory( logsDir );
+                string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY);
+                Directory.CreateDirectory(logsDir);
             }
-            catch ( Exception ex )
+            catch (Exception ex)
             {
-                Console.WriteLine( "ERROR: Unable to create logs directory: {0}", ex.Message );
+                Console.WriteLine("ERROR: Unable to create logs directory: {0}", ex.Message);
                 return;
             }
         }
 
-        public static void WriteDebug( string component, string format, params object[] args )
+        public static void WriteDebug(string component, string format, params object[] args)
         {
-            WriteLine( Category.Debug, component, format, args );
+            WriteLine(Category.Debug, component, format, args);
         }
 
-        public static void WriteInfo( string component, string format, params object[] args )
+        public static void WriteInfo(string component, string format, params object[] args)
         {
-            WriteLine( Category.Info, component, format, args );
+            WriteLine(Category.Info, component, format, args );
         }
 
-        public static void WriteWarn( string component, string format, params object[] args )
+        public static void WriteWarn(string component, string format, params object[] args)
         {
-            WriteLine( Category.Warn, component, format, args );
+            WriteLine(Category.Warn, component, format, args );
         }
 
-        public static void WriteError( string component, string format, params object[] args )
+        public static void WriteError(string component, string format, params object[] args)
         {
-            WriteLine( Category.Error, component, format, args );
+            WriteLine(Category.Error, component, format, args);
         }
 
-        public static void WriteLine( Category category, string component, string format, params object[] args )
+        public static void WriteLine(Category category, string component, string format, params object[] args)
         {
-//#if !DEBUG
-//            if ( category == Category.Debug )
-//                return; // don't print debug messages in release builds
-//#endif
-
             string logLine = string.Format(
                 "{0} [{1}] {2}: {3}{4}",
                 DateTime.Now.ToLongTimeString(),
                 category.ToString().ToUpper(),
                 component,
-                string.Format( format, args ),
+                string.Format(format, args),
                 Environment.NewLine
             );
 
-            Console.Write( logLine );
+            Console.Write(logLine);
 
             try
             {
-                lock ( logLock )
+                lock (logLock)
                 {
-                    File.AppendAllText( GetLogFile(), logLine );
+                    File.AppendAllText(GetLogFile(), logLine);
                 }
             }
-            catch ( Exception ex )
+            catch (Exception ex)
             {
-                Console.WriteLine( "Unable to log to file: {0}", ex.Message );
+                Console.WriteLine("Unable to log to file: {0}", ex.Message);
             }
         }
 
-        static string GetLogFile()
+        private static string GetLogFile()
         {
-            DateTime dateNow = DateTime.Now;
+            string logFile = string.Format("{0}.log", DateTime.Now.ToString("MMMM_dd_yyyy"));
 
-            string month = dateNow.ToString( "MMMM" );
-            string day = dateNow.ToString( "dd" );
-            string year = dateNow.ToString( "yyyy" );
-
-            string logFile = string.Format( "{0}_{1}_{2}.log", month, day, year );
-
-            return Path.Combine( AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY, logFile );
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY, logFile);
         }
     }
 }

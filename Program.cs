@@ -39,7 +39,7 @@ namespace PICSUpdater
 
             if (Settings.Current.SteamKitDebug)
             {
-                DebugLog.AddListener(new SteamKitLogger());
+                DebugLog.AddListener(new Log.SteamKitLogger());
                 DebugLog.Enabled = true;
             }
 
