@@ -11,17 +11,19 @@ namespace PICSUpdater
 {
     public class SteamDota
     {
-        private const uint DOTA_2 = 570;
+        public const uint DOTA_2 = 570;
 
         public SteamClient steamClient;
         private SteamUser steamUser;
         private SteamFriends steamFriends;
         private SteamGameCoordinator gameCoordinator;
 
-        public bool isRunning = true;
+        public bool isRunning = false;
 
         public void Run()
         {
+            isRunning = true;
+
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
             steamFriends = steamClient.GetHandler<SteamFriends>();

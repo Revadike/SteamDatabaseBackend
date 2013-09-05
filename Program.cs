@@ -74,7 +74,7 @@ namespace PICSUpdater
                 return;
             }
 
-            ircSteam.ReloadImportant();
+            ircSteam.Run();
 
             irc.Encoding = System.Text.Encoding.UTF8;
             irc.SendDelay = 1000;
@@ -91,7 +91,7 @@ namespace PICSUpdater
             {
                 irc.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
                 irc.Login(Settings.Current.IRC.Nickname, "http://steamdb.info/", 4, Settings.Current.IRC.Nickname);
-                irc.RfcJoin(new string[] {Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce});
+                irc.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
 
                 RunDoto();
                 RunSteam();

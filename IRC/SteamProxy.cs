@@ -55,9 +55,29 @@ namespace PICSUpdater
         private List<uint> importantApps = new List<uint>();
         private List<uint> importantSubs = new List<uint>();
 
+        public void Run()
+        {
+            System.Timers.Timer timer = new System.Timers.Timer();
+            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
+            timer.Start();
+
+            ReloadImportant();
+        }
+
+        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            PlayGame(Program.steam.steamClient, Steam.TEAM_FORTRESS_2);
+
+            if (Program.steamDota.isRunning)
+            {
+                PlayGame(Program.steamDota.steamClient, SteamDota.DOTA_2);
+            }
+        }
+
         public void ReloadImportant(string channel = "")
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT AppID FROM ImportantApps WHERE `Announce` = 1"))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
                 importantApps.Clear();
 
@@ -67,7 +87,7 @@ namespace PICSUpdater
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT SubID FROM ImportantSubs"))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
             {
                 importantSubs.Clear();
 
@@ -211,14 +231,32 @@ namespace PICSUpdater
             }
             else
             {
-                string name = GetAppName(request.Target);
+                string name = string.Empty;
+                string graph = string.Empty;
 
-                if (name.Equals(string.Empty))
+                if (request.Target == 0)
                 {
-                    name = string.Format("AppID {0}", request.Target);
+                    name = "Steam";
+                }
+                else
+                {
+                    name = GetAppName(request.Target);
+
+                    if (name.Equals(string.Empty))
+                    {
+                        name = string.Format("AppID {0}", request.Target);
+                    }
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"));
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Graph` = 1"))
+                {
+                    if (Reader.Read())
+                    {
+                        graph = string.Format("{0} - graph:{1} http://steamdb.info/graph/{2}/", Colors.NORMAL, Colors.DARK_BLUE, request.Target);
+                    }
+                }
+
+                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), graph);
             }
         }
 

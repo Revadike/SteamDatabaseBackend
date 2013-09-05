@@ -11,7 +11,39 @@ namespace PICSUpdater
 {
     public static class Settings
     {
-        public static SettingsJSON Current;
+        public class SettingsJson
+        {
+            public class SteamJson
+            {
+                public string Username;
+                public string Password;
+            }
+
+            public class IrcJson
+            {
+                public bool Enabled;
+                public string[] Servers;
+                public int Port;
+                public string Nickname;
+                public IrcChannelsJson Channel;
+            }
+
+            public class IrcChannelsJson
+            {
+                public string Main;
+                public string Announce;
+            }
+
+            public SteamJson Steam;
+            public SteamJson SteamDota;
+            public IrcJson IRC;
+
+            public string ConnectionString;
+            public uint FullRun;
+            public bool SteamKitDebug;
+        }
+
+        public static SettingsJson Current;
 
         public static void Load()
         {
@@ -19,14 +51,10 @@ namespace PICSUpdater
 
             if (!File.Exists(settingsFile))
             {
-                Log.WriteError("Settings", "Settings file not found, must be in settings.json");
-
-                Environment.Exit(0);
-
-                return;
+                throw new Exception("Settings file not found, must be in settings.json");
             }
 
-            Current = JsonConvert.DeserializeObject<SettingsJSON>(File.ReadAllText(settingsFile)) as SettingsJSON;
+            Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
         }
 
         public static bool Validate()
@@ -42,6 +70,12 @@ namespace PICSUpdater
 
         public static bool CanConnectToIRC()
         {
+            if (!Current.IRC.Enabled)
+            {
+                Log.WriteWarn("Settings", "IRC is disabled in settings");
+                return false;
+            }
+
             if (Current.IRC.Servers.Length == 0 || Current.IRC.Port <= 0)
             {
                 Log.WriteWarn("Settings", "Missing IRC details in settings file, not connecting");
@@ -67,36 +101,5 @@ namespace PICSUpdater
 
             return true;
         }
-    }
-
-    public class SettingsJSON
-    {
-        public class SteamJSON
-        {
-            public string Username;
-            public string Password;
-        }
-
-        public class IRCJSON
-        {
-            public string[] Servers;
-            public int Port;
-            public string Nickname;
-            public IRCChannelsJSON Channel;
-        }
-
-        public class IRCChannelsJSON
-        {
-            public string Main;
-            public string Announce;
-        }
-
-        public SteamJSON Steam;
-        public SteamJSON SteamDota;
-        public IRCJSON IRC;
-
-        public string ConnectionString;
-        public uint FullRun;
-        public bool SteamKitDebug;
     }
 }

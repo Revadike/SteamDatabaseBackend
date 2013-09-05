@@ -2,7 +2,7 @@
 	"ConnectionString": "server=127.0.0.1;port=3306;userid=test;password=test;database=test;charset=utf8;pooling=true",
 	
 	"FullRun": 0,
-	"SteamKitDebug": 0,
+	"SteamKitDebug": false,
 	
 	"Steam":
 	{
@@ -18,6 +18,7 @@
 	
 	"IRC":
 	{
+		"Enabled": false,
 		"Servers":
 		[
 			"1.example.com",

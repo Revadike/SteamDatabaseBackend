@@ -14,7 +14,7 @@ namespace PICSUpdater
 {
     public class Steam
     {
-        private const uint TEAM_FORTRESS_2 = 440;
+        public const uint TEAM_FORTRESS_2 = 440;
 
         public SteamClient steamClient;
         public SteamUser steamUser;
