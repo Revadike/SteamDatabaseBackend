@@ -85,7 +85,7 @@ namespace SteamDatabaseBackend
             try
             {
                 irc.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                irc.Login(Settings.Current.IRC.Nickname, "http://steamdb.info/", 4, Settings.Current.IRC.Nickname);
+                irc.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL, 4, Settings.Current.IRC.Nickname);
                 irc.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
 
                 RunDoto();

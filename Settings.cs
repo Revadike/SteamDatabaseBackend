@@ -38,6 +38,8 @@ namespace SteamDatabaseBackend
             public SteamJson SteamDota;
             public IrcJson IRC;
 
+            public string BaseURL;
+            public string RawBaseURL;
             public string ConnectionString;
             public uint FullRun;
             public bool SteamKitDebug;
@@ -59,6 +61,16 @@ namespace SteamDatabaseBackend
             if (string.IsNullOrWhiteSpace(Current.Steam.Username) || string.IsNullOrWhiteSpace(Current.Steam.Password))
             {
                 throw new Exception("Missing Steam credentials in settings file");
+            }
+
+            if (!Uri.IsWellFormedUriString(Current.BaseURL, UriKind.Absolute))
+            {
+                throw new Exception("BaseURL is not formatted correctly");
+            }
+
+            if (!Uri.IsWellFormedUriString(Current.RawBaseURL, UriKind.Absolute))
+            {
+                throw new Exception("RawBaseURL is not formatted correctly");
             }
         }
 

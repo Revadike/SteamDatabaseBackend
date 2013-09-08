@@ -269,7 +269,7 @@ namespace SteamDatabaseBackend
                 {
                     if (Reader.Read())
                     {
-                        graph = string.Format("{0} - graph:{1} http://steamdb.info/graph/{2}/", Colors.NORMAL, Colors.DARK_BLUE, request.Target);
+                        graph = string.Format("{0} - graph:{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
                     }
                 }
 
@@ -310,10 +310,10 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/sub/{7}.vdf{8}{9}",
+                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
                                     Colors.OLIVE, request.Requester, Colors.NORMAL,
                                     Colors.OLIVE, name, Colors.NORMAL,
-                                    Colors.DARK_BLUE, info.ID, Colors.NORMAL,
+                                    Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                                     info.MissingToken ? " (mising token)" : string.Empty
                 );
             }
@@ -345,10 +345,10 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} http://raw.steamdb.info/app/{7}.vdf{8}{9}",
+                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
                                     Colors.OLIVE, request.Requester, Colors.NORMAL,
                                     Colors.OLIVE, name, Colors.NORMAL,
-                                    Colors.DARK_BLUE, info.ID, Colors.NORMAL,
+                                    Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                                     info.MissingToken ? " (mising token)" : string.Empty
                 );
             }
@@ -360,11 +360,11 @@ namespace SteamDatabaseBackend
 
         public void OnPICSChanges(uint changeNumber, SteamApps.PICSChangesCallback callback)
         {
-            string Message = string.Format("Received changelist {0}{1}{2} with {3}{4}{5} apps and {6}{7}{8} packages -{9} http://steamdb.info/changelist/{10}/",
+            string Message = string.Format("Received changelist {0}{1}{2} with {3}{4}{5} apps and {6}{7}{8} packages -{9} {10}",
                                            Colors.OLIVE, changeNumber, Colors.NORMAL,
                                            callback.AppChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.AppChanges.Count, Colors.NORMAL,
                                            callback.PackageChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.PackageChanges.Count, Colors.NORMAL,
-                                           Colors.DARK_BLUE, changeNumber
+                                           Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeNumber)
                              );
 
             if (callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
@@ -393,7 +393,7 @@ namespace SteamDatabaseBackend
 
             foreach (var app in important)
             {
-                IRC.SendMain("Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, app);
+                IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
             }
 
             foreach (var app in appList.Values)
@@ -404,7 +404,7 @@ namespace SteamDatabaseBackend
                 {
                     changeNumber = app.Value;
 
-                    CommandHandler.Send(Program.channelAnnounce, "{0}»{1} Bundled changelist {2}{3}{4} -{5} http://steamdb.info/changelist/{6}/",  Colors.BLUE, Colors.LIGHT_GRAY, Colors.OLIVE, changeNumber, Colors.LIGHT_GRAY, Colors.DARK_BLUE, changeNumber);
+                    CommandHandler.Send(Program.channelAnnounce, "{0}»{1} Bundled changelist {2}{3}{4} -{5} {6}",  Colors.BLUE, Colors.LIGHT_GRAY, Colors.OLIVE, changeNumber, Colors.LIGHT_GRAY, Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeNumber));
                 }*/
 
                 if (name.Equals(string.Empty))
@@ -419,7 +419,7 @@ namespace SteamDatabaseBackend
                 IRC.SendAnnounce("  App: {0}{1}{2}",
                                  name,
                                  app.NeedsToken ? " (requires token)" : string.Empty,
-                                 changeNumber != app.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} http://steamdb.info/changelist/{4}/", Colors.OLIVE, app.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.ChangeNumber) : string.Empty
+                                 changeNumber != app.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, app.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(app.ChangeNumber)) : string.Empty
                 );
             }
         }
@@ -432,7 +432,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.SendMain("Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, package);
+                IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
             }
 
             foreach (var package in packageList.Values)
@@ -451,7 +451,7 @@ namespace SteamDatabaseBackend
                 IRC.SendAnnounce("  Package: {0}{1}{2}",
                                  name,
                                  package.NeedsToken ? " (requires token)" : string.Empty,
-                                 changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} http://steamdb.info/changelist/{4}/", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.ChangeNumber) : string.Empty
+                                 changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(package.ChangeNumber)) : string.Empty
                 );
             }
         }
