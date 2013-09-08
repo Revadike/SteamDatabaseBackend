@@ -122,7 +122,7 @@ namespace PICSUpdater
                 }
                 else if (sectionName.Equals("extended"))
                 {
-                    string keyName = string.Empty;
+                    string keyName;
 
                     foreach (KeyValue children in section.Children)
                     {
@@ -153,7 +153,7 @@ namespace PICSUpdater
 
             foreach (string key in subdata.Keys)
             {
-                if (!key.StartsWith("website"))
+                if (!key.StartsWith("website", StringComparison.Ordinal))
                 {
                     DbWorker.ExecuteNonQuery("DELETE FROM SubsInfo WHERE `SubID` = @SubID AND `Key` = (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1)",
                                              new MySqlParameter("@SubID", SubID),
@@ -192,7 +192,7 @@ namespace PICSUpdater
             }
         }
 
-        private static void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
+        private void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
         {
             if (!subData.ContainsKey(keyName))
             {
@@ -237,7 +237,7 @@ namespace PICSUpdater
             }
         }
 
-        private static void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "", string ID = "")
+        private void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "", string ID = "")
         {
             // If ID is passed, we don't have to make a subquery
             if (ID.Equals(string.Empty))
@@ -258,11 +258,11 @@ namespace PICSUpdater
             }
         }
 
-        private static void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
+        private void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
             string query = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 
-            if (keyoverride == true || KeyName.Equals(string.Empty))
+            if (keyoverride || KeyName.Equals(string.Empty))
             {
                 query += "(@ChangeID, @SubID, @Action, @KeyName, @OldValue, @NewValue)";
             }

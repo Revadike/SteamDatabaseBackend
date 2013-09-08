@@ -55,17 +55,11 @@ namespace PICSUpdater
             }
 
             Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
-        }
 
-        public static bool Validate()
-        {
             if (string.IsNullOrWhiteSpace(Current.Steam.Username) || string.IsNullOrWhiteSpace(Current.Steam.Password))
             {
-                Log.WriteError("Settings", "Missing Steam credentials in settings file");
-                return false;
+                throw new Exception("Missing Steam credentials in settings file");
             }
-
-            return true;
         }
 
         public static bool CanConnectToIRC()

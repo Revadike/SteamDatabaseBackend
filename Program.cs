@@ -32,11 +32,6 @@ namespace PICSUpdater
                 return;
             }
 
-            if (!Settings.Validate())
-            {
-                return;
-            }
-
             if (Settings.Current.SteamKitDebug)
             {
                 DebugLog.AddListener(new Log.SteamKitLogger());

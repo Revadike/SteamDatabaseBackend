@@ -67,11 +67,15 @@ namespace PICSUpdater
                         {
                             newAppType = DbWorker.GetString("AppType", Reader);
                         }
-                        // TODO: otherwise create it?
+                        else
+                        {
+                            // TODO: Create it?
+                            Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, ProductInfo.KeyValues["common"]["type"].AsString());
+                        }
                     }
                 }
 
-                if (appName.Equals(string.Empty) || appName.StartsWith(STEAMDB_UNKNOWN))
+                if (appName.Equals(string.Empty) || appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO Apps (AppID, AppType, Name) VALUES (@AppID, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
                                              new MySqlParameter("@AppID", AppID),
@@ -131,7 +135,7 @@ namespace PICSUpdater
                 }
                 else if (sectionName == "common" || sectionName == "extended")
                 {
-                    string keyName = string.Empty;
+                    string keyName;
 
                     foreach (KeyValue keyvalue in section.Children)
                     {
@@ -143,9 +147,9 @@ namespace PICSUpdater
                             continue;
                         }
                         // TODO: This is godlike hackiness
-                        else if (keyName.StartsWith("extended_us ") ||
-                                 keyName.StartsWith("extended_im ") ||
-                                 keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ") ||
+                        else if (keyName.StartsWith("extended_us ", StringComparison.Ordinal) ||
+                                 keyName.StartsWith("extended_im ", StringComparison.Ordinal) ||
+                                 keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ", StringComparison.Ordinal) ||
                                  keyName.Equals("extended_de") ||
                                  keyName.Equals("extended_jp") ||
                                  keyName.Equals("extended_cn") ||
@@ -195,7 +199,7 @@ namespace PICSUpdater
 
             foreach (string key in appdata.Keys)
             {
-                if (!key.StartsWith("website"))
+                if (!key.StartsWith("website", StringComparison.Ordinal))
                 {
                     DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppID AND `Key` = (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1)",
                                              new MySqlParameter("@AppID", AppID),
@@ -215,7 +219,7 @@ namespace PICSUpdater
                                              new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
                     );
                 }
-                else if (!appName.StartsWith(STEAMDB_UNKNOWN)) // We do have the app, but it has a default name
+                else if (!appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal)) // We do have the app, but it has a default name
                 {
                     DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName, AppType = 0 WHERE AppID = @AppID",
                                              new MySqlParameter("@AppID", AppID),
@@ -231,7 +235,7 @@ namespace PICSUpdater
         {
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
-            string AppName = string.Empty;
+            string AppName;
 
             using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
             {
@@ -259,19 +263,19 @@ namespace PICSUpdater
 
             foreach (string key in appdata.Keys)
             {
-                if (!key.StartsWith("website"))
+                if (!key.StartsWith("website", StringComparison.Ordinal))
                 {
                     MakeHistory(AppID, 0, "removed_key", key, appdata[key], string.Empty);
                 }
             }
 
-            if (!AppName.StartsWith(STEAMDB_UNKNOWN))
+            if (!AppName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
             {
                 MakeHistory(AppID, 0, "deleted_app", "0", AppName, string.Empty, true);
             }
         }
 
-        private static void ProcessKey(uint AppID, uint ChangeNumber, Dictionary<string, string> appData, string keyName, string displayName, string value)
+        private void ProcessKey(uint AppID, uint ChangeNumber, Dictionary<string, string> appData, string keyName, string displayName, string value)
         {
             if (!appData.ContainsKey(keyName))
             {
@@ -316,7 +320,7 @@ namespace PICSUpdater
             }
         }
 
-        private static void MakeAppsInfo(uint AppID, string KeyName = "", string Value = "", string ID = "")
+        private void MakeAppsInfo(uint AppID, string KeyName = "", string Value = "", string ID = "")
         {
             // If ID is passed, we don't have to make a subquery
             if (ID.Equals(string.Empty))
@@ -337,7 +341,7 @@ namespace PICSUpdater
             }
         }
 
-        private static void MakeHistory(uint AppID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
+        private void MakeHistory(uint AppID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
             string query = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 

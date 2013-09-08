@@ -238,7 +238,7 @@ namespace PICSUpdater
 
             Log.WriteInfo("Steam", "Got changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
 
-            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            Task.Factory.StartNew(delegate
             {
                 Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
             });
@@ -250,7 +250,7 @@ namespace PICSUpdater
                 return;
             }
 
-            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            Task.Factory.StartNew(delegate
             {
                 foreach (var callbackapp in callback.AppChanges)
                 {
@@ -294,7 +294,7 @@ namespace PICSUpdater
             {
                 Program.ircSteam.IRCRequests.Remove(request);
 
-                System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                ThreadPool.QueueUserWorkItem(delegate
                 {
                     Program.ircSteam.OnProductInfo(request, callback);
                 });
@@ -308,7 +308,7 @@ namespace PICSUpdater
 
                 var workaround = app;
 
-                Task.Factory.StartNew(() =>
+                ThreadPool.QueueUserWorkItem(delegate
                 {
                     AppPro.Process(workaround.Key, workaround.Value);
                 });
@@ -320,7 +320,7 @@ namespace PICSUpdater
 
                 var workaround = package;
 
-                Task.Factory.StartNew(() =>
+                ThreadPool.QueueUserWorkItem(delegate
                 {
                     SubPro.Process(workaround.Key, workaround.Value);
                 });
@@ -333,7 +333,7 @@ namespace PICSUpdater
                 {
                     uint workaround = app;
 
-                    Task.Factory.StartNew(() =>
+                    ThreadPool.QueueUserWorkItem(delegate
                     {
                         AppPro.ProcessUnknown(workaround);
                     });
