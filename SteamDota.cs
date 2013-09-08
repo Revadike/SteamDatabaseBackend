@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
         private SteamFriends steamFriends;
         private SteamGameCoordinator gameCoordinator;
 
-        public bool isRunning = false;
+        public bool isRunning;
 
         public void Run()
         {

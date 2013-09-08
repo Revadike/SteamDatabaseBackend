@@ -117,7 +117,7 @@ namespace SteamDatabaseBackend
                 {
                     name = DbWorker.GetString("Name", Reader);
 
-                    if (name.StartsWith("Steam Sub"))
+                    if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                     {
                         string nameStore = DbWorker.GetString("NameStore", Reader);
 
@@ -146,7 +146,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (name.Equals(string.Empty) || name.StartsWith("ValveTestApp") || name.StartsWith("SteamDB Unknown App"))
+            if (name.Equals(string.Empty) || name.StartsWith("ValveTestApp", StringComparison.Ordinal) || name.StartsWith("SteamDB Unknown App", StringComparison.Ordinal))
             {
                 if (!string.IsNullOrEmpty(nameStore))
                 {
@@ -199,7 +199,7 @@ namespace SteamDatabaseBackend
 
             foreach (var announcement in callback.Announcements)
             {
-                Message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, announcement.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
+                Message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, announcement.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
 
                 IRC.SendMain(Message);
 
@@ -214,7 +214,7 @@ namespace SteamDatabaseBackend
             {
                 if (groupevent.JustPosted)
                 {
-                    Message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, groupevent.Headline.ToString(), Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
+                    Message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, groupevent.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
 
                     // Send events only to steamlug channel
                     if (callback.ClanID.Equals(steamLUG))
@@ -244,11 +244,11 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                IRC.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
+                IRC.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {3}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
             }
             else
             {
-                string name = string.Empty;
+                string name;
                 string graph = string.Empty;
 
                 if (request.Target == 0)
@@ -387,13 +387,18 @@ namespace SteamDatabaseBackend
 
         private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList)
         {
-            string name = string.Empty;
-            bool isImportant = false;
+            string name;
 
-            foreach (var app in appList)
+            var important = appList.Keys.Intersect(importantApps);
+
+            foreach (var app in important)
             {
-                name = GetAppName(app.Value.ID);
-                isImportant = importantApps.Contains(app.Value.ID);
+                IRC.SendMain("Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, app);
+            }
+
+            foreach (var app in appList.Values)
+            {
+                name = GetAppName(app.ID);
 
                 /*if (changeNumber != app.Value.ChangeNumber)
                 {
@@ -402,63 +407,52 @@ namespace SteamDatabaseBackend
                     CommandHandler.Send(Program.channelAnnounce, "{0}»{1} Bundled changelist {2}{3}{4} -{5} http://steamdb.info/changelist/{6}/",  Colors.BLUE, Colors.LIGHT_GRAY, Colors.OLIVE, changeNumber, Colors.LIGHT_GRAY, Colors.DARK_BLUE, changeNumber);
                 }*/
 
-                if (isImportant)
-                {
-                    IRC.SendMain("Important app update: {0}{1}{2} -{3} http://steamdb.info/app/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ID);
-                }
-
                 if (name.Equals(string.Empty))
                 {
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, app.Value.ID, Colors.NORMAL);
+                    name = string.Format("{0}{1}{2}", Colors.DARK_GREEN, app.ID, Colors.NORMAL);
                 }
                 else
                 {
-                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, app.Value.ID, Colors.NORMAL, name);
+                    name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
                 }
 
-                if (changeNumber != app.Value.ChangeNumber)
-                {
-                    IRC.SendAnnounce("  App: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, app.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.Value.ChangeNumber);
-                }
-                else
-                {
-                    IRC.SendAnnounce("  App: {0}{1}", name, app.Value.NeedsToken ? " (requires token)" : string.Empty);
-                }
+                IRC.SendAnnounce("  App: {0}{1}{2}",
+                                 name,
+                                 app.NeedsToken ? " (requires token)" : string.Empty,
+                                 changeNumber != app.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} http://steamdb.info/changelist/{4}/", Colors.OLIVE, app.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, app.ChangeNumber) : string.Empty
+                );
             }
         }
 
         private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList)
         {
-            string name = string.Empty;
-            bool isImportant = false;
+            string name;
 
-            foreach (var package in packageList)
+            var important = packageList.Keys.Intersect(importantSubs);
+
+            foreach (var package in important)
             {
-                name = GetPackageName(package.Value.ID);
-                isImportant = importantSubs.Contains(package.Value.ID);
+                IRC.SendMain("Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, package);
+            }
 
-                if (isImportant)
-                {
-                    IRC.SendMain("Important package update: {0}{1}{2} -{3} http://steamdb.info/sub/{4}/#section_history", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ID);
-                }
+            foreach (var package in packageList.Values)
+            {
+                name = GetPackageName(package.ID);
 
                 if (name.Equals(string.Empty))
                 {
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, package.Value.ID, Colors.NORMAL);
+                    name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
                 }
                 else
                 {
-                    name = string.Format("{0}{1}{2} - {3}", isImportant ? Colors.YELLOW : Colors.LIGHT_GRAY, package.Value.ID, Colors.NORMAL, name);
+                    name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, package.ID, Colors.NORMAL, name);
                 }
 
-                if (changeNumber != package.Value.ChangeNumber)
-                {
-                    IRC.SendAnnounce("  Package: {0} - bundled changelist {1}{2}{3} -{4} http://steamdb.info/changelist/{5}/", name, Colors.OLIVE, package.Value.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.Value.ChangeNumber);
-                }
-                else
-                {
-                    IRC.SendAnnounce("  Package: {0}{1}", name, package.Value.NeedsToken ? " (requires token)" : string.Empty);
-                }
+                IRC.SendAnnounce("  Package: {0}{1}{2}",
+                                 name,
+                                 package.NeedsToken ? " (requires token)" : string.Empty,
+                                 changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} http://steamdb.info/changelist/{4}/", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, package.ChangeNumber) : string.Empty
+                );
             }
         }
 

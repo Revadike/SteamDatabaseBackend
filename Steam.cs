@@ -25,11 +25,11 @@ namespace SteamDatabaseBackend
 
         public CallbackManager manager;
 
-        private uint PreviousChange = 0;
+        private uint PreviousChange;
         private AppProcessor AppPro = new AppProcessor();
         private SubProcessor SubPro = new SubProcessor();
 
-        private bool fullRun = false;
+        private bool fullRun;
         public bool isRunning = true;
 
         public System.Timers.Timer timer;
@@ -116,7 +116,7 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result != EResult.OK)
             {
-                IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result.ToString());
+                IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result);
 
                 throw new Exception("Could not connect: " + callback.Result);
             }
@@ -157,7 +157,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError("Steam", "Failed to login: {0}", callback.Result);
 
-                IRC.SendEmoteAnnounce("failed to log in: {0}", callback.Result.ToString());
+                IRC.SendEmoteAnnounce("failed to log in: {0}", callback.Result);
 
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 

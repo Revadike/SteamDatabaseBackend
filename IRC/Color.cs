@@ -7,7 +7,7 @@ using System;
 
 namespace SteamDatabaseBackend
 {
-    public class Colors
+    public static class Colors
     {
         public static char NORMAL = (char)15;
         public static char BOLD = (char)2;
