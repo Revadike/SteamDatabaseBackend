@@ -7,7 +7,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public static class Settings
     {

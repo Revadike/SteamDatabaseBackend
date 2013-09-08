@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public class Steam
     {

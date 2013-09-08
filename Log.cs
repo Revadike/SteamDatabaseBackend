@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public static class Log
     {

@@ -5,7 +5,7 @@
  */
 using System;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public class Colors
     {

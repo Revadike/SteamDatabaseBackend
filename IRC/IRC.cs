@@ -6,7 +6,7 @@
 using System;
 using Meebey.SmartIrc4net;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public static class IRC
     {

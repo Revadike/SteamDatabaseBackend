@@ -10,7 +10,7 @@ using System.Threading;
 using Meebey.SmartIrc4net;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public class Program
     {

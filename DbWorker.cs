@@ -11,7 +11,7 @@ using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public static class DbWorker
     {

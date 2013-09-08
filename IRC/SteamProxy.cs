@@ -13,7 +13,7 @@ using SteamKit2.GC;
 using SteamKit2.GC.Internal;
 using SteamKit2.Internal;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public class SteamProxy
     {

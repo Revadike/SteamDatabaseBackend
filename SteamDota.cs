@@ -7,7 +7,7 @@ using System;
 using System.Threading;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public class SteamDota
     {

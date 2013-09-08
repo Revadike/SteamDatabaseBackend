@@ -7,7 +7,7 @@ using System;
 using Meebey.SmartIrc4net;
 using SteamKit2;
 
-namespace PICSUpdater
+namespace SteamDatabaseBackend
 {
     public static class CommandHandler
     {
