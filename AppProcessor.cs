@@ -277,6 +277,9 @@ namespace SteamDatabaseBackend
 
         private void ProcessKey(uint AppID, uint ChangeNumber, Dictionary<string, string> appData, string keyName, string displayName, string value)
         {
+            // All keys in PICS are supposed to be lower case
+            keyName = keyName.ToLower();
+
             if (!appData.ContainsKey(keyName))
             {
                 string ID = string.Empty;

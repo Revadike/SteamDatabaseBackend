@@ -194,6 +194,11 @@ namespace SteamDatabaseBackend
 
         private void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
         {
+            // All keys in PICS are supposed to be lower case.
+            // But currently some keys in packages are not lowercased,
+            // this lowercases everything to make sure nothing breaks in future
+            keyName = keyName.ToLower();
+
             if (!subData.ContainsKey(keyName))
             {
                 string ID = string.Empty;
