@@ -127,9 +127,9 @@ namespace SteamDatabaseBackend
 
                 if (sectionName == "change_number") // Carefully handle change_number
                 {
-                    sectionName = "marlamin_change_number";
+                    sectionName = "root_change_number";
 
-                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, "marlamin_change_number", "change_number", section.AsString());
+                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, "root_change_number", "change_number", section.AsString());
 
                     appdata.Remove(sectionName);
                 }
@@ -189,7 +189,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    sectionName = string.Format("marlamin_{0}", sectionName);
+                    sectionName = string.Format("root_{0}", sectionName);
 
                     ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
 
