@@ -33,20 +33,20 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Dictionary<string, string> appdata = new Dictionary<string, string>();
+            Dictionary<string, string> appData = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo.Key` = `KeyNames.ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
-                    appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    appData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
             }
 
             string appName = string.Empty;
             string appType = "0";
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `AppType` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
             {
                 if (Reader.Read())
                 {
@@ -59,19 +59,16 @@ namespace SteamDatabaseBackend
             {
                 string newAppType = "0";
 
-                if (!ProductInfo.KeyValues["common"]["type"].Value.Equals(string.Empty))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new MySqlParameter("Type", ProductInfo.KeyValues["common"]["name"].Value.ToLower())))
                 {
-                    using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT AppType FROM AppsTypes WHERE Name = @type LIMIT 1", new MySqlParameter("type", ProductInfo.KeyValues["common"]["type"].Value)))
+                    if (Reader.Read())
                     {
-                        if (Reader.Read())
-                        {
-                            newAppType = DbWorker.GetString("AppType", Reader);
-                        }
-                        else
-                        {
-                            // TODO: Create it?
-                            Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, ProductInfo.KeyValues["common"]["type"].AsString());
-                        }
+                        newAppType = DbWorker.GetString("AppType", Reader);
+                    }
+                    else
+                    {
+                        // TODO: Create it?
+                        Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, ProductInfo.KeyValues["common"]["type"].AsString());
                     }
                 }
 
@@ -88,7 +85,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!appName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET Name = @AppName WHERE AppID = @AppID",
+                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
                     );
@@ -98,7 +95,7 @@ namespace SteamDatabaseBackend
 
                 if (appType.Equals("0"))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @Type WHERE AppID = @AppID",
+                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType)
                     );
@@ -107,7 +104,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!appType.Equals(newAppType))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET AppType = @Type WHERE AppID = @AppID",
+                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType)
                     );
@@ -129,9 +126,9 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = "root_change_number";
 
-                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, "root_change_number", "change_number", section.AsString());
+                    ProcessKey(AppID, ProductInfo.ChangeNumber, appData, "root_change_number", "change_number", section.AsString());
 
-                    appdata.Remove(sectionName);
+                    appData.Remove(sectionName);
                 }
                 else if (sectionName == "common" || sectionName == "extended")
                 {
@@ -181,9 +178,9 @@ namespace SteamDatabaseBackend
 
                         if (!value.Equals(string.Empty))
                         {
-                            ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, keyName, keyvalue.Name, value);
+                            ProcessKey(AppID, ProductInfo.ChangeNumber, appData, keyName, keyvalue.Name, value);
 
-                            appdata.Remove(keyName);
+                            appData.Remove(keyName);
                         }
                     }
                 }
@@ -191,13 +188,13 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(AppID, ProductInfo.ChangeNumber, appdata, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
+                    ProcessKey(AppID, ProductInfo.ChangeNumber, appData, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
 
-                    appdata.Remove(sectionName);
+                    appData.Remove(sectionName);
                 }
             }
-
-            foreach (string key in appdata.Keys)
+           
+            foreach (string key in appData.Keys)
             {
                 if (!key.StartsWith("website", StringComparison.Ordinal))
                 {
@@ -206,7 +203,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@KeyName", key)
                     );
 
-                    MakeHistory(AppID, ProductInfo.ChangeNumber, "removed_key", key, appdata[key], string.Empty);
+                    MakeHistory(AppID, ProductInfo.ChangeNumber, "removed_key", key, appData[key], string.Empty);
                 }
             }
 
@@ -237,7 +234,7 @@ namespace SteamDatabaseBackend
 
             string AppName;
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM Apps WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
             {
                 if (!MainReader.Read())
                 {
@@ -247,27 +244,24 @@ namespace SteamDatabaseBackend
                 AppName = DbWorker.GetString("Name", MainReader);
             }
 
-            Dictionary<string, string> appdata = new Dictionary<string, string>();
+            string key;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM AppsInfo INNER JOIN KeyNames ON AppsInfo.Key=KeyNames.ID WHERE AppID = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo.Key` = `KeyNames.ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
-                    appdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    key = DbWorker.GetString("Name", Reader);
+
+                    if (!key.StartsWith("website", StringComparison.Ordinal))
+                    {
+                        MakeHistory(AppID, 0, "removed_key", key, DbWorker.GetString("Value", Reader), string.Empty);
+                    }
                 }
             }
 
-            DbWorker.ExecuteNonQuery("DELETE FROM Apps WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
-            DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
-            DbWorker.ExecuteNonQuery("DELETE FROM Store WHERE AppID = @AppID", new MySqlParameter("@AppID", AppID));
-
-            foreach (string key in appdata.Keys)
-            {
-                if (!key.StartsWith("website", StringComparison.Ordinal))
-                {
-                    MakeHistory(AppID, 0, "removed_key", key, appdata[key], string.Empty);
-                }
-            }
+            DbWorker.ExecuteNonQuery("DELETE FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
+            DbWorker.ExecuteNonQuery("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
+            DbWorker.ExecuteNonQuery("DELETE FROM `Store` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
 
             if (!AppName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
             {
@@ -299,14 +293,14 @@ namespace SteamDatabaseBackend
                     {
                         const uint DB_TYPE_JSON = 86; // TODO: Verify this
 
-                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNames(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNames` (`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }
                     else
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNames(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNames` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
                                                  new MySqlParameter("@DisplayName", displayName)
                         );

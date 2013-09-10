@@ -31,20 +31,20 @@ namespace SteamDatabaseBackend
                 Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
                 return;
             }
-
+            
             string packageName = string.Empty;
             List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
-            Dictionary<string, string> subdata = new Dictionary<string, string>();
+            Dictionary<string, string> subData = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM SubsInfo INNER JOIN KeyNamesSubs ON SubsInfo.Key=KeyNamesSubs.ID WHERE SubID = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo.Key` = `KeyNamesSubs.ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 while (Reader.Read())
                 {
-                    subdata.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    subData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("@SubID", SubID)))
             {
                 if (Reader.Read())
                 {
@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
             {
                 if (packageName.Equals(string.Empty))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO Subs (SubID, Name) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
                                              new MySqlParameter("@Name", kv["name"].Value)
                     );
@@ -76,7 +76,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!packageName.Equals(kv["name"].Value))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE Subs SET Name = @Name WHERE SubID = @SubID",
+                    DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID",
                                              new MySqlParameter("@SubID", SubID),
                                              new MySqlParameter("@Name", kv["name"].Value)
                     );
@@ -110,7 +110,7 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            DbWorker.ExecuteNonQuery("INSERT INTO SubsApps(SubID, AppID, Type) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE Type=@Type",
+                            DbWorker.ExecuteNonQuery("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE `Type` = @Type",
                                                      new MySqlParameter("@SubID", SubID),
                                                      new MySqlParameter("@AppID", childrenApp.Value),
                                                      new MySqlParameter("@Type", type)
@@ -128,39 +128,39 @@ namespace SteamDatabaseBackend
                     {
                         keyName = string.Format("{0}_{1}", sectionName, children.Name);
 
-                        ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, keyName, children.Name, children.Value);
+                        ProcessKey(SubID, ProductInfo.ChangeNumber, subData, keyName, children.Name, children.Value);
 
-                        subdata.Remove(keyName);
+                        subData.Remove(keyName);
                     }
                 }
                 else if (section.Children.Count > 0)
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
+                    ProcessKey(SubID, ProductInfo.ChangeNumber, subData, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
 
-                    subdata.Remove(sectionName);
+                    subData.Remove(sectionName);
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {
                     string keyName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(SubID, ProductInfo.ChangeNumber, subdata, keyName, sectionName, section.Value);
+                    ProcessKey(SubID, ProductInfo.ChangeNumber, subData, keyName, sectionName, section.Value);
 
-                    subdata.Remove(keyName);
+                    subData.Remove(keyName);
                 }
             }
 
-            foreach (string key in subdata.Keys)
+            foreach (string key in subData.Keys)
             {
                 if (!key.StartsWith("website", StringComparison.Ordinal))
                 {
-                    DbWorker.ExecuteNonQuery("DELETE FROM SubsInfo WHERE `SubID` = @SubID AND `Key` = (SELECT ID from KeyNamesSubs WHERE Name = @KeyName LIMIT 1)",
+                    DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1)",
                                              new MySqlParameter("@SubID", SubID),
                                              new MySqlParameter("@KeyName", key)
                     );
 
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subdata[key], string.Empty);
+                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subData[key], string.Empty);
                 }
             }
 
@@ -175,6 +175,7 @@ namespace SteamDatabaseBackend
                 MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
             }
 
+#if DEBUG
             // I believe this can't happen with packages, but let's just be sure
             if (kv["name"].Value == null)
             {
@@ -190,6 +191,7 @@ namespace SteamDatabaseBackend
                     Log.WriteError("Sub Processor", "Got a package without a name, but we have it in our database: {0}", SubID);
                 }
             }
+#endif
         }
 
         private void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
@@ -218,14 +220,14 @@ namespace SteamDatabaseBackend
                     {
                         const uint DB_TYPE_JSON = 86; // TODO: Verify this
 
-                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }
                     else
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO KeyNamesSubs(`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
                                                  new MySqlParameter("@DisplayName", displayName)
                         );

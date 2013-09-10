@@ -6,6 +6,7 @@
  * Future non-SteamKit stuff should go in this file.
  */
 using System;
+using System.Reflection;
 using System.Threading;
 using Meebey.SmartIrc4net;
 using SteamKit2;
@@ -21,6 +22,11 @@ namespace SteamDatabaseBackend
 
         public static void Main(string[] args)
         {
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            string date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
+
+            Log.WriteInfo("Main", "Built on {0} UTC", date);
+
             try
             {
                 Settings.Load();
@@ -85,7 +91,7 @@ namespace SteamDatabaseBackend
             try
             {
                 irc.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                irc.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL, 4, Settings.Current.IRC.Nickname);
+                irc.Login(Settings.Current.IRC.Nickname, string.Format("built on {0} UTC", date), 4, Settings.Current.IRC.Nickname);
                 irc.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
 
                 RunDoto();
