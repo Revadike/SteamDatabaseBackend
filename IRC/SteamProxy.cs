@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
 
                     if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                     {
-                        string nameStore = DbWorker.GetString("NameStore", Reader);
+                        string nameStore = DbWorker.GetString("StoreName", Reader);
 
                         if (!string.IsNullOrEmpty(nameStore))
                         {
@@ -297,7 +297,7 @@ namespace SteamDatabaseBackend
 
                 var info = callback.Packages[request.Target];
                 var kv = info.KeyValues.Children.FirstOrDefault(); // Blame VoiDeD
-                string name = string.Format("AppID {0}", info.ID);
+                string name = string.Format("SubID {0}", info.ID);
 
                 if (kv["name"].Value != null)
                 {
