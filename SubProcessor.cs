@@ -15,8 +15,19 @@ namespace SteamDatabaseBackend
     {
         private const string DATABASE_NAME_TYPE = "10";
 
-        public void Process(uint SubID, SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        private Dictionary<string, string> subData = new Dictionary<string, string>();
+        private uint ChangeNumber;
+        private uint SubID;
+
+        public SubProcessor(uint SubID)
         {
+            this.SubID = SubID;
+        }
+
+        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        {
+            ChangeNumber = ProductInfo.ChangeNumber;
+
 #if DEBUG
             if (true)
 #else
@@ -34,9 +45,8 @@ namespace SteamDatabaseBackend
             
             string packageName = string.Empty;
             List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
-            Dictionary<string, string> subData = new Dictionary<string, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo.Key` = `KeyNamesSubs.ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
                 while (Reader.Read())
                 {
@@ -71,8 +81,8 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Name", kv["name"].Value)
                     );
 
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_sub");
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value, true);
+                    MakeHistory("created_sub");
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value, true);
                 }
                 else if (!packageName.Equals(kv["name"].Value))
                 {
@@ -81,7 +91,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Name", kv["name"].Value)
                     );
 
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value, true);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value, true);
                 }
             }
 
@@ -116,7 +126,7 @@ namespace SteamDatabaseBackend
                                                      new MySqlParameter("@Type", type)
                             );
 
-                            MakeHistory(SubID, ProductInfo.ChangeNumber, "added_to_sub", type.Equals("app") ? "0" : "1", string.Empty, childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
+                            MakeHistory("added_to_sub", type.Equals("app") ? "0" : "1", string.Empty, childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
                         }
                     }
                 }
@@ -128,26 +138,20 @@ namespace SteamDatabaseBackend
                     {
                         keyName = string.Format("{0}_{1}", sectionName, children.Name);
 
-                        ProcessKey(SubID, ProductInfo.ChangeNumber, subData, keyName, children.Name, children.Value);
-
-                        subData.Remove(keyName);
+                        ProcessKey(keyName, children.Name, children.Value);
                     }
                 }
                 else if (section.Children.Count > 0)
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(SubID, ProductInfo.ChangeNumber, subData, sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
-
-                    subData.Remove(sectionName);
+                    ProcessKey(sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {
                     string keyName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(SubID, ProductInfo.ChangeNumber, subData, keyName, sectionName, section.Value);
-
-                    subData.Remove(keyName);
+                    ProcessKey(keyName, sectionName, section.Value);
                 }
             }
 
@@ -160,7 +164,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@KeyName", key)
                     );
 
-                    MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_key", key, subData[key], string.Empty);
+                    MakeHistory("removed_key", key, subData[key], string.Empty);
                 }
             }
 
@@ -172,7 +176,7 @@ namespace SteamDatabaseBackend
                                          new MySqlParameter("@Type", app.Key)
                 );
 
-                MakeHistory(SubID, ProductInfo.ChangeNumber, "removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
+                MakeHistory("removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
             }
 
 #if DEBUG
@@ -186,7 +190,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    ////MakeHistory(SubID, ProductInfo.ChangeNumber, "deleted_sub", "0", packageName, "", true);
+                    ////MakeHistory("deleted_sub", "0", packageName, "", true);
 
                     Log.WriteError("Sub Processor", "Got a package without a name, but we have it in our database: {0}", SubID);
                 }
@@ -194,7 +198,7 @@ namespace SteamDatabaseBackend
 #endif
         }
 
-        private void ProcessKey(uint SubID, uint ChangeNumber, Dictionary<string, string> subData, string keyName, string displayName, string value)
+        private void ProcessKey(string keyName, string displayName, string value)
         {
             // All keys in PICS are supposed to be lower case.
             // But currently some keys in packages are not lowercased,
@@ -218,7 +222,7 @@ namespace SteamDatabaseBackend
                 {
                     if (displayName.Equals("jsonHack"))
                     {
-                        const uint DB_TYPE_JSON = 86; // TODO: Verify this
+                        const uint DB_TYPE_JSON = 86;
 
                         DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
@@ -234,17 +238,19 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                MakeSubsInfo(SubID, keyName, value, ID);
-                MakeHistory(SubID, ChangeNumber, "created_key", keyName, string.Empty, value);
+                MakeSubsInfo(keyName, value, ID);
+                MakeHistory("created_key", keyName, string.Empty, value);
             }
             else if (!subData[keyName].Equals(value))
             {
-                MakeSubsInfo(SubID, keyName, value);
-                MakeHistory(SubID, ChangeNumber, "modified_key", keyName, subData[keyName], value);
+                MakeSubsInfo(keyName, value);
+                MakeHistory("modified_key", keyName, subData[keyName], value);
             }
+
+            subData.Remove(keyName);
         }
 
-        private void MakeSubsInfo(uint SubID, string KeyName = "", string Value = "", string ID = "")
+        private void MakeSubsInfo(string KeyName = "", string Value = "", string ID = "")
         {
             // If ID is passed, we don't have to make a subquery
             if (ID.Equals(string.Empty))
@@ -265,7 +271,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void MakeHistory(uint SubID, uint ChangeNumber, string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
+        private void MakeHistory(string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
         {
             string query = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
 

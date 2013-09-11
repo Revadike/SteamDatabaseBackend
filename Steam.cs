@@ -26,8 +26,6 @@ namespace SteamDatabaseBackend
         public CallbackManager manager;
 
         private uint PreviousChange;
-        private AppProcessor AppPro = new AppProcessor();
-        private SubProcessor SubPro = new SubProcessor();
 
         private bool fullRun;
         public bool isRunning = true;
@@ -164,7 +162,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string serverTime = callback.ServerTime.ToUniversalTime().ToString();
+            string serverTime = callback.ServerTime.ToString();
 
             Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
 
@@ -312,7 +310,7 @@ namespace SteamDatabaseBackend
 
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    AppPro.Process(workaround.Key, workaround.Value);
+                    new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
             }
 
@@ -324,7 +322,7 @@ namespace SteamDatabaseBackend
 
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    SubPro.Process(workaround.Key, workaround.Value);
+                    new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
             }
 
@@ -337,7 +335,7 @@ namespace SteamDatabaseBackend
 
                     ThreadPool.QueueUserWorkItem(delegate
                     {
-                        AppPro.ProcessUnknown(workaround);
+                        new AppProcessor(workaround).ProcessUnknown();
                     });
                 }
 
