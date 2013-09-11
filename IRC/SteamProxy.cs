@@ -374,18 +374,26 @@ namespace SteamDatabaseBackend
 
             IRC.SendAnnounce("{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
 
+            // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
+            bool importantOnly = callback.AppChanges.Count + callback.PackageChanges.Count > 1000;
+
             if (callback.AppChanges.Count > 0)
             {
-                ProcessAppChanges(changeNumber, callback.AppChanges);
+                ProcessAppChanges(changeNumber, callback.AppChanges, importantOnly);
             }
 
             if (callback.PackageChanges.Count > 0)
             {
-                ProcessSubChanges(changeNumber, callback.PackageChanges);
+                ProcessSubChanges(changeNumber, callback.PackageChanges, importantOnly);
+            }
+
+            if (importantOnly)
+            {
+                IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it on our website", Colors.RED);
             }
         }
 
-        private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList)
+        private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList, bool importantOnly = false)
         {
             string name;
 
@@ -393,7 +401,14 @@ namespace SteamDatabaseBackend
 
             foreach (var app in important)
             {
-                IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
+                name = GetAppName(app);
+
+                IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
+            }
+
+            if (importantOnly)
+            {
+                return;
             }
 
             foreach (var app in appList.Values)
@@ -424,7 +439,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList)
+        private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList, bool importantOnly = false)
         {
             string name;
 
@@ -432,7 +447,14 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
+                name = GetPackageName(package);
+
+                IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
+            }
+
+            if (importantOnly)
+            {
+                return;
             }
 
             foreach (var package in packageList.Values)
