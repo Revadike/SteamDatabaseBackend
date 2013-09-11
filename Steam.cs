@@ -164,9 +164,11 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Steam", "Logged in");
+            string serverTime = callback.ServerTime.ToUniversalTime().ToString();
 
-            IRC.SendEmoteAnnounce("is now logged in. Server time: {0}", callback.ServerTime);
+            Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
+
+            IRC.SendEmoteAnnounce("is now logged in. Server time: {0} UTC", serverTime);
 
             // Prevent bugs
             if (fullRun)
