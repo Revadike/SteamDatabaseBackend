@@ -79,6 +79,9 @@ namespace SteamDatabaseBackend
                     {
                         // TODO: Create it?
                         Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, currentType);
+
+                        // TODO: This is debuggy just so we are aware of new app types
+                        IRC.SendAnnounce("Unknown app type \"{0}\" for appid {1}, cc Alram and xPaw", currentType, AppID);
                     }
                 }
 

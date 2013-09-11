@@ -294,7 +294,7 @@ namespace SteamDatabaseBackend
             {
                 Program.ircSteam.IRCRequests.Remove(request);
 
-                ThreadPool.QueueUserWorkItem(delegate
+                Task.Factory.StartNew(delegate
                 {
                     Program.ircSteam.OnProductInfo(request, callback);
                 });

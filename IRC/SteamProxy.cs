@@ -99,7 +99,7 @@ namespace SteamDatabaseBackend
 
             if (!channel.Equals(string.Empty))
             {
-                IRC.Send(channel, "reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
+                IRC.Send(channel, "Reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
             }
             else
             {
@@ -265,7 +265,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Graph` = 1"))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Graph` = 1 AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
                 {
                     if (Reader.Read())
                     {
