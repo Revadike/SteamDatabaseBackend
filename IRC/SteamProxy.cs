@@ -424,7 +424,7 @@ namespace SteamDatabaseBackend
 
                 if (name.Equals(string.Empty))
                 {
-                    name = string.Format("{0}{1}{2}", Colors.DARK_GREEN, app.ID, Colors.NORMAL);
+                    name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
                 }
                 else
                 {
