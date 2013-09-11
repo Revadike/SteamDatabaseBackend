@@ -234,9 +234,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            PreviousChange = callback.CurrentChangeNumber;
+            Log.WriteInfo("Steam", "Received changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
 
-            Log.WriteInfo("Steam", "Got changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
+            PreviousChange = callback.CurrentChangeNumber;
 
             Task.Factory.StartNew(delegate
             {

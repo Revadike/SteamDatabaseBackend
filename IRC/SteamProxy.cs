@@ -182,49 +182,54 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string ClanName = callback.ClanName;
-            string Message = string.Empty;
+            string groupName = callback.ClanName;
+            string message;
 
-            if (ClanName.Equals(null))
+            if (string.IsNullOrEmpty(groupName))
             {
-                ClanName = Program.steam.steamFriends.GetClanName(callback.ClanID);
-            }
+                groupName = Program.steam.steamFriends.GetClanName(callback.ClanID);
 
-            if (ClanName.Equals(string.Empty))
-            {
-                ClanName = "Group";
+                // Check once more, because that can fail too
+                if (string.IsNullOrEmpty(groupName))
+                {
+                    groupName = "Group";
 
-                Log.WriteError("IRC Proxy", "ClanID: {0} - no group name", callback.ClanID);
+                    Log.WriteError("IRC Proxy", "ClanID: {0} - no group name", callback.ClanID);
+                }
             }
 
             foreach (var announcement in callback.Announcements)
             {
-                Message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, announcement.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
+                message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, groupName, Colors.NORMAL, Colors.GREEN, announcement.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
 
-                IRC.SendMain(Message);
+                IRC.SendMain(message);
 
                 // Additionally send announcements to steamlug channel
                 if (callback.ClanID.Equals(steamLUG))
                 {
-                    IRC.Send(channelSteamLUG, Message);
+                    IRC.Send(channelSteamLUG, message);
                 }
+
+                Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
             }
 
-            foreach (var groupevent in callback.Events)
+            foreach (var groupEvent in callback.Events)
             {
-                if (groupevent.JustPosted)
+                if (groupEvent.JustPosted)
                 {
-                    Message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, ClanName, Colors.NORMAL, Colors.GREEN, groupevent.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupevent.ID);
+                    message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, groupName, Colors.NORMAL, Colors.GREEN, groupEvent.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupEvent.ID);
 
                     // Send events only to steamlug channel
                     if (callback.ClanID.Equals(steamLUG))
                     {
-                        IRC.Send(channelSteamLUG, Message);
+                        IRC.Send(channelSteamLUG, message);
                     }
                     else
                     {
-                        IRC.SendMain(Message);
+                        IRC.SendMain(message);
                     }
+
+                    Log.WriteInfo("Group Announcement", "{0} Event \"{1}\"", groupName, groupEvent.Headline);
                 }
             }
         }
