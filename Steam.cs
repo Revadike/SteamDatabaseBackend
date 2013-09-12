@@ -243,7 +243,7 @@ namespace SteamDatabaseBackend
                 Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
             });
 
-            DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
+            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
@@ -252,34 +252,49 @@ namespace SteamDatabaseBackend
 
             Task.Factory.StartNew(delegate
             {
-                foreach (var callbackapp in callback.AppChanges)
+                string changes = string.Empty;
+
+                foreach (var app in callback.AppChanges.Values)
                 {
-                    if (callback.CurrentChangeNumber != callbackapp.Value.ChangeNumber)
+                    if (callback.CurrentChangeNumber != app.ChangeNumber)
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date", new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber));
+                        DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE Apps SET LastUpdated = CURRENT_TIMESTAMP() WHERE AppID = @AppID", new MySqlParameter("@AppID", callbackapp.Value.ID));
+                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
 
-                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsApps (ChangeID, AppID) VALUES (@ChangeID, @AppID)",
-                                             new MySqlParameter("@ChangeID", callbackapp.Value.ChangeNumber),
-                                             new MySqlParameter("@AppID", callbackapp.Value.ID)
-                    );
+                    changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
                 }
 
-                foreach (var callbackpack in callback.PackageChanges)
+                if (!changes.Equals(string.Empty))
                 {
-                    if (callback.CurrentChangeNumber != callbackpack.Value.ChangeNumber)
+                    changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
+
+                    DbWorker.ExecuteNonQuery(changes);
+                }
+            });
+
+            Task.Factory.StartNew(delegate
+            {
+                string changes = string.Empty;
+
+                foreach (var package in callback.PackageChanges.Values)
+                {
+                    if (callback.CurrentChangeNumber != package.ChangeNumber)
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO Changelists (ChangeID) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE Date = Date", new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber));
+                        DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE Subs SET LastUpdated = CURRENT_TIMESTAMP WHERE SubID = @SubID", new MySqlParameter("@SubID", callbackpack.Value.ID));
+                    DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
 
-                    DbWorker.ExecuteNonQuery("INSERT IGNORE INTO ChangelistsSubs (ChangeID, SubID) VALUES (@ChangeID, @SubID)",
-                                             new MySqlParameter("@ChangeID", callbackpack.Value.ChangeNumber),
-                                             new MySqlParameter("@SubID", callbackpack.Value.ID)
-                    );
+                    changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
+                }
+
+                if (!changes.Equals(string.Empty))
+                {
+                    changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
+
+                    DbWorker.ExecuteNonQuery(changes);
                 }
             });
 

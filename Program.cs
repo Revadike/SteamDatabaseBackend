@@ -8,6 +8,7 @@
 using System;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using Meebey.SmartIrc4net;
 using SteamKit2;
 
@@ -43,6 +44,19 @@ namespace SteamDatabaseBackend
                 DebugLog.AddListener(new Log.SteamKitLogger());
                 DebugLog.Enabled = true;
             }
+
+            TaskScheduler.UnobservedTaskException += delegate(object sender, UnobservedTaskExceptionEventArgs e)
+            {
+                e.SetObserved();
+
+                ((AggregateException)e.Exception).Handle(ex =>
+                {
+                    Log.WriteError("TaskScheduler", "Exception: {0}", ex.Message);
+                    Log.WriteError("TaskScheduler", "Stacktrace: {0}", ex.StackTrace);
+
+                    return true;
+                });
+            };
 
             Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
             {
