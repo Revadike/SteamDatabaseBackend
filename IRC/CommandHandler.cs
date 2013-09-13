@@ -133,7 +133,7 @@ namespace SteamDatabaseBackend
 
                                 if (!uint.TryParse(e.Data.MessageArray[2], out target))
                                 {
-                                    IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);
+                                    IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
 
                                     break;
                                 }
@@ -157,7 +157,23 @@ namespace SteamDatabaseBackend
 
                                         break;
                                     }
+#if DEBUG
+                                    case "changelist":
+                                    {
+                                        if (Math.Abs(Program.steam.PreviousChange - target) > 100)
+                                        {
+                                            IRC.Send(e.Data.Channel, "Changelist difference is too big, will not execute");
 
+                                            break;
+                                        }
+
+                                        Program.steam.steamApps.PICSGetChangesSince(target, true, true);
+
+                                        IRC.Send(e.Data.Channel, "Requested changes since changelist {0}{1}", Colors.OLIVE, target);
+
+                                        break;
+                                    }
+#endif
                                     default:
                                     {
                                         IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub> <target>]", Colors.OLIVE);

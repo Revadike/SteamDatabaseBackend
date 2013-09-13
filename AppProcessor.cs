@@ -223,7 +223,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
                     );
                 }
-                else if (!appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal)) // We do have the app, but it has a default name
+                else if (!appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),

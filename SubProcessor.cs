@@ -42,9 +42,9 @@ namespace SteamDatabaseBackend
                 Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
                 return;
             }
-            
+
             string packageName = string.Empty;
-            List<KeyValuePair<string, string>> apps = new List<KeyValuePair<string, string>>();
+            Dictionary<string, string> apps = new Dictionary<string, string>();
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
@@ -64,9 +64,16 @@ namespace SteamDatabaseBackend
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
+                string appID;
+
                 while (Reader.Read())
                 {
-                    apps.Add(new KeyValuePair<string, string>(Reader.GetString("Type"), Reader.GetString("AppID")));
+                    appID = Reader.GetString("AppID");
+
+                    if (!apps.ContainsKey(appID))
+                    {
+                        apps.Add(appID, Reader.GetString("Type"));
+                    }
                 }
             }
 
@@ -111,12 +118,10 @@ namespace SteamDatabaseBackend
 
                     foreach (KeyValue childrenApp in section.Children)
                     {
-                        var app = apps.Where(x => x.Key == type && x.Value == childrenApp.Value);
-
-                        if (app.Any())
+                        if (apps.ContainsKey(childrenApp.Value) && apps[childrenApp.Value] == type)
                         {
                             // This combination of appid+type already exists, don't do anything
-                            apps.Remove(app.First());
+                            apps.Remove(childrenApp.Value);
                         }
                         else
                         {
@@ -180,10 +185,9 @@ namespace SteamDatabaseBackend
             }
 
 #if DEBUG
-            // I believe this can't happen with packages, but let's just be sure
             if (kv["name"].Value == null)
             {
-                if (packageName.Equals(string.Empty)) // We don't have the app in our database yet
+                if (packageName.Equals(string.Empty)) // We don't have the package in our database yet
                 {
                     // Don't do anything then
                     Log.WriteError("Sub Processor", "Got a package without a name, and we don't have it in our database: {0}", SubID);

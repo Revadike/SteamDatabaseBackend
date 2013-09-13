@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
 
         public CallbackManager manager;
 
-        private uint PreviousChange;
+        public uint PreviousChange;
 
         private bool fullRun;
         public bool isRunning = true;
@@ -188,7 +188,7 @@ namespace SteamDatabaseBackend
             }
 
 #if DEBUG
-            steamApps.PICSGetProductInfo(440, 29197, false, false);
+            steamApps.PICSGetProductInfo(24010, 61, false, false);
 #endif
         }
 
@@ -319,7 +319,7 @@ namespace SteamDatabaseBackend
 
             foreach (var app in callback.Apps)
             {
-                Log.WriteDebug("Steam", "AppID: {0}", app.Key);
+                Log.WriteInfo("Steam", "AppID: {0}", app.Key);
 
                 var workaround = app;
 
@@ -331,7 +331,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in callback.Packages)
             {
-                Log.WriteDebug("Steam", "SubID: {0}", package.Key);
+                Log.WriteInfo("Steam", "SubID: {0}", package.Key);
 
                 var workaround = package;
 
