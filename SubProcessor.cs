@@ -177,11 +177,11 @@ namespace SteamDatabaseBackend
             {
                 DbWorker.ExecuteNonQuery("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type",
                                          new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@AppID", app.Value),
-                                         new MySqlParameter("@Type", app.Key)
+                                         new MySqlParameter("@AppID", app.Key),
+                                         new MySqlParameter("@Type", app.Value)
                 );
 
-                MakeHistory("removed_from_sub", app.Key.Equals("app") ? "0" : "1", app.Value, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
+                MakeHistory("removed_from_sub", app.Value.Equals("app") ? "0" : "1", app.Key, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
             }
 
 #if DEBUG
