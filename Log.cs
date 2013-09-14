@@ -31,6 +31,11 @@ namespace SteamDatabaseBackend
 
         static Log()
         {
+            if (!Settings.Current.LogToFile)
+            {
+                return;
+            }
+
             try
             {
                 string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY);
@@ -39,7 +44,6 @@ namespace SteamDatabaseBackend
             catch (Exception ex)
             {
                 Console.WriteLine("ERROR: Unable to create logs directory: {0}", ex.Message);
-                return;
             }
         }
 
@@ -75,6 +79,11 @@ namespace SteamDatabaseBackend
             );
 
             Console.Write(logLine);
+
+            if (!Settings.Current.LogToFile)
+            {
+                return;
+            }
 
             try
             {

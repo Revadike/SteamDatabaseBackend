@@ -6,6 +6,7 @@
 	
 	"FullRun": 0,
 	"SteamKitDebug": false,
+	"LogToFile": true,
 	
 	"Steam":
 	{

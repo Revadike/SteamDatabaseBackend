@@ -66,8 +66,6 @@ namespace SteamDatabaseBackend
 
             if (Settings.Current.FullRun > 0)
             {
-                Log.WriteInfo("Main", "Running full update with option \"{0}\"", Settings.Current.FullRun);
-
                 RunSteam();
 
                 return;

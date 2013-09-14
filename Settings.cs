@@ -43,6 +43,7 @@ namespace SteamDatabaseBackend
             public string ConnectionString;
             public uint FullRun;
             public bool SteamKitDebug;
+            public bool LogToFile;
         }
 
         public static SettingsJson Current;
@@ -71,6 +72,18 @@ namespace SteamDatabaseBackend
             if (!Uri.IsWellFormedUriString(Current.RawBaseURL, UriKind.Absolute))
             {
                 throw new Exception("RawBaseURL is not formatted correctly");
+            }
+
+            if (Current.FullRun > 0)
+            {
+                Log.WriteInfo("Settings", "Running full update with option \"{0}\"", Settings.Current.FullRun);
+
+                // Don't log full runs, regardless of setting
+                Current.LogToFile = false;
+            }
+            else if (!Current.LogToFile)
+            {
+                Log.WriteInfo("Settings", "File logging is disabled");
             }
         }
 
