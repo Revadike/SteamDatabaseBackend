@@ -8,7 +8,6 @@
 using System;
 using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using Meebey.SmartIrc4net;
 using SteamKit2;
 
@@ -45,19 +44,6 @@ namespace SteamDatabaseBackend
                 DebugLog.Enabled = true;
             }
 
-            TaskScheduler.UnobservedTaskException += delegate(object sender, UnobservedTaskExceptionEventArgs e)
-            {
-                e.SetObserved();
-
-                ((AggregateException)e.Exception).Handle(ex =>
-                {
-                    Log.WriteError("TaskScheduler", "Exception: {0}", ex.Message);
-                    Log.WriteError("TaskScheduler", "Stacktrace: {0}", ex.StackTrace);
-
-                    return true;
-                });
-            };
-
             Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
             {
                 Log.WriteInfo("Main", "Exiting...");
@@ -65,9 +51,15 @@ namespace SteamDatabaseBackend
                 steam.isRunning = false;
                 steamDota.isRunning = false;
 
-                try { steam.timer.Stop();                 } catch (Exception e2) { Log.WriteError("Main", "Exception: {0}", e2.Message); }
-                try { steam.steamClient.Disconnect();     } catch (Exception e3) { Log.WriteError("Main", "Exception: {0}", e3.Message); }
-                try { steamDota.steamClient.Disconnect(); } catch (Exception e4) { Log.WriteError("Main", "Exception: {0}", e4.Message); }
+                try { steam.timer.Stop();                       } catch (Exception) { }
+                try { steam.secondaryPool.Shutdown(true, 1000); } catch (Exception) { }
+                try { steam.processorPool.Shutdown(true, 1000); } catch (Exception) { }
+                try { steam.steamClient.Disconnect();           } catch (Exception) { }
+
+                if (steamDota.steamClient != null)
+                {
+                    try { steamDota.steamClient.Disconnect(); } catch (Exception) { }
+                }
 
                 KillIRC();
             };
@@ -142,10 +134,7 @@ namespace SteamDatabaseBackend
                 irc.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
                 irc.Disconnect();
             }
-            catch (Exception e)
-            {
-                Log.WriteError("Main", "Exception while exiting: {0}", e.Message);
-            }
+            catch (Exception) { }
         }
     }
 }

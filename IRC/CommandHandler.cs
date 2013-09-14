@@ -167,7 +167,9 @@ namespace SteamDatabaseBackend
                                             break;
                                         }
 
-                                        Program.steam.steamApps.PICSGetChangesSince(target, true, true);
+                                        Program.steam.PreviousChange = target;
+
+                                        Program.steam.GetPICSChanges();
 
                                         IRC.Send(e.Data.Channel, "Requested changes since changelist {0}{1}", Colors.OLIVE, target);
 

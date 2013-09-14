@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
+using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -31,6 +31,9 @@ namespace SteamDatabaseBackend
         public bool isRunning = true;
 
         public System.Timers.Timer timer;
+
+        public SmartThreadPool processorPool;
+        public SmartThreadPool secondaryPool;
 
         public void GetPICSChanges()
         {
@@ -66,6 +69,9 @@ namespace SteamDatabaseBackend
 
         public void Run()
         {
+            processorPool = new SmartThreadPool();
+            secondaryPool = new SmartThreadPool();
+
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
             steamApps = steamClient.GetHandler<SteamApps>();
@@ -238,7 +244,7 @@ namespace SteamDatabaseBackend
 
             PreviousChange = callback.CurrentChangeNumber;
 
-            Task.Factory.StartNew(delegate
+            secondaryPool.QueueWorkItem(delegate
             {
                 Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
             });
@@ -250,7 +256,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Task.Factory.StartNew(delegate
+            secondaryPool.QueueWorkItem(delegate
             {
                 string changes = string.Empty;
 
@@ -274,7 +280,7 @@ namespace SteamDatabaseBackend
                 }
             });
 
-            Task.Factory.StartNew(delegate
+            secondaryPool.QueueWorkItem(delegate
             {
                 string changes = string.Empty;
 
@@ -309,7 +315,7 @@ namespace SteamDatabaseBackend
             {
                 Program.ircSteam.IRCRequests.Remove(request);
 
-                Task.Factory.StartNew(delegate
+                secondaryPool.QueueWorkItem(delegate
                 {
                     Program.ircSteam.OnProductInfo(request, callback);
                 });
@@ -323,7 +329,7 @@ namespace SteamDatabaseBackend
 
                 var workaround = app;
 
-                ThreadPool.QueueUserWorkItem(delegate
+                processorPool.QueueWorkItem(delegate
                 {
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
@@ -335,7 +341,7 @@ namespace SteamDatabaseBackend
 
                 var workaround = package;
 
-                ThreadPool.QueueUserWorkItem(delegate
+                processorPool.QueueWorkItem(delegate
                 {
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
@@ -348,7 +354,7 @@ namespace SteamDatabaseBackend
                 {
                     uint workaround = app;
 
-                    ThreadPool.QueueUserWorkItem(delegate
+                    processorPool.QueueWorkItem(delegate
                     {
                         new AppProcessor(workaround).ProcessUnknown();
                     });
