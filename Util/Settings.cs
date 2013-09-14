@@ -46,7 +46,7 @@ namespace SteamDatabaseBackend
             public bool LogToFile;
         }
 
-        public static SettingsJson Current;
+        public static SettingsJson Current = new SettingsJson();
 
         public static void Load()
         {

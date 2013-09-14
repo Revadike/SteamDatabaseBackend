@@ -4,9 +4,8 @@
  * found in the LICENSE file.
  */
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
-[assembly: AssemblyTitle("SteamDB Updater")]
+[assembly: AssemblyTitle("Steam Database Backend")]
 [assembly: AssemblyDescription("The application that keeps SteamDB up to date with the latest changes")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Steam Database")]

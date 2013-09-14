@@ -72,6 +72,9 @@ namespace SteamDatabaseBackend
             processorPool = new SmartThreadPool();
             secondaryPool = new SmartThreadPool();
 
+            processorPool.Name = "Processor Pool";
+            secondaryPool.Name = "Secondary Pool";
+
             steamClient = new SteamClient();
             steamUser = steamClient.GetHandler<SteamUser>();
             steamApps = steamClient.GetHandler<SteamApps>();

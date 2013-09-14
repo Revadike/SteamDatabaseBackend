@@ -114,14 +114,18 @@ namespace SteamDatabaseBackend
 
         private static void RunSteam()
         {
-            new Thread(new ThreadStart(steam.Run)).Start();
+            Thread thread = new Thread(new ThreadStart(steam.Run));
+            thread.Name = "Steam";
+            thread.Start();
         }
 
         private static void RunDoto()
         {
             if (Settings.CanUseDota())
             {
-                new Thread(new ThreadStart(steamDota.Run)).Start();
+                Thread thread = new Thread(new ThreadStart(steamDota.Run));
+                thread.Name = "Steam Dota";
+                thread.Start();
             }
         }
 
