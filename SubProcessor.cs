@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
 {
     public class SubProcessor
     {
-        private const string DATABASE_NAME_TYPE = "10";
+        private const uint DATABASE_NAME_TYPE = 10;
 
         private Dictionary<string, string> subData = new Dictionary<string, string>();
         private uint ChangeNumber;
@@ -89,7 +89,7 @@ namespace SteamDatabaseBackend
                     );
 
                     MakeHistory("created_sub");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value, true);
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value);
                 }
                 else if (!packageName.Equals(kv["name"].Value))
                 {
@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Name", kv["name"].Value)
                     );
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value, true);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value);
                 }
             }
 
@@ -131,7 +131,9 @@ namespace SteamDatabaseBackend
                                                      new MySqlParameter("@Type", type)
                             );
 
-                            MakeHistory("added_to_sub", type.Equals("app") ? "0" : "1", string.Empty, childrenApp.Value, true); // TODO: Remove legacy 0/1 and replace with type
+                            uint typeID = (uint)(type.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
+
+                            MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
                         }
                     }
                 }
@@ -160,16 +162,18 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (string key in subData.Keys)
+            foreach (string keyName in subData.Keys)
             {
-                if (!key.StartsWith("website", StringComparison.Ordinal))
+                if (!keyName.StartsWith("website", StringComparison.Ordinal))
                 {
-                    DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1)",
+                    uint ID = GetKeyNameID(keyName);
+
+                    DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @KeyNameID",
                                              new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@KeyName", key)
+                                             new MySqlParameter("@KeyNameID", ID)
                     );
 
-                    MakeHistory("removed_key", key, subData[key], string.Empty);
+                    MakeHistory("removed_key", ID, subData[keyName]);
                 }
             }
 
@@ -181,7 +185,9 @@ namespace SteamDatabaseBackend
                                          new MySqlParameter("@Type", app.Value)
                 );
 
-                MakeHistory("removed_from_sub", app.Value.Equals("app") ? "0" : "1", app.Key, string.Empty, true); // TODO: Remove legacy 0/1 and replace with type
+                uint typeID = (uint)(app.Value.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
+
+                MakeHistory("removed_from_sub", typeID, app.Key);
             }
 
 #if DEBUG
@@ -211,25 +217,17 @@ namespace SteamDatabaseBackend
 
             if (!subData.ContainsKey(keyName))
             {
-                string ID = string.Empty;
+                uint ID = GetKeyNameID(keyName);
 
-                // Try to get ID from database to prevent autoindex bugginess and for faster performance (select > insert)
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
-                {
-                    if (Reader.Read())
-                    {
-                        ID = DbWorker.GetString("ID", Reader);
-                    }
-                }
-
-                if (ID.Equals(string.Empty))
+                if (ID == 0)
                 {
                     if (displayName.Equals("jsonHack"))
                     {
                         const uint DB_TYPE_JSON = 86;
 
-                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
+                                                 new MySqlParameter("@DisplayName", keyName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }
@@ -240,62 +238,56 @@ namespace SteamDatabaseBackend
                                                  new MySqlParameter("@DisplayName", displayName)
                         );
                     }
+
+                    ID = GetKeyNameID(keyName);
                 }
 
-                MakeSubsInfo(keyName, value, ID);
-                MakeHistory("created_key", keyName, string.Empty, value);
+                InsertInfo(ID, value);
+                MakeHistory("created_key", ID, string.Empty, value);
             }
             else if (!subData[keyName].Equals(value))
             {
-                MakeSubsInfo(keyName, value);
-                MakeHistory("modified_key", keyName, subData[keyName], value);
+                uint ID = GetKeyNameID(keyName);
+
+                InsertInfo(ID, value);
+                MakeHistory("modified_key", ID, subData[keyName], value);
             }
 
             subData.Remove(keyName);
         }
 
-        private void MakeSubsInfo(string KeyName = "", string Value = "", string ID = "")
+        private void InsertInfo(uint ID, string Value)
         {
-            // If ID is passed, we don't have to make a subquery
-            if (ID.Equals(string.Empty))
-            {
-                DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
-                                         new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@KeyName", KeyName),
-                                         new MySqlParameter("@Value", Value)
-                );
-            }
-            else
-            {
-                DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, @ID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
-                                         new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@ID", ID),
-                                         new MySqlParameter("@Value", Value)
-                );
-            }
+            DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, @KeyNameID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
+                                     new MySqlParameter("@SubID", SubID),
+                                     new MySqlParameter("@KeyNameID", ID),
+                                     new MySqlParameter("@Value", Value)
+            );
         }
 
-        private void MakeHistory(string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
+        private void MakeHistory(string Action, uint KeyNameID = 0, string OldValue = "", string NewValue = "")
         {
-            string query = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
-
-            if (keyoverride || KeyName.Equals(string.Empty))
-            {
-                query += "(@ChangeID, @SubID, @Action, @KeyName, @OldValue, @NewValue)";
-            }
-            else
-            {
-                query += "(@ChangeID, @SubID, @Action, (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1), @OldValue, @NewValue)";
-            }
-
-            DbWorker.ExecuteNonQuery(query,
+            DbWorker.ExecuteNonQuery("INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @SubID, @Action, @KeyNameID, @OldValue, @NewValue)",
                                      new MySqlParameter("@SubID", SubID),
                                      new MySqlParameter("@ChangeID", ChangeNumber),
                                      new MySqlParameter("@Action", Action),
-                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@KeyNameID", KeyNameID),
                                      new MySqlParameter("@OldValue", OldValue),
                                      new MySqlParameter("@NewValue", NewValue)
             );
+        }
+
+        private static uint GetKeyNameID(string keyName)
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
+            {
+                if (Reader.Read())
+                {
+                    return Reader.GetUInt32("ID");
+                }
+            }
+
+            return 0;
         }
     }
 }

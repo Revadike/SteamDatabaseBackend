@@ -13,8 +13,9 @@ namespace SteamDatabaseBackend
 {
     public class AppProcessor
     {
-        private const string DATABASE_NAME_TYPE = "10";
-        private const string STEAMDB_UNKNOWN = "SteamDB Unknown App ";
+        private const uint DATABASE_APPTYPE   = 9;
+        private const uint DATABASE_NAME_TYPE = 10;
+        private const string STEAMDB_UNKNOWN  = "SteamDB Unknown App ";
 
         private Dictionary<string, string> appData = new Dictionary<string, string>();
         private uint ChangeNumber;
@@ -94,7 +95,7 @@ namespace SteamDatabaseBackend
                     );
 
                     MakeHistory("created_app");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, ProductInfo.KeyValues["common"]["name"].Value, true);
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, ProductInfo.KeyValues["common"]["name"].Value);
                 }
                 else if (!appName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
                 {
@@ -103,7 +104,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
                     );
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, ProductInfo.KeyValues["common"]["name"].Value, true);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, ProductInfo.KeyValues["common"]["name"].Value);
                 }
 
                 if (appType.Equals("0"))
@@ -113,7 +114,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Type", newAppType)
                     );
 
-                    MakeHistory("created_info", "9", string.Empty, newAppType, true);
+                    MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType);
                 }
                 else if (!appType.Equals(newAppType))
                 {
@@ -122,7 +123,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Type", newAppType)
                     );
 
-                    MakeHistory("modified_info", "9", appType, newAppType, true);
+                    MakeHistory("modified_info", DATABASE_APPTYPE, appType, newAppType);
                 }
             }
 
@@ -201,16 +202,18 @@ namespace SteamDatabaseBackend
                 }
             }
            
-            foreach (string key in appData.Keys)
+            foreach (string keyName in appData.Keys)
             {
-                if (!key.StartsWith("website", StringComparison.Ordinal))
+                if (!keyName.StartsWith("website", StringComparison.Ordinal))
                 {
-                    DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppID AND `Key` = (SELECT ID from KeyNames WHERE Name = @KeyName LIMIT 1)",
+                    uint ID = GetKeyNameID(keyName);
+
+                    DbWorker.ExecuteNonQuery("DELETE FROM AppsInfo WHERE `AppID` = @AppID AND `Key` = @KeyNameID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@KeyName", key)
+                                             new MySqlParameter("@KeyNameID", ID)
                     );
 
-                    MakeHistory("removed_key", key, appData[key], string.Empty);
+                    MakeHistory("removed_key", ID, appData[keyName]);
                 }
             }
 
@@ -230,7 +233,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
                     );
 
-                    MakeHistory("deleted_app", "0", appName, string.Empty, true);
+                    MakeHistory("deleted_app", 0, appName);
                 }
             }
         }
@@ -251,17 +254,13 @@ namespace SteamDatabaseBackend
                 AppName = DbWorker.GetString("Name", MainReader);
             }
 
-            string key;
-
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
                 {
-                    key = DbWorker.GetString("Name", Reader);
-
-                    if (!key.StartsWith("website", StringComparison.Ordinal))
+                    if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
                     {
-                        MakeHistory("removed_key", key, DbWorker.GetString("Value", Reader), string.Empty);
+                        MakeHistory("removed_key", Reader.GetUInt32("ID"), DbWorker.GetString("Value", Reader));
                     }
                 }
             }
@@ -272,7 +271,7 @@ namespace SteamDatabaseBackend
 
             if (!AppName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
             {
-                MakeHistory("deleted_app", "0", AppName, string.Empty, true);
+                MakeHistory("deleted_app", 0, AppName);
             }
         }
 
@@ -283,25 +282,17 @@ namespace SteamDatabaseBackend
 
             if (!appData.ContainsKey(keyName))
             {
-                string ID = string.Empty;
+                uint ID = GetKeyNameID(keyName);
 
-                // Try to get ID from database to prevent autoindex bugginess and for faster performance (select > insert)
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
-                {
-                    if (Reader.Read())
-                    {
-                        ID = DbWorker.GetString("ID", Reader);
-                    }
-                }
-
-                if (ID.Equals(string.Empty))
+                if (ID == 0)
                 {
                     if (displayName.Equals("jsonHack"))
                     {
                         const uint DB_TYPE_JSON = 86;
 
-                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNames` (`Name`, `Type`) VALUES(@Name, @Type) ON DUPLICATE KEY UPDATE `Type` = `Type`",
+                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
+                                                 new MySqlParameter("@DisplayName", keyName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }
@@ -312,62 +303,56 @@ namespace SteamDatabaseBackend
                                                  new MySqlParameter("@DisplayName", displayName)
                         );
                     }
+
+                    ID = GetKeyNameID(keyName);
                 }
 
-                MakeAppsInfo(keyName, value, ID);
-                MakeHistory("created_key", keyName, string.Empty, value);
+                InsertInfo(ID, value);
+                MakeHistory("created_key", ID, string.Empty, value);
             }
             else if (!appData[keyName].Equals(value))
             {
-                MakeAppsInfo(keyName, value);
-                MakeHistory("modified_key", keyName, appData[keyName], value);
+                uint ID = GetKeyNameID(keyName);
+
+                InsertInfo(ID, value);
+                MakeHistory("modified_key", ID, appData[keyName], value);
             }
 
             appData.Remove(keyName);
         }
 
-        private void MakeAppsInfo(string KeyName = "", string Value = "", string ID = "")
+        private void InsertInfo(uint ID, string Value)
         {
-            // If ID is passed, we don't have to make a subquery
-            if (ID.Equals(string.Empty))
-            {
-                DbWorker.ExecuteNonQuery("INSERT INTO `AppsInfo` VALUES (@AppID, (SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1), @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
-                                         new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@KeyName", KeyName),
-                                         new MySqlParameter("@Value", Value)
-                );
-            }
-            else
-            {
-                DbWorker.ExecuteNonQuery("INSERT INTO `AppsInfo` VALUES (@AppID, @ID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
-                                         new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@ID", ID),
-                                         new MySqlParameter("@Value", Value)
-                );
-            }
+            DbWorker.ExecuteNonQuery("INSERT INTO `AppsInfo` VALUES (@AppID, @KeyNameID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
+                                     new MySqlParameter("@AppID", AppID),
+                                     new MySqlParameter("@KeyNameID", ID),
+                                     new MySqlParameter("@Value", Value)
+            );
         }
 
-        private void MakeHistory(string Action, string KeyName = "", string OldValue = "", string NewValue = "", bool keyoverride = false)
+        private void MakeHistory(string Action, uint KeyNameID = 0, string OldValue = "", string NewValue = "")
         {
-            string query = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES ";
-
-            if (keyoverride || KeyName.Equals(string.Empty))
-            {
-                query += "(@ChangeID, @AppID, @Action, @KeyName, @OldValue, @NewValue)";
-            }
-            else
-            {
-                query += "(@ChangeID, @AppID, @Action, (SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1), @OldValue, @NewValue)";
-            }
-
-            DbWorker.ExecuteNonQuery(query,
+            DbWorker.ExecuteNonQuery("INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @AppID, @Action, @KeyNameID, @OldValue, @NewValue)",
                                      new MySqlParameter("@AppID", AppID),
                                      new MySqlParameter("@ChangeID", ChangeNumber),
                                      new MySqlParameter("@Action", Action),
-                                     new MySqlParameter("@KeyName", KeyName),
+                                     new MySqlParameter("@KeyNameID", KeyNameID),
                                      new MySqlParameter("@OldValue", OldValue),
                                      new MySqlParameter("@NewValue", NewValue)
             );
+        }
+
+        private static uint GetKeyNameID(string keyName)
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
+            {
+                if (Reader.Read())
+                {
+                    return Reader.GetUInt32("ID");
+                }
+            }
+
+            return 0;
         }
     }
 }
