@@ -95,28 +95,31 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo(string.Format("GC {0}", AppID), "New GC session (version change from {0} to {1})", LastVersion, msg.Body.version);
 
-                if (LastVersion != msg.Body.version)
+                string message = string.Format("New {0}{1}{2} GC session", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL);
+
+                if (LastVersion == 0 || LastVersion == msg.Body.version)
                 {
-                    string message = string.Format("New {0}{1}{2} GC session {3}(version: {4} from {5})", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version, LastVersion);
-
-                    if (LastVersion != 0)
-                    {
-                        IRC.SendMain(message);
-                    }
-                    else
-                    {
-                        IRC.SendAnnounce(message);
-                    }
-
-                    LastVersion = msg.Body.version;
+                    message += string.Format(" {0}(version {1})", Colors.DARK_GRAY, msg.Body.version);
+                }
+                else
+                {
+                    message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARK_GRAY, LastVersion, msg.Body.version);
                 }
 
+                if (LastVersion != 0)
+                {
+                    IRC.SendMain(message);
+                }
+
+                IRC.SendAnnounce(message);
+
+                LastVersion = msg.Body.version;
                 LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
 
                 DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`, `Version`) VALUES(@AppID, @Status, @Version) ON DUPLICATE KEY UPDATE `Status` = @Status, `Version` = @Version",
                                          new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@Status", GCConnectionStatus.GCConnectionStatus_HAVE_SESSION.ToString()),
-                                         new MySqlParameter("@Version", msg.Body.version)
+                                         new MySqlParameter("@Status", LastStatus.ToString()),
+                                         new MySqlParameter("@Version", LastVersion)
                 );
             }
             else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
@@ -152,7 +155,7 @@ namespace SteamDatabaseBackend
 
                 DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
                                          new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@Status", msg.Body.status.ToString())
+                                         new MySqlParameter("@Status", LastStatus.ToString())
                 );
             }
 
