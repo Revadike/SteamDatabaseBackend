@@ -14,8 +14,6 @@ namespace SteamDatabaseBackend
 {
     public class Steam
     {
-        public const uint TEAM_FORTRESS_2 = 440;
-
         private static Steam _instance = new Steam();
         public static Steam Instance { get { return _instance; } }
 
@@ -24,7 +22,7 @@ namespace SteamDatabaseBackend
         public SteamApps Apps;
         public SteamFriends Friends;
         public SteamUserStats UserStats;
-        private SteamGameCoordinator GameCoordinator;
+        private GameCoordinator GameCoordinator;
 
         public CallbackManager CallbackManager;
 
@@ -89,7 +87,6 @@ namespace SteamDatabaseBackend
             Apps = Client.GetHandler<SteamApps>();
             Friends = Client.GetHandler<SteamFriends>();
             UserStats = Client.GetHandler<SteamUserStats>();
-            GameCoordinator = Client.GetHandler<SteamGameCoordinator>();
 
             CallbackManager = new CallbackManager(Client);
 
@@ -100,14 +97,17 @@ namespace SteamDatabaseBackend
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
             new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
 
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, CallbackManager);
-
             new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, CallbackManager);
             new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, CallbackManager);
 
             // irc specific
             new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState, CallbackManager);
             new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers, CallbackManager);
+
+            // game coordinator
+            const uint TEAM_FORTRESS_2 = 440;
+
+            GameCoordinator = new GameCoordinator(TEAM_FORTRESS_2, Client, CallbackManager);
 
             DepotProcessor.Init();
 
@@ -204,7 +204,7 @@ namespace SteamDatabaseBackend
             {
                 Timer.Start();
 
-                SteamProxy.PlayGame(Client, TEAM_FORTRESS_2);
+                GameCoordinator.PlayGame();
 
 #if DEBUG
                 Apps.PICSGetProductInfo(TEAM_FORTRESS_2, 61, false, false);
@@ -222,11 +222,6 @@ namespace SteamDatabaseBackend
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             Friends.SetPersonaState(EPersonaState.Busy);
-        }
-
-        private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
-        {
-            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback, GameCoordinator);
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)

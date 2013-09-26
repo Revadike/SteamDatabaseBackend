@@ -11,19 +11,15 @@ namespace SteamDatabaseBackend
 {
     public class SteamDota
     {
-        public const uint DOTA_2 = 570;
-
         private static SteamDota _instance = new SteamDota();
         public static SteamDota Instance { get { return _instance; } }
+
+        public bool IsRunning;
 
         public SteamClient Client;
         private SteamUser User;
         private SteamFriends Friends;
-        public SteamGameCoordinator GameCoordinator;
-
-        public bool IsRunning;
-
-        public System.Timers.Timer timer;
+        private GameCoordinator GameCoordinator;
 
         public void Init()
         {
@@ -32,7 +28,6 @@ namespace SteamDatabaseBackend
             Client = new SteamClient();
             User = Client.GetHandler<SteamUser>();
             Friends = Client.GetHandler<SteamFriends>();
-            GameCoordinator = Client.GetHandler<SteamGameCoordinator>();
 
             CallbackManager CallbackManager = new CallbackManager(Client);
 
@@ -40,39 +35,29 @@ namespace SteamDatabaseBackend
             new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
             new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, CallbackManager);
 
-            timer = new System.Timers.Timer();
-            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
-            timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
+            // game coordinator
+            const uint DOTA_2 = 570;
+
+            GameCoordinator = new GameCoordinator(DOTA_2, Client, CallbackManager);
 
             Client.Connect();
 
             while (IsRunning)
             {
-                CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(5));
+                CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(10));
             }
-        }
-
-        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
-        {
-
-        }
-
-        private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
-        {
-            SteamProxy.GameCoordinatorMessage(DOTA_2, callback, GameCoordinator);
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             if (callback.Result == EResult.OK)
             {
-                SteamProxy.PlayGame(Client, DOTA_2);
+                GameCoordinator.PlayGame();
 
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
-                SteamProxy.GameCoordinatorHello(DOTA_2, GameCoordinator);
+                GameCoordinator.Hello();
             }
         }
 

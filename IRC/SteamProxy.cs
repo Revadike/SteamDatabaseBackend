@@ -9,9 +9,6 @@ using System.IO;
 using System.Linq;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using SteamKit2.GC;
-using SteamKit2.GC.Internal;
-using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
@@ -38,17 +35,7 @@ namespace SteamDatabaseBackend
             public uint DepotID { get; set; }
         }
 
-        public class GCInfo
-        {
-            public uint AppID;
-            public uint LastVersion;
-            public uint LastSchemaVersion;
-            public GCConnectionStatus LastStatus;
-        }
-
         public List<IRCRequest> IRCRequests = new List<IRCRequest>();
-
-        public static List<GCInfo> GCInfos = new List<GCInfo>();
 
         private static SteamID SteamLUG = new SteamID(103582791431044413UL);
         private static string ChannelSteamLUG = "#steamlug";
@@ -58,24 +45,7 @@ namespace SteamDatabaseBackend
 
         public void Init()
         {
-            System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
-            timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
-            timer.Start();
-
             ReloadImportant();
-        }
-
-        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            PlayGame(Steam.Instance.Client, Steam.TEAM_FORTRESS_2);
-
-            if (SteamDota.Instance.IsRunning)
-            {
-                PlayGame(SteamDota.Instance.Client, SteamDota.DOTA_2);
-
-                GameCoordinatorHello(SteamDota.DOTA_2, SteamDota.Instance.GameCoordinator);
-            }
         }
 
         public void ReloadImportant(string channel = "")
@@ -110,7 +80,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static string GetPackageName(uint SubID)
+        public static string GetPackageName(uint SubID)
         {
             string name = string.Empty;
 
@@ -135,7 +105,7 @@ namespace SteamDatabaseBackend
             return name;
         }
 
-        private static string GetAppName(uint AppID)
+        public static string GetAppName(uint AppID)
         {
             string name = string.Empty;
             string nameStore = string.Empty;
@@ -484,120 +454,6 @@ namespace SteamDatabaseBackend
                                  changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(package.ChangeNumber)) : string.Empty
                 );
             }
-        }
-
-        public static void PlayGame(SteamClient client, uint AppID)
-        {
-            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
-
-            clientMsg.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed
-            {
-                game_id = AppID
-            });
-
-            client.Send(clientMsg);
-        }
-
-        public static void GameCoordinatorMessage(uint AppID, SteamGameCoordinator.MessageCallback callback, SteamGameCoordinator gc)
-        {
-            GCInfo info = GCInfos.Find(r => r.AppID == AppID);
-
-            if (info == null)
-            {
-                info = new GCInfo
-                {
-                    AppID = AppID,
-                    LastVersion = 0,
-                    LastSchemaVersion = 0,
-                    LastStatus = GCConnectionStatus.GCConnectionStatus_NO_STEAM
-                };
-
-                GCInfos.Add(info);
-            }
-
-            if (callback.EMsg == (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema)
-            {
-                var msg = new ClientGCMsgProtobuf<CMsgUpdateItemSchema>(callback.Message);
-
-                if (info.LastSchemaVersion != 0 && info.LastSchemaVersion != msg.Body.item_schema_version)
-                {
-                    Log.WriteInfo(string.Format("GC {0}", AppID), "Schema change from {0} to {1}", info.LastSchemaVersion, msg.Body.item_schema_version);
-
-                    IRC.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.Body.items_game_url);
-                }
-
-                info.LastSchemaVersion = msg.Body.item_schema_version;
-            }
-            else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome)
-            {
-                var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
-
-                if (info.LastVersion != msg.Body.version)
-                {
-                    Log.WriteInfo(string.Format("GC {0}", AppID), "Version change from {0} to {1}", info.LastVersion, msg.Body.version);
-
-                    string message = string.Format("New {0}{1}{2} GC session {3}(version: {4})", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.Body.version);
-
-                    if (info.LastVersion != 0)
-                    {
-                        IRC.SendMain(message);
-                    }
-
-                    IRC.SendAnnounce(message);
-
-                    info.LastVersion = msg.Body.version;
-                }
-
-                info.LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
-
-                DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`, `Version`) VALUES(@AppID, @Status, @Version) ON DUPLICATE KEY UPDATE `Status` = @Status, `Version` = @Version",
-                                         new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@Status", GCConnectionStatus.GCConnectionStatus_HAVE_SESSION.ToString()),
-                                         new MySqlParameter("@Version", msg.Body.version)
-                );
-            }
-            else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
-            {
-                var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(callback.Message);
-
-                Log.WriteInfo(string.Format("GC {0}", AppID), "Message: {0}", msg.Body.message);
-
-                IRC.SendMain("{0}{1}{2} system message:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.message);
-            }
-            else if (callback.EMsg == (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus || callback.EMsg == 4008 /* tf2's k_EMsgGCClientGoodbye */)
-            {
-                var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(callback.Message);
-
-                Log.WriteInfo(string.Format("GC {0}", AppID), "Status: {0}", msg.Body.status);
-
-                string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.Body.status);
-
-                if (info.LastStatus != msg.Body.status)
-                {
-                    IRC.SendMain(message);
-
-                    info.LastStatus = msg.Body.status;
-                }
-
-                IRC.SendAnnounce(message);
-
-                if (msg.Body.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
-                {
-                    GameCoordinatorHello(AppID, gc);
-                }
-
-                DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
-                                         new MySqlParameter("@AppID", AppID),
-                                         new MySqlParameter("@Status", msg.Body.status.ToString())
-                );
-            }
-        }
-
-        public static void GameCoordinatorHello(uint AppID, SteamGameCoordinator gc)
-        {
-            var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
-
-            gc.Send(clientHello, AppID);
         }
     }
 }
