@@ -325,17 +325,20 @@ namespace SteamDatabaseBackend
 
                 return true;
             }
-            else if (!CurrentData[keyName].Equals(value))
+
+            string currentValue = CurrentData[keyName];
+
+            CurrentData.Remove(keyName);
+
+            if (!currentValue.Equals(value))
             {
                 uint ID = GetKeyNameID(keyName);
 
                 InsertInfo(ID, value);
-                MakeHistory("modified_key", ID, CurrentData[keyName], value);
+                MakeHistory("modified_key", ID, currentValue, value);
 
                 return true;
             }
-
-            CurrentData.Remove(keyName);
 
             return false;
         }

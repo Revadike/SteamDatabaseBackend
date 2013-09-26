@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
                 try { Steam.Instance.Timer.Stop();                       } catch (Exception) { }
                 try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch (Exception) { }
                 try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch (Exception) { }
-                try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch (Exception) { }
+                //try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch (Exception) { }
                 try { Steam.Instance.Client.Disconnect();                } catch (Exception) { }
 
                 if (SteamDota.Instance.Client != null)

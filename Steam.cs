@@ -109,7 +109,7 @@ namespace SteamDatabaseBackend
 
             GameCoordinator = new GameCoordinator(TEAM_FORTRESS_2, Client, CallbackManager);
 
-            DepotProcessor.Init();
+            //DepotProcessor.Init();
 
             GetLastChangeNumber();
 
@@ -180,7 +180,7 @@ namespace SteamDatabaseBackend
 
             CellID = (int)callback.CellID;
 
-            DepotProcessor.FetchServers();
+            //DepotProcessor.FetchServers();
 
             string serverTime = callback.ServerTime.ToString();
 

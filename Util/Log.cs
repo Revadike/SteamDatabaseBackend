@@ -31,11 +31,6 @@ namespace SteamDatabaseBackend
 
         static Log()
         {
-            if (!Settings.Current.LogToFile)
-            {
-                return;
-            }
-
             try
             {
                 string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY);
