@@ -39,6 +39,11 @@ namespace SteamDatabaseBackend
             return string.Format("{0}/app/{1}/#section_{2}", Settings.Current.BaseURL, appID, section);
         }
 
+        public static string GetDepotURL(uint appID, string section)
+        {
+            return string.Format("{0}/depot/{1}/#section_{2}", Settings.Current.BaseURL, appID, section);
+        }
+
         public static string GetPackageURL(uint subID)
         {
             return string.Format("{0}/sub/{1}/", Settings.Current.BaseURL, subID);

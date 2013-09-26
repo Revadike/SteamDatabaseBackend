@@ -15,11 +15,6 @@ namespace SteamDatabaseBackend
 {
     public class Program
     {
-        public static IrcClient irc = new IrcClient();
-        public static Steam steam = new Steam();
-        public static SteamDota steamDota = new SteamDota();
-        public static SteamProxy ircSteam = new SteamProxy();
-
         public static void Main(string[] args)
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
@@ -48,95 +43,55 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo("Main", "Exiting...");
 
-                steam.isRunning = false;
-                steamDota.isRunning = false;
+                Steam.Instance.IsRunning = false;
+                SteamDota.Instance.IsRunning = false;
 
-                try { steam.timer.Stop();                       } catch (Exception) { }
-                try { steam.secondaryPool.Shutdown(true, 1000); } catch (Exception) { }
-                try { steam.processorPool.Shutdown(true, 1000); } catch (Exception) { }
-                try { steam.steamClient.Disconnect();           } catch (Exception) { }
+                try { Steam.Instance.Timer.Stop();                       } catch (Exception) { }
+                try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch (Exception) { }
+                try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch (Exception) { }
+                try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch (Exception) { }
+                try { Steam.Instance.Client.Disconnect();                } catch (Exception) { }
 
-                if (steamDota.steamClient != null)
+                if (SteamDota.Instance.Client != null)
                 {
-                    try { steamDota.steamClient.Disconnect(); } catch (Exception) { }
+                    try { SteamDota.Instance.Client.Disconnect(); } catch (Exception) { }
                 }
 
-                KillIRC();
+                IRC.Instance.Kill();
             };
+
+            RunSteam();
 
             if (Settings.Current.FullRun > 0)
             {
-                RunSteam();
-
                 return;
             }
 
-            if (!Settings.CanConnectToIRC())
+            if (Settings.CanUseDota())
             {
                 RunDoto();
-                RunSteam();
-
-                return;
             }
 
-            ircSteam.Run();
-
-            irc.Encoding = System.Text.Encoding.UTF8;
-            irc.SendDelay = 1000;
-            irc.AutoRetry = true;
-            irc.AutoRejoin = true;
-            irc.AutoRelogin = true;
-            irc.AutoReconnect = true;
-            irc.AutoRejoinOnKick = true;
-            irc.ActiveChannelSyncing = true;
-            irc.OnChannelMessage += new IrcEventHandler(CommandHandler.OnChannelMessage);
-            irc.OnConnected += CommandHandler.OnConnected;
-
-            try
+            if (Settings.CanConnectToIRC())
             {
-                irc.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                irc.Login(Settings.Current.IRC.Nickname, string.Format("built on {0} UTC", date), 4, Settings.Current.IRC.Nickname);
-                irc.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
+                SteamProxy.Instance.Init();
 
-                RunDoto();
-                RunSteam();
-
-                irc.Listen();
-
-                KillIRC();
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("Main", "Exception: {0}", e.Message);
-                Log.WriteError("Main", "Stacktrace: {0}", e.StackTrace);
+                IRC.Instance.Init();
             }
         }
 
         private static void RunSteam()
         {
-            Thread thread = new Thread(new ThreadStart(steam.Run));
+            Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));
             thread.Name = "Steam";
             thread.Start();
         }
 
         private static void RunDoto()
         {
-            if (Settings.CanUseDota())
-            {
-                Thread thread = new Thread(new ThreadStart(steamDota.Run));
-                thread.Name = "Steam Dota";
-                thread.Start();
-            }
-        }
-
-        private static void KillIRC()
-        {
-            try
-            {
-                irc.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
-                irc.Disconnect();
-            }
-            catch (Exception) { }
+            Thread thread = new Thread(new ThreadStart(SteamDota.Instance.Init));
+            thread.Name = "Steam Dota";
+            thread.Start();
         }
     }
 }

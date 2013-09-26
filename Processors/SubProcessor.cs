@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
     {
         private const uint DATABASE_NAME_TYPE = 10;
 
-        private Dictionary<string, string> subData = new Dictionary<string, string>();
+        private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
         private uint SubID;
 
@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
             {
                 while (Reader.Read())
                 {
-                    subData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    CurrentData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
             }
 
@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (string keyName in subData.Keys)
+            foreach (string keyName in CurrentData.Keys)
             {
                 if (!keyName.StartsWith("website", StringComparison.Ordinal))
                 {
@@ -173,7 +173,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@KeyNameID", ID)
                     );
 
-                    MakeHistory("removed_key", ID, subData[keyName]);
+                    MakeHistory("removed_key", ID, CurrentData[keyName]);
                 }
             }
 
@@ -208,14 +208,14 @@ namespace SteamDatabaseBackend
 #endif
         }
 
-        private void ProcessKey(string keyName, string displayName, string value)
+        private bool ProcessKey(string keyName, string displayName, string value)
         {
             // All keys in PICS are supposed to be lower case.
             // But currently some keys in packages are not lowercased,
             // this lowercases everything to make sure nothing breaks in future
             keyName = keyName.ToLower();
 
-            if (!subData.ContainsKey(keyName))
+            if (!CurrentData.ContainsKey(keyName))
             {
                 uint ID = GetKeyNameID(keyName);
 
@@ -244,16 +244,22 @@ namespace SteamDatabaseBackend
 
                 InsertInfo(ID, value);
                 MakeHistory("created_key", ID, string.Empty, value);
+
+                return true;
             }
-            else if (!subData[keyName].Equals(value))
+            else if (!CurrentData[keyName].Equals(value))
             {
                 uint ID = GetKeyNameID(keyName);
 
                 InsertInfo(ID, value);
-                MakeHistory("modified_key", ID, subData[keyName], value);
+                MakeHistory("modified_key", ID, CurrentData[keyName], value);
+
+                return true;
             }
 
-            subData.Remove(keyName);
+            CurrentData.Remove(keyName);
+
+            return false;
         }
 
         private void InsertInfo(uint ID, string Value)

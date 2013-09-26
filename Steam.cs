@@ -16,34 +16,38 @@ namespace SteamDatabaseBackend
     {
         public const uint TEAM_FORTRESS_2 = 440;
 
-        public SteamClient steamClient;
-        public SteamUser steamUser;
-        public SteamApps steamApps;
-        public SteamFriends steamFriends;
-        public SteamUserStats steamUserStats;
-        private SteamGameCoordinator gameCoordinator;
+        private static Steam _instance = new Steam();
+        public static Steam Instance { get { return _instance; } }
 
-        public CallbackManager manager;
+        public SteamClient Client;
+        public SteamUser User;
+        public SteamApps Apps;
+        public SteamFriends Friends;
+        public SteamUserStats UserStats;
+        private SteamGameCoordinator GameCoordinator;
+
+        public CallbackManager CallbackManager;
 
         public uint PreviousChange;
+        public int CellID;
 
-        private bool fullRun;
-        public bool isRunning = true;
+        private bool IsFullRun;
+        public bool IsRunning = true;
 
-        public System.Timers.Timer timer;
+        public System.Timers.Timer Timer;
 
-        public SmartThreadPool processorPool;
-        public SmartThreadPool secondaryPool;
+        public SmartThreadPool ProcessorPool;
+        public SmartThreadPool SecondaryPool;
 
         public void GetPICSChanges()
         {
-            steamApps.PICSGetChangesSince(PreviousChange, true, true);
+            Apps.PICSGetChangesSince(PreviousChange, true, true);
         }
 
         private void GetLastChangeNumber()
         {
             // If we're in a full run, request all changes from #1
-            if (!fullRun && Settings.Current.FullRun > 0)
+            if (!IsFullRun && Settings.Current.FullRun > 0)
             {
                 PreviousChange = 1;
 
@@ -67,50 +71,53 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Run()
+        public void Init()
         {
-            processorPool = new SmartThreadPool();
-            secondaryPool = new SmartThreadPool();
+            ProcessorPool = new SmartThreadPool();
+            SecondaryPool = new SmartThreadPool();
 
-            processorPool.Name = "Processor Pool";
-            secondaryPool.Name = "Secondary Pool";
+            ProcessorPool.Name = "Processor Pool";
+            SecondaryPool.Name = "Secondary Pool";
 
-            steamClient = new SteamClient();
-            steamUser = steamClient.GetHandler<SteamUser>();
-            steamApps = steamClient.GetHandler<SteamApps>();
-            steamFriends = steamClient.GetHandler<SteamFriends>();
-            steamUserStats = steamClient.GetHandler<SteamUserStats>();
-            gameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
+            Timer = new System.Timers.Timer();
+            Timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            Timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
 
-            manager = new CallbackManager(steamClient);
+            Client = new SteamClient();
 
-            timer = new System.Timers.Timer();
-            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
-            timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
+            User = Client.GetHandler<SteamUser>();
+            Apps = Client.GetHandler<SteamApps>();
+            Friends = Client.GetHandler<SteamFriends>();
+            UserStats = Client.GetHandler<SteamUserStats>();
+            GameCoordinator = Client.GetHandler<SteamGameCoordinator>();
 
-            new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, manager);
+            CallbackManager = new CallbackManager(Client);
 
-            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, manager);
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, manager);
-            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, manager);
+            new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
+            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
 
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, manager);
+            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
+            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
+            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
 
-            new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, manager);
-            new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, manager);
+            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, CallbackManager);
+
+            new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, CallbackManager);
+            new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, CallbackManager);
 
             // irc specific
-            new Callback<SteamFriends.ClanStateCallback>(Program.ircSteam.OnClanState, Program.steam.manager);
-            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(Program.ircSteam.OnNumberOfPlayers, Program.steam.manager);
+            new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState, CallbackManager);
+            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers, CallbackManager);
+
+            DepotProcessor.Init();
 
             GetLastChangeNumber();
 
-            steamClient.Connect();
+            Client.Connect();
 
-            while (isRunning)
+            while (IsRunning)
             {
-                manager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
             }
         }
 
@@ -130,7 +137,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Connected! Logging in...");
 
-            steamUser.LogOn(new SteamUser.LogOnDetails
+            User.LogOn(new SteamUser.LogOnDetails
             {
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password
@@ -139,9 +146,9 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            timer.Stop();
+            Timer.Stop();
 
-            if (!isRunning)
+            if (!IsRunning)
             {
                 Log.WriteInfo("Steam", "Disconnected from Steam");
                 return;
@@ -155,7 +162,7 @@ namespace SteamDatabaseBackend
 
             Thread.Sleep(TimeSpan.FromSeconds(RETRY_DELAY));
 
-            steamClient.Connect();
+            Client.Connect();
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -171,6 +178,10 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            CellID = (int)callback.CellID;
+
+            DepotProcessor.FetchServers();
+
             string serverTime = callback.ServerTime.ToString();
 
             Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
@@ -178,27 +189,27 @@ namespace SteamDatabaseBackend
             IRC.SendEmoteAnnounce("is now logged in. Server time: {0} UTC", serverTime);
 
             // Prevent bugs
-            if (fullRun)
+            if (IsFullRun)
             {
                 return;
             }
 
             if (Settings.Current.FullRun > 0)
             {
-                fullRun = true;
+                IsFullRun = true;
 
                 GetPICSChanges();
             }
             else
             {
-                timer.Start();
+                Timer.Start();
 
-                SteamProxy.PlayGame(steamClient, TEAM_FORTRESS_2);
-            }
+                SteamProxy.PlayGame(Client, TEAM_FORTRESS_2);
 
 #if DEBUG
-            steamApps.PICSGetProductInfo(24010, 61, false, false);
+                Apps.PICSGetProductInfo(TEAM_FORTRESS_2, 61, false, false);
 #endif
+            }
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
@@ -210,17 +221,17 @@ namespace SteamDatabaseBackend
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
-            steamFriends.SetPersonaState(EPersonaState.Busy);
+            Friends.SetPersonaState(EPersonaState.Busy);
         }
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
         {
-            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback, gameCoordinator);
+            SteamProxy.GameCoordinatorMessage(TEAM_FORTRESS_2, callback, GameCoordinator);
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
         {
-            if (fullRun)
+            if (IsFullRun)
             {
                 // Hackiness to prevent processing legit changelists after our request
                 if (PreviousChange == 1)
@@ -229,7 +240,7 @@ namespace SteamDatabaseBackend
 
                     Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
 
-                    steamApps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
+                    Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
                 }
                 else
                 {
@@ -238,7 +249,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-            else if (PreviousChange == callback.CurrentChangeNumber)
+
+            if (PreviousChange == callback.CurrentChangeNumber)
             {
                 return;
             }
@@ -247,9 +259,9 @@ namespace SteamDatabaseBackend
 
             PreviousChange = callback.CurrentChangeNumber;
 
-            secondaryPool.QueueWorkItem(delegate
+            SecondaryPool.QueueWorkItem(delegate
             {
-                Program.ircSteam.OnPICSChanges(callback.CurrentChangeNumber, callback);
+                SteamProxy.Instance.OnPICSChanges(callback.CurrentChangeNumber, callback);
             });
 
             DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
@@ -259,7 +271,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            secondaryPool.QueueWorkItem(delegate
+            SecondaryPool.QueueWorkItem(delegate
             {
                 string changes = string.Empty;
 
@@ -283,7 +295,7 @@ namespace SteamDatabaseBackend
                 }
             });
 
-            secondaryPool.QueueWorkItem(delegate
+            SecondaryPool.QueueWorkItem(delegate
             {
                 string changes = string.Empty;
 
@@ -307,20 +319,20 @@ namespace SteamDatabaseBackend
                 }
             });
 
-            steamApps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
+            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
         }
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
         {
-            var request = Program.ircSteam.IRCRequests.Find(r => r.JobID == jobID);
+            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == jobID);
 
             if (request != null)
             {
-                Program.ircSteam.IRCRequests.Remove(request);
+                SteamProxy.Instance.IRCRequests.Remove(request);
 
-                secondaryPool.QueueWorkItem(delegate
+                SecondaryPool.QueueWorkItem(delegate
                 {
-                    Program.ircSteam.OnProductInfo(request, callback);
+                    SteamProxy.Instance.OnProductInfo(request, callback);
                 });
 
                 return;
@@ -332,7 +344,7 @@ namespace SteamDatabaseBackend
 
                 var workaround = app;
 
-                processorPool.QueueWorkItem(delegate
+                ProcessorPool.QueueWorkItem(delegate
                 {
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
@@ -344,7 +356,7 @@ namespace SteamDatabaseBackend
 
                 var workaround = package;
 
-                processorPool.QueueWorkItem(delegate
+                ProcessorPool.QueueWorkItem(delegate
                 {
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
@@ -357,7 +369,7 @@ namespace SteamDatabaseBackend
                 {
                     uint workaround = app;
 
-                    processorPool.QueueWorkItem(delegate
+                    ProcessorPool.QueueWorkItem(delegate
                     {
                         new AppProcessor(workaround).ProcessUnknown();
                     });

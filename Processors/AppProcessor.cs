@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
         private const uint DATABASE_NAME_TYPE = 10;
         private const string STEAMDB_UNKNOWN  = "SteamDB Unknown App ";
 
-        private Dictionary<string, string> appData = new Dictionary<string, string>();
+        private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
         private uint AppID;
 
@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
             {
                 while (Reader.Read())
                 {
-                    appData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    CurrentData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
                 }
             }
 
@@ -127,6 +127,9 @@ namespace SteamDatabaseBackend
                 }
             }
 
+            // If we are full running with unknowns, process depots too
+            bool depotsSectionModified = Settings.Current.FullRun == 2;
+
             foreach (KeyValue section in ProductInfo.KeyValues.Children)
             {
                 string sectionName = section.Name.ToLower();
@@ -198,11 +201,14 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
+                    if (ProcessKey(sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section)) && sectionName.Equals("root_depots"))
+                    {
+                        depotsSectionModified = true;
+                    }
                 }
             }
            
-            foreach (string keyName in appData.Keys)
+            foreach (string keyName in CurrentData.Keys)
             {
                 if (!keyName.StartsWith("website", StringComparison.Ordinal))
                 {
@@ -213,7 +219,7 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@KeyNameID", ID)
                     );
 
-                    MakeHistory("removed_key", ID, appData[keyName]);
+                    MakeHistory("removed_key", ID, CurrentData[keyName]);
                 }
             }
 
@@ -236,6 +242,13 @@ namespace SteamDatabaseBackend
                     MakeHistory("deleted_app", 0, appName);
                 }
             }
+
+#if DEBUG
+            if (depotsSectionModified)
+            {
+                DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
+            }
+#endif
         }
 
         public void ProcessUnknown()
@@ -275,12 +288,12 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void ProcessKey(string keyName, string displayName, string value)
+        private bool ProcessKey(string keyName, string displayName, string value)
         {
             // All keys in PICS are supposed to be lower case
             keyName = keyName.ToLower();
 
-            if (!appData.ContainsKey(keyName))
+            if (!CurrentData.ContainsKey(keyName))
             {
                 uint ID = GetKeyNameID(keyName);
 
@@ -309,16 +322,22 @@ namespace SteamDatabaseBackend
 
                 InsertInfo(ID, value);
                 MakeHistory("created_key", ID, string.Empty, value);
+
+                return true;
             }
-            else if (!appData[keyName].Equals(value))
+            else if (!CurrentData[keyName].Equals(value))
             {
                 uint ID = GetKeyNameID(keyName);
 
                 InsertInfo(ID, value);
-                MakeHistory("modified_key", ID, appData[keyName], value);
+                MakeHistory("modified_key", ID, CurrentData[keyName], value);
+
+                return true;
             }
 
-            appData.Remove(keyName);
+            CurrentData.Remove(keyName);
+
+            return false;
         }
 
         private void InsertInfo(uint ID, string Value)

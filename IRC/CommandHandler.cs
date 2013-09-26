@@ -11,11 +11,6 @@ namespace SteamDatabaseBackend
 {
     public static class CommandHandler
     {
-        public static void OnConnected(object sender, EventArgs e)
-        {
-            Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
-        }
-
         public static void OnChannelMessage(object sender, IrcEventArgs e)
         {
             switch (e.Data.MessageArray[0])
@@ -26,9 +21,9 @@ namespace SteamDatabaseBackend
 
                     if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out appid))
                     {
-                        var jobID = Program.steam.steamApps.PICSGetProductInfo(appid, null, false, false);
+                        var jobID = Steam.Instance.Apps.PICSGetProductInfo(appid, null, false, false);
 
-                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
@@ -51,9 +46,9 @@ namespace SteamDatabaseBackend
 
                     if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out subid))
                     {
-                        var jobID = Program.steam.steamApps.PICSGetProductInfo(null, subid, false, false);
+                        var jobID = Steam.Instance.Apps.PICSGetProductInfo(null, subid, false, false);
 
-                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = subid,
@@ -70,6 +65,35 @@ namespace SteamDatabaseBackend
                     break;
                 }
 
+#if DEBUG
+                case "!depot":
+                {
+                    uint appid;
+                    uint depotid;
+
+                    if (e.Data.MessageArray.Length == 3 && uint.TryParse(e.Data.MessageArray[1], out appid) && uint.TryParse(e.Data.MessageArray[2], out depotid))
+                    {
+                        var jobID = Steam.Instance.Apps.PICSGetProductInfo(appid, null, false, false);
+
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                        {
+                            JobID = jobID,
+                            Target = appid,
+                            DepotID = depotid,
+                            Type = SteamProxy.IRCRequestType.TYPE_DEPOT,
+                            Channel = e.Data.Channel,
+                            Requester = e.Data.Nick
+                        });
+                    }
+                    else
+                    {
+                        IRC.Send(e.Data.Channel, "Usage:{0} !depot <parent appid> <depotid>", Colors.OLIVE);
+                    }
+
+                    break;
+                }
+#endif
+
                 case "!numplayers":
                 {
                     if (e.Data.MessageArray.Length != 2)
@@ -83,9 +107,9 @@ namespace SteamDatabaseBackend
 
                     if (uint.TryParse(e.Data.MessageArray[1], out appid))
                     {
-                        var jobID = Program.steam.steamUserStats.GetNumberOfCurrentPlayers(appid);
+                        var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appid);
 
-                        Program.ircSteam.IRCRequests.Add(new SteamProxy.IRCRequest
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
                         {
                             JobID = jobID,
                             Target = appid,
@@ -104,13 +128,13 @@ namespace SteamDatabaseBackend
 
                 case "!reload":
                 {
-                    Channel ircChannel = Program.irc.GetChannel(e.Data.Channel);
+                    Channel ircChannel = IRC.Instance.Client.GetChannel(e.Data.Channel);
 
                     foreach (ChannelUser user in ircChannel.Users.Values)
                     {
                         if (user.IsOp && e.Data.Nick == user.Nick)
                         {
-                            Program.ircSteam.ReloadImportant(e.Data.Channel);
+                            SteamProxy.Instance.ReloadImportant(e.Data.Channel);
 
                             break;
                         }
@@ -121,7 +145,7 @@ namespace SteamDatabaseBackend
 
                 case "!force":
                 {
-                    Channel ircChannel = Program.irc.GetChannel(e.Data.Channel);
+                    Channel ircChannel = IRC.Instance.Client.GetChannel(e.Data.Channel);
 
                     foreach (ChannelUser user in ircChannel.Users.Values)
                     {
@@ -142,7 +166,7 @@ namespace SteamDatabaseBackend
                                 {
                                     case "app":
                                     {
-                                        Program.steam.steamApps.PICSGetProductInfo(target, null, false, false);
+                                        Steam.Instance.Apps.PICSGetProductInfo(target, null, false, false);
 
                                         IRC.Send(e.Data.Channel, "Forced update for AppID {0}{1}", Colors.OLIVE, target);
 
@@ -151,7 +175,7 @@ namespace SteamDatabaseBackend
 
                                     case "sub":
                                     {
-                                        Program.steam.steamApps.PICSGetProductInfo(null, target, false, false);
+                                        Steam.Instance.Apps.PICSGetProductInfo(null, target, false, false);
 
                                         IRC.Send(e.Data.Channel, "Forced update for SubID {0}{1}", Colors.OLIVE, target);
 
@@ -160,16 +184,16 @@ namespace SteamDatabaseBackend
 #if DEBUG
                                     case "changelist":
                                     {
-                                        if (Math.Abs(Program.steam.PreviousChange - target) > 100)
+                                        if (Math.Abs(Steam.Instance.PreviousChange - target) > 100)
                                         {
                                             IRC.Send(e.Data.Channel, "Changelist difference is too big, will not execute");
 
                                             break;
                                         }
 
-                                        Program.steam.PreviousChange = target;
+                                        Steam.Instance.PreviousChange = target;
 
-                                        Program.steam.GetPICSChanges();
+                                        Steam.Instance.GetPICSChanges();
 
                                         IRC.Send(e.Data.Channel, "Requested changes since changelist {0}{1}", Colors.OLIVE, target);
 
@@ -186,7 +210,7 @@ namespace SteamDatabaseBackend
                             }
                             else if (e.Data.MessageArray.Length == 1)
                             {
-                                Program.steam.GetPICSChanges();
+                                Steam.Instance.GetPICSChanges();
                                 IRC.Send(e.Data.Channel, "Check forced");
                             }
                             else

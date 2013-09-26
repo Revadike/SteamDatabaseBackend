@@ -13,58 +13,72 @@ namespace SteamDatabaseBackend
     {
         public const uint DOTA_2 = 570;
 
-        public SteamClient steamClient;
-        private SteamUser steamUser;
-        private SteamFriends steamFriends;
-        private SteamGameCoordinator gameCoordinator;
+        private static SteamDota _instance = new SteamDota();
+        public static SteamDota Instance { get { return _instance; } }
 
-        public bool isRunning;
+        public SteamClient Client;
+        private SteamUser User;
+        private SteamFriends Friends;
+        public SteamGameCoordinator GameCoordinator;
 
-        public void Run()
+        public bool IsRunning;
+
+        public System.Timers.Timer timer;
+
+        public void Init()
         {
-            isRunning = true;
+            IsRunning = true;
 
-            steamClient = new SteamClient();
-            steamUser = steamClient.GetHandler<SteamUser>();
-            steamFriends = steamClient.GetHandler<SteamFriends>();
-            gameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
+            Client = new SteamClient();
+            User = Client.GetHandler<SteamUser>();
+            Friends = Client.GetHandler<SteamFriends>();
+            GameCoordinator = Client.GetHandler<SteamGameCoordinator>();
 
-            CallbackManager manager = new CallbackManager(steamClient);
+            CallbackManager CallbackManager = new CallbackManager(Client);
 
-            new Callback<SteamClient.ConnectedCallback>(OnConnected, manager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, manager);
-            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, manager);
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, manager);
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, manager);
+            new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
+            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
+            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
+            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
+            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, CallbackManager);
 
-            steamClient.Connect();
+            timer = new System.Timers.Timer();
+            timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
 
-            while (isRunning)
+            Client.Connect();
+
+            while (IsRunning)
             {
-                manager.RunWaitCallbacks(TimeSpan.FromSeconds(5));
+                CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(5));
             }
+        }
+
+        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
+        {
+
         }
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
         {
-            SteamProxy.GameCoordinatorMessage(DOTA_2, callback, gameCoordinator);
+            SteamProxy.GameCoordinatorMessage(DOTA_2, callback, GameCoordinator);
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             if (callback.Result == EResult.OK)
             {
-                SteamProxy.PlayGame(steamClient, DOTA_2);
+                SteamProxy.PlayGame(Client, DOTA_2);
 
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
-                SteamProxy.GameCoordinatorHello(DOTA_2, gameCoordinator);
+                SteamProxy.GameCoordinatorHello(DOTA_2, GameCoordinator);
             }
         }
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
-            steamFriends.SetPersonaState(EPersonaState.Busy);
+            Friends.SetPersonaState(EPersonaState.Busy);
         }
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
@@ -76,7 +90,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam Dota", "Connected! Logging in...");
 
-            steamUser.LogOn(new SteamUser.LogOnDetails
+            User.LogOn(new SteamUser.LogOnDetails
             {
                 Username = Settings.Current.SteamDota.Username,
                 Password = Settings.Current.SteamDota.Password
@@ -85,7 +99,7 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            if (!isRunning)
+            if (!IsRunning)
             {
                 Log.WriteInfo("Steam Dota", "Disconnected from Steam");
                 return;
@@ -95,7 +109,7 @@ namespace SteamDatabaseBackend
 
             Thread.Sleep(TimeSpan.FromSeconds(15));
 
-            steamClient.Connect();
+            Client.Connect();
         }
     }
 }

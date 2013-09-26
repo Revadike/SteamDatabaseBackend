@@ -17,24 +17,25 @@ namespace SteamDatabaseBackend
 {
     public class SteamProxy
     {
+        private static SteamProxy _instance = new SteamProxy();
+        public static SteamProxy Instance { get { return _instance; } }
+
         public enum IRCRequestType
         {
             TYPE_APP,
             TYPE_SUB,
+            TYPE_DEPOT,
             TYPE_PLAYERS
         }
 
         public class IRCRequest
         {
             public JobID JobID { get; set; }
-
             public string Channel { get; set; }
-
             public string Requester { get; set; }
-
             public IRCRequestType Type { get; set; }
-
             public uint Target { get; set; }
+            public uint DepotID { get; set; }
         }
 
         public class GCInfo
@@ -49,13 +50,13 @@ namespace SteamDatabaseBackend
 
         public static List<GCInfo> GCInfos = new List<GCInfo>();
 
-        private static SteamID steamLUG = new SteamID(103582791431044413UL);
-        private static string channelSteamLUG = "#steamlug";
+        private static SteamID SteamLUG = new SteamID(103582791431044413UL);
+        private static string ChannelSteamLUG = "#steamlug";
 
-        private List<uint> importantApps = new List<uint>();
-        private List<uint> importantSubs = new List<uint>();
+        public List<uint> ImportantApps = new List<uint>();
+        private List<uint> ImportantSubs = new List<uint>();
 
-        public void Run()
+        public void Init()
         {
             System.Timers.Timer timer = new System.Timers.Timer();
             timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
@@ -67,11 +68,13 @@ namespace SteamDatabaseBackend
 
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
-            PlayGame(Program.steam.steamClient, Steam.TEAM_FORTRESS_2);
+            PlayGame(Steam.Instance.Client, Steam.TEAM_FORTRESS_2);
 
-            if (Program.steamDota.isRunning)
+            if (SteamDota.Instance.IsRunning)
             {
-                PlayGame(Program.steamDota.steamClient, SteamDota.DOTA_2);
+                PlayGame(SteamDota.Instance.Client, SteamDota.DOTA_2);
+
+                GameCoordinatorHello(SteamDota.DOTA_2, SteamDota.Instance.GameCoordinator);
             }
         }
 
@@ -79,31 +82,31 @@ namespace SteamDatabaseBackend
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
-                importantApps.Clear();
+                ImportantApps.Clear();
 
                 while (Reader.Read())
                 {
-                    importantApps.Add(Reader.GetUInt32("AppID"));
+                    ImportantApps.Add(Reader.GetUInt32("AppID"));
                 }
             }
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
             {
-                importantSubs.Clear();
+                ImportantSubs.Clear();
 
                 while (Reader.Read())
                 {
-                    importantSubs.Add(Reader.GetUInt32("SubID"));
+                    ImportantSubs.Add(Reader.GetUInt32("SubID"));
                 }
             }
 
             if (!channel.Equals(string.Empty))
             {
-                IRC.Send(channel, "Reloaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
+                IRC.Send(channel, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
             }
             else
             {
-                Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", importantApps.Count, importantSubs.Count);
+                Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
             }
         }
 
@@ -187,7 +190,7 @@ namespace SteamDatabaseBackend
 
             if (string.IsNullOrEmpty(groupName))
             {
-                groupName = Program.steam.steamFriends.GetClanName(callback.ClanID);
+                groupName = Steam.Instance.Friends.GetClanName(callback.ClanID);
 
                 // Check once more, because that can fail too
                 if (string.IsNullOrEmpty(groupName))
@@ -205,9 +208,9 @@ namespace SteamDatabaseBackend
                 IRC.SendMain(message);
 
                 // Additionally send announcements to steamlug channel
-                if (callback.ClanID.Equals(steamLUG))
+                if (callback.ClanID.Equals(SteamLUG))
                 {
-                    IRC.Send(channelSteamLUG, message);
+                    IRC.Send(ChannelSteamLUG, message);
                 }
 
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
@@ -220,9 +223,9 @@ namespace SteamDatabaseBackend
                     message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, groupName, Colors.NORMAL, Colors.GREEN, groupEvent.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupEvent.ID);
 
                     // Send events only to steamlug channel
-                    if (callback.ClanID.Equals(steamLUG))
+                    if (callback.ClanID.Equals(SteamLUG))
                     {
-                        IRC.Send(channelSteamLUG, message);
+                        IRC.Send(ChannelSteamLUG, message);
                     }
                     else
                     {
@@ -402,7 +405,7 @@ namespace SteamDatabaseBackend
         {
             string name;
 
-            var important = appList.Keys.Intersect(importantApps);
+            var important = appList.Keys.Intersect(ImportantApps);
 
             foreach (var app in important)
             {
@@ -448,7 +451,7 @@ namespace SteamDatabaseBackend
         {
             string name;
 
-            var important = packageList.Keys.Intersect(importantSubs);
+            var important = packageList.Keys.Intersect(ImportantSubs);
 
             foreach (var package in important)
             {
@@ -543,13 +546,15 @@ namespace SteamDatabaseBackend
                     IRC.SendAnnounce(message);
 
                     info.LastVersion = msg.Body.version;
-
-                    DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`, `Version`) VALUES(@AppID, @Status, @Version) ON DUPLICATE KEY UPDATE `Status` = @Status, `Version` = @Version",
-                                             new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@Status", GCConnectionStatus.GCConnectionStatus_HAVE_SESSION.ToString()),
-                                             new MySqlParameter("@Version", msg.Body.version)
-                    );
                 }
+
+                info.LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
+
+                DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`, `Version`) VALUES(@AppID, @Status, @Version) ON DUPLICATE KEY UPDATE `Status` = @Status, `Version` = @Version",
+                                         new MySqlParameter("@AppID", AppID),
+                                         new MySqlParameter("@Status", GCConnectionStatus.GCConnectionStatus_HAVE_SESSION.ToString()),
+                                         new MySqlParameter("@Version", msg.Body.version)
+                );
             }
             else if (callback.EMsg == (uint)EGCBaseMsg.k_EMsgGCSystemMessage)
             {
