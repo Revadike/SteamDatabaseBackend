@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
 
                 var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(callback.Message);
 
-                Log.WriteInfo(string.Format("GC {0}", AppID), "New GC session (version change from {0} to {1})", LastVersion, msg.Body.version);
+                Log.WriteInfo(string.Format("GC {0}", AppID), "New GC session ({0} -> {1})", LastVersion, msg.Body.version);
 
                 string message = string.Format("New {0}{1}{2} GC session", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL);
 

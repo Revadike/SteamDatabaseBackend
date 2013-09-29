@@ -10,15 +10,19 @@
 	
 	"Steam":
 	{
+		"IdleAppID": 440,
 		"Username": "steam-username",
 		"Password": "steam-password"
 	},
 	
-	"SteamDota":
-	{
-		"Username": "",
-		"Password": ""
-	},
+	"GameCoordinatorIdlers":
+	[
+		{
+			"AppID": 570,
+			"Username": "",
+			"Password": ""
+		}
+	],
 	
 	"IRC":
 	{

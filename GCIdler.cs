@@ -9,37 +9,43 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class SteamDota
+    public class GCIdler
     {
-        private static SteamDota _instance = new SteamDota();
-        public static SteamDota Instance { get { return _instance; } }
-
         public bool IsRunning;
 
         public SteamClient Client;
         private SteamUser User;
         private SteamFriends Friends;
+        private CallbackManager CallbackManager;
         private GameCoordinator GameCoordinator;
 
-        public void Init()
-        {
-            IsRunning = true;
+        private uint AppID;
+        private string Username;
+        private string Password;
 
+        public GCIdler(uint appID, string username, string password)
+        {
+            Username = username;
+            Password = password;
+            AppID = appID;
+            
             Client = new SteamClient();
             User = Client.GetHandler<SteamUser>();
             Friends = Client.GetHandler<SteamFriends>();
 
-            CallbackManager CallbackManager = new CallbackManager(Client);
+            CallbackManager = new CallbackManager(Client);
 
             new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
             new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
             new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
             new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
 
-            // game coordinator
-            const uint DOTA_2 = 570;
+            GameCoordinator = new GameCoordinator(AppID, Client, CallbackManager);
+        }
 
-            GameCoordinator = new GameCoordinator(DOTA_2, Client, CallbackManager);
+        public void Run()
+        {
+            IsRunning = true;
 
             Client.Connect();
 
@@ -70,15 +76,19 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result != EResult.OK)
             {
-                throw new Exception("Could not connect: " + callback.Result);
+				Log.WriteError(string.Format("GC {0}", AppID), "Could not connect: {0}", callback.Result);
+
+				IsRunning = false;
+
+				return;
             }
 
-            Log.WriteInfo("Steam Dota", "Connected! Logging in...");
+            Log.WriteInfo(string.Format("GC {0}", AppID), "Connected, logging in...");
 
             User.LogOn(new SteamUser.LogOnDetails
             {
-                Username = Settings.Current.SteamDota.Username,
-                Password = Settings.Current.SteamDota.Password
+                Username = Username,
+                Password = Password
             });
         }
 
@@ -86,11 +96,11 @@ namespace SteamDatabaseBackend
         {
             if (!IsRunning)
             {
-                Log.WriteInfo("Steam Dota", "Disconnected from Steam");
+                Log.WriteInfo(string.Format("GC {0}", AppID), "Disconnected from Steam");
                 return;
             }
 
-            Log.WriteInfo("Steam Dota", "Disconnected from Steam. Retrying in 15 seconds...");
+            Log.WriteInfo(string.Format("GC {0}", AppID), "Disconnected from Steam. Retrying in 15 seconds...");
 
             Thread.Sleep(TimeSpan.FromSeconds(15));
 

@@ -27,7 +27,6 @@ namespace SteamDatabaseBackend
         public CallbackManager CallbackManager;
 
         public uint PreviousChange;
-        public int CellID;
 
         private bool IsFullRun;
         public bool IsRunning = true;
@@ -71,8 +70,8 @@ namespace SteamDatabaseBackend
 
         public void Init()
         {
-            ProcessorPool = new SmartThreadPool();
-            SecondaryPool = new SmartThreadPool();
+            ProcessorPool = new SmartThreadPool(new STPStartInfo { ThreadPriority = ThreadPriority.AboveNormal });
+            SecondaryPool = new SmartThreadPool(new STPStartInfo { ThreadPriority = ThreadPriority.BelowNormal });
 
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
@@ -105,11 +104,12 @@ namespace SteamDatabaseBackend
             new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers, CallbackManager);
 
             // game coordinator
-            const uint TEAM_FORTRESS_2 = 440;
+            if (Settings.Current.Steam.IdleAppID > 0)
+            {
+                GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
+            }
 
-            GameCoordinator = new GameCoordinator(TEAM_FORTRESS_2, Client, CallbackManager);
-
-            //DepotProcessor.Init();
+            DepotProcessor.Init();
 
             GetLastChangeNumber();
 
@@ -132,10 +132,14 @@ namespace SteamDatabaseBackend
             {
                 IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result);
 
-                throw new Exception("Could not connect: " + callback.Result);
+                Log.WriteError("Steam", "Could not connect: {0}", callback.Result);
+
+                IsRunning = false;
+
+                return;
             }
 
-            Log.WriteInfo("Steam", "Connected! Logging in...");
+            Log.WriteInfo("Steam", "Connected, logging in...");
 
             User.LogOn(new SteamUser.LogOnDetails
             {
@@ -178,10 +182,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            CellID = (int)callback.CellID;
-
-            //DepotProcessor.FetchServers();
-
             string serverTime = callback.ServerTime.ToString();
 
             Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
@@ -207,7 +207,7 @@ namespace SteamDatabaseBackend
                 GameCoordinator.PlayGame();
 
 #if DEBUG
-                Apps.PICSGetProductInfo(TEAM_FORTRESS_2, 61, false, false);
+                Apps.PICSGetProductInfo(440, 61, false, false);
 #endif
             }
         }

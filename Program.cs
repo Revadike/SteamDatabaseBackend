@@ -6,16 +6,18 @@
  * Future non-SteamKit stuff should go in this file.
  */
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
-using Meebey.SmartIrc4net;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     public class Program
     {
-        public static void Main(string[] args)
+        private static List<GCIdler> GCIdlers = new List<GCIdler>();
+
+        public static void Main()
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             string date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
@@ -43,33 +45,53 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo("Main", "Exiting...");
 
-                Steam.Instance.IsRunning = false;
-                SteamDota.Instance.IsRunning = false;
-
-                try { Steam.Instance.Timer.Stop();                       } catch (Exception) { }
-                try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch (Exception) { }
-                try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch (Exception) { }
-                //try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch (Exception) { }
-                try { Steam.Instance.Client.Disconnect();                } catch (Exception) { }
-
-                if (SteamDota.Instance.Client != null)
+                foreach (var idler in GCIdlers)
                 {
-                    try { SteamDota.Instance.Client.Disconnect(); } catch (Exception) { }
+                    try
+                    {
+                        idler.IsRunning = false;
+                        idler.Client.Disconnect();
+                    }
+                    catch { }
                 }
+
+                Steam.Instance.IsRunning = false;
+
+                try { Steam.Instance.Timer.Stop();                       } catch { }
+                try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch { }
+                try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch { }
+                try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
+                try { Steam.Instance.Client.Disconnect();                } catch { }
 
                 IRC.Instance.Kill();
             };
 
-            RunSteam();
+            Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));
+            thread.Name = "Steam";
+            thread.Start();
 
             if (Settings.Current.FullRun > 0)
             {
                 return;
             }
 
-            if (Settings.CanUseDota())
+            foreach (var idler in Settings.Current.GameCoordinatorIdlers)
             {
-                RunDoto();
+                if (string.IsNullOrWhiteSpace(idler.Username) || string.IsNullOrWhiteSpace(idler.Password) || idler.AppID <= 0)
+                {
+                    Log.WriteWarn("Settings", "Invalid GC coordinator settings");
+                    continue;
+                }
+
+                Log.WriteInfo("Main", "Starting GC idler for app {0}", idler.AppID);
+
+                var instance = new GCIdler(idler.AppID, idler.Username, idler.Password);
+
+                thread = new Thread(new ThreadStart(instance.Run));
+                thread.Name = "Steam";
+                thread.Start();
+
+                GCIdlers.Add(instance);
             }
 
             if (Settings.CanConnectToIRC())
@@ -78,20 +100,6 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.Init();
             }
-        }
-
-        private static void RunSteam()
-        {
-            Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));
-            thread.Name = "Steam";
-            thread.Start();
-        }
-
-        private static void RunDoto()
-        {
-            Thread thread = new Thread(new ThreadStart(SteamDota.Instance.Init));
-            thread.Name = "Steam Dota";
-            thread.Start();
         }
     }
 }

@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
             }
 
             // If we are full running with unknowns, process depots too
-            bool depotsSectionModified = Settings.Current.FullRun == 2;
+            bool depotsSectionModified = Settings.Current.FullRun == 2 && ProductInfo.KeyValues["depots"].Value != null;
 
             foreach (KeyValue section in ProductInfo.KeyValues.Children)
             {
@@ -159,13 +159,13 @@ namespace SteamDatabaseBackend
                             continue;
                         }
                         // TODO: This is godlike hackiness
-                        else if (keyName.StartsWith("extended_us ", StringComparison.Ordinal) ||
-                                 keyName.StartsWith("extended_im ", StringComparison.Ordinal) ||
-                                 keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ", StringComparison.Ordinal) ||
-                                 keyName.Equals("extended_de") ||
+                        else if (keyName.Equals("extended_de") ||
                                  keyName.Equals("extended_jp") ||
                                  keyName.Equals("extended_cn") ||
-                                 keyName.Equals("extended_us")
+                                 keyName.Equals("extended_us") ||
+                                 keyName.StartsWith("extended_us ", StringComparison.Ordinal) ||
+                                 keyName.StartsWith("extended_im ", StringComparison.Ordinal) ||
+                                 keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ", StringComparison.Ordinal)
                         )
                         {
                             Log.WriteWarn("App Processor", "Dammit Valve, why these long keynames: {0} - {1} ", AppID, keyName);
@@ -243,12 +243,10 @@ namespace SteamDatabaseBackend
                 }
             }
 
-#if DEBUG
             if (depotsSectionModified)
             {
                 DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }
-#endif
         }
 
         public void ProcessUnknown()

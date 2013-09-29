@@ -32,10 +32,10 @@ namespace SteamDatabaseBackend
 
             try
             {
-                IRC.Instance.Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                IRC.Instance.Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL, 4, Settings.Current.IRC.Nickname);
-                IRC.Instance.Client.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
-                IRC.Instance.Client.Listen();
+                Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
+                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL, 4, Settings.Current.IRC.Nickname);
+                Client.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
+                Client.Listen();
 
                 Kill();
             }
@@ -46,11 +46,6 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static void OnConnected(object sender, EventArgs e)
-        {
-            Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
-        }
-
         public void Kill()
         {
             try
@@ -58,7 +53,12 @@ namespace SteamDatabaseBackend
                 Client.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
                 Client.Disconnect();
             }
-            catch (Exception) { }
+            catch { }
+        }
+
+        public static void OnConnected(object sender, EventArgs e)
+        {
+            Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
         }
 
         public static void Send(string channel, string format, params object[] args)

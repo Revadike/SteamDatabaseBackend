@@ -1,4 +1,3 @@
-#if DEBUG
 /*
  * Copyright (c) 2013, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
@@ -33,12 +32,10 @@ namespace SteamDatabaseBackend
             public ulong ManifestID;
             public string DepotName;
             public byte[] Ticket;
+            public byte[] DepotKey;
         }
 
-        private static int NextServer;
-        private static List<CDNClient.ClientEndPoint> cdnServers;
         private static List<ManifestJob> ManifestJobs;
-
         public static SmartThreadPool ThreadPool;
 
         public static void Init()
@@ -52,37 +49,18 @@ namespace SteamDatabaseBackend
             new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback, Steam.Instance.CallbackManager);
         }
 
-        public static void FetchServers()
-        {
-            // TODO: All the code below should be gone with VoiDeD's refacted CDNClient
-
-            var csServers = Steam.Instance.Client.GetServersOfType(EServerType.CS);
-
-            for (int attempt = 0; attempt < 10; attempt++)
-            {
-                var csServer = csServers[new Random().Next(csServers.Count)];
-
-                cdnServers = CDNClient.FetchServerList(new CDNClient.ClientEndPoint(csServer.Address.ToString(), csServer.Port), Steam.Instance.CellID);
-
-                if (cdnServers != null)
-                {
-                    break;
-                }
-            }
-
-            if (cdnServers == null)
-            {
-                Log.WriteWarn("Depot Processor", "Unable to get CDN server list");
-                return;
-            }
-
-            cdnServers = cdnServers.Where(ep => ep.Type == "CS").ToList();
-        }
-
         public static void Process(uint AppID, uint ChangeNumber, KeyValue depots)
         {
             foreach (KeyValue depot in depots.Children)
             {
+                // Ignore these for now, parent app should be updated too anyway
+                if (depot["depotfromapp"].Value != null)
+                {
+                    //Log.WriteDebug("Depot Processor", "Ignoring depot {0} with depotfromapp value {1} (parent {2})", depot.Name, depot["depotfromapp"].AsString(), AppID);
+
+                    continue;
+                }
+
                 uint DepotID;
 
                 if (!uint.TryParse(depot.Name, out DepotID))
@@ -91,36 +69,37 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                if (ManifestJobs.Find(r => r.DepotID == DepotID) != null)
+                lock (ManifestJobs)
                 {
-                    // If we already have this depot in our job list, ignore it
+                    if (ManifestJobs.Find(r => r.DepotID == DepotID) != null)
+                    {
+                        // If we already have this depot in our job list, ignore it
+                        continue;
+                    }
+                }
+
+                ulong ManifestID;
+
+                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out ManifestID))
+                {
+#if false
+                    Log.WriteDebug("Depot Processor", "Failed to public branch for depot {0} (parent {1}) - {2}", DepotID, AppID);
+
+                    // If there is no public manifest for this depot, it still could have some sort of open beta
+
+                    var branch = depot["manifests"].Children.SingleOrDefault(x => x.Name != "local");
+
+                    if (branch == null || !ulong.TryParse(branch.Value, out ManifestID))
+                    {
+                        continue;
+                    }
+#endif
+
                     continue;
                 }
 
-                ulong ManifestID = (ulong)depot["manifests"]["public2"].AsLong();
-
-                // If there is no public manifest for this depot, it still could have some sort of open beta
-                if (ManifestID == 0)
-                {
-                    var ManifestID2 = depot["manifests"].Children.FirstOrDefault();
-
-                    if (ManifestID2 == null)
-                    {
-                        // There are no public manifests
-                        continue;
-                    }
-
-                    ManifestID = (ulong)ManifestID2.AsLong();
-
-                    if (ManifestID == 0)
-                    {
-                        // Still nope
-                        continue;
-                    }
-                }
-
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", DepotID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", DepotID)))
                 {
                     if (Reader.Read() && Reader.GetUInt64("ManifestID") == ManifestID)
                     {
@@ -128,40 +107,51 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-#if DEBUG
                 Log.WriteDebug("Depot Processor", "DepotID: {0}", DepotID);
-#endif
 
-                var jobID = Steam.Instance.Apps.GetAppOwnershipTicket(DepotID);
-
-                ManifestJobs.Add(new ManifestJob
+                var request = new ManifestJob
                 {
-                    JobID = jobID,
                     ChangeNumber = ChangeNumber,
                     ParentAppID = AppID,
                     DepotID = DepotID,
                     ManifestID = ManifestID,
                     DepotName = depot["name"].AsString()
-                });
+                };
+
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Add(request);
+                }
+
+                request.JobID = Steam.Instance.Apps.GetAppOwnershipTicket(DepotID);
             }
         }
 
-        public static void OnAppOwnershipTicket(SteamApps.AppOwnershipTicketCallback callback, JobID jobID)
+        private static void OnAppOwnershipTicket(SteamApps.AppOwnershipTicketCallback callback, JobID jobID)
         {
-            var request = ManifestJobs.Find(r => r.JobID == jobID);
+            ManifestJob request;
+
+            lock (ManifestJobs)
+            {
+                request = ManifestJobs.Find(r => r.JobID == jobID);
+            }
 
             if (request == null)
             {
+                Log.WriteError("Depot Processor", "NO REQUEST FOUND for depot {0} (parent {1})", callback.AppID, request.ParentAppID);
                 return;
             }
 
             if (callback.Result != EResult.OK)
             {
-                ManifestJobs.Remove(request);
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Remove(request);
+                }
 
                 if (callback.Result != EResult.AccessDenied)
                 {
-                    Log.WriteWarn("Depot Processor", "Failed to get app ticket for {0} - {1}", callback.AppID, callback.Result);
+                    Log.WriteWarn("Depot Processor", "Failed to get app ticket for depot {0} (parent {1}) - {2}", callback.AppID, request.ParentAppID, callback.Result);
                 }
 
                 return;
@@ -171,159 +161,187 @@ namespace SteamDatabaseBackend
             request.JobID = Steam.Instance.Apps.GetDepotDecryptionKey(callback.AppID, request.ParentAppID);
         }
 
-        public static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback, JobID jobID)
+        private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback, JobID jobID)
         {
-            var request = ManifestJobs.Find(r => r.JobID == jobID);
+            ManifestJob request;
+
+            lock (ManifestJobs)
+            {
+                request = ManifestJobs.Find(r => r.JobID == jobID);
+            }
 
             if (request == null)
             {
                 return;
             }
 
-            ManifestJobs.Remove(request);
-
             if (callback.Result != EResult.OK)
             {
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Remove(request);
+                }
+
                 if (callback.Result != EResult.Blocked)
                 {
-                    Log.WriteWarn("Depot Processor", "Failed to get depot key for {0} - {1}", callback.DepotID, callback.Result);
+                    Log.WriteWarn("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
                 }
 
                 return;
             }
 
-            if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
+            // Update manifestid here because actually downloading the manifest has chances of failing
+            DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
+                                     new MySqlParameter("@DepotID", request.DepotID),
+                                     new MySqlParameter("@ManifestID", request.ManifestID),
+                                     new MySqlParameter("@Name", request.DepotName)
+            );
+
+            request.DepotKey = callback.DepotKey;
+
+            ThreadPool.QueueWorkItem(DownloadManifest, request);
+        }
+
+        private static void DownloadManifest(ManifestJob request)
+        {
+            CDNClient cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
+            List<CDNClient.Server> cdnServers;
+
+            try
             {
-                IRC.SendMain("Important manifest update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                cdnServers = cdnClient.FetchServerList();
+
+                if(cdnServers.Count == 0)
+                {
+                    throw new Exception("No servers returned"); // Great programming!
+                }
+            }
+            catch
+            {
+                Log.WriteError("Depot Processor", "Failed to get server list for depot {0}", request.DepotID);
+
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Remove(request);
+                }
+
+                return;
             }
 
-            ThreadPool.QueueWorkItem(delegate
+            DepotManifest depotManifest = null;
+
+            foreach(var server in cdnServers)
             {
-                uint retries = 5;
-
-                CDNClient cdnClient;
-                bool isConnected;
-
-                do
+                try
                 {
-                    NextServer++;
+                    cdnClient.Connect(server);
 
-                    if (NextServer > cdnServers.Count)
-                    {
-                        NextServer = 0;
-                    }
+                    depotManifest = cdnClient.DownloadManifest(request.ManifestID);
 
-                    cdnClient = new CDNClient(cdnServers[NextServer], request.Ticket);
-
-                    isConnected = cdnClient.Connect();
+                    break;
                 }
-                while (!isConnected && retries-- > 0);
+                catch { }
+            }
 
-                if (!isConnected)
+            if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
+            {
+                IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} {7}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+            }
+
+            if(depotManifest == null)
+            {
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (parent {1}) (jobs still in queue: {2})", request.DepotID, request.ParentAppID, ManifestJobs.Count);
+
+                return;
+            }
+
+            lock (ManifestJobs)
+            {
+                ManifestJobs.Remove(request);
+            }
+
+            var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
+
+            bool shouldHistorize = false;
+            List<DepotFile> filesNew = new List<DepotFile>();
+            List<DepotFile> filesOld = new List<DepotFile>();
+
+            foreach (var file in sortedFiles)
+            {
+                filesNew.Add(new DepotFile
                 {
-                    Log.WriteWarn("Depot Processor", "Failed to connect to any CDN for {0}", request.DepotID);
-                    return;
-                }
+                    Name = file.FileName.Replace("\\", "/"),
+                    Size = file.TotalSize,
+                    Chunks = file.Chunks.Count,
+                    Flags = (int)file.Flags
+                });
+            }
 
-                retries = 3;
-
-                DepotManifest depotManifest;
-
-                do
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Files` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", request.DepotID)))
+            {
+                if (Reader.Read())
                 {
-                    depotManifest = cdnClient.DownloadDepotManifest((int)request.DepotID, request.ManifestID);
-                }
-                while (depotManifest == null && retries-- > 0);
+                    string files = Reader.GetString("Files");
 
-                if (depotManifest == null)
-                {
-                    Log.WriteWarn("Depot Processor", "Failed to download depot manifest for {0}", request.DepotID);
-                    return;
-                }
-
-                if (!depotManifest.DecryptFilenames(callback.DepotKey))
-                {
-                    Log.WriteWarn("Depot Processor", "Failed to decrypt filenames for {0}", request.DepotID);
-                    return;
-                }
-
-                var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
-
-                bool shouldHistorize = false;
-                List<DepotFile> filesNew = new List<DepotFile>();
-                List<DepotFile> filesOld = new List<DepotFile>();
-
-                foreach (var file in sortedFiles)
-                {
-                    filesNew.Add(new DepotFile
-                    {
-                        Name = file.FileName.Replace("\\", "/"),
-                        Size = file.TotalSize,
-                        Chunks = file.Chunks.Count,
-                        Flags = (int)file.Flags
-                    });
-                }
-
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Files` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", request.DepotID)))
-                {
-                    if (Reader.Read())
+                    if (!string.IsNullOrEmpty(files))
                     {
                         shouldHistorize = true;
-                        filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(Reader.GetString("Files"));
+                        filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files);
                     }
                 }
+            }
 
-                DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`, `Files`) VALUES (@DepotID, @Name, @ManifestID, @Files) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID, `Files` = @Files",
-                                         new MySqlParameter("@DepotID", request.DepotID),
-                                         new MySqlParameter("@ManifestID", request.ManifestID),
-                                         new MySqlParameter("@Files", JsonConvert.SerializeObject(filesNew, new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore })),
-                                         new MySqlParameter("@Name", request.DepotName)
-                );
+            DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Files` = @Files WHERE `DepotID` = @DepotID",
+                                     new MySqlParameter("@DepotID", request.DepotID),
+                                     new MySqlParameter("@Files", JsonConvert.SerializeObject(filesNew, new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore }))
+            );
 
-                if (shouldHistorize)
+            if (shouldHistorize)
+            {
+                List<string> filesAdded = new List<string>();
+
+                foreach (var file in filesNew)
                 {
-                    List<string> filesAdded = new List<string>();
+                    var oldFile = filesOld.Find(x => x.Name == file.Name);
 
-                    foreach (var file in filesNew)
+                    if (oldFile == null)
                     {
-                        var oldFile = filesOld.Find(x => x.Name == file.Name);
-
-                        if (oldFile == null)
-                        {
-                            // We want to historize modifications first, and only then deletions and additions
-                            filesAdded.Add(file.Name);
-                        }
-                        else
-                        {
-                            if (oldFile.Size != file.Size)
-                            {
-                                MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
-                            }
-
-                            filesOld.Remove(oldFile);
-                        }
+                        // We want to historize modifications first, and only then deletions and additions
+                        filesAdded.Add(file.Name);
                     }
-
-                    foreach (var file in filesOld)
+                    else
                     {
-                        MakeHistory(request, file.Name, "removed");
-                    }
+                        if (oldFile.Size != file.Size)
+                        {
+                            MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
+                        }
 
-                    foreach (string file in filesAdded)
-                    {
-                        MakeHistory(request, file, "added");
+                        filesOld.Remove(oldFile);
                     }
                 }
+
+                foreach (var file in filesOld)
+                {
+                    MakeHistory(request, file.Name, "removed");
+                }
+
+                foreach (string file in filesAdded)
+                {
+                    MakeHistory(request, file, "added");
+                }
+            }
 
 #if DEBUG
-                if (true)
+            if (true)
 #else
-                if (Settings.Current.FullRun > 0)
+            if (Settings.Current.FullRun > 0)
 #endif
+            {
+                lock (ManifestJobs)
                 {
-                    Log.WriteDebug("Depot Processor", "DepotID: Processed {0}", request.DepotID);
+                    Log.WriteDebug("Depot Processor", "DepotID: Processed {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count);
                 }
-            });
+            }
         }
 
         private static void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
@@ -339,4 +357,3 @@ namespace SteamDatabaseBackend
         }
     }
 }
-#endif

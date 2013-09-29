@@ -15,6 +15,14 @@ namespace SteamDatabaseBackend
         {
             public class SteamJson
             {
+                public uint IdleAppID;
+                public string Username;
+                public string Password;
+            }
+
+            public class SteamGCIdler
+            {
+                public uint AppID;
                 public string Username;
                 public string Password;
             }
@@ -34,8 +42,8 @@ namespace SteamDatabaseBackend
                 public string Announce;
             }
 
+            public SteamGCIdler[] GameCoordinatorIdlers;
             public SteamJson Steam;
-            public SteamJson SteamDota;
             public IrcJson IRC;
 
             public string BaseURL;
@@ -104,17 +112,6 @@ namespace SteamDatabaseBackend
             if (string.IsNullOrWhiteSpace(Current.IRC.Nickname))
             {
                 Log.WriteError("Settings", "Missing IRC nickname in settings file, not connecting");
-                return false;
-            }
-
-            return true;
-        }
-
-        public static bool CanUseDota()
-        {
-            if (string.IsNullOrWhiteSpace(Current.SteamDota.Username) || string.IsNullOrWhiteSpace(Current.SteamDota.Password))
-            {
-                Log.WriteWarn("Settings", "Missing Steam credentials for Dota 2 account in settings file");
                 return false;
             }
 
