@@ -15,20 +15,20 @@ namespace SteamDatabaseBackend
     {
         private const uint DATABASE_APPTYPE   = 9;
         private const uint DATABASE_NAME_TYPE = 10;
-        private const string STEAMDB_UNKNOWN  = "SteamDB Unknown App ";
+        private const string STEAMDB_UNKNOWN  = "SteamDB Unknown App";
 
         private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
         private uint AppID;
 
-        public AppProcessor(uint AppID)
+        public AppProcessor(uint appID)
         {
-            this.AppID = AppID;
+            this.AppID = appID;
         }
 
-        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
-            ChangeNumber = ProductInfo.ChangeNumber;
+            ChangeNumber = productInfo.ChangeNumber;
 
 #if DEBUG
             if (true)
@@ -39,7 +39,7 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
             }
 
-            if (ProductInfo.KeyValues == null)
+            if (productInfo.KeyValues == null)
             {
                 Log.WriteWarn("App Processor", "AppID {0} is empty, wot do I do?", AppID);
                 return;
@@ -65,10 +65,10 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (ProductInfo.KeyValues["common"]["name"].Value != null)
+            if (productInfo.KeyValues["common"]["name"].Value != null)
             {
                 string newAppType = "0";
-                string currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLower();
+                string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new MySqlParameter("Type", currentType)))
                 {
@@ -86,25 +86,25 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (appName.Equals(string.Empty) || appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(appName) || appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`) VALUES (@AppID, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType),
-                                             new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
+                                             new MySqlParameter("@AppName", productInfo.KeyValues["common"]["name"].Value)
                     );
 
                     MakeHistory("created_app");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, ProductInfo.KeyValues["common"]["name"].Value);
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
                 }
-                else if (!appName.Equals(ProductInfo.KeyValues["common"]["name"].Value))
+                else if (!appName.Equals(productInfo.KeyValues["common"]["name"].Value))
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", ProductInfo.KeyValues["common"]["name"].Value)
+                                             new MySqlParameter("@AppName", productInfo.KeyValues["common"]["name"].Value)
                     );
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, ProductInfo.KeyValues["common"]["name"].Value);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, productInfo.KeyValues["common"]["name"].Value);
                 }
 
                 if (appType.Equals("0"))
@@ -128,9 +128,9 @@ namespace SteamDatabaseBackend
             }
 
             // If we are full running with unknowns, process depots too
-            bool depotsSectionModified = Settings.Current.FullRun == 2 && ProductInfo.KeyValues["depots"].Value != null;
+            bool depotsSectionModified = Settings.Current.FullRun == 2 && productInfo.KeyValues["depots"].Value != null;
 
-            foreach (KeyValue section in ProductInfo.KeyValues.Children)
+            foreach (KeyValue section in productInfo.KeyValues.Children)
             {
                 string sectionName = section.Name.ToLower();
 
@@ -173,27 +173,20 @@ namespace SteamDatabaseBackend
                             continue;
                         }
 
-                        string value = string.Empty;
-
                         if (keyvalue.Children.Count > 0)
                         {
                             if (keyName.Equals("common_languages"))
                             {
-                                value = string.Join(",", keyvalue.Children.Select(x => x.Name));
+                                ProcessKey(keyName, keyvalue.Name, string.Join(",", keyvalue.Children.Select(x => x.Name)));
                             }
                             else
                             {
-                                value = DbWorker.JsonifyKeyValue(keyvalue);
+                                ProcessKey(keyName, keyvalue.Name, DbWorker.JsonifyKeyValue(keyvalue));
                             }
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
                         {
-                            value = keyvalue.Value;
-                        }
-
-                        if (!value.Equals(string.Empty))
-                        {
-                            ProcessKey(keyName, keyvalue.Name, value);
+                            ProcessKey(keyName, keyvalue.Name, keyvalue.Value);
                         }
                     }
                 }
@@ -223,20 +216,20 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (ProductInfo.KeyValues["common"]["name"].Value == null)
+            if (productInfo.KeyValues["common"]["name"].Value == null)
             {
-                if (appName.Equals(string.Empty)) // We don't have the app in our database yet
+                if (string.IsNullOrEmpty(appName)) // We don't have the app in our database yet
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName)",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
+                                             new MySqlParameter("@AppName", string.Format("{0} {1}", STEAMDB_UNKNOWN, AppID))
                     );
                 }
                 else if (!appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", STEAMDB_UNKNOWN + AppID)
+                                             new MySqlParameter("@AppName", string.Format("{0} {1}", STEAMDB_UNKNOWN, AppID))
                     );
 
                     MakeHistory("deleted_app", 0, appName);
@@ -245,7 +238,7 @@ namespace SteamDatabaseBackend
 
             if (depotsSectionModified)
             {
-                DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
+                DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
             }
         }
 
@@ -341,24 +334,24 @@ namespace SteamDatabaseBackend
             return false;
         }
 
-        private void InsertInfo(uint ID, string Value)
+        private void InsertInfo(uint id, string value)
         {
             DbWorker.ExecuteNonQuery("INSERT INTO `AppsInfo` VALUES (@AppID, @KeyNameID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
                                      new MySqlParameter("@AppID", AppID),
-                                     new MySqlParameter("@KeyNameID", ID),
-                                     new MySqlParameter("@Value", Value)
+                                     new MySqlParameter("@KeyNameID", id),
+                                     new MySqlParameter("@Value", value)
             );
         }
 
-        private void MakeHistory(string Action, uint KeyNameID = 0, string OldValue = "", string NewValue = "")
+        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
             DbWorker.ExecuteNonQuery("INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @AppID, @Action, @KeyNameID, @OldValue, @NewValue)",
                                      new MySqlParameter("@AppID", AppID),
                                      new MySqlParameter("@ChangeID", ChangeNumber),
-                                     new MySqlParameter("@Action", Action),
-                                     new MySqlParameter("@KeyNameID", KeyNameID),
-                                     new MySqlParameter("@OldValue", OldValue),
-                                     new MySqlParameter("@NewValue", NewValue)
+                                     new MySqlParameter("@Action", action),
+                                     new MySqlParameter("@KeyNameID", keyNameID),
+                                     new MySqlParameter("@OldValue", oldValue),
+                                     new MySqlParameter("@NewValue", newValue)
             );
         }
 

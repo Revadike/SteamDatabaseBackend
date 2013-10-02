@@ -13,7 +13,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class Program
+    internal static class Program
     {
         private static List<GCIdler> GCIdlers = new List<GCIdler>();
 
@@ -30,7 +30,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Settings", "{0}", e.Message);
+                Log.WriteError("Settings", e.Message);
 
                 return;
             }
@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.CanConnectToIRC())
             {
-                SteamProxy.Instance.Init();
+                SteamProxy.Instance.ReloadImportant();
 
                 IRC.Instance.Init();
             }

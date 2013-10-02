@@ -17,24 +17,23 @@ namespace SteamDatabaseBackend
         private static Steam _instance = new Steam();
         public static Steam Instance { get { return _instance; } }
 
-        public SteamClient Client;
-        public SteamUser User;
-        public SteamApps Apps;
-        public SteamFriends Friends;
-        public SteamUserStats UserStats;
+        public SteamClient Client { get; private set; }
+        public SteamUser User { get; private set; }
+        public SteamApps Apps { get; private set; }
+        public SteamFriends Friends { get; private set; }
+        public SteamUserStats UserStats { get; private set; }
+        public CallbackManager CallbackManager { get; private set; }
         private GameCoordinator GameCoordinator;
 
-        public CallbackManager CallbackManager;
-
-        public uint PreviousChange;
+        public uint PreviousChange { get; set; }
 
         private bool IsFullRun;
-        public bool IsRunning = true;
+        public bool IsRunning { get; set; }
 
-        public System.Timers.Timer Timer;
+        public System.Timers.Timer Timer { get; private set; }
 
-        public SmartThreadPool ProcessorPool;
-        public SmartThreadPool SecondaryPool;
+        public SmartThreadPool ProcessorPool { get; private set; }
+        public SmartThreadPool SecondaryPool { get; private set; }
 
         public void GetPICSChanges()
         {
@@ -104,7 +103,7 @@ namespace SteamDatabaseBackend
             new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers, CallbackManager);
 
             // game coordinator
-            if (Settings.Current.Steam.IdleAppID > 0)
+            if (Settings.Current.Steam.IdleAppID > 0 && Settings.Current.FullRun == 0)
             {
                 GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
             }
@@ -112,6 +111,8 @@ namespace SteamDatabaseBackend
             DepotProcessor.Init();
 
             GetLastChangeNumber();
+
+            IsRunning = true;
 
             Client.Connect();
 

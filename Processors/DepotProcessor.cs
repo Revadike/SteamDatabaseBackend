@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
 {
     public static class DepotProcessor
     {
-        private class DepotFile
+        private sealed class DepotFile
         {
             public string Name;
             public ulong Size;
@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
             public int Flags;
         }
 
-        private class ManifestJob
+        private sealed class ManifestJob
         {
             public JobID JobID;
             public uint ChangeNumber;
@@ -36,7 +36,7 @@ namespace SteamDatabaseBackend
         }
 
         private static List<ManifestJob> ManifestJobs;
-        public static SmartThreadPool ThreadPool;
+        public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
@@ -49,21 +49,21 @@ namespace SteamDatabaseBackend
             new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback, Steam.Instance.CallbackManager);
         }
 
-        public static void Process(uint AppID, uint ChangeNumber, KeyValue depots)
+        public static void Process(uint appID, uint changeNumber, KeyValue depots)
         {
             foreach (KeyValue depot in depots.Children)
             {
                 // Ignore these for now, parent app should be updated too anyway
                 if (depot["depotfromapp"].Value != null)
                 {
-                    //Log.WriteDebug("Depot Processor", "Ignoring depot {0} with depotfromapp value {1} (parent {2})", depot.Name, depot["depotfromapp"].AsString(), AppID);
+                    ////Log.WriteDebug("Depot Processor", "Ignoring depot {0} with depotfromapp value {1} (parent {2})", depot.Name, depot["depotfromapp"].AsString(), AppID);
 
                     continue;
                 }
 
-                uint DepotID;
+                uint depotID;
 
-                if (!uint.TryParse(depot.Name, out DepotID))
+                if (!uint.TryParse(depot.Name, out depotID))
                 {
                     // Ignore keys that aren't integers, for example "branches"
                     continue;
@@ -71,16 +71,16 @@ namespace SteamDatabaseBackend
 
                 lock (ManifestJobs)
                 {
-                    if (ManifestJobs.Find(r => r.DepotID == DepotID) != null)
+                    if (ManifestJobs.Find(r => r.DepotID == depotID) != null)
                     {
                         // If we already have this depot in our job list, ignore it
                         continue;
                     }
                 }
 
-                ulong ManifestID;
+                ulong manifestID;
 
-                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out ManifestID))
+                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out manifestID))
                 {
 #if false
                     Log.WriteDebug("Depot Processor", "Failed to public branch for depot {0} (parent {1}) - {2}", DepotID, AppID);
@@ -99,22 +99,22 @@ namespace SteamDatabaseBackend
                 }
 
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", DepotID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
                 {
-                    if (Reader.Read() && Reader.GetUInt64("ManifestID") == ManifestID)
+                    if (Reader.Read() && Reader.GetUInt64("ManifestID") == manifestID)
                     {
                         continue;
                     }
                 }
 
-                Log.WriteDebug("Depot Processor", "DepotID: {0}", DepotID);
+                Log.WriteDebug("Depot Processor", "DepotID: {0}", depotID);
 
                 var request = new ManifestJob
                 {
-                    ChangeNumber = ChangeNumber,
-                    ParentAppID = AppID,
-                    DepotID = DepotID,
-                    ManifestID = ManifestID,
+                    ChangeNumber = changeNumber,
+                    ParentAppID = appID,
+                    DepotID = depotID,
+                    ManifestID = manifestID,
                     DepotName = depot["name"].AsString()
                 };
 
@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
                     ManifestJobs.Add(request);
                 }
 
-                request.JobID = Steam.Instance.Apps.GetAppOwnershipTicket(DepotID);
+                request.JobID = Steam.Instance.Apps.GetAppOwnershipTicket(depotID);
             }
         }
 
@@ -138,7 +138,6 @@ namespace SteamDatabaseBackend
 
             if (request == null)
             {
-                Log.WriteError("Depot Processor", "NO REQUEST FOUND for depot {0} (parent {1})", callback.AppID, request.ParentAppID);
                 return;
             }
 
@@ -211,9 +210,9 @@ namespace SteamDatabaseBackend
             {
                 cdnServers = cdnClient.FetchServerList();
 
-                if(cdnServers.Count == 0)
+                if (cdnServers.Count == 0)
                 {
-                    throw new Exception("No servers returned"); // Great programming!
+                    throw new InvalidOperationException("No servers returned"); // Great programming!
                 }
             }
             catch
@@ -230,7 +229,7 @@ namespace SteamDatabaseBackend
 
             DepotManifest depotManifest = null;
 
-            foreach(var server in cdnServers)
+            foreach (var server in cdnServers)
             {
                 try
                 {
@@ -248,7 +247,7 @@ namespace SteamDatabaseBackend
                 IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} {7}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
 
-            if(depotManifest == null)
+            if (depotManifest == null)
             {
                 Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (parent {1}) (jobs still in queue: {2})", request.DepotID, request.ParentAppID, ManifestJobs.Count);
 
@@ -270,7 +269,7 @@ namespace SteamDatabaseBackend
             {
                 filesNew.Add(new DepotFile
                 {
-                    Name = file.FileName.Replace("\\", "/"),
+                    Name = file.FileName.Replace('\\', '/'),
                     Size = file.TotalSize,
                     Chunks = file.Chunks.Count,
                     Flags = (int)file.Flags

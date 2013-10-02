@@ -11,9 +11,9 @@ namespace SteamDatabaseBackend
 {
     public class GCIdler
     {
-        public bool IsRunning;
+        public bool IsRunning { get; set; }
 
-        public SteamClient Client;
+        public SteamClient Client { get; private set; }
         private SteamUser User;
         private SteamFriends Friends;
         private CallbackManager CallbackManager;
@@ -76,11 +76,11 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result != EResult.OK)
             {
-				Log.WriteError(string.Format("GC {0}", AppID), "Could not connect: {0}", callback.Result);
+                Log.WriteError(string.Format("GC {0}", AppID), "Could not connect: {0}", callback.Result);
 
-				IsRunning = false;
+                IsRunning = false;
 
-				return;
+                return;
             }
 
             Log.WriteInfo(string.Format("GC {0}", AppID), "Connected, logging in...");

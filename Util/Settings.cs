@@ -5,29 +5,30 @@
  */
 using System;
 using System.IO;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
     public static class Settings
     {
-        public class SettingsJson
+        public sealed class SettingsJson
         {
-            public class SteamJson
+            public sealed class SteamJson
             {
                 public uint IdleAppID;
                 public string Username;
                 public string Password;
             }
 
-            public class SteamGCIdler
+            public sealed class SteamGCIdler
             {
                 public uint AppID;
                 public string Username;
                 public string Password;
             }
 
-            public class IrcJson
+            public sealed class IrcJson
             {
                 public bool Enabled;
                 public string[] Servers;
@@ -36,7 +37,7 @@ namespace SteamDatabaseBackend
                 public IrcChannelsJson Channel;
             }
 
-            public class IrcChannelsJson
+            public sealed class IrcChannelsJson
             {
                 public string Main;
                 public string Announce;
@@ -46,15 +47,23 @@ namespace SteamDatabaseBackend
             public SteamJson Steam;
             public IrcJson IRC;
 
-            public string BaseURL;
-            public string RawBaseURL;
+            public Uri BaseURL;
+            public Uri RawBaseURL;
             public string ConnectionString;
             public uint FullRun;
             public bool SteamKitDebug;
             public bool LogToFile;
         }
 
-        public static SettingsJson Current = new SettingsJson();
+        private static SettingsJson _current = new SettingsJson();
+
+        public static SettingsJson Current
+        {
+            get
+            {
+                return _current;
+            }
+        }
 
         public static void Load()
         {
@@ -62,24 +71,19 @@ namespace SteamDatabaseBackend
 
             if (!File.Exists(settingsFile))
             {
-                throw new Exception("Settings file not found, must be in settings.json");
+                throw new FileNotFoundException("Settings file not found, must be in settings.json");
             }
 
-            Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+            _current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
 
             if (string.IsNullOrWhiteSpace(Current.Steam.Username) || string.IsNullOrWhiteSpace(Current.Steam.Password))
             {
-                throw new Exception("Missing Steam credentials in settings file");
+                throw new InvalidDataException("Missing Steam credentials in settings file");
             }
 
-            if (!Uri.IsWellFormedUriString(Current.BaseURL, UriKind.Absolute))
+            using (MySqlConnection connection = new MySqlConnection(Settings.Current.ConnectionString))
             {
-                throw new Exception("BaseURL is not formatted correctly");
-            }
-
-            if (!Uri.IsWellFormedUriString(Current.RawBaseURL, UriKind.Absolute))
-            {
-                throw new Exception("RawBaseURL is not formatted correctly");
+                connection.Open(); // Exception will be caught by whatever called Load()
             }
 
             if (Current.FullRun > 0)

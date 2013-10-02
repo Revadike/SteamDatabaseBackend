@@ -11,12 +11,12 @@ namespace SteamDatabaseBackend
     {
         private const string LOG_DIRECTORY = "logs";
 
-        public enum Category
+        private enum Category
         {
             Debug,
             Info,
             Warn,
-            Error,
+            Error
         }
 
         public class SteamKitLogger : IDebugListener
@@ -62,7 +62,7 @@ namespace SteamDatabaseBackend
             WriteLine(Category.Error, component, format, args);
         }
 
-        public static void WriteLine(Category category, string component, string format, params object[] args)
+        private static void WriteLine(Category category, string component, string format, params object[] args)
         {
             string logLine = string.Format(
                 "{0} [{1}] {2}: {3}{4}",

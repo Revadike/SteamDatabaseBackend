@@ -21,7 +21,6 @@ namespace SteamDatabaseBackend
         {
             TYPE_APP,
             TYPE_SUB,
-            TYPE_DEPOT,
             TYPE_PLAYERS
         }
 
@@ -35,20 +34,22 @@ namespace SteamDatabaseBackend
             public uint DepotID { get; set; }
         }
 
-        public List<IRCRequest> IRCRequests = new List<IRCRequest>();
+        private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
+        private static readonly string ChannelSteamLUG = "#steamlug";
 
-        private static SteamID SteamLUG = new SteamID(103582791431044413UL);
-        private static string ChannelSteamLUG = "#steamlug";
+        public List<IRCRequest> IRCRequests { get; private set; }
+        public List<uint> ImportantApps { get; private set; }
+        private List<uint> ImportantSubs;
 
-        public List<uint> ImportantApps = new List<uint>();
-        private List<uint> ImportantSubs = new List<uint>();
-
-        public void Init()
+        SteamProxy()
         {
-            ReloadImportant();
+            IRCRequests = new List<IRCRequest>();
+
+            ImportantApps = new List<uint>();
+            ImportantSubs = new List<uint>();
         }
 
-        public void ReloadImportant(string channel = "")
+        public void ReloadImportant(string channel = "", string nickName = "")
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
@@ -70,21 +71,21 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (!channel.Equals(string.Empty))
-            {
-                IRC.Send(channel, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
-            }
-            else
+            if (string.IsNullOrEmpty(channel))
             {
                 Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
             }
+            else
+            {
+                IRC.Send(channel, "{0}{1}{2}: Reloaded {3} important apps and {4} packages", Colors.OLIVE, nickName, Colors.NORMAL, ImportantApps.Count, ImportantSubs.Count);
+            }
         }
 
-        public static string GetPackageName(uint SubID)
+        public static string GetPackageName(uint subID)
         {
             string name = string.Empty;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
             {
                 if (Reader.Read())
                 {
@@ -105,12 +106,12 @@ namespace SteamDatabaseBackend
             return name;
         }
 
-        public static string GetAppName(uint AppID)
+        public static string GetAppName(uint appID)
         {
             string name = string.Empty;
             string nameStore = string.Empty;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
             {
                 if (Reader.Read())
                 {
@@ -119,22 +120,22 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (name.Equals(string.Empty) || name.StartsWith("ValveTestApp", StringComparison.Ordinal) || name.StartsWith("SteamDB Unknown App", StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(name) || name.StartsWith("ValveTestApp", StringComparison.Ordinal) || name.StartsWith("SteamDB Unknown App", StringComparison.Ordinal))
             {
                 if (!string.IsNullOrEmpty(nameStore))
                 {
                     return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
                 }
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `NewValue` FROM `AppsHistory` WHERE `AppID` = @AppID AND `Action` = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", AppID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `NewValue` FROM `AppsHistory` WHERE `AppID` = @AppID AND `Action` = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", appID)))
                 {
                     if (Reader.Read())
                     {
                         nameStore = DbWorker.GetString("NewValue", Reader);
 
-                        if (name.Equals(string.Empty))
+                        if (string.IsNullOrEmpty(name))
                         {
-                            name = string.Format("AppID {0}", AppID);
+                            name = string.Format("AppID {0}", appID);
                         }
 
                         if (!name.Equals(nameStore))
@@ -237,7 +238,7 @@ namespace SteamDatabaseBackend
                 {
                     name = GetAppName(request.Target);
 
-                    if (name.Equals(string.Empty))
+                    if (string.IsNullOrEmpty(name))
                     {
                         name = string.Format("AppID {0}", request.Target);
                     }
@@ -400,7 +401,7 @@ namespace SteamDatabaseBackend
                     CommandHandler.Send(Program.channelAnnounce, "{0}»{1} Bundled changelist {2}{3}{4} -{5} {6}",  Colors.BLUE, Colors.LIGHT_GRAY, Colors.OLIVE, changeNumber, Colors.LIGHT_GRAY, Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeNumber));
                 }*/
 
-                if (name.Equals(string.Empty))
+                if (string.IsNullOrEmpty(name))
                 {
                     name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
                 }
@@ -439,7 +440,7 @@ namespace SteamDatabaseBackend
             {
                 name = GetPackageName(package.ID);
 
-                if (name.Equals(string.Empty))
+                if (string.IsNullOrEmpty(name))
                 {
                     name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
                 }

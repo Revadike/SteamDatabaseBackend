@@ -30,11 +30,11 @@ namespace SteamDatabaseBackend
             return MySqlHelper.ExecuteNonQuery(Settings.Current.ConnectionString, text, parameters);
         }
 
-        public static string GetString(string SqlFieldName, MySqlDataReader Reader)
+        public static string GetString(string fieldName, MySqlDataReader reader)
         {
-            var ordinal = Reader.GetOrdinal(SqlFieldName);
+            var ordinal = reader.GetOrdinal(fieldName);
 
-            return Reader.IsDBNull(ordinal) ? string.Empty : Reader.GetString(ordinal);
+            return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
         }
 
         public static string JsonifyKeyValue(KeyValue keys)

@@ -14,12 +14,15 @@ namespace SteamDatabaseBackend
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
 
-        public IrcClient Client = new IrcClient();
+        private IrcClient Client = new IrcClient();
 
         public void Init()
         {
+            Client.OnChannelMessage += CommandHandler.OnChannelMessage;
+            Client.OnConnected += OnConnected;
+
             Client.Encoding = Encoding.UTF8;
-            Client.SendDelay = 1000;
+            Client.SendDelay = 600;
             Client.AutoRetry = true;
             Client.AutoRejoin = true;
             Client.AutoRelogin = true;
@@ -27,13 +30,10 @@ namespace SteamDatabaseBackend
             Client.AutoRejoinOnKick = true;
             Client.ActiveChannelSyncing = true;
 
-            Client.OnChannelMessage += CommandHandler.OnChannelMessage;
-            Client.OnConnected += OnConnected;
-
             try
             {
                 Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL, 4, Settings.Current.IRC.Nickname);
+                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, 4, Settings.Current.IRC.Nickname);
                 Client.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
                 Client.Listen();
 
@@ -41,8 +41,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Main", "Exception: {0}", e.Message);
-                Log.WriteError("Main", "Stacktrace: {0}", e.StackTrace);
+                Log.WriteError("IRC", "Exception: {0}\n{1}", e.Message, e.StackTrace);
             }
         }
 
@@ -79,6 +78,25 @@ namespace SteamDatabaseBackend
         public static void SendEmoteAnnounce(string format, params object[] args)
         {
             Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+        }
+
+        public static bool IsSenderOp(IrcEventArgs e)
+        {
+            ChannelUser user = Instance.Client.GetChannelUser(e.Data.Channel, e.Data.Nick);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            if (user.IsOp)
+            {
+                return true;
+            }
+
+            IRC.Send(e.Data.Channel, "{0}{1}{2}: You're not op!", Colors.OLIVE, e.Data.Nick, Colors.NORMAL);
+
+            return false;
         }
     }
 }

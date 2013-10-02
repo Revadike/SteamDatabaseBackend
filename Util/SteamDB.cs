@@ -11,47 +11,47 @@ namespace SteamDatabaseBackend
     {
         public static string GetChangelistURL(uint changeNumber)
         {
-            return string.Format("{0}/changelist/{1}/", Settings.Current.BaseURL, changeNumber);
+            return new Uri(Settings.Current.BaseURL, string.Format("/changelist/{0}/", changeNumber)).AbsoluteUri;
         }
 
         public static string GetRawAppURL(uint appID)
         {
-            return string.Format("{0}/app/{1}.vdf", Settings.Current.RawBaseURL, appID);
+            return new Uri(Settings.Current.RawBaseURL, string.Format("/app/{0}.vdf", appID)).AbsoluteUri;
         }
 
         public static string GetRawPackageURL(uint subID)
         {
-            return string.Format("{0}/sub/{1}.vdf", Settings.Current.RawBaseURL, subID);
+            return new Uri(Settings.Current.RawBaseURL, string.Format("/sub/{0}.vdf", subID)).AbsoluteUri;
         }
 
         public static string GetGraphURL(uint appID)
         {
-            return string.Format("{0}/graph/{1}/", Settings.Current.BaseURL, appID);
+            return new Uri(Settings.Current.BaseURL, string.Format("/graph/{0}/", appID)).AbsoluteUri;
         }
 
         public static string GetAppURL(uint appID)
         {
-            return string.Format("{0}/app/{1}/", Settings.Current.BaseURL, appID);
+            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/", appID)).AbsoluteUri;
         }
 
         public static string GetAppURL(uint appID, string section)
         {
-            return string.Format("{0}/app/{1}/#section_{2}", Settings.Current.BaseURL, appID, section);
+            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/#section_{1}", appID, section)).AbsoluteUri;
         }
 
         public static string GetDepotURL(uint appID, string section)
         {
-            return string.Format("{0}/depot/{1}/#section_{2}", Settings.Current.BaseURL, appID, section);
+            return new Uri(Settings.Current.BaseURL, string.Format("/depot/{0}/#section_{1}", appID, section)).AbsoluteUri;
         }
 
         public static string GetPackageURL(uint subID)
         {
-            return string.Format("{0}/sub/{1}/", Settings.Current.BaseURL, subID);
+            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/", subID)).AbsoluteUri;
         }
 
         public static string GetPackageURL(uint subID, string section)
         {
-            return string.Format("{0}/sub/{1}/#section_{2}", Settings.Current.BaseURL, subID, section);
+            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/#section_{1}", subID, section)).AbsoluteUri;
         }
     }
 }

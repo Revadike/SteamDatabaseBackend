@@ -4,7 +4,9 @@
  * found in the LICENSE file.
  */
 using System.Reflection;
+using System.Runtime.InteropServices;
 
+[assembly: ComVisible(false)]
 [assembly: AssemblyTitle("Steam Database Backend")]
 [assembly: AssemblyDescription("The application that keeps SteamDB up to date with the latest changes")]
 [assembly: AssemblyConfiguration("")]

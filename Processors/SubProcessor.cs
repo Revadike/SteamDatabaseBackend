@@ -19,14 +19,14 @@ namespace SteamDatabaseBackend
         private uint ChangeNumber;
         private uint SubID;
 
-        public SubProcessor(uint SubID)
+        public SubProcessor(uint subID)
         {
-            this.SubID = SubID;
+            this.SubID = subID;
         }
 
-        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo)
+        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
-            ChangeNumber = ProductInfo.ChangeNumber;
+            ChangeNumber = productInfo.ChangeNumber;
 
 #if DEBUG
             if (true)
@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
-            if (ProductInfo.KeyValues == null || ProductInfo.KeyValues.Children.Count == 0)
+            if (productInfo.KeyValues == null || productInfo.KeyValues.Children.Count == 0)
             {
                 Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
                 return;
@@ -77,11 +77,11 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var kv = ProductInfo.KeyValues.Children.FirstOrDefault();
+            var kv = productInfo.KeyValues.Children.FirstOrDefault();
 
             if (kv["name"].Value != null)
             {
-                if (packageName.Equals(string.Empty))
+                if (string.IsNullOrEmpty(packageName))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
@@ -193,7 +193,7 @@ namespace SteamDatabaseBackend
 #if DEBUG
             if (kv["name"].Value == null)
             {
-                if (packageName.Equals(string.Empty)) // We don't have the package in our database yet
+                if (string.IsNullOrEmpty(packageName)) // We don't have the package in our database yet
                 {
                     // Don't do anything then
                     Log.WriteError("Sub Processor", "Got a package without a name, and we don't have it in our database: {0}", SubID);
@@ -265,24 +265,24 @@ namespace SteamDatabaseBackend
             return false;
         }
 
-        private void InsertInfo(uint ID, string Value)
+        private void InsertInfo(uint id, string value)
         {
             DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, @KeyNameID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
                                      new MySqlParameter("@SubID", SubID),
-                                     new MySqlParameter("@KeyNameID", ID),
-                                     new MySqlParameter("@Value", Value)
+                                     new MySqlParameter("@KeyNameID", id),
+                                     new MySqlParameter("@Value", value)
             );
         }
 
-        private void MakeHistory(string Action, uint KeyNameID = 0, string OldValue = "", string NewValue = "")
+        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
             DbWorker.ExecuteNonQuery("INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @SubID, @Action, @KeyNameID, @OldValue, @NewValue)",
                                      new MySqlParameter("@SubID", SubID),
                                      new MySqlParameter("@ChangeID", ChangeNumber),
-                                     new MySqlParameter("@Action", Action),
-                                     new MySqlParameter("@KeyNameID", KeyNameID),
-                                     new MySqlParameter("@OldValue", OldValue),
-                                     new MySqlParameter("@NewValue", NewValue)
+                                     new MySqlParameter("@Action", action),
+                                     new MySqlParameter("@KeyNameID", keyNameID),
+                                     new MySqlParameter("@OldValue", oldValue),
+                                     new MySqlParameter("@NewValue", newValue)
             );
         }
 
