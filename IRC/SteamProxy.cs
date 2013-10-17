@@ -225,34 +225,33 @@ namespace SteamDatabaseBackend
             {
                 IRC.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {3}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
             }
+            else if (request.Target == 0)
+            {
+                IRC.Send(request.Channel, "{0}{1}{2}: {3}{4}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers.ToString("N0"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
+            }
             else
             {
-                string name;
-                string graph = string.Empty;
+                string url;
+                string name = GetAppName(request.Target);
 
-                if (request.Target == 0)
+                if (string.IsNullOrEmpty(name))
                 {
-                    name = "Steam";
-                }
-                else
-                {
-                    name = GetAppName(request.Target);
-
-                    if (string.IsNullOrEmpty(name))
-                    {
-                        name = string.Format("AppID {0}", request.Target);
-                    }
+                    name = string.Format("AppID {0}", request.Target);
                 }
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Graph` = 1 AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
                 {
                     if (Reader.Read())
                     {
-                        graph = string.Format("{0} - graph:{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
+                        url = string.Format("{0} - graph:{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
+                    }
+                    else
+                    {
+                        url = string.Format("{0} -{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
                     }
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), graph);
+                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), url);
             }
         }
 
@@ -412,7 +411,7 @@ namespace SteamDatabaseBackend
 
                 IRC.SendAnnounce("  App: {0}{1}{2}",
                                  name,
-                                 app.NeedsToken ? " (requires token)" : string.Empty,
+                                 app.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty,
                                  changeNumber != app.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, app.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(app.ChangeNumber)) : string.Empty
                 );
             }
@@ -451,7 +450,7 @@ namespace SteamDatabaseBackend
 
                 IRC.SendAnnounce("  Package: {0}{1}{2}",
                                  name,
-                                 package.NeedsToken ? " (requires token)" : string.Empty,
+                                 package.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty,
                                  changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(package.ChangeNumber)) : string.Empty
                 );
             }

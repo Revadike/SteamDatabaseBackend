@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using Meebey.SmartIrc4net;
+using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -89,9 +90,9 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandNumPlayers(IrcEventArgs e)
         {
-            if (e.Data.MessageArray.Length != 2)
+            if (e.Data.MessageArray.Length < 2)
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
+                IRC.Send(e.Data.Channel, "Usage:{0} !players <appid or partial game name>", Colors.OLIVE);
 
                 return;
             }
@@ -117,7 +118,30 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !numplayers <appid>", Colors.OLIVE);
+                string name = string.Format("%{0}%", e.Data.Message.Replace(e.Data.MessageArray[0], "").Trim());
+
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `AppID` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                {
+                    if (Reader.Read())
+                    {
+                        appID = Reader.GetUInt32("AppID");
+
+                        var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
+
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                        {
+                            JobID = jobID,
+                            Target = appID,
+                            Type = SteamProxy.IRCRequestType.TYPE_PLAYERS,
+                            Channel = e.Data.Channel,
+                            Requester = e.Data.Nick
+                        });
+                    }
+                    else
+                    {
+                        IRC.Send(e.Data.Channel, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, e.Data.Nick, Colors.NORMAL);
+                    }
+                }
             }
         }
 

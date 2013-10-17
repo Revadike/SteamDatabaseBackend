@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
             Timer = new System.Timers.Timer();
             Timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
 
-            new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage, callbackManager);
+            callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
         }
 
         private void OnTimerPlayGame(object sender, System.Timers.ElapsedEventArgs e)

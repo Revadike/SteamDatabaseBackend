@@ -30,7 +30,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Settings", e.Message);
+                Log.WriteError("Settings", "{0}", e.Message);
 
                 return;
             }
@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
                 DebugLog.Enabled = true;
             }
 
-            Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e)
+            Console.CancelKeyPress += delegate
             {
                 Log.WriteInfo("Main", "Exiting...");
 
@@ -64,6 +64,8 @@ namespace SteamDatabaseBackend
                 try { Steam.Instance.Client.Disconnect();                } catch { }
 
                 IRC.Instance.Kill();
+
+                DbWorker.ExecuteNonQuery("TRUNCATE TABLE `GC`");
             };
 
             Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));

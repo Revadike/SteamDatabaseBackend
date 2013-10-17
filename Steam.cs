@@ -88,19 +88,19 @@ namespace SteamDatabaseBackend
 
             CallbackManager = new CallbackManager(Client);
 
-            new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
+            CallbackManager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
+            CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
 
-            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
-            new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff, CallbackManager);
+            CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
+            CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
+            CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
 
-            new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges, CallbackManager);
-            new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo, CallbackManager);
+            CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
+            CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
 
             // irc specific
-            new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState, CallbackManager);
-            new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers, CallbackManager);
+            CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
+            CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
 
             // game coordinator
             if (Settings.Current.Steam.IdleAppID > 0 && Settings.Current.FullRun == 0)
@@ -113,6 +113,11 @@ namespace SteamDatabaseBackend
             GetLastChangeNumber();
 
             IsRunning = true;
+
+            if (Settings.Current.FullRun == 0)
+            {
+                Client.AddHandler(new MarketingHandler());
+            }
 
             Client.Connect();
 
@@ -215,6 +220,8 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
+            Timer.Stop();
+
             Log.WriteInfo("Steam", "Logged off of Steam");
 
             IRC.SendEmoteAnnounce("logged off of Steam.");
@@ -267,53 +274,59 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            SecondaryPool.QueueWorkItem(delegate
+            if (callback.AppChanges.Count > 0)
             {
-                string changes = string.Empty;
-
-                foreach (var app in callback.AppChanges.Values)
+                SecondaryPool.QueueWorkItem(delegate
                 {
-                    if (callback.CurrentChangeNumber != app.ChangeNumber)
+                    string changes = string.Empty;
+
+                    foreach (var app in callback.AppChanges.Values)
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
+                        if (callback.CurrentChangeNumber != app.ChangeNumber)
+                        {
+                            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
+                        }
+
+                        DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
+
+                        changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-
-                    changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
-                }
-
-                if (!changes.Equals(string.Empty))
-                {
-                    changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
-
-                    DbWorker.ExecuteNonQuery(changes);
-                }
-            });
-
-            SecondaryPool.QueueWorkItem(delegate
-            {
-                string changes = string.Empty;
-
-                foreach (var package in callback.PackageChanges.Values)
-                {
-                    if (callback.CurrentChangeNumber != package.ChangeNumber)
+                    if (!changes.Equals(string.Empty))
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
+                        changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
+
+                        DbWorker.ExecuteNonQuery(changes);
+                    }
+                });
+            }
+
+            if (callback.PackageChanges.Count > 0)
+            {
+                SecondaryPool.QueueWorkItem(delegate
+                {
+                    string changes = string.Empty;
+
+                    foreach (var package in callback.PackageChanges.Values)
+                    {
+                        if (callback.CurrentChangeNumber != package.ChangeNumber)
+                        {
+                            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
+                        }
+
+                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
+
+                        changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
                     }
 
-                    DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
+                    if (!changes.Equals(string.Empty))
+                    {
+                        changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
 
-                    changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
-                }
-
-                if (!changes.Equals(string.Empty))
-                {
-                    changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
-
-                    DbWorker.ExecuteNonQuery(changes);
-                }
-            });
+                        DbWorker.ExecuteNonQuery(changes);
+                    }
+                });
+            }
 
             Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
         }

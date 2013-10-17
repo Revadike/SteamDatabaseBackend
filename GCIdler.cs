@@ -35,10 +35,10 @@ namespace SteamDatabaseBackend
 
             CallbackManager = new CallbackManager(Client);
 
-            new Callback<SteamClient.ConnectedCallback>(OnConnected, CallbackManager);
-            new Callback<SteamClient.DisconnectedCallback>(OnDisconnected, CallbackManager);
-            new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo, CallbackManager);
-            new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn, CallbackManager);
+            CallbackManager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
+            CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
+            CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
+            CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
 
             GameCoordinator = new GameCoordinator(AppID, Client, CallbackManager);
         }
