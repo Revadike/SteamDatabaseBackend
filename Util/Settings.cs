@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using System.IO;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
@@ -43,6 +44,7 @@ namespace SteamDatabaseBackend
                 public string Announce;
             }
 
+            public Dictionary<uint, List<string>> ImportantFiles;
             public SteamGCIdler[] GameCoordinatorIdlers;
             public SteamJson Steam;
             public IrcJson IRC;
