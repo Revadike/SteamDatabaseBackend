@@ -4,11 +4,14 @@
  * found in the LICENSE file.
  */
 using System;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     public static class SteamDB
     {
+        public const string UNKNOWN_APP  = "SteamDB Unknown App";
+
         public static string GetChangelistURL(uint changeNumber)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/changelist/{0}/", changeNumber)).AbsoluteUri;
@@ -52,6 +55,11 @@ namespace SteamDatabaseBackend
         public static string GetPackageURL(uint subID, string section)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/#section_{1}", subID, section)).AbsoluteUri;
+        }
+
+        public static string GetCalculatorURL(SteamID steamID)
+        {
+            return new Uri(Settings.Current.BaseURL, string.Format("/calculator/?player={0}", steamID.ConvertToUInt64())).AbsoluteUri;
         }
     }
 }

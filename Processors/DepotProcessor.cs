@@ -33,6 +33,7 @@ namespace SteamDatabaseBackend
             public uint ParentAppID;
             public uint DepotID;
             public ulong ManifestID;
+            public ulong PreviousManifestID;
             public string DepotName;
             public byte[] Ticket;
             public byte[] DepotKey;
@@ -113,20 +114,6 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                if (Settings.Current.FullRun != 3)
-                {
-                    // Check if manifestid in our database is equal
-                    using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
-                    {
-                        if (Reader.Read() && Reader.GetUInt64("ManifestID") == manifestID)
-                        {
-                            continue;
-                        }
-                    }
-                }
-
-                Log.WriteInfo("Depot Processor", "DepotID: {0}", depotID);
-
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
@@ -136,6 +123,22 @@ namespace SteamDatabaseBackend
                     DepotName = depot["name"].AsString()
                 };
 
+                // Check if manifestid in our database is equal
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                {
+                    if (Reader.Read())
+                    {
+                        request.PreviousManifestID = Reader.GetUInt64("ManifestID");
+
+                        if (Settings.Current.FullRun != 3 && request.PreviousManifestID == manifestID)
+                        {
+                            continue;
+                        }
+                    }
+                }
+
+                Log.WriteInfo("Depot Processor", "DepotID: {0}", depotID);
+                
                 lock (ManifestJobs)
                 {
                     ManifestJobs.Add(request);
@@ -207,12 +210,17 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            // Update manifestid here because actually downloading the manifest has chances of failing
-            DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
-                                     new MySqlParameter("@DepotID", request.DepotID),
-                                     new MySqlParameter("@ManifestID", request.ManifestID),
-                                     new MySqlParameter("@Name", request.DepotName)
-            );
+            if (request.PreviousManifestID != request.ManifestID)
+            {
+                // Update manifestid here because actually downloading the manifest has chances of failing
+                DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
+                                         new MySqlParameter("@DepotID", request.DepotID),
+                                         new MySqlParameter("@ManifestID", request.ManifestID),
+                                         new MySqlParameter("@Name", request.DepotName)
+                );
+
+                MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
+            }
 
             request.DepotKey = callback.DepotKey;
 
@@ -290,6 +298,8 @@ namespace SteamDatabaseBackend
 
             foreach (var file in sortedFiles)
             {
+                System.Text.Encoding.UTF8.GetString(file.FileHash);
+
                 filesNew.Add(new DepotFile
                 {
                     Name = file.FileName.Replace('\\', '/'),

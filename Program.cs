@@ -63,7 +63,10 @@ namespace SteamDatabaseBackend
                 try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
                 try { Steam.Instance.Client.Disconnect();                } catch { }
 
-                IRC.Instance.Kill();
+                if (Settings.Current.IRC.Enabled)
+                {
+                    IRC.Instance.Kill();
+                }
 
                 DbWorker.ExecuteNonQuery("TRUNCATE TABLE `GC`");
             };
@@ -74,6 +77,8 @@ namespace SteamDatabaseBackend
 
             if (Settings.Current.FullRun > 0)
             {
+                Settings.Current.IRC.Enabled = false;
+
                 return;
             }
 

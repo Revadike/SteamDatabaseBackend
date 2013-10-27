@@ -28,9 +28,7 @@ namespace SteamDatabaseBackend
         {
             ChangeNumber = productInfo.ChangeNumber;
 
-#if DEBUG
-            if (true)
-#else
+#if !DEBUG
             if (Settings.Current.FullRun > 0)
 #endif
             {
@@ -143,6 +141,11 @@ namespace SteamDatabaseBackend
 
                     foreach (KeyValue children in section.Children)
                     {
+                        if (children.Children.Count > 0)
+                        {
+                            Log.WriteError("Sub Processor", "SubID {0} has childen in extended section", SubID);
+                        }
+
                         keyName = string.Format("{0}_{1}", sectionName, children.Name);
 
                         ProcessKey(keyName, children.Name, children.Value);
@@ -152,7 +155,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section));
+                    ProcessKey(sectionName, sectionName, DbWorker.JsonifyKeyValue(section), true);
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {
@@ -208,7 +211,7 @@ namespace SteamDatabaseBackend
 #endif
         }
 
-        private bool ProcessKey(string keyName, string displayName, string value)
+        private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             // All keys in PICS are supposed to be lower case.
             // But currently some keys in packages are not lowercased,
@@ -221,13 +224,13 @@ namespace SteamDatabaseBackend
 
                 if (ID == 0)
                 {
-                    if (displayName.Equals("jsonHack"))
+                    if (isJSON)
                     {
                         const uint DB_TYPE_JSON = 86;
 
                         DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
-                                                 new MySqlParameter("@DisplayName", keyName),
+                                                 new MySqlParameter("@DisplayName", displayName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }

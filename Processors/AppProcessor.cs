@@ -15,7 +15,6 @@ namespace SteamDatabaseBackend
     {
         private const uint DATABASE_APPTYPE   = 9;
         private const uint DATABASE_NAME_TYPE = 10;
-        private const string STEAMDB_UNKNOWN  = "SteamDB Unknown App";
 
         private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
@@ -30,9 +29,7 @@ namespace SteamDatabaseBackend
         {
             ChangeNumber = productInfo.ChangeNumber;
 
-#if DEBUG
-            if (true)
-#else
+#if !DEBUG
             if (Settings.Current.FullRun > 0)
 #endif
             {
@@ -86,7 +83,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (string.IsNullOrEmpty(appName) || appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(appName) || appName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`) VALUES (@AppID, @Type, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `AppType` = @Type",
                                              new MySqlParameter("@AppID", AppID),
@@ -158,8 +155,9 @@ namespace SteamDatabaseBackend
                             // Ignore common keys that are either duplicated or serve no real purpose
                             continue;
                         }
+
                         // TODO: This is godlike hackiness
-                        else if (keyName.Equals("extended_de") ||
+                        if (keyName.Equals("extended_de") ||
                                  keyName.Equals("extended_jp") ||
                                  keyName.Equals("extended_cn") ||
                                  keyName.Equals("extended_us") ||
@@ -181,7 +179,7 @@ namespace SteamDatabaseBackend
                             }
                             else
                             {
-                                ProcessKey(keyName, keyvalue.Name, DbWorker.JsonifyKeyValue(keyvalue));
+                                ProcessKey(keyName, keyvalue.Name, DbWorker.JsonifyKeyValue(keyvalue), true);
                             }
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
@@ -194,7 +192,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    if (ProcessKey(sectionName, "jsonHack", DbWorker.JsonifyKeyValue(section)) && sectionName.Equals("root_depots"))
+                    if (ProcessKey(sectionName, sectionName, DbWorker.JsonifyKeyValue(section), true) && sectionName.Equals("root_depots"))
                     {
                         depotsSectionModified = true;
                     }
@@ -222,14 +220,14 @@ namespace SteamDatabaseBackend
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName)",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", string.Format("{0} {1}", STEAMDB_UNKNOWN, AppID))
+                                             new MySqlParameter("@AppName", string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID))
                     );
                 }
-                else if (!appName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal)) // We do have the app, replace it with default name
+                else if (!appName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", string.Format("{0} {1}", STEAMDB_UNKNOWN, AppID))
+                                             new MySqlParameter("@AppName", string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID))
                     );
 
                     MakeHistory("deleted_app", 0, appName);
@@ -273,13 +271,13 @@ namespace SteamDatabaseBackend
             DbWorker.ExecuteNonQuery("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
             DbWorker.ExecuteNonQuery("DELETE FROM `Store` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
 
-            if (!AppName.StartsWith(STEAMDB_UNKNOWN, StringComparison.Ordinal))
+            if (!AppName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
             {
                 MakeHistory("deleted_app", 0, AppName);
             }
         }
 
-        private bool ProcessKey(string keyName, string displayName, string value)
+        private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             // All keys in PICS are supposed to be lower case
             keyName = keyName.ToLower();
@@ -290,13 +288,13 @@ namespace SteamDatabaseBackend
 
                 if (ID == 0)
                 {
-                    if (displayName.Equals("jsonHack"))
+                    if (isJSON)
                     {
                         const uint DB_TYPE_JSON = 86;
 
                         DbWorker.ExecuteNonQuery("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
                                                  new MySqlParameter("@Name", keyName),
-                                                 new MySqlParameter("@DisplayName", keyName),
+                                                 new MySqlParameter("@DisplayName", displayName),
                                                  new MySqlParameter("@Type", DB_TYPE_JSON)
                         );
                     }

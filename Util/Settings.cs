@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -44,6 +45,7 @@ namespace SteamDatabaseBackend
                 public string Announce;
             }
 
+            public List<SteamID> ChatRooms;
             public Dictionary<uint, List<string>> ImportantFiles;
             public SteamGCIdler[] GameCoordinatorIdlers;
             public SteamJson Steam;

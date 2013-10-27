@@ -20,18 +20,17 @@ namespace SteamDatabaseBackend
         public enum IRCRequestType
         {
             TYPE_APP,
-            TYPE_SUB,
-            TYPE_PLAYERS
+            TYPE_SUB
         }
 
         public class IRCRequest
         {
-            public JobID JobID { get; set; }
-            public string Channel { get; set; }
-            public string Requester { get; set; }
+            public CommandHandler.CommandArguments Command { get; set; }
             public IRCRequestType Type { get; set; }
+            public JobID JobID { get; set; }
             public uint Target { get; set; }
             public uint DepotID { get; set; }
+            public SteamID SteamID { get; set; }
         }
 
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
@@ -41,7 +40,7 @@ namespace SteamDatabaseBackend
         public List<uint> ImportantApps { get; private set; }
         private List<uint> ImportantSubs;
 
-        SteamProxy()
+        public SteamProxy()
         {
             IRCRequests = new List<IRCRequest>();
 
@@ -149,6 +148,39 @@ namespace SteamDatabaseBackend
             return name;
         }
 
+        public void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)
+        {
+            // If we get kicked, rejoin the chatroom
+            if (callback.Type == EChatInfoType.StateChange && callback.StateChangeInfo.StateChange == EChatMemberStateChange.Kicked && callback.StateChangeInfo.ChatterActedOn == Steam.Instance.Client.SteamID)
+            {
+                Steam.Instance.Friends.JoinChat(callback.ChatRoomID);
+            }
+        }
+
+        public void OnChatMessage(SteamFriends.ChatMsgCallback callback)
+        {
+            if (callback.ChatMsgType != EChatEntryType.ChatMsg || callback.Message[0] != '!' || callback.Message.Contains('\n'))
+            {
+                return;
+            }
+
+            Action<CommandHandler.CommandArguments> callbackFunction;
+            var messageArray = callback.Message.Split(' ');
+
+            if (CommandHandler.Commands.TryGetValue(messageArray[0], out callbackFunction))
+            {
+                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", messageArray[0], callback.ChatterID, callback.ChatRoomID);
+
+                callbackFunction(new CommandHandler.CommandArguments
+                {
+                    SenderID = callback.ChatterID,
+                    ChatRoomID = callback.ChatRoomID,
+                    Nickname = Steam.Instance.Friends.GetFriendPersonaName(callback.ChatterID),
+                    MessageArray = messageArray
+                });
+            }
+        }
+
         public void OnClanState(SteamFriends.ClanStateCallback callback)
         {
             if (callback.Events.Count == 0 && callback.Announcements.Count == 0)
@@ -208,6 +240,38 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback, JobID jobID)
+        {
+            var request = IRCRequests.Find(r => r.JobID == jobID);
+
+            if (request == null)
+            {
+                return;
+            }
+
+            IRCRequests.Remove(request);
+
+            if (callback.Result != EResult.OK)
+            {
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to get player games: {3}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, callback.Result);
+
+                return;
+            }
+
+            var response = callback.GetDeserializedResponse<SteamKit2.Unified.Internal.CPlayer_GetOwnedGames_Response>();
+
+            string roulette = string.Empty;
+
+            if (response.game_count > 2)
+            {
+                var game = response.games[new Random().Next((int)response.game_count)];
+
+                roulette = string.Format("{0} - Roulette: {1}{2}{3} -{4} steam://run/{5}/", Colors.NORMAL, Colors.OLIVE, GetAppName((uint)game.appid), Colors.NORMAL, Colors.DARK_BLUE, game.appid);
+            }
+
+            CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4}{5} games owned -{6} {7}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.YELLOW, response.game_count, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetCalculatorURL(request.SteamID), roulette);
+        }
+
         public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback, JobID jobID)
         {
             var request = IRCRequests.Find(r => r.JobID == jobID);
@@ -219,15 +283,13 @@ namespace SteamDatabaseBackend
 
             IRCRequests.Remove(request);
 
-            Log.WriteInfo("IRC Proxy", "Numplayers request completed for {0} in {1}", request.Requester, request.Channel);
-
             if (callback.Result != EResult.OK)
             {
-                IRC.Send(request.Channel, "{0}{1}{2}: Unable to request player count: {3}", Colors.OLIVE, request.Requester, Colors.NORMAL, callback.Result);
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to request player count: {3}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, callback.Result);
             }
             else if (request.Target == 0)
             {
-                IRC.Send(request.Channel, "{0}{1}{2}: {3}{4}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers.ToString("N0"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers.ToString("N0"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
             }
             else
             {
@@ -251,19 +313,17 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), url);
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), url);
             }
         }
 
         public void OnProductInfo(IRCRequest request, SteamApps.PICSProductInfoCallback callback)
         {
-            Log.WriteInfo("IRC Proxy", "Product info request completed for {0} in {1}", request.Requester, request.Channel);
-
             if (request.Type == SteamProxy.IRCRequestType.TYPE_SUB)
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    IRC.Send(request.Channel, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -283,23 +343,23 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    IRC.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, name, e.Message);
 
                     return;
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
-                                    Colors.OLIVE, request.Requester, Colors.NORMAL,
-                                    Colors.OLIVE, name, Colors.NORMAL,
-                                    Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
-                                    info.MissingToken ? " (mising token)" : string.Empty
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
+                                              Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                                              Colors.OLIVE, name, Colors.NORMAL,
+                                              Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
+                                              info.MissingToken ? " (mising token)" : string.Empty
                 );
             }
             else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    IRC.Send(request.Channel, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Requester, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -318,21 +378,21 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    IRC.Send(request.Channel, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Requester, Colors.NORMAL, name, e.Message);
+                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, name, e.Message);
 
                     return;
                 }
 
-                IRC.Send(request.Channel, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
-                                    Colors.OLIVE, request.Requester, Colors.NORMAL,
-                                    Colors.OLIVE, name, Colors.NORMAL,
-                                    Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
-                                    info.MissingToken ? " (mising token)" : string.Empty
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
+                                              Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                                              Colors.OLIVE, name, Colors.NORMAL,
+                                              Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
+                                              info.MissingToken ? " (mising token)" : string.Empty
                 );
             }
             else
             {
-                IRC.Send(request.Channel, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Requester, Colors.NORMAL);
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL);
             }
         }
 
@@ -353,7 +413,7 @@ namespace SteamDatabaseBackend
             IRC.SendAnnounce("{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
 
             // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
-            bool importantOnly = callback.AppChanges.Count + callback.PackageChanges.Count > 1000;
+            bool importantOnly = callback.AppChanges.Count + callback.PackageChanges.Count > 600;
 
             if (callback.AppChanges.Count > 0)
             {

@@ -62,27 +62,39 @@ namespace SteamDatabaseBackend
 
         public static void Send(string channel, string format, params object[] args)
         {
-            Instance.Client.SendMessage(SendType.Message, channel, string.Format(format, args));
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Message, channel, string.Format(format, args));
+            }
         }
 
         public static void SendAnnounce(string format, params object[] args)
         {
-            Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+            }
         }
 
         public static void SendMain(string format, params object[] args)
         {
-            Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args));
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args));
+            }
         }
 
         public static void SendEmoteAnnounce(string format, params object[] args)
         {
-            Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+            }
         }
 
-        public static bool IsSenderOp(IrcEventArgs e)
+        public static bool IsSenderOp(string channel, string nickname)
         {
-            ChannelUser user = Instance.Client.GetChannelUser(e.Data.Channel, e.Data.Nick);
+            ChannelUser user = Instance.Client.GetChannelUser(channel, nickname);
 
             if (user == null)
             {
@@ -94,7 +106,7 @@ namespace SteamDatabaseBackend
                 return true;
             }
 
-            IRC.Send(e.Data.Channel, "{0}{1}{2}: You're not op!", Colors.OLIVE, e.Data.Nick, Colors.NORMAL);
+            IRC.Send(channel, "{0}{1}{2}: You're not op!", Colors.OLIVE, nickname, Colors.NORMAL);
 
             return false;
         }

@@ -5,6 +5,8 @@
  */
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
@@ -22,6 +24,7 @@ namespace SteamDatabaseBackend
         public SteamApps Apps { get; private set; }
         public SteamFriends Friends { get; private set; }
         public SteamUserStats UserStats { get; private set; }
+        public SteamUnifiedMessages Unified { get; private set; }
         public CallbackManager CallbackManager { get; private set; }
         private GameCoordinator GameCoordinator;
 
@@ -34,6 +37,8 @@ namespace SteamDatabaseBackend
 
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
+
+        private string AuthCode;
 
         public void GetPICSChanges()
         {
@@ -85,6 +90,7 @@ namespace SteamDatabaseBackend
             Apps = Client.GetHandler<SteamApps>();
             Friends = Client.GetHandler<SteamFriends>();
             UserStats = Client.GetHandler<SteamUserStats>();
+            Unified = Client.GetHandler<SteamUnifiedMessages>();
 
             CallbackManager = new CallbackManager(Client);
 
@@ -95,17 +101,27 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
             CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
 
+            CallbackManager.Register(new Callback<SteamApps.LicenseListCallback>(OnLicenseListCallback));
+
+            CallbackManager.Register(new JobCallback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
             CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
             CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
 
             // irc specific
-            CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
-            CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
-
-            // game coordinator
-            if (Settings.Current.Steam.IdleAppID > 0 && Settings.Current.FullRun == 0)
+            if (Settings.Current.FullRun == 0)
             {
-                GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
+                CallbackManager.Register(new JobCallback<SteamUnifiedMessages.ServiceMethodResponse>(SteamProxy.Instance.OnServiceMethod));
+                CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
+                CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
+                CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
+                CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
+                CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
+
+                // game coordinator
+                if (Settings.Current.Steam.IdleAppID > 0)
+                {
+                    GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
+                }
             }
 
             DepotProcessor.Init();
@@ -113,11 +129,6 @@ namespace SteamDatabaseBackend
             GetLastChangeNumber();
 
             IsRunning = true;
-
-            if (Settings.Current.FullRun == 0)
-            {
-                Client.AddHandler(new MarketingHandler());
-            }
 
             Client.Connect();
 
@@ -136,6 +147,8 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result != EResult.OK)
             {
+                GameCoordinator.UpdateStatus(0, callback.Result.ToString());
+
                 IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result);
 
                 Log.WriteError("Steam", "Could not connect: {0}", callback.Result);
@@ -145,12 +158,25 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
+
             Log.WriteInfo("Steam", "Connected, logging in...");
 
+            byte[] sentryHash;
+
+            if (File.Exists("sentry.bin"))
+            {
+                byte[] sentryFile = File.ReadAllBytes("sentry.bin");
+                sentryHash = CryptoHelper.SHAHash(sentryFile);
+            }
+            
             User.LogOn(new SteamUser.LogOnDetails
             {
                 Username = Settings.Current.Steam.Username,
-                Password = Settings.Current.Steam.Password
+                Password = Settings.Current.Steam.Password,
+
+                //AuthCode = AuthCode,
+                //SentryFileHash = sentryHash
             });
         }
 
@@ -163,6 +189,8 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo("Steam", "Disconnected from Steam");
                 return;
             }
+
+            GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
             const uint RETRY_DELAY = 15;
 
@@ -177,6 +205,17 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
+            GameCoordinator.UpdateStatus(0, callback.Result.ToString());
+
+            if (callback.Result == EResult.AccountLogonDenied)
+            {
+                Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
+
+                AuthCode = Console.ReadLine().Trim();
+
+                return;
+            }
+
             if (callback.Result != EResult.OK)
             {
                 Log.WriteError("Steam", "Failed to login: {0}", callback.Result);
@@ -212,6 +251,11 @@ namespace SteamDatabaseBackend
 
                 GameCoordinator.PlayGame();
 
+                foreach (var chatRoom in Settings.Current.ChatRooms)
+                {
+                    Friends.JoinChat(chatRoom);
+                }
+
 #if DEBUG
                 Apps.PICSGetProductInfo(440, 61, false, false);
 #endif
@@ -225,11 +269,52 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Steam", "Logged off of Steam");
 
             IRC.SendEmoteAnnounce("logged off of Steam.");
+
+            GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
+        }
+
+        private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback, JobID jobId)
+        {
+            Log.WriteInfo("Steam", "Updating sentry file...");
+
+            byte[] sentryHash = CryptoHelper.SHAHash(callback.Data);
+
+            File.WriteAllBytes("sentry.bin", callback.Data);
+
+            User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
+            {
+                JobID = jobId,
+
+                FileName = callback.FileName,
+
+                BytesWritten = callback.BytesToWrite,
+                FileSize = callback.Data.Length,
+                Offset = callback.Offset,
+
+                Result = EResult.OK,
+                LastError = 0,
+
+                OneTimePassword = callback.OneTimePassword,
+
+                SentryFileHash = sentryHash
+            });
         }
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             Friends.SetPersonaState(EPersonaState.Busy);
+        }
+
+        private void OnLicenseListCallback(SteamApps.LicenseListCallback licenseList)
+        {
+            if (licenseList.Result != EResult.OK)
+            {
+                Log.WriteError("Steam", "Unable to get license list: {0}", licenseList.Result);
+
+                return;
+            }
+
+            Log.WriteInfo("Steam", "{0} Licenses: {1}", licenseList.LicenseList.Count, string.Join(", ", licenseList.LicenseList.Select(lic => lic.PackageID)));
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)

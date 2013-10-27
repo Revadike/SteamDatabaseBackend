@@ -3,15 +3,13 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+using System.Text.RegularExpressions;
 
 namespace SteamDatabaseBackend
 {
     public static class Colors
     {
         public const char NORMAL = (char)15;
-        public const char BOLD = (char)2;
-        public const char UNDERLINE = (char)31;
-        public const char REVERSE = (char)22;
         public static readonly string WHITE = (char)3 + "00";
         public static readonly string BLACK = (char)3 + "01";
         public static readonly string DARK_BLUE = (char)3 + "02";        
@@ -28,5 +26,10 @@ namespace SteamDatabaseBackend
         public static readonly string MAGENTA = (char)3 + "13";
         public static readonly string DARK_GRAY = (char)3 + "14";
         public static readonly string LIGHT_GRAY = (char)3 + "15";
+
+        public static string StripColors(string input)
+        {
+            return Regex.Replace(input, @"\x15|\x03(\d\d)?", string.Empty);
+        }
     }
 }

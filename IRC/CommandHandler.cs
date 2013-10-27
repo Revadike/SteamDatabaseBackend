@@ -4,49 +4,89 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Meebey.SmartIrc4net;
 using MySql.Data.MySqlClient;
 using SteamKit2;
+using SteamKit2.Unified.Internal;
 
 namespace SteamDatabaseBackend
 {
     public static class CommandHandler
     {
-        private static readonly Dictionary<string, Action<IrcEventArgs>> Commands = new Dictionary<string, Action<IrcEventArgs>>
+        public static readonly Dictionary<string, Action<CommandArguments>> Commands = new Dictionary<string, Action<CommandArguments>>
         {
             { "!help", OnCommandHelp },
             { "!app", OnCommandApp },
             { "!sub", OnCommandPackage },
-            { "!package", OnCommandPackage },
-            { "!players", OnCommandNumPlayers },
-            { "!numplayers", OnCommandNumPlayers },
+            { "!games", OnCommandGames },
+            { "!players", OnCommandPlayers },
             { "!reload", OnCommandReload },
             { "!force", OnCommandForce }
         };
 
+        public class CommandArguments
+        {
+            public string[] MessageArray { get; set; }
+            public string Channel { get; set; }
+            public string Nickname { get; set; }
+            public SteamID ChatRoomID { get; set; }
+            public SteamID SenderID { get; set; }
+
+            public bool IsChatRoomCommand
+            {
+                get
+                {
+                    return this.ChatRoomID != null;
+                }
+            }
+        }
+
+        public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
+        {
+            if (command.IsChatRoomCommand)
+            {
+                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, Colors.StripColors(string.Format(message, args)));
+            }
+            else
+            {
+                IRC.Send(command.Channel, message, args);
+            }
+        }
+
         public static void OnChannelMessage(object sender, IrcEventArgs e)
         {
-            Action<IrcEventArgs> callbackFunction;
+            if (e.Data.Message[0] != '!')
+            {
+                return;
+            }
+
+            Action<CommandArguments> callbackFunction;
 
             if (Commands.TryGetValue(e.Data.MessageArray[0], out callbackFunction))
             {
                 Log.WriteInfo("IRC", "Handling command {0} for user {1} in channel {2}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Channel);
 
-                callbackFunction(e);
+                callbackFunction(new CommandArguments
+                {
+                    Channel = e.Data.Channel,
+                    Nickname = e.Data.Nick,
+                    MessageArray = e.Data.MessageArray
+                });
             }
         }
 
-        private static void OnCommandHelp(IrcEventArgs e)
+        private static void OnCommandHelp(CommandArguments command)
         {
-            IRC.Send(e.Data.Channel, "{0}{1}{2}: Available commands: {3}{4}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
+            ReplyToCommand(command, "{0}{1}{2}: Available commands: {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
         }
 
-        private static void OnCommandApp(IrcEventArgs e)
+        private static void OnCommandApp(CommandArguments command)
         {
             uint appID;
 
-            if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out appID))
+            if (command.MessageArray.Length == 2 && uint.TryParse(command.MessageArray[1], out appID))
             {
                 var jobID = Steam.Instance.Apps.PICSGetProductInfo(appID, null, false, false);
 
@@ -55,21 +95,20 @@ namespace SteamDatabaseBackend
                     JobID = jobID,
                     Target = appID,
                     Type = SteamProxy.IRCRequestType.TYPE_APP,
-                    Channel = e.Data.Channel,
-                    Requester = e.Data.Nick
+                    Command = command
                 });
             }
             else
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !app <appid>", Colors.OLIVE);
+                ReplyToCommand(command, "Usage:{0} !app <appid>", Colors.OLIVE);
             }
         }
 
-        private static void OnCommandPackage(IrcEventArgs e)
+        private static void OnCommandPackage(CommandArguments command)
         {
             uint subID;
 
-            if (e.Data.MessageArray.Length == 2 && uint.TryParse(e.Data.MessageArray[1], out subID))
+            if (command.MessageArray.Length == 2 && uint.TryParse(command.MessageArray[1], out subID))
             {
                 var jobID = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
 
@@ -78,28 +117,27 @@ namespace SteamDatabaseBackend
                     JobID = jobID,
                     Target = subID,
                     Type = SteamProxy.IRCRequestType.TYPE_SUB,
-                    Channel = e.Data.Channel,
-                    Requester = e.Data.Nick
+                    Command = command
                 });
             }
             else
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !sub <subid>", Colors.OLIVE);
+                ReplyToCommand(command, "Usage:{0} !sub <subid>", Colors.OLIVE);
             }
         }
 
-        private static void OnCommandNumPlayers(IrcEventArgs e)
+        private static void OnCommandPlayers(CommandArguments command)
         {
-            if (e.Data.MessageArray.Length < 2)
+            if (command.MessageArray.Length < 2)
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !players <appid or partial game name>", Colors.OLIVE);
+                ReplyToCommand(command, "Usage:{0} !players <appid or partial game name>", Colors.OLIVE);
 
                 return;
             }
 
             uint appID;
 
-            if (uint.TryParse(e.Data.MessageArray[1], out appID))
+            if (uint.TryParse(command.MessageArray[1], out appID))
             {
                 var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
 
@@ -107,20 +145,18 @@ namespace SteamDatabaseBackend
                 {
                     JobID = jobID,
                     Target = appID,
-                    Type = SteamProxy.IRCRequestType.TYPE_PLAYERS,
-                    Channel = e.Data.Channel,
-                    Requester = e.Data.Nick
+                    Command = command
                 });
             }
-            else if (e.Data.MessageArray[1].ToLower().Equals("\x68\x6C\x33"))
+            else if (command.MessageArray[1].ToLower().Equals("\x68\x6C\x33"))
             {
-                IRC.Send(e.Data.Channel, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, "\x48\x61\x6C\x66\x2D\x4C\x69\x66\x65\x20\x33", Colors.NORMAL, Colors.YELLOW, "\x7e\x34\x30\x30");
+                ReplyToCommand(command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, "\x48\x61\x6C\x66\x2D\x4C\x69\x66\x65\x20\x33", Colors.NORMAL, Colors.YELLOW, "\x7e\x34\x30\x30");
             }
             else
             {
-                string name = string.Format("%{0}%", e.Data.Message.Replace(e.Data.MessageArray[0], "").Trim());
+                string name = string.Format("%{0}%", string.Join(" ", command.MessageArray.Skip(1)).Trim());
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `AppID` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {
                     if (Reader.Read())
                     {
@@ -132,52 +168,114 @@ namespace SteamDatabaseBackend
                         {
                             JobID = jobID,
                             Target = appID,
-                            Type = SteamProxy.IRCRequestType.TYPE_PLAYERS,
-                            Channel = e.Data.Channel,
-                            Requester = e.Data.Nick
+                            Command = command
                         });
                     }
                     else
                     {
-                        IRC.Send(e.Data.Channel, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, e.Data.Nick, Colors.NORMAL);
+                        ReplyToCommand(command, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, command.Nickname, Colors.NORMAL);
                     }
                 }
             }
         }
 
-        private static void OnCommandReload(IrcEventArgs e)
+        private static void OnCommandGames(CommandArguments command)
         {
-            if (IRC.IsSenderOp(e))
+            SteamID steamID = null;
+
+            if (command.MessageArray.Length > 1)
             {
-                SteamProxy.Instance.ReloadImportant(e.Data.Channel, e.Data.Nick);
+                string input = command.MessageArray[1];
+                ulong uSteamID;
+
+                if (input.StartsWith("STEAM_", StringComparison.OrdinalIgnoreCase))
+                {
+                    steamID = new SteamID(input, EUniverse.Public);
+                }
+                else if (ulong.TryParse(input, out uSteamID))
+                {
+                    steamID = new SteamID(uSteamID);
+                }
+
+                if (steamID == null || steamID == 0)
+                {
+                    ReplyToCommand(command, "{0}{1}{2}: That doesn't look like a valid SteamID", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                    return;
+                }
+            }
+            else if (command.IsChatRoomCommand)
+            {
+                steamID = command.SenderID;
+            }
+            else
+            {
+                ReplyToCommand(command, "Usage:{0} !games <steamid>", Colors.OLIVE);
+
+                return;
+            }
+
+            var request = new CPlayer_GetOwnedGames_Request();
+            request.steamid = steamID;
+            request.include_played_free_games = true;
+
+            JobID jobID = Steam.Instance.Unified.SendMessage("Player.GetOwnedGames#1", request);
+
+            SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+            {
+                JobID = jobID,
+                SteamID = steamID,
+                Command = command
+            });
+        }
+
+        private static void OnCommandReload(CommandArguments command)
+        {
+            if (command.IsChatRoomCommand)
+            {
+                ReplyToCommand(command, "{0}: This command can only be used in IRC", command.Nickname);
+
+                return;
+            }
+
+            if (IRC.IsSenderOp(command.Channel, command.Nickname))
+            {
+                SteamProxy.Instance.ReloadImportant(command.Channel, command.Nickname);
             }
         }
 
-        private static void OnCommandForce(IrcEventArgs e)
+        private static void OnCommandForce(CommandArguments command)
         {
-            if (!IRC.IsSenderOp(e))
+            if (command.IsChatRoomCommand)
+            {
+                ReplyToCommand(command, "{0}: This command can only be used in IRC", command.Nickname);
+
+                return;
+            }
+
+            if (!IRC.IsSenderOp(command.Channel, command.Nickname))
             {
                 return;
             }
 
-            if (e.Data.MessageArray.Length == 3)
+            if (command.MessageArray.Length == 3)
             {
                 uint target;
 
-                if (!uint.TryParse(e.Data.MessageArray[2], out target))
+                if (!uint.TryParse(command.MessageArray[2], out target))
                 {
-                    IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
+                    ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
 
                     return;
                 }
 
-                switch (e.Data.MessageArray[1])
+                switch (command.MessageArray[1])
                 {
                     case "app":
                     {
                         Steam.Instance.Apps.PICSGetProductInfo(target, null, false, false);
 
-                        IRC.Send(e.Data.Channel, "{0}{1}{2}: Forced update for AppID {3}{4}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, target);
+                        ReplyToCommand(command, "{0}{1}{2}: Forced update for AppID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
 
                         break;
                     }
@@ -186,7 +284,7 @@ namespace SteamDatabaseBackend
                     {
                         Steam.Instance.Apps.PICSGetProductInfo(null, target, false, false);
 
-                        IRC.Send(e.Data.Channel, "{0}{1}{2}: Forced update for SubID {3}{4}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, target);
+                        ReplyToCommand(command, "{0}{1}{2}: Forced update for SubID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
 
                         break;
                     }
@@ -213,21 +311,21 @@ namespace SteamDatabaseBackend
 
                     default:
                     {
-                        IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
+                        ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
 
                         break;
                     }
                 }
             }
-            else if (e.Data.MessageArray.Length == 1)
+            else if (command.MessageArray.Length == 1)
             {
                 Steam.Instance.GetPICSChanges();
 
-                IRC.Send(e.Data.Channel, "{0}{1}{2}: Forced a check", Colors.OLIVE, e.Data.Nick, Colors.NORMAL);
+                ReplyToCommand(command, "{0}{1}{2}: Forced a check", Colors.OLIVE, command.Nickname, Colors.NORMAL);
             }
             else
             {
-                IRC.Send(e.Data.Channel, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
+                ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
             }
         }
     }
