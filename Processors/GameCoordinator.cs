@@ -7,26 +7,22 @@ using System;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using SteamKit2.Internal;
 using SteamKit2.GC;
-using SteamKit2.GC.Internal;
 using SteamKit2.GC.CSGO.Internal;
 using SteamKit2.GC.Dota.Internal;
-using SteamKit2.GC.TF2.Internal;
+using SteamKit2.GC.Internal;
+using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
     public class GameCoordinator
     {
-        private uint AppID;
-        private SteamClient SteamClient;
-        private SteamGameCoordinator SteamGameCoordinator;
-
-        private Dictionary<uint, Action<IPacketGCMsg>> GCMessageMap;
-
-        private System.Timers.Timer Timer;
-
-        private string Name;
+        private readonly uint AppID;
+        private readonly SteamClient SteamClient;
+        private readonly SteamGameCoordinator SteamGameCoordinator;
+        private readonly Dictionary<uint, Action<IPacketGCMsg>> GCMessageMap;
+        private readonly System.Timers.Timer Timer;
+        private readonly string Name;
         private int LastVersion = -1;
         private uint LastSchemaVersion;
         private GCConnectionStatus LastStatus = GCConnectionStatus.GCConnectionStatus_NO_STEAM;
@@ -40,8 +36,7 @@ namespace SteamDatabaseBackend
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
                 { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage },
                 { (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus, OnClientConnectionStatus },
-                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnClientConnectionStatus },
-                { (uint)EGCItemMsg.k_EMsgGCSaxxyBroadcast, OnSaxxyBroadcast }
+                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnClientConnectionStatus }
             };
 
             this.AppID = appID;
@@ -51,12 +46,12 @@ namespace SteamDatabaseBackend
 
             // Make sure Steam knows we're playing the game
             Timer = new System.Timers.Timer();
-            Timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimerPlayGame);
+            Timer.Elapsed += OnTimerPlayGame;
             Timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
             Timer.Start();
 
             Timer = new System.Timers.Timer();
-            Timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            Timer.Elapsed += OnTimer;
 
             callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
         }
@@ -130,7 +125,7 @@ namespace SteamDatabaseBackend
                 message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARK_GRAY, LastVersion, msg.version);
             }
 
-            if (LastVersion != -1 && LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION)
+            if (LastVersion != -1 && (LastVersion != msg.version || LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION))
             {
                 IRC.SendMain(message);
             }
@@ -190,13 +185,6 @@ namespace SteamDatabaseBackend
             }
 
             UpdateStatus(AppID, LastStatus.ToString());
-        }
-
-        private void OnSaxxyBroadcast(IPacketGCMsg packetMsg)
-        {
-            var msg = new ClientGCMsgProtobuf<CMsgTFSaxxyBroadcast>(packetMsg).Body;
-
-            IRC.SendMain("{0}{1}{2} has won a saxxy in category {3}{4}", Colors.OLIVE, msg.user_name, Colors.NORMAL, Colors.OLIVE, msg.category_number);
         }
 
         private static string GetEMsgDisplayString(uint eMsg)

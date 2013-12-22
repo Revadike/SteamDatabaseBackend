@@ -74,14 +74,14 @@ namespace SteamDatabaseBackend
 
         public void Init()
         {
-            ProcessorPool = new SmartThreadPool(new STPStartInfo { ThreadPriority = ThreadPriority.AboveNormal });
-            SecondaryPool = new SmartThreadPool(new STPStartInfo { ThreadPriority = ThreadPriority.BelowNormal });
+            ProcessorPool = new SmartThreadPool(new STPStartInfo { WorkItemPriority = WorkItemPriority.Highest, MaxWorkerThreads = 50 });
+            SecondaryPool = new SmartThreadPool();
 
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
 
             Timer = new System.Timers.Timer();
-            Timer.Elapsed += new System.Timers.ElapsedEventHandler(OnTimer);
+            Timer.Elapsed += OnTimer;
             Timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
 
             Client = new SteamClient();
@@ -104,13 +104,12 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamApps.LicenseListCallback>(OnLicenseListCallback));
 
             CallbackManager.Register(new JobCallback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
-            CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
             CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
 
             // irc specific
             if (Settings.Current.FullRun == 0)
             {
-                CallbackManager.Register(new JobCallback<SteamUnifiedMessages.ServiceMethodResponse>(SteamProxy.Instance.OnServiceMethod));
+                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
                 CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
                 CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
@@ -122,6 +121,10 @@ namespace SteamDatabaseBackend
                 {
                     GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
                 }
+            }
+            else
+            {
+                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
             }
 
             DepotProcessor.Init();
@@ -162,7 +165,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Connected, logging in...");
 
-            byte[] sentryHash;
+            byte[] sentryHash = null;
 
             if (File.Exists("sentry.bin"))
             {
@@ -175,8 +178,8 @@ namespace SteamDatabaseBackend
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
 
-                //AuthCode = AuthCode,
-                //SentryFileHash = sentryHash
+                AuthCode = AuthCode,
+                SentryFileHash = sentryHash
             });
         }
 
@@ -249,7 +252,10 @@ namespace SteamDatabaseBackend
             {
                 Timer.Start();
 
-                GameCoordinator.PlayGame();
+                if (GameCoordinator != null)
+                {
+                    GameCoordinator.PlayGame();
+                }
 
                 foreach (var chatRoom in Settings.Current.ChatRooms)
                 {
@@ -317,47 +323,46 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Steam", "{0} Licenses: {1}", licenseList.LicenseList.Count, string.Join(", ", licenseList.LicenseList.Select(lic => lic.PackageID)));
         }
 
-        private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
+        private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback, JobID job)
         {
-            if (IsFullRun)
+            // Hackiness to prevent processing legit changelists after our request if that ever happens
+            if (PreviousChange != 1)
             {
-                // Hackiness to prevent processing legit changelists after our request
-                if (PreviousChange == 1)
-                {
-                    PreviousChange = 2;
-
-                    Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
-
-                    Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
-                }
-                else
-                {
-                    Log.WriteWarn("Steam", "Got changelist {0}, but ignoring it because we're in a full run", callback.CurrentChangeNumber);
-                }
+                Log.WriteWarn("Steam", "Got changelist {0}, but ignoring it because we're in a full run", callback.CurrentChangeNumber);
 
                 return;
             }
 
+            PreviousChange = 2;
+
+            Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
+
+            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
+        }
+
+        private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
+        {
             if (PreviousChange == callback.CurrentChangeNumber)
             {
                 return;
             }
 
-            Log.WriteInfo("Steam", "Received changelist {0}, previous is {1} ({2} apps, {3} packages)", callback.CurrentChangeNumber, PreviousChange, callback.AppChanges.Count, callback.PackageChanges.Count);
+            Log.WriteInfo("Steam", "Changelist {0} -> {1} ({2} apps, {3} packages)", PreviousChange, callback.CurrentChangeNumber, callback.AppChanges.Count, callback.PackageChanges.Count);
 
             PreviousChange = callback.CurrentChangeNumber;
-
-            SecondaryPool.QueueWorkItem(delegate
-            {
-                SteamProxy.Instance.OnPICSChanges(callback.CurrentChangeNumber, callback);
-            });
 
             DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
+                IRC.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChange, Colors.DARK_GRAY);
+
                 return;
             }
+
+            SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnPICSChanges, callback);
+
+            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
 
             if (callback.AppChanges.Count > 0)
             {
@@ -412,8 +417,6 @@ namespace SteamDatabaseBackend
                     }
                 });
             }
-
-            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
         }
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
@@ -424,10 +427,7 @@ namespace SteamDatabaseBackend
             {
                 SteamProxy.Instance.IRCRequests.Remove(request);
 
-                SecondaryPool.QueueWorkItem(delegate
-                {
-                    SteamProxy.Instance.OnProductInfo(request, callback);
-                });
+                SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnProductInfo, request, callback);
 
                 return;
             }

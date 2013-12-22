@@ -12,6 +12,11 @@ namespace SteamDatabaseBackend
     {
         public const string UNKNOWN_APP  = "SteamDB Unknown App";
 
+        public static bool IsBusy()
+        {
+            return Steam.Instance.ProcessorPool.InUseThreads > 15 || Steam.Instance.SecondaryPool.InUseThreads > 10;
+        }
+
         public static string GetChangelistURL(uint changeNumber)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/changelist/{0}/", changeNumber)).AbsoluteUri;

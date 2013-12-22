@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
 
-        private IrcClient Client = new IrcClient();
+        public IrcClient Client = new IrcClient();
 
         public void Init()
         {
@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
             Client.OnConnected += OnConnected;
 
             Client.Encoding = Encoding.UTF8;
-            Client.SendDelay = 600;
+            Client.SendDelay = 700;
             Client.AutoRetry = true;
             Client.AutoRejoin = true;
             Client.AutoRelogin = true;
@@ -70,18 +70,12 @@ namespace SteamDatabaseBackend
 
         public static void SendAnnounce(string format, params object[] args)
         {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
-            }
+            Send(Settings.Current.IRC.Channel.Announce, format, args);
         }
 
         public static void SendMain(string format, params object[] args)
         {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args));
-            }
+            Send(Settings.Current.IRC.Channel.Main, format, args);
         }
 
         public static void SendEmoteAnnounce(string format, params object[] args)

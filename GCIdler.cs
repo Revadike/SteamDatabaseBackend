@@ -39,6 +39,7 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
             CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
             CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
+            CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
 
             GameCoordinator = new GameCoordinator(AppID, Client, CallbackManager);
         }
@@ -57,6 +58,8 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
+            GameCoordinator.UpdateStatus(AppID, callback.Result.ToString());
+
             if (callback.Result == EResult.OK)
             {
                 GameCoordinator.PlayGame();
@@ -65,6 +68,11 @@ namespace SteamDatabaseBackend
 
                 GameCoordinator.Hello();
             }
+        }
+
+        private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
+        {
+            GameCoordinator.UpdateStatus(AppID, EResult.NotLoggedOn.ToString());
         }
 
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
@@ -76,12 +84,16 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result != EResult.OK)
             {
+                GameCoordinator.UpdateStatus(AppID, callback.Result.ToString());
+
                 Log.WriteError(string.Format("GC {0}", AppID), "Could not connect: {0}", callback.Result);
 
                 IsRunning = false;
 
                 return;
             }
+
+            GameCoordinator.UpdateStatus(AppID, EResult.NotLoggedOn.ToString());
 
             Log.WriteInfo(string.Format("GC {0}", AppID), "Connected, logging in...");
 
@@ -99,6 +111,8 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo(string.Format("GC {0}", AppID), "Disconnected from Steam");
                 return;
             }
+
+            GameCoordinator.UpdateStatus(AppID, EResult.NoConnection.ToString());
 
             Log.WriteInfo(string.Format("GC {0}", AppID), "Disconnected from Steam. Retrying in 15 seconds...");
 

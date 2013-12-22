@@ -20,6 +20,7 @@ namespace SteamDatabaseBackend
 
         private sealed class DepotFile
         {
+            public string Hash;
             public string Name;
             public ulong Size;
             public int Chunks;
@@ -137,8 +138,6 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                Log.WriteInfo("Depot Processor", "DepotID: {0}", depotID);
-                
                 lock (ManifestJobs)
                 {
                     ManifestJobs.Add(request);
@@ -209,6 +208,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+
+            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
 
             if (request.PreviousManifestID != request.ManifestID)
             {
@@ -300,13 +301,21 @@ namespace SteamDatabaseBackend
             {
                 System.Text.Encoding.UTF8.GetString(file.FileHash);
 
-                filesNew.Add(new DepotFile
+                var depotFile = new DepotFile
                 {
                     Name = file.FileName.Replace('\\', '/'),
                     Size = file.TotalSize,
                     Chunks = file.Chunks.Count,
                     Flags = (int)file.Flags
-                });
+                };
+
+                // TODO: Ideally we would check if filehash is not empty
+                if (!file.Flags.HasFlag(EDepotFileFlag.Directory))
+                {
+                    depotFile.Hash = string.Concat(Array.ConvertAll(file.FileHash, x => x.ToString("X2")));
+                }
+
+                filesNew.Add(depotFile);
             }
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Files` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", request.DepotID)))
@@ -347,6 +356,10 @@ namespace SteamDatabaseBackend
                         {
                             MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
                         }
+                        else if (file.Hash != null && oldFile.Hash != null && !file.Hash.Equals(oldFile.Hash))
+                        {
+                            MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
+                        }
 
                         filesOld.Remove(oldFile);
                     }
@@ -374,7 +387,7 @@ namespace SteamDatabaseBackend
                 // TODO: Horribly inefficient
                 var importantFiles = sortedFiles.Where(x => Settings.Current.ImportantFiles[request.DepotID].Contains(x.FileName.Replace('\\', '/')));
 
-                ThreadPool.QueueWorkItem(DownloadFiles, importantFiles, request.DepotID, cdnClient);
+                DownloadFiles(importantFiles, request.DepotID, cdnClient);
             }
         }
 

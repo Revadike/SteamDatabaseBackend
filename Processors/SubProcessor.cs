@@ -114,11 +114,25 @@ namespace SteamDatabaseBackend
                 {
                     string type = sectionName.Replace("ids", string.Empty); // Remove "ids", so we get app from appids and depot from depotids
 
+                    uint typeID = (uint)(type.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
+
                     foreach (KeyValue childrenApp in section.Children)
                     {
-                        if (apps.ContainsKey(childrenApp.Value) && apps[childrenApp.Value] == type)
+                        // Is this appid already in this package?
+                        if (apps.ContainsKey(childrenApp.Value))
                         {
-                            // This combination of appid+type already exists, don't do anything
+                            // Is this appid's type the same?
+                            if (apps[childrenApp.Value] != type)
+                            {
+                                DbWorker.ExecuteNonQuery("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID",
+                                                         new MySqlParameter("@SubID", SubID),
+                                                         new MySqlParameter("@AppID", childrenApp.Value),
+                                                         new MySqlParameter("@Type", type)
+                                );
+
+                                MakeHistory("added_to_sub", typeID, apps[childrenApp.Value].Equals("app") ? "0" : "1", childrenApp.Value);
+                            }
+
                             apps.Remove(childrenApp.Value);
                         }
                         else
@@ -128,8 +142,6 @@ namespace SteamDatabaseBackend
                                                      new MySqlParameter("@AppID", childrenApp.Value),
                                                      new MySqlParameter("@Type", type)
                             );
-
-                            uint typeID = (uint)(type.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
                         }

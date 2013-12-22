@@ -93,15 +93,29 @@ namespace SteamDatabaseBackend
 
                     MakeHistory("created_app");
                     MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
+
+                    // TODO: Testy testy
+                    if (Settings.Current.ChatRooms.Count > 0 && !appName.StartsWith("SteamApp", StringComparison.Ordinal) && !appName.StartsWith("ValveTest", StringComparison.Ordinal))
+                    {
+                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: New {0} was published: {1} - {2}", currentType, productInfo.KeyValues["common"]["name"].AsString(), SteamDB.GetAppURL(AppID)));
+                    }
                 }
                 else if (!appName.Equals(productInfo.KeyValues["common"]["name"].Value))
                 {
+                    string newAppName = productInfo.KeyValues["common"]["name"].AsString();
+
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@AppName", productInfo.KeyValues["common"]["name"].Value)
+                                             new MySqlParameter("@AppName", newAppName)
                     );
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, productInfo.KeyValues["common"]["name"].Value);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
+
+                    // TODO: Testy testy
+                    if (Settings.Current.ChatRooms.Count > 0 && !string.Equals(appName, newAppName, StringComparison.OrdinalIgnoreCase) && !newAppName.StartsWith("SteamApp", StringComparison.Ordinal) && !newAppName.StartsWith("ValveTest", StringComparison.Ordinal))
+                    {
+                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: {0} name was changed - {1}\n« {2}\n» {3}", currentType, SteamDB.GetAppURL(AppID, "history"), appName, newAppName));
+                    }
                 }
 
                 if (appType.Equals("0"))
@@ -262,7 +276,7 @@ namespace SteamDatabaseBackend
                 {
                     if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
                     {
-                        MakeHistory("removed_key", Reader.GetUInt32("ID"), DbWorker.GetString("Value", Reader));
+                        MakeHistory("removed_key", Reader.GetUInt32("Key"), DbWorker.GetString("Value", Reader));
                     }
                 }
             }

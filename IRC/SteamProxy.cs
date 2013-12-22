@@ -151,9 +151,16 @@ namespace SteamDatabaseBackend
         public void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)
         {
             // If we get kicked, rejoin the chatroom
-            if (callback.Type == EChatInfoType.StateChange && callback.StateChangeInfo.StateChange == EChatMemberStateChange.Kicked && callback.StateChangeInfo.ChatterActedOn == Steam.Instance.Client.SteamID)
+            if (callback.Type == EChatInfoType.StateChange && callback.StateChangeInfo.ChatterActedOn == Steam.Instance.Client.SteamID)
             {
-                Steam.Instance.Friends.JoinChat(callback.ChatRoomID);
+                Log.WriteInfo("Steam", "State changed for chatroom {0} to {1}", callback.ChatRoomID, callback.StateChangeInfo.StateChange);
+
+                if (callback.StateChangeInfo.StateChange == EChatMemberStateChange.Disconnected
+                ||  callback.StateChangeInfo.StateChange == EChatMemberStateChange.Kicked
+                ||  callback.StateChangeInfo.StateChange == EChatMemberStateChange.Left)
+                {
+                    Steam.Instance.Friends.JoinChat(callback.ChatRoomID);
+                }
             }
         }
 
@@ -169,15 +176,24 @@ namespace SteamDatabaseBackend
 
             if (CommandHandler.Commands.TryGetValue(messageArray[0], out callbackFunction))
             {
-                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", messageArray[0], callback.ChatterID, callback.ChatRoomID);
-
-                callbackFunction(new CommandHandler.CommandArguments
+                var command = new CommandHandler.CommandArguments
                 {
                     SenderID = callback.ChatterID,
                     ChatRoomID = callback.ChatRoomID,
                     Nickname = Steam.Instance.Friends.GetFriendPersonaName(callback.ChatterID),
                     MessageArray = messageArray
-                });
+                };
+
+                if (SteamDB.IsBusy())
+                {
+                    CommandHandler.ReplyToCommand(command, "{0}{1}{2}: The bot is currently busy.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                    return;
+                }
+
+                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", messageArray[0], callback.ChatterID, callback.ChatRoomID);
+
+                callbackFunction(command);
             }
         }
 
@@ -240,38 +256,6 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback, JobID jobID)
-        {
-            var request = IRCRequests.Find(r => r.JobID == jobID);
-
-            if (request == null)
-            {
-                return;
-            }
-
-            IRCRequests.Remove(request);
-
-            if (callback.Result != EResult.OK)
-            {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to get player games: {3}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, callback.Result);
-
-                return;
-            }
-
-            var response = callback.GetDeserializedResponse<SteamKit2.Unified.Internal.CPlayer_GetOwnedGames_Response>();
-
-            string roulette = string.Empty;
-
-            if (response.game_count > 2)
-            {
-                var game = response.games[new Random().Next((int)response.game_count)];
-
-                roulette = string.Format("{0} - Roulette: {1}{2}{3} -{4} steam://run/{5}/", Colors.NORMAL, Colors.OLIVE, GetAppName((uint)game.appid), Colors.NORMAL, Colors.DARK_BLUE, game.appid);
-            }
-
-            CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4}{5} games owned -{6} {7}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.YELLOW, response.game_count, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetCalculatorURL(request.SteamID), roulette);
-        }
-
         public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback, JobID jobID)
         {
             var request = IRCRequests.Find(r => r.JobID == jobID);
@@ -289,7 +273,7 @@ namespace SteamDatabaseBackend
             }
             else if (request.Target == 0)
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers.ToString("N0"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4:N0}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
             }
             else
             {
@@ -313,7 +297,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers.ToString("N0"), url);
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.YELLOW, callback.NumPlayers, url);
             }
         }
 
@@ -396,123 +380,119 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void OnPICSChanges(uint changeNumber, SteamApps.PICSChangesCallback callback)
+        public void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
-            string Message = string.Format("Received changelist {0}{1}{2} with {3}{4}{5} apps and {6}{7}{8} packages -{9} {10}",
-                                           Colors.OLIVE, changeNumber, Colors.NORMAL,
-                                           callback.AppChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.AppChanges.Count, Colors.NORMAL,
-                                           callback.PackageChanges.Count >= 10 ? Colors.YELLOW : Colors.OLIVE, callback.PackageChanges.Count, Colors.NORMAL,
-                                           Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeNumber)
-                             );
+            // Print any apps importants first
+            var important = callback.AppChanges.Keys.Intersect(ImportantApps);
 
-            if (callback.AppChanges.Count >= 50 || callback.PackageChanges.Count >= 50)
+            if (important.Count() > 5)
             {
-                IRC.SendMain(Message);
+                IRC.SendMain("{0}{1}{2} important apps updated, view our website for more details", Colors.OLIVE, important.Count(), Colors.NORMAL);
             }
-
-            IRC.SendAnnounce("{0}»{1} {2}",  Colors.RED, Colors.NORMAL, Message);
-
-            // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
-            bool importantOnly = callback.AppChanges.Count + callback.PackageChanges.Count > 600;
-
-            if (callback.AppChanges.Count > 0)
+            else
             {
-                ProcessAppChanges(changeNumber, callback.AppChanges, importantOnly);
-            }
-
-            if (callback.PackageChanges.Count > 0)
-            {
-                ProcessSubChanges(changeNumber, callback.PackageChanges, importantOnly);
-            }
-
-            if (importantOnly)
-            {
-                IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it on our website", Colors.RED);
-            }
-        }
-
-        private void ProcessAppChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> appList, bool importantOnly = false)
-        {
-            string name;
-
-            var important = appList.Keys.Intersect(ImportantApps);
-
-            foreach (var app in important)
-            {
-                name = GetAppName(app);
-
-                IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
-            }
-
-            if (importantOnly)
-            {
-                return;
-            }
-
-            foreach (var app in appList.Values)
-            {
-                name = GetAppName(app.ID);
-
-                /*if (changeNumber != app.Value.ChangeNumber)
+                foreach (var app in important)
                 {
-                    changeNumber = app.Value;
-
-                    CommandHandler.Send(Program.channelAnnounce, "{0}»{1} Bundled changelist {2}{3}{4} -{5} {6}",  Colors.BLUE, Colors.LIGHT_GRAY, Colors.OLIVE, changeNumber, Colors.LIGHT_GRAY, Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeNumber));
-                }*/
-
-                if (string.IsNullOrEmpty(name))
-                {
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
+                    IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
                 }
-                else
-                {
-                    name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
-                }
+            }
 
-                IRC.SendAnnounce("  App: {0}{1}{2}",
-                                 name,
-                                 app.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty,
-                                 changeNumber != app.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, app.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(app.ChangeNumber)) : string.Empty
+            // And then important packages
+            important = callback.PackageChanges.Keys.Intersect(ImportantSubs);
+
+            if (important.Count() > 5)
+            {
+                IRC.SendMain("{0}{1}{2} important packages updated, view our website for more details", Colors.OLIVE, important.Count(), Colors.NORMAL);
+            }
+            else
+            {
+                foreach (var package in important)
+                {
+                    IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
+                }
+            }
+
+            // Group apps and package changes by changelist, this will seperate into individual changelists
+            var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
+            var packageGrouping = callback.PackageChanges.Values.GroupBy(p => p.ChangeNumber);
+
+            // Join apps and packages back together based on changelist number
+            var changeLists = Utils.FullOuterJoin(appGrouping, packageGrouping, a => a.Key, p => p.Key, (a, p, key) => new
+                {
+                    ChangeNumber = key,
+
+                    Apps = a.ToList(),
+                    Packages = p.ToList(),
+                },
+                new EmptyGrouping<uint, SteamApps.PICSChangesCallback.PICSChangeData>(),
+                new EmptyGrouping<uint, SteamApps.PICSChangesCallback.PICSChangeData>())
+                .OrderBy(c => c.ChangeNumber);
+
+            foreach (var changeList in changeLists)
+            {
+                var appCount = changeList.Apps.Count;
+                var packageCount = changeList.Packages.Count;
+
+                string Message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
+                    Colors.OLIVE, changeList.ChangeNumber, Colors.NORMAL,
+                    Colors.DARK_GRAY, appCount, packageCount, Colors.NORMAL,
+                    Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
                 );
-            }
-        }
 
-        private void ProcessSubChanges(uint changeNumber, Dictionary<uint, SteamApps.PICSChangesCallback.PICSChangeData> packageList, bool importantOnly = false)
-        {
-            string name;
-
-            var important = packageList.Keys.Intersect(ImportantSubs);
-
-            foreach (var package in important)
-            {
-                name = GetPackageName(package);
-
-                IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, name, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
-            }
-
-            if (importantOnly)
-            {
-                return;
-            }
-
-            foreach (var package in packageList.Values)
-            {
-                name = GetPackageName(package.ID);
-
-                if (string.IsNullOrEmpty(name))
+                if (appCount >= 50 || packageCount >= 50)
                 {
-                    name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
-                }
-                else
-                {
-                    name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, package.ID, Colors.NORMAL, name);
+                    IRC.SendMain(Message);
                 }
 
-                IRC.SendAnnounce("  Package: {0}{1}{2}",
-                                 name,
-                                 package.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty,
-                                 changeNumber != package.ChangeNumber ? string.Format(" - bundled changelist {0}{1}{2} -{3} {4}", Colors.OLIVE, package.ChangeNumber, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(package.ChangeNumber)) : string.Empty
-                );
+                IRC.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, Message);
+
+                // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
+                if (appCount + packageCount > 500)
+                {
+                    IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it on our website", Colors.RED);
+
+                    continue;
+                }
+
+                string name;
+
+                if (appCount > 0)
+                {
+                    foreach (var app in changeList.Apps)
+                    {
+                        name = GetAppName(app.ID);
+
+                        if (string.IsNullOrEmpty(name))
+                        {
+                            name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
+                        }
+                        else
+                        {
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
+                        }
+
+                        IRC.SendAnnounce("  App: {0}{1}", name, app.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty);
+                    }
+                }
+
+                if (packageCount > 0)
+                {
+                    foreach (var package in changeList.Packages)
+                    {
+                        name = GetPackageName(package.ID);
+
+                        if (string.IsNullOrEmpty(name))
+                        {
+                            name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
+                        }
+                        else
+                        {
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, package.ID, Colors.NORMAL, name);
+                        }
+
+                        IRC.SendAnnounce("  Package: {0}{1}", name, package.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty);
+                    }
+                }
             }
         }
     }

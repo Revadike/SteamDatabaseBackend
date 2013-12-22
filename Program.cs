@@ -41,34 +41,11 @@ namespace SteamDatabaseBackend
                 DebugLog.Enabled = true;
             }
 
+            AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
+
             Console.CancelKeyPress += delegate
             {
-                Log.WriteInfo("Main", "Exiting...");
-
-                foreach (var idler in GCIdlers)
-                {
-                    try
-                    {
-                        idler.IsRunning = false;
-                        idler.Client.Disconnect();
-                    }
-                    catch { }
-                }
-
-                Steam.Instance.IsRunning = false;
-
-                try { Steam.Instance.Timer.Stop();                       } catch { }
-                try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch { }
-                try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch { }
-                try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
-                try { Steam.Instance.Client.Disconnect();                } catch { }
-
-                if (Settings.Current.IRC.Enabled)
-                {
-                    IRC.Instance.Kill();
-                }
-
-                DbWorker.ExecuteNonQuery("TRUNCATE TABLE `GC`");
+                Cleanup();
             };
 
             Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));
@@ -107,6 +84,50 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.Init();
             }
+        }
+
+        private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
+        {
+            Exception e = (Exception)args.ExceptionObject;
+
+            Log.WriteError("Unhandled Exception", "{0} (is terminating: {1})", e.Message, args.IsTerminating);
+
+            if (args.IsTerminating)
+            {
+                IRC.SendMain("Hey, xPaw and Alram, I'm crashing over here!!");
+
+                Cleanup();
+            }
+        }
+
+        private static void Cleanup()
+        {
+            Log.WriteInfo("Main", "Exiting...");
+
+            foreach (var idler in GCIdlers)
+            {
+                try
+                {
+                    idler.IsRunning = false;
+                    idler.Client.Disconnect();
+                }
+                catch { }
+            }
+
+            Steam.Instance.IsRunning = false;
+
+            try { Steam.Instance.Timer.Stop();                       } catch { }
+            try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch { }
+            try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch { }
+            try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
+            try { Steam.Instance.Client.Disconnect();                } catch { }
+
+            if (Settings.Current.IRC.Enabled)
+            {
+                IRC.Instance.Kill();
+            }
+
+            DbWorker.ExecuteNonQuery("TRUNCATE TABLE `GC`");
         }
     }
 }

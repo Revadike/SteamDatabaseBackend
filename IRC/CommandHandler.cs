@@ -4,12 +4,13 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
 using Meebey.SmartIrc4net;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using SteamKit2.Unified.Internal;
 
 namespace SteamDatabaseBackend
 {
@@ -20,10 +21,11 @@ namespace SteamDatabaseBackend
             { "!help", OnCommandHelp },
             { "!app", OnCommandApp },
             { "!sub", OnCommandPackage },
-            { "!games", OnCommandGames },
             { "!players", OnCommandPlayers },
+            { "!bins", OnCommandBinaries },
             { "!reload", OnCommandReload },
-            { "!force", OnCommandForce }
+            { "!force", OnCommandForce },
+            { "!debug", OnCommanDebug }
         };
 
         public class CommandArguments
@@ -47,11 +49,11 @@ namespace SteamDatabaseBackend
         {
             if (command.IsChatRoomCommand)
             {
-                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, Colors.StripColors(string.Format(message, args)));
+                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}", Colors.StripColors(string.Format(message, args))));
             }
             else
             {
-                IRC.Send(command.Channel, message, args);
+                IRC.Instance.Client.SendMessage(SendType.Message, command.Channel, string.Format(message, args), Priority.High);
             }
         }
 
@@ -66,15 +68,51 @@ namespace SteamDatabaseBackend
 
             if (Commands.TryGetValue(e.Data.MessageArray[0], out callbackFunction))
             {
-                Log.WriteInfo("IRC", "Handling command {0} for user {1} in channel {2}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Channel);
-
-                callbackFunction(new CommandArguments
+                var command = new CommandArguments
                 {
                     Channel = e.Data.Channel,
                     Nickname = e.Data.Nick,
                     MessageArray = e.Data.MessageArray
-                });
+                };
+
+                if (!Steam.Instance.Client.IsConnected)
+                {
+                    ReplyToCommand(command, "{0}{1}{2}: Not connected to Steam.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                    return;
+                }
+
+                if (SteamDB.IsBusy())
+                {
+                    ReplyToCommand(command, "{0}{1}{2}: The bot is currently busy.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                    return;
+                }
+
+                Log.WriteInfo("IRC", "Handling command {0} for user {1} in channel {2}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Channel);
+
+                callbackFunction(command);
             }
+        }
+
+        private static void OnCommanDebug(CommandArguments command)
+        {
+            var response = string.Format("ProcessorPool: {0}{1}/{2}{3} threads, SecondaryPool: {4}{5}/{6}{7} threads, DepotProcessor: {8}{9}/{10}{11} threads",
+                Colors.DARK_BLUE,
+                Steam.Instance.ProcessorPool.InUseThreads,
+                Steam.Instance.ProcessorPool.ActiveThreads,
+                Colors.NORMAL,
+                Colors.DARK_BLUE,
+                Steam.Instance.SecondaryPool.InUseThreads,
+                Steam.Instance.SecondaryPool.ActiveThreads,
+                Colors.NORMAL,
+                Colors.DARK_BLUE,
+                DepotProcessor.ThreadPool.InUseThreads,
+                DepotProcessor.ThreadPool.ActiveThreads,
+                Colors.NORMAL
+            );
+
+            ReplyToCommand(command, response);
         }
 
         private static void OnCommandHelp(CommandArguments command)
@@ -86,7 +124,7 @@ namespace SteamDatabaseBackend
         {
             uint appID;
 
-            if (command.MessageArray.Length == 2 && uint.TryParse(command.MessageArray[1], out appID))
+            if (command.MessageArray.Length >= 2 && uint.TryParse(command.MessageArray[1], out appID))
             {
                 var jobID = Steam.Instance.Apps.PICSGetProductInfo(appID, null, false, false);
 
@@ -108,7 +146,7 @@ namespace SteamDatabaseBackend
         {
             uint subID;
 
-            if (command.MessageArray.Length == 2 && uint.TryParse(command.MessageArray[1], out subID))
+            if (command.MessageArray.Length >= 2 && uint.TryParse(command.MessageArray[1], out subID))
             {
                 var jobID = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
 
@@ -148,10 +186,6 @@ namespace SteamDatabaseBackend
                     Command = command
                 });
             }
-            else if (command.MessageArray[1].ToLower().Equals("\x68\x6C\x33"))
-            {
-                ReplyToCommand(command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, "\x48\x61\x6C\x66\x2D\x4C\x69\x66\x65\x20\x33", Colors.NORMAL, Colors.YELLOW, "\x7e\x34\x30\x30");
-            }
             else
             {
                 string name = string.Format("%{0}%", string.Join(" ", command.MessageArray.Skip(1)).Trim());
@@ -179,54 +213,46 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnCommandGames(CommandArguments command)
+        private static void OnCommandBinaries(CommandArguments command)
         {
-            SteamID steamID = null;
-
-            if (command.MessageArray.Length > 1)
+            if (command.IsChatRoomCommand || !IRC.IsSenderOp(command.Channel, command.Nickname))
             {
-                string input = command.MessageArray[1];
-                ulong uSteamID;
-
-                if (input.StartsWith("STEAM_", StringComparison.OrdinalIgnoreCase))
-                {
-                    steamID = new SteamID(input, EUniverse.Public);
-                }
-                else if (ulong.TryParse(input, out uSteamID))
-                {
-                    steamID = new SteamID(uSteamID);
-                }
-
-                if (steamID == null || steamID == 0)
-                {
-                    ReplyToCommand(command, "{0}{1}{2}: That doesn't look like a valid SteamID", Colors.OLIVE, command.Nickname, Colors.NORMAL);
-
-                    return;
-                }
-            }
-            else if (command.IsChatRoomCommand)
-            {
-                steamID = command.SenderID;
-            }
-            else
-            {
-                ReplyToCommand(command, "Usage:{0} !games <steamid>", Colors.OLIVE);
-
                 return;
             }
 
-            var request = new CPlayer_GetOwnedGames_Request();
-            request.steamid = steamID;
-            request.include_played_free_games = true;
+            string cdn = "http://media.steampowered.com/client/";
 
-            JobID jobID = Steam.Instance.Unified.SendMessage("Player.GetOwnedGames#1", request);
-
-            SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+            using (var webClient = new WebClient())
             {
-                JobID = jobID,
-                SteamID = steamID,
-                Command = command
-            });
+                var manifest = webClient.DownloadData(string.Format("{0}steam_client_publicbeta_osx?_={1}", cdn, DateTime.UtcNow.Ticks));
+
+                var kv = new KeyValue();
+
+                using (var ms = new MemoryStream(manifest))
+                {
+                    try
+                    {
+                        kv.ReadAsText(ms);
+                    }
+                    catch
+                    {
+                        ReplyToCommand(command, "{0}{1}{2}: Something went horribly wrong and keyvalue parser died", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                        return;
+                    }
+                }
+
+                if (kv["bins_osx"].Children.Count == 0)
+                {
+                    ReplyToCommand(command, "{0}{1}{2}: Failed to find binaries in parsed response.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                    return;
+                }
+
+                kv = kv["bins_osx"];
+
+                ReplyToCommand(command, "{0}{1}{2}:{3} {4}{5} {6}({7} MB)", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+            }
         }
 
         private static void OnCommandReload(CommandArguments command)
@@ -258,7 +284,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (command.MessageArray.Length == 3)
+            if (command.MessageArray.Length >= 3)
             {
                 uint target;
 
@@ -294,7 +320,7 @@ namespace SteamDatabaseBackend
                     {
                         if (Math.Abs(Steam.Instance.PreviousChange - target) > 100)
                         {
-                            IRC.Send(e.Data.Channel, "Changelist difference is too big, will not execute");
+                            ReplyToCommand(command, "Changelist difference is too big, will not execute");
 
                             break;
                         }
@@ -303,7 +329,7 @@ namespace SteamDatabaseBackend
 
                         Steam.Instance.GetPICSChanges();
 
-                        IRC.Send(e.Data.Channel, "{0}{1}{2}: Requested changes since changelist {3}{4}", Colors.OLIVE, e.Data.Nick, Colors.NORMAL, Colors.OLIVE, target);
+                        ReplyToCommand(command, "{0}{1}{2}: Requested changes since changelist {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
 
                         break;
                     }
