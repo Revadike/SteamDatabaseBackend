@@ -24,6 +24,8 @@ namespace SteamDatabaseBackend
             Client.Encoding = Encoding.UTF8;
             Client.SendDelay = 700;
             Client.AutoRetry = true;
+            Client.AutoRetryDelay = 15;
+            Client.AutoRetryLimit = 0;
             Client.AutoRejoin = true;
             Client.AutoRelogin = true;
             Client.AutoReconnect = true;
@@ -33,7 +35,7 @@ namespace SteamDatabaseBackend
             try
             {
                 Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, 4, Settings.Current.IRC.Nickname);
+                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, 4, Settings.Current.IRC.Nickname, Settings.Current.IRC.Password);
                 Client.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
                 Client.Listen();
 

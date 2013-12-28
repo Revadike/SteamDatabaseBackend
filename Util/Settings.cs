@@ -35,6 +35,7 @@ namespace SteamDatabaseBackend
                 public string[] Servers;
                 public int Port;
                 public string Nickname;
+                public string Password;
                 public IrcChannelsJson Channel;
             }
 
