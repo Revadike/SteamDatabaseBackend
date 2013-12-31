@@ -170,21 +170,6 @@ namespace SteamDatabaseBackend
                             continue;
                         }
 
-                        // TODO: This is godlike hackiness
-                        if (keyName.Equals("extended_de") ||
-                                 keyName.Equals("extended_jp") ||
-                                 keyName.Equals("extended_cn") ||
-                                 keyName.Equals("extended_us") ||
-                                 keyName.StartsWith("extended_us ", StringComparison.Ordinal) ||
-                                 keyName.StartsWith("extended_im ", StringComparison.Ordinal) ||
-                                 keyName.StartsWith("extended_af ax al dz as ad ao ai aq ag ", StringComparison.Ordinal)
-                        )
-                        {
-                            Log.WriteWarn("App Processor", "Dammit Valve, why these long keynames: {0} - {1} ", AppID, keyName);
-
-                            continue;
-                        }
-
                         if (keyvalue.Children.Count > 0)
                         {
                             if (keyName.Equals("common_languages"))
