@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
 
         private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
-        private uint SubID;
+        private readonly uint SubID;
 
         public SubProcessor(uint subID)
         {
@@ -255,6 +255,14 @@ namespace SteamDatabaseBackend
                     }
 
                     ID = GetKeyNameID(keyName);
+
+                    if (ID == 0)
+                    {
+                        // We can't insert anything because key wasn't created
+                        Log.WriteError("Sub Processor", "Failed to create key {0} for SubID {1}, not inserting info.", keyName, SubID);
+
+                        return false;
+                    }
                 }
 
                 InsertInfo(ID, value);
