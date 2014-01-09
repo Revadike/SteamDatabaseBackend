@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
 
         private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
         private uint ChangeNumber;
-        private uint AppID;
+        private readonly uint AppID;
 
         public AppProcessor(uint appID)
         {
@@ -306,6 +306,14 @@ namespace SteamDatabaseBackend
                     }
 
                     ID = GetKeyNameID(keyName);
+
+                    if (ID == 0)
+                    {
+                        // We can't insert anything because key wasn't created
+                        Log.WriteError("App Processor", "Failed to create key {0} for AppID {1}, not inserting info.", keyName, AppID);
+
+                        return false;
+                    }
                 }
 
                 InsertInfo(ID, value);
