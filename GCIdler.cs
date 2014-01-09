@@ -58,15 +58,19 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            GameCoordinator.UpdateStatus(AppID, callback.Result.ToString());
-
             if (callback.Result == EResult.OK)
             {
+                GameCoordinator.UpdateStatus(AppID, "Launching");
+
                 GameCoordinator.PlayGame();
 
                 Thread.Sleep(TimeSpan.FromSeconds(2));
 
                 GameCoordinator.Hello();
+            }
+            else
+            {
+                GameCoordinator.UpdateStatus(AppID, callback.Result.ToString());
             }
         }
 

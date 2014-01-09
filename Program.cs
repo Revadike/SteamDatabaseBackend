@@ -90,7 +90,7 @@ namespace SteamDatabaseBackend
         {
             Exception e = (Exception)args.ExceptionObject;
 
-            Log.WriteError("Unhandled Exception", "{0} (is terminating: {1})", e.Message, args.IsTerminating);
+            Log.WriteError("Unhandled Exception", "{0} (is terminating: {1})\n{2}", e.Message, args.IsTerminating, e.StackTrace);
 
             if (args.IsTerminating)
             {

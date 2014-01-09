@@ -234,6 +234,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
 
+            IRC.SendMain("Logged in to Steam. Server time: {0} UTC", serverTime);
             IRC.SendEmoteAnnounce("is now logged in. Server time: {0} UTC", serverTime);
 
             // Prevent bugs
@@ -272,11 +273,12 @@ namespace SteamDatabaseBackend
         {
             Timer.Stop();
 
-            Log.WriteInfo("Steam", "Logged off of Steam");
+            Log.WriteInfo("Steam", "Logged off of Steam: {0}", callback.Result);
 
-            IRC.SendEmoteAnnounce("logged off of Steam.");
+            IRC.SendMain("Logged off of Steam: {0}", callback.Result);
+            IRC.SendEmoteAnnounce("logged off of Steam: {0}", callback.Result);
 
-            GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
+            GameCoordinator.UpdateStatus(0, callback.Result.ToString());
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback, JobID jobId)
