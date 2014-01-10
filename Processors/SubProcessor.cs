@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
             }
 
             string packageName = string.Empty;
-            Dictionary<string, string> apps = new Dictionary<string, string>();
+            var apps = new Dictionary<uint, string>();
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
@@ -62,16 +62,9 @@ namespace SteamDatabaseBackend
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
-                string appID;
-
                 while (Reader.Read())
                 {
-                    appID = Reader.GetString("AppID");
-
-                    if (!apps.ContainsKey(appID))
-                    {
-                        apps.Add(appID, Reader.GetString("Type"));
-                    }
+                    apps.Add(Reader.GetUInt32("AppID"), Reader.GetString("Type"));
                 }
             }
 
@@ -118,32 +111,43 @@ namespace SteamDatabaseBackend
 
                     foreach (KeyValue childrenApp in section.Children)
                     {
+                        uint appID = uint.Parse(childrenApp.Value);
+
                         // Is this appid already in this package?
-                        if (apps.ContainsKey(childrenApp.Value))
+                        if (apps.ContainsKey(appID))
                         {
                             // Is this appid's type the same?
-                            if (apps[childrenApp.Value] != type)
+                            if (apps[appID] != type)
                             {
                                 DbWorker.ExecuteNonQuery("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID",
                                                          new MySqlParameter("@SubID", SubID),
-                                                         new MySqlParameter("@AppID", childrenApp.Value),
+                                                         new MySqlParameter("@AppID", appID),
                                                          new MySqlParameter("@Type", type)
                                 );
 
-                                MakeHistory("added_to_sub", typeID, apps[childrenApp.Value].Equals("app") ? "0" : "1", childrenApp.Value);
+                                MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
                             }
 
-                            apps.Remove(childrenApp.Value);
+                            apps.Remove(appID);
                         }
                         else
                         {
                             DbWorker.ExecuteNonQuery("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE `Type` = @Type",
                                                      new MySqlParameter("@SubID", SubID),
-                                                     new MySqlParameter("@AppID", childrenApp.Value),
+                                                     new MySqlParameter("@AppID", appID),
                                                      new MySqlParameter("@Type", type)
                             );
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
+
+                            if (SteamProxy.Instance.ImportantApps.Contains(appID))
+                            {
+                                IRC.SendMain("Important app {0}{1}{2} was added to package {3}{4}{5} -{6} {7}",
+                                             Colors.OLIVE, SteamProxy.GetAppName(appID), Colors.NORMAL,
+                                             Colors.OLIVE, packageName, Colors.NORMAL,
+                                             Colors.DARK_BLUE, SteamDB.GetPackageURL(SubID, "history")
+                                );
+                            }
                         }
                     }
                 }
@@ -202,7 +206,16 @@ namespace SteamDatabaseBackend
 
                 uint typeID = (uint)(app.Value.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
 
-                MakeHistory("removed_from_sub", typeID, app.Key);
+                MakeHistory("removed_from_sub", typeID, app.Key.ToString());
+
+                if (SteamProxy.Instance.ImportantApps.Contains(app.Key))
+                {
+                    IRC.SendMain("Important app {0}{1}{2} was removed from package {3}{4}{5} -{6} {7}",
+                        Colors.OLIVE, SteamProxy.GetAppName(app.Key), Colors.NORMAL,
+                        Colors.OLIVE, packageName, Colors.NORMAL,
+                        Colors.DARK_BLUE, SteamDB.GetPackageURL(SubID, "history")
+                    );
+                }
             }
 
 #if DEBUG
