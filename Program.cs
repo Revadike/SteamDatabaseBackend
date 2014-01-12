@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
                 var instance = new GCIdler(idler.AppID, idler.Username, idler.Password);
 
                 thread = new Thread(new ThreadStart(instance.Run));
-                thread.Name = "Steam";
+                thread.Name = string.Format("GC Idler {0}", idler.AppID);
                 thread.Start();
 
                 GCIdlers.Add(instance);
