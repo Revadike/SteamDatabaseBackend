@@ -387,7 +387,7 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.SendMain("{0}{1}{2} important apps updated, view our website for more details", Colors.OLIVE, important.Count(), Colors.NORMAL);
+                IRC.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {
@@ -402,7 +402,7 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.SendMain("{0}{1}{2} important packages updated, view our website for more details", Colors.OLIVE, important.Count(), Colors.NORMAL);
+                IRC.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {

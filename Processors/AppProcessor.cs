@@ -42,6 +42,18 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            try
+            {
+                TryProcess(productInfo);
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("App Processor", "Caught exception while processing: {0}\n{1}", e.Message, e.StackTrace);
+            }
+        }
+
+        private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())

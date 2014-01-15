@@ -64,6 +64,26 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (e.Data.Message == "!relogin" && IRC.IsSenderOp(e.Data.Channel, e.Data.Nick))
+            {
+                if (Steam.Instance.Client.IsConnected)
+                {
+                    Steam.Instance.Client.Disconnect();
+                }
+
+                foreach (var idler in Program.GCIdlers)
+                {
+                    if (idler.Client.IsConnected)
+                    {
+                        idler.Client.Disconnect();
+                    }
+                }
+
+                Log.WriteInfo("IRC", "Relogin forced by user {0} in channel {1}", e.Data.Nick, e.Data.Channel);
+
+                IRC.Send(e.Data.Channel, "You're responsible for death of everything and everyone now.");
+            }
+
             Action<CommandArguments> callbackFunction;
 
             if (Commands.TryGetValue(e.Data.MessageArray[0], out callbackFunction))
@@ -126,7 +146,11 @@ namespace SteamDatabaseBackend
 
             if (command.MessageArray.Length >= 2 && uint.TryParse(command.MessageArray[1], out appID))
             {
-                var jobID = Steam.Instance.Apps.PICSGetProductInfo(appID, null, false, false);
+                var apps = new List<uint>();
+
+                apps.Add(appID);
+
+                var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
 
                 SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
                 {

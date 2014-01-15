@@ -105,6 +105,7 @@ namespace SteamDatabaseBackend
 
             CallbackManager.Register(new JobCallback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
             CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
+            CallbackManager.Register(new JobCallback<SteamApps.PICSTokensCallback>(OnPICSTokens));
 
             // irc specific
             if (Settings.Current.FullRun == 0)
@@ -339,7 +340,8 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
 
-            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
+            Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package)));
+            Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>());
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
@@ -349,13 +351,16 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Steam", "Changelist {0} -> {1} ({2} apps, {3} packages)", PreviousChange, callback.CurrentChangeNumber, callback.AppChanges.Count, callback.PackageChanges.Count);
+            var packageChangesCount = callback.PackageChanges.Count;
+            var appChangesCount = callback.AppChanges.Count;
+
+            Log.WriteInfo("Steam", "Changelist {0} -> {1} ({2} apps, {3} packages)", PreviousChange, callback.CurrentChangeNumber, appChangesCount, packageChangesCount);
 
             PreviousChange = callback.CurrentChangeNumber;
 
             DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
 
-            if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
+            if (appChangesCount == 0 && packageChangesCount == 0)
             {
                 IRC.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChange, Colors.DARK_GRAY);
 
@@ -364,10 +369,17 @@ namespace SteamDatabaseBackend
 
             SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnPICSChanges, callback);
 
-            Apps.PICSGetProductInfo(callback.AppChanges.Keys, callback.PackageChanges.Keys, false, false);
-
-            if (callback.AppChanges.Count > 0)
+            // Packages have no tokens so we request info for them right away
+            if (packageChangesCount > 0)
             {
+                Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package)));
+            }
+
+            if (appChangesCount > 0)
+            {
+                // Get all app tokens
+                Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>());
+
                 SecondaryPool.QueueWorkItem(delegate
                 {
                     string changes = string.Empty;
@@ -393,7 +405,7 @@ namespace SteamDatabaseBackend
                 });
             }
 
-            if (callback.PackageChanges.Count > 0)
+            if (packageChangesCount > 0)
             {
                 SecondaryPool.QueueWorkItem(delegate
                 {
@@ -419,6 +431,26 @@ namespace SteamDatabaseBackend
                     }
                 });
             }
+        }
+
+        private void OnPICSTokens(SteamApps.PICSTokensCallback callback, JobID jobID)
+        {
+            Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
+
+            var apps = callback.AppTokensDenied
+                .Select(app => NewPICSRequest(app))
+                .Concat(callback.AppTokens.Select(app => NewPICSRequest(app.Key, app.Value)));
+
+            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == jobID);
+
+            if (request != null)
+            {
+                request.JobID = Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
+
+                return;
+            }
+
+            Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
         }
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
@@ -476,6 +508,11 @@ namespace SteamDatabaseBackend
                     Log.WriteWarn("Steam", "Unknown SubID: {0} - We don't handle these yet", package);
                 }
             }
+        }
+
+        private static SteamApps.PICSRequest NewPICSRequest(uint id, ulong access_token = 0)
+        {
+            return new SteamApps.PICSRequest(id, access_token, false);
         }
     }
 }

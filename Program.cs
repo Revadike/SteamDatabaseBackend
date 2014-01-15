@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
 {
     internal static class Program
     {
-        private static List<GCIdler> GCIdlers = new List<GCIdler>();
+        public static readonly List<GCIdler> GCIdlers = new List<GCIdler>();
 
         public static void Main()
         {

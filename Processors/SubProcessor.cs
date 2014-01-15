@@ -41,6 +41,18 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            try
+            {
+                TryProcess(productInfo);
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Sub Processor", "Caught exception while processing: {0}\n{1}", e.Message, e.StackTrace);
+            }
+        }
+
+        private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        {
             string packageName = string.Empty;
             var apps = new Dictionary<uint, string>();
 
