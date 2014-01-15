@@ -166,7 +166,8 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = "root_change_number";
 
-                    ProcessKey(sectionName, "change_number", section.AsString());
+                    // TODO: Remove this key, move it to Apps table itself
+                    ProcessKey(sectionName, "change_number", productInfo.ChangeNumber.ToString()); //section.AsString());
                 }
                 else if (sectionName == "common" || sectionName == "extended")
                 {
