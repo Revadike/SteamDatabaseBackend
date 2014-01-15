@@ -323,7 +323,11 @@ namespace SteamDatabaseBackend
                 {
                     case "app":
                     {
-                        Steam.Instance.Apps.PICSGetProductInfo(target, null, false, false);
+                        var apps = new List<uint>();
+
+                        apps.Add(target);
+
+                        var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
 
                         ReplyToCommand(command, "{0}{1}{2}: Forced update for AppID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
 
