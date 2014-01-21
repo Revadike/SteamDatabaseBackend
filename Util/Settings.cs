@@ -46,7 +46,6 @@ namespace SteamDatabaseBackend
             }
 
             public List<ulong> ChatRooms;
-            public Dictionary<uint, List<string>> ImportantFiles;
             public SteamGCIdler[] GameCoordinatorIdlers;
             public SteamJson Steam;
             public IrcJson IRC;

@@ -40,5 +40,10 @@
 			"Main": "#steamdb-test",
 			"Announce": "#steamdb-test"
 		}
-	}
+	},
+    
+    "ChatRooms":
+    [
+        
+    ]
 }

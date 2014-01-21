@@ -16,8 +16,6 @@ namespace SteamDatabaseBackend
 {
     public static class DepotProcessor
     {
-        private const string FILES_DIRECTORY = "files";
-
         private sealed class DepotFile
         {
             public string Hash;
@@ -52,18 +50,6 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.AppOwnershipTicketCallback>(OnAppOwnershipTicket));
             Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
-
-            if (Settings.Current.ImportantFiles.Count > 0)
-            {
-                try
-                {
-                    Directory.CreateDirectory(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILES_DIRECTORY));
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteError("Important Files", "Unable to create directory: {0}", ex.Message);
-                }
-            }
         }
 
         public static void Process(uint appID, uint changeNumber, KeyValue depots)
@@ -379,49 +365,6 @@ namespace SteamDatabaseBackend
             lock (ManifestJobs)
             {
                 Log.WriteDebug("Depot Processor", "DepotID: Processed {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count);
-            }
-
-            // Our job is done here, now download important files if any
-            if (Settings.Current.ImportantFiles.ContainsKey(request.DepotID))
-            {
-                // TODO: Horribly inefficient
-                var importantFiles = sortedFiles.Where(x => Settings.Current.ImportantFiles[request.DepotID].Contains(x.FileName.Replace('\\', '/')));
-
-                DownloadFiles(importantFiles, request.DepotID, cdnClient);
-            }
-        }
-
-        private static void DownloadFiles(IEnumerable<DepotManifest.FileData> importantFiles, uint DepotID, CDNClient cdnClient)
-        {
-            foreach (var file in importantFiles)
-            {
-                Log.WriteDebug("Important Files", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
-
-                string downloadPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILES_DIRECTORY, string.Format("{0}_{1}", DepotID, file.FileName.Replace('\\', '/').Replace('/', '_')));
-
-                using (FileStream fs = File.Open(downloadPath, FileMode.OpenOrCreate))
-                {
-                    fs.SetLength((long)file.TotalSize);
-
-                    foreach (var chunk in file.Chunks)
-                    {
-                        try
-                        {
-                            var chunkData = cdnClient.DownloadDepotChunk(chunk);
-
-                            fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                            fs.Write(chunkData.Data, 0, chunkData.Data.Length);
-
-                            Log.WriteDebug("Important Files", "Downloaded {0}", file.FileName);
-
-                            break;
-                        }
-                        catch (Exception e)
-                        {
-                            Log.WriteDebug("Important Files", "Fail {0}", e.Message);
-                        }
-                    }
-                }
             }
         }
 
