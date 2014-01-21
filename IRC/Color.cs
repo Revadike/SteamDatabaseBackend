@@ -12,7 +12,7 @@ namespace SteamDatabaseBackend
         public const char NORMAL = (char)15;
         public static readonly string WHITE = (char)3 + "00";
         public static readonly string BLACK = (char)3 + "01";
-        public static readonly string DARK_BLUE = (char)3 + "02";        
+        public static readonly string DARK_BLUE = (char)3 + "02";
         public static readonly string DARK_GREEN = (char)3 + "03";
         public static readonly string RED = (char)3 + "04";
         public static readonly string BROWN = (char)3 + "05";

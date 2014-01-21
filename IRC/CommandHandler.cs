@@ -142,9 +142,16 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandApp(CommandArguments command)
         {
+            if (command.MessageArray.Length < 2)
+            {
+                ReplyToCommand(command, "Usage:{0} !app <appid or partial game name>", Colors.OLIVE);
+
+                return;
+            }
+
             uint appID;
 
-            if (command.MessageArray.Length >= 2 && uint.TryParse(command.MessageArray[1], out appID))
+            if (uint.TryParse(command.MessageArray[1], out appID))
             {
                 var apps = new List<uint>();
 
@@ -162,7 +169,33 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                ReplyToCommand(command, "Usage:{0} !app <appid>", Colors.OLIVE);
+                string name = string.Format("%{0}%", string.Join(" ", command.MessageArray.Skip(1)).Trim());
+
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                {
+                    if (Reader.Read())
+                    {
+                        appID = Reader.GetUInt32("AppID");
+
+                        var apps = new List<uint>();
+
+                        apps.Add(appID);
+
+                        var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
+
+                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                            {
+                                JobID = jobID,
+                                Target = appID,
+                                Type = SteamProxy.IRCRequestType.TYPE_APP,
+                                Command = command
+                            });
+                    }
+                    else
+                    {
+                        ReplyToCommand(command, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                    }
+                }
             }
         }
 
@@ -327,7 +360,7 @@ namespace SteamDatabaseBackend
 
                         apps.Add(target);
 
-                        var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
+                        Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
 
                         ReplyToCommand(command, "{0}{1}{2}: Forced update for AppID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
 
