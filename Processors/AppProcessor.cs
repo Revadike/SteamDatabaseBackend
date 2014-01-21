@@ -107,7 +107,10 @@ namespace SteamDatabaseBackend
                     MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
 
                     // TODO: Testy testy
-                    if (Settings.Current.ChatRooms.Count > 0 && !appName.StartsWith("SteamApp", StringComparison.Ordinal) && !appName.StartsWith("ValveTest", StringComparison.Ordinal))
+                    if (Settings.Current.FullRun == 0
+                    &&  Settings.Current.ChatRooms.Count > 0
+                    &&  !appName.StartsWith("SteamApp", StringComparison.Ordinal)
+                    &&  !appName.StartsWith("ValveTest", StringComparison.Ordinal))
                     {
                         Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: New {0} was published: {1} - {2}", currentType, productInfo.KeyValues["common"]["name"].AsString(), SteamDB.GetAppURL(AppID)));
                     }
@@ -124,7 +127,11 @@ namespace SteamDatabaseBackend
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
 
                     // TODO: Testy testy
-                    if (Settings.Current.ChatRooms.Count > 0 && !string.Equals(appName, newAppName, StringComparison.OrdinalIgnoreCase) && !newAppName.StartsWith("SteamApp", StringComparison.Ordinal) && !newAppName.StartsWith("ValveTest", StringComparison.Ordinal))
+                    if (Settings.Current.FullRun == 0
+                    &&  Settings.Current.ChatRooms.Count > 0
+                    &&  !string.Equals(appName, newAppName, StringComparison.OrdinalIgnoreCase)
+                    &&  !newAppName.StartsWith("SteamApp", StringComparison.Ordinal)
+                    &&  !newAppName.StartsWith("ValveTest", StringComparison.Ordinal))
                     {
                         Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: {0} name was changed - {1}\n« {2}\n» {3}", currentType, SteamDB.GetAppURL(AppID, "history"), appName, newAppName));
                     }

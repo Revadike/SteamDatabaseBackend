@@ -95,7 +95,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                Log.WriteDebug(Name, "Unhandled GC message - EMsg: {0} ({1})", callback.EMsg, GetEMsgDisplayString(callback.EMsg));
+                Log.WriteDebug(Name, "Unhandled GC message - EMsg: {0} ({1})", callback.EMsg, GetEMsgDisplayString((int)callback.EMsg));
             }
 
             // If we hear from GC, but it's not hello, keep bugging it
@@ -187,7 +187,7 @@ namespace SteamDatabaseBackend
             UpdateStatus(AppID, LastStatus.ToString());
         }
 
-        private static string GetEMsgDisplayString(uint eMsg)
+        private static string GetEMsgDisplayString(int eMsg)
         {
             Type[] eMsgEnums =
             {
@@ -202,9 +202,9 @@ namespace SteamDatabaseBackend
 
             foreach (var enumType in eMsgEnums)
             {
-                if (Enum.IsDefined(enumType, (int)eMsg))
+                if (Enum.IsDefined(enumType, eMsg))
                 {
-                    return Enum.GetName(enumType, (int)eMsg);
+                    return Enum.GetName(enumType, eMsg);
                 }
             }
 

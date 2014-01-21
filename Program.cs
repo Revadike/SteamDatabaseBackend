@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
                 Cleanup();
             };
 
-            Thread thread = new Thread(new ThreadStart(Steam.Instance.Init));
+            var thread = new Thread(new ThreadStart(Steam.Instance.Init));
             thread.Name = "Steam";
             thread.Start();
 
@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
         {
-            Exception e = (Exception)args.ExceptionObject;
+            var e = (Exception)args.ExceptionObject;
 
             Log.WriteError("Unhandled Exception", "{0} (is terminating: {1})\n{2}", e.Message, args.IsTerminating, e.StackTrace);
 

@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Collections.Generic;
 using System.IO;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
@@ -13,51 +12,6 @@ namespace SteamDatabaseBackend
 {
     public static class Settings
     {
-        public sealed class SettingsJson
-        {
-            public sealed class SteamJson
-            {
-                public uint IdleAppID;
-                public string Username;
-                public string Password;
-            }
-
-            public sealed class SteamGCIdler
-            {
-                public uint AppID;
-                public string Username;
-                public string Password;
-            }
-
-            public sealed class IrcJson
-            {
-                public bool Enabled;
-                public string[] Servers;
-                public int Port;
-                public string Nickname;
-                public string Password;
-                public IrcChannelsJson Channel;
-            }
-
-            public sealed class IrcChannelsJson
-            {
-                public string Main;
-                public string Announce;
-            }
-
-            public List<ulong> ChatRooms;
-            public SteamGCIdler[] GameCoordinatorIdlers;
-            public SteamJson Steam;
-            public IrcJson IRC;
-
-            public Uri BaseURL;
-            public Uri RawBaseURL;
-            public string ConnectionString;
-            public uint FullRun;
-            public bool SteamKitDebug;
-            public bool LogToFile;
-        }
-
         private static SettingsJson _current = new SettingsJson();
 
         public static SettingsJson Current
@@ -84,7 +38,7 @@ namespace SteamDatabaseBackend
                 throw new InvalidDataException("Missing Steam credentials in settings file");
             }
 
-            using (MySqlConnection connection = new MySqlConnection(Settings.Current.ConnectionString))
+            using (var connection = new MySqlConnection(Settings.Current.ConnectionString))
             {
                 connection.Open(); // Exception will be caught by whatever called Load()
             }

@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
         {
             string value = string.Empty;
 
-            using (StringWriter sw = new StringWriter(new StringBuilder()))
+            using (var sw = new StringWriter(new StringBuilder()))
             {
                 using (JsonWriter w = new JsonTextWriter(sw))
                 {

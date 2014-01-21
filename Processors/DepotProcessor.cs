@@ -5,7 +5,6 @@
  */
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
@@ -216,7 +215,7 @@ namespace SteamDatabaseBackend
 
         private static void DownloadManifest(ManifestJob request)
         {
-            CDNClient cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
+            var cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
             List<CDNClient.Server> cdnServers;
 
             try
@@ -280,8 +279,8 @@ namespace SteamDatabaseBackend
             var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
 
             bool shouldHistorize = false;
-            List<DepotFile> filesNew = new List<DepotFile>();
-            List<DepotFile> filesOld = new List<DepotFile>();
+            var filesNew = new List<DepotFile>();
+            var filesOld = new List<DepotFile>();
 
             foreach (var file in sortedFiles)
             {
@@ -325,7 +324,7 @@ namespace SteamDatabaseBackend
 
             if (shouldHistorize)
             {
-                List<string> filesAdded = new List<string>();
+                var filesAdded = new List<string>();
 
                 foreach (var file in filesNew)
                 {
