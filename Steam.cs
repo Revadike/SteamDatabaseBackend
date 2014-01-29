@@ -11,6 +11,8 @@ using System.Threading;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
+using System.Collections.ObjectModel;
+using System.Net;
 
 namespace SteamDatabaseBackend
 {
@@ -39,6 +41,8 @@ namespace SteamDatabaseBackend
         public SmartThreadPool SecondaryPool { get; private set; }
 
         private string AuthCode;
+
+        private ReadOnlyCollection<IPEndPoint> Servers;
 
         public void GetPICSChanges()
         {
@@ -128,13 +132,30 @@ namespace SteamDatabaseBackend
                 CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
             }
 
+            // Use EU servers
+            Servers = new ReadOnlyCollection<IPEndPoint>( new List<IPEndPoint>
+            {
+                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27017 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27018 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27019 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27017 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27018 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27019 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27017 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27018 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27019 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27017 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27018 ),
+                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27019 )
+            } );
+
             DepotProcessor.Init();
 
             GetLastChangeNumber();
 
             IsRunning = true;
 
-            Client.Connect();
+            Client.Connect(Servers[ new Random().Next( Servers.Count ) ]);
 
             while (IsRunning)
             {
