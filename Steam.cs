@@ -511,23 +511,19 @@ namespace SteamDatabaseBackend
                 });
             }
 
-            // Only handle when fullrun is disabled or if it specifically is running with mode "2" (full run inc. unknown apps)
-            if (Settings.Current.FullRun != 1)
+            foreach (uint app in callback.UnknownApps)
             {
-                foreach (uint app in callback.UnknownApps)
-                {
-                    uint workaround = app;
+                uint workaround = app;
 
-                    ProcessorPool.QueueWorkItem(delegate
-                    {
-                        new AppProcessor(workaround).ProcessUnknown();
-                    });
-                }
-
-                foreach (uint package in callback.UnknownPackages)
+                ProcessorPool.QueueWorkItem(delegate
                 {
-                    Log.WriteWarn("Steam", "Unknown SubID: {0} - We don't handle these yet", package);
-                }
+                    new AppProcessor(workaround).ProcessUnknown();
+                });
+            }
+
+            if (callback.UnknownPackages.Count > 0)
+            {
+                Log.WriteError("Steam", "There are {0} unknown packages, we don't handle these!", callback.UnknownPackages.Count);
             }
         }
 
