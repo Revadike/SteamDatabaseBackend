@@ -216,20 +216,30 @@ namespace SteamDatabaseBackend
         private static void DownloadManifest(ManifestJob request)
         {
             var cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
-            List<CDNClient.Server> cdnServers;
+            List<CDNClient.Server> cdnServers = null;
 
-            try
+            for (var i = 0; i <= 5; i++)
             {
-                cdnServers = cdnClient.FetchServerList();
-
-                if (cdnServers.Count == 0)
+                try
                 {
-                    throw new InvalidOperationException("No servers returned"); // Great programming!
+                    cdnServers = cdnClient.FetchServerList();
+
+                    if (cdnServers.Count > 0)
+                    {
+                        break;
+                    }
                 }
+                catch { }
             }
-            catch
+
+            if (cdnServers == null || cdnServers.Count == 0)
             {
                 Log.WriteError("Depot Processor", "Failed to get server list for depot {0}", request.DepotID);
+
+                if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
+                {
+                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to fetch server list", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED);
+                }
 
                 lock (ManifestJobs)
                 {
@@ -265,7 +275,7 @@ namespace SteamDatabaseBackend
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
-                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} manifest download failed from {7} servers", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED, cdnServers.Count);
+                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to download depot manifest from {7} servers", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED, cdnServers.Count);
                 }
 
                 return;
