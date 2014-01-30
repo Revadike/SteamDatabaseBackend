@@ -4,15 +4,16 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using System.Collections.ObjectModel;
-using System.Net;
 
 namespace SteamDatabaseBackend
 {
@@ -39,6 +40,9 @@ namespace SteamDatabaseBackend
 
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
+
+        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
+        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
         private string AuthCode;
 
@@ -83,6 +87,9 @@ namespace SteamDatabaseBackend
 
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
+
+            ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
+            ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
 
             Timer = new System.Timers.Timer();
             Timer.Elapsed += OnTimer;
@@ -372,6 +379,14 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (ProcessorPool.IsIdle)
+            {
+                Log.WriteDebug("Steam", "Cleaning processed apps and subs");
+
+                ProcessedApps.Clear();
+                ProcessedSubs.Clear();
+            }
+
             var packageChangesCount = callback.PackageChanges.Count;
             var appChangesCount = callback.AppChanges.Count;
 
@@ -493,10 +508,22 @@ namespace SteamDatabaseBackend
 
                 var workaround = app;
 
-                ProcessorPool.QueueWorkItem(delegate
+                IWorkItemResult mostRecentItem;
+                ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
+
+                var workerItem = ProcessorPool.QueueWorkItem(delegate
                 {
+                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    {
+                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing", workaround.Key);
+                        
+                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                    }
+
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
+
+                ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
             }
 
             foreach (var package in callback.Packages)
@@ -505,20 +532,44 @@ namespace SteamDatabaseBackend
 
                 var workaround = package;
 
-                ProcessorPool.QueueWorkItem(delegate
+                IWorkItemResult mostRecentItem;
+                ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
+
+                var workerItem = ProcessorPool.QueueWorkItem(delegate
                 {
+                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    {
+                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing", workaround.Key);
+
+                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                    }
+
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
+
+                ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
             }
 
             foreach (uint app in callback.UnknownApps)
             {
                 uint workaround = app;
 
-                ProcessorPool.QueueWorkItem(delegate
+                IWorkItemResult mostRecentItem;
+                ProcessedApps.TryGetValue(workaround, out mostRecentItem);
+
+                var workerItem = ProcessorPool.QueueWorkItem(delegate
                 {
+                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    {
+                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing (unknown)", workaround);
+
+                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                    }
+
                     new AppProcessor(workaround).ProcessUnknown();
                 });
+
+                ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
             }
 
             if (callback.UnknownPackages.Count > 0)

@@ -117,19 +117,15 @@ namespace SteamDatabaseBackend
 
         private static void OnCommanDebug(CommandArguments command)
         {
-            var response = string.Format("ProcessorPool: {0}{1}/{2}{3} threads, SecondaryPool: {4}{5}/{6}{7} threads, DepotProcessor: {8}{9}/{10}{11} threads",
-                Colors.DARK_BLUE,
+            var response = string.Format("ProcessorPool: {0}/{1} threads, SecondaryPool: {2}/{3} threads, DepotProcessor: {4}/{5} threads, ProcessedApps: {6}, ProcessedSubs: {7}",
                 Steam.Instance.ProcessorPool.InUseThreads,
                 Steam.Instance.ProcessorPool.ActiveThreads,
-                Colors.NORMAL,
-                Colors.DARK_BLUE,
                 Steam.Instance.SecondaryPool.InUseThreads,
                 Steam.Instance.SecondaryPool.ActiveThreads,
-                Colors.NORMAL,
-                Colors.DARK_BLUE,
                 DepotProcessor.ThreadPool.InUseThreads,
                 DepotProcessor.ThreadPool.ActiveThreads,
-                Colors.NORMAL
+                Steam.Instance.ProcessedApps.Count,
+                Steam.Instance.ProcessedSubs.Count
             );
 
             ReplyToCommand(command, response);

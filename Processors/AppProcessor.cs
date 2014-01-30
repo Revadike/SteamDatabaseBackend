@@ -36,12 +36,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
             }
 
-            if (productInfo.KeyValues == null)
-            {
-                Log.WriteWarn("App Processor", "AppID {0} is empty, wot do I do?", AppID);
-                return;
-            }
-
             try
             {
                 TryProcess(productInfo);

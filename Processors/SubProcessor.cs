@@ -35,12 +35,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
-            if (productInfo.KeyValues == null || productInfo.KeyValues.Children.Count == 0)
-            {
-                Log.WriteWarn("Sub Processor", "SubID {0} is empty, wot do I do?", SubID);
-                return;
-            }
-
             try
             {
                 TryProcess(productInfo);
