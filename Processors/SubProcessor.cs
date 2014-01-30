@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Sub Processor", "Caught exception while processing: {0}\n{1}", e.Message, e.StackTrace);
+                Log.WriteError("Sub Processor", "Caught exception while processing sub {0}: {1}\n{2}", SubID, e.Message, e.StackTrace);
             }
         }
 

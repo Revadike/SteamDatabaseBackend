@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("App Processor", "Caught exception while processing: {0}\n{1}", e.Message, e.StackTrace);
+                Log.WriteError("App Processor", "Caught exception while processing app {0}: {1}\n{2}", AppID, e.Message, e.StackTrace);
             }
         }
 
@@ -237,7 +237,7 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(appName)) // We don't have the app in our database yet
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName)",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@AppName", string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID))
                     );
