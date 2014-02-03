@@ -282,19 +282,19 @@ namespace SteamDatabaseBackend
             {
                 Timer.Start();
 
-                if (GameCoordinator != null)
-                {
-                    GameCoordinator.PlayGame();
-                }
-
                 foreach (var chatRoom in Settings.Current.ChatRooms)
                 {
                     Friends.JoinChat(chatRoom);
                 }
 
-#if DEBUG
-                Apps.PICSGetProductInfo(440, 61, false, false);
-#endif
+                if (GameCoordinator != null)
+                {
+                    GameCoordinator.PlayGame();
+
+                    Thread.Sleep(TimeSpan.FromSeconds(2));
+
+                    GameCoordinator.Hello();
+                }
             }
         }
 
@@ -552,6 +552,8 @@ namespace SteamDatabaseBackend
 
             foreach (uint app in callback.UnknownApps)
             {
+                Log.WriteInfo("Steam", "Unknown AppID: {0}", app);
+
                 uint workaround = app;
 
                 IWorkItemResult mostRecentItem;

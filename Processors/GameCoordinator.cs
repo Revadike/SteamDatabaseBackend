@@ -221,7 +221,7 @@ namespace SteamDatabaseBackend
             // We need to propagate Steam's status to main idler
             if (appID == 0 && Settings.Current.Steam.IdleAppID > 0)
             {
-                UpdateStatus(Settings.Current.Steam.IdleAppID, status);
+                UpdateStatus(Settings.Current.Steam.IdleAppID, status.Equals("OK") ? "Launching" : status);
             }
         }
     }
