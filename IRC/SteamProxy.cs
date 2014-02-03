@@ -222,7 +222,11 @@ namespace SteamDatabaseBackend
 
             foreach (var announcement in callback.Announcements)
             {
-                message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}", Colors.OLIVE, groupName, Colors.NORMAL, Colors.GREEN, announcement.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, announcement.ID);
+                message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/announcements/detail/{8}",
+                                            Colors.OLIVE, groupName, Colors.NORMAL,
+                                            Colors.GREEN, announcement.Headline, Colors.NORMAL,
+                                            Colors.DARK_BLUE, callback.ClanID, announcement.ID
+                                        );
 
                 IRC.SendMain(message);
 
@@ -239,7 +243,12 @@ namespace SteamDatabaseBackend
             {
                 if (groupEvent.JustPosted)
                 {
-                    message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8}", Colors.OLIVE, groupName, Colors.NORMAL, Colors.GREEN, groupEvent.Headline, Colors.NORMAL, Colors.DARK_BLUE, callback.ClanID, groupEvent.ID);
+                    message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} http://steamcommunity.com/gid/{7}/events/{8} {9}({10})",
+                                                Colors.OLIVE, groupName, Colors.NORMAL,
+                                                Colors.GREEN, groupEvent.Headline,Colors.NORMAL,
+                                                Colors.DARK_BLUE, callback.ClanID, groupEvent.ID,
+                                                Colors.DARK_GRAY, groupEvent.EventTime.ToString()
+                                            );
 
                     // Send events only to steamlug channel
                     if (callback.ClanID.Equals(SteamLUG))
