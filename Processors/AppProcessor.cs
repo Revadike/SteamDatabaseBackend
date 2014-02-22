@@ -257,6 +257,18 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
+            try
+            {
+                TryProcessUnknown();
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("App Processor", "Caught exception while processing unknown app {0}: {1}\n{2}", AppID, e.Message, e.StackTrace);
+            }
+        }
+
+        private void TryProcessUnknown()
+        {
             string AppName;
 
             using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
@@ -269,6 +281,8 @@ namespace SteamDatabaseBackend
                 AppName = DbWorker.GetString("Name", MainReader);
             }
 
+            bool historyChanged = false;
+
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
@@ -276,6 +290,8 @@ namespace SteamDatabaseBackend
                     if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
                     {
                         MakeHistory("removed_key", Reader.GetUInt32("Key"), DbWorker.GetString("Value", Reader));
+
+                        historyChanged = true;
                     }
                 }
             }
@@ -287,6 +303,14 @@ namespace SteamDatabaseBackend
             if (!AppName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
             {
                 MakeHistory("deleted_app", 0, AppName);
+
+                historyChanged = true;
+            }
+
+            // TODO: This is a dirty hack so we somehow track these app changes
+            if (!historyChanged && Settings.Current.FullRun == 0)
+            {
+                MakeHistory("removed_key", GetKeyNameID("root_change_number"), "0", "0");
             }
         }
 

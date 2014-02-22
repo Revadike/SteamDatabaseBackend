@@ -169,13 +169,6 @@ namespace SteamDatabaseBackend
 
             string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.status);
 
-            if (LastStatus != msg.status)
-            {
-                IRC.SendMain(message);
-
-                LastStatus = msg.status;
-            }
-
             IRC.SendAnnounce(message);
 
             if (LastStatus == GCConnectionStatus.GCConnectionStatus_NO_SESSION)

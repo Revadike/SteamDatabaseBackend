@@ -282,11 +282,6 @@ namespace SteamDatabaseBackend
             {
                 Timer.Start();
 
-                foreach (var chatRoom in Settings.Current.ChatRooms)
-                {
-                    Friends.JoinChat(chatRoom);
-                }
-
                 if (GameCoordinator != null)
                 {
                     GameCoordinator.PlayGame();
@@ -340,6 +335,11 @@ namespace SteamDatabaseBackend
         private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
             Friends.SetPersonaState(EPersonaState.Busy);
+
+            foreach (var chatRoom in Settings.Current.ChatRooms)
+            {
+                Friends.JoinChat(chatRoom);
+            }
         }
 
         private void OnLicenseListCallback(SteamApps.LicenseListCallback licenseList)
@@ -352,6 +352,16 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("Steam", "{0} Licenses: {1}", licenseList.LicenseList.Count, string.Join(", ", licenseList.LicenseList.Select(lic => lic.PackageID)));
+
+            var timeNow = DateTime.Now;
+
+            foreach(var license in licenseList.LicenseList)
+            {
+                if (timeNow.Subtract(license.TimeCreated).TotalSeconds < 3600)
+                {
+                    IRC.SendMain("New {0} license granted: {1}{2}{3} -{4} {5}", license.LicenseType, Colors.OLIVE, SteamProxy.GetPackageName(license.PackageID), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(license.PackageID, "history"));
+                }
+            }
         }
 
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback, JobID job)
