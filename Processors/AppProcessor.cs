@@ -398,6 +398,18 @@ namespace SteamDatabaseBackend
             );
         }
 
+        public static void MakeHistory(uint appID, uint changeNumber, string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
+        {
+            DbWorker.ExecuteNonQuery("INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @AppID, @Action, @KeyNameID, @OldValue, @NewValue)",
+                new MySqlParameter("@AppID", appID),
+                new MySqlParameter("@ChangeID", changeNumber),
+                new MySqlParameter("@Action", action),
+                new MySqlParameter("@KeyNameID", keyNameID),
+                new MySqlParameter("@OldValue", oldValue),
+                new MySqlParameter("@NewValue", newValue)
+            );
+        }
+
         private static uint GetKeyNameID(string keyName)
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))

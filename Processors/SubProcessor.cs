@@ -145,6 +145,7 @@ namespace SteamDatabaseBackend
                             );
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
+                            AppProcessor.MakeHistory(appID, ChangeNumber, "added_to_sub", typeID, string.Empty, SubID.ToString());
 
                             if (SteamProxy.Instance.ImportantApps.Contains(appID))
                             {
@@ -213,6 +214,7 @@ namespace SteamDatabaseBackend
                 uint typeID = (uint)(app.Value.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
 
                 MakeHistory("removed_from_sub", typeID, app.Key.ToString());
+                AppProcessor.MakeHistory(app.Key, ChangeNumber, "removed_from_sub", typeID, SubID.ToString());
 
                 if (SteamProxy.Instance.ImportantApps.Contains(app.Key))
                 {
