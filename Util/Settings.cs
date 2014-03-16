@@ -49,6 +49,9 @@ namespace SteamDatabaseBackend
 
                 // Don't log full runs, regardless of setting
                 Current.LogToFile = false;
+
+                // Don't idle anywhere
+                Current.Steam.IdleAppID = 0;
             }
             else if (!Current.LogToFile)
             {
