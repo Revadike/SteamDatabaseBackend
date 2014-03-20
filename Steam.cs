@@ -297,10 +297,10 @@ namespace SteamDatabaseBackend
         {
             Timer.Stop();
 
-            Log.WriteInfo("Steam", "Logged off of Steam: {0}", callback.Result);
+            Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
-            IRC.SendMain("Logged off of Steam: {0}{1}", Colors.OLIVE, callback.Result);
-            IRC.SendEmoteAnnounce("logged off of Steam: {0}", callback.Result);
+            IRC.SendMain("Logged out of Steam: {0}{1}", Colors.OLIVE, callback.Result);
+            IRC.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
 
             GameCoordinator.UpdateStatus(0, callback.Result.ToString());
         }
