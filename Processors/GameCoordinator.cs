@@ -76,12 +76,6 @@ namespace SteamDatabaseBackend
             });
 
             SteamClient.Send(clientGamesPlayed);
-
-            if (!Timer.Enabled)
-            {
-                Timer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
-                Timer.Start();
-            }
         }
 
         public void Hello()
@@ -109,10 +103,6 @@ namespace SteamDatabaseBackend
             {
                 Timer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
                 Timer.Start();
-            }
-            else if (Timer.Enabled && LastStatus == GCConnectionStatus.GCConnectionStatus_HAVE_SESSION)
-            {
-                Timer.Stop();
             }
         }
 
