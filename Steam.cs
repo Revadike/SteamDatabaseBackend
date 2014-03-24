@@ -214,13 +214,21 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            Timer.Stop();
-
             if (!IsRunning)
             {
+                Timer.Stop();
+
                 Log.WriteInfo("Steam", "Disconnected from Steam");
+
                 return;
             }
+
+            if (Timer.Enabled)
+            {
+                IRC.SendMain("Disconnected from Steam. See{0} http://steamstat.us", Colors.DARK_BLUE);
+            }
+
+            Timer.Stop();
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
@@ -258,13 +266,11 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+                
+            Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
 
-            string serverTime = callback.ServerTime.ToString();
-
-            Log.WriteInfo("Steam", "Logged in, current valve time is {0} UTC", serverTime);
-
-            IRC.SendMain("Logged in to Steam. Server time: {0} UTC", serverTime);
-            IRC.SendEmoteAnnounce("is now logged in. Server time: {0} UTC", serverTime);
+            IRC.SendMain("Logged in to Steam. Valve time: {0}{1}", Colors.DARK_GRAY, callback.ServerTime.ToString("R"));
+            IRC.SendEmoteAnnounce("logged in.");
 
             // Prevent bugs
             if (IsFullRun)
@@ -299,7 +305,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
-            IRC.SendMain("Logged out of Steam: {0}{1}", Colors.OLIVE, callback.Result);
+            IRC.SendMain("Logged out of Steam: {0}{1}{2}. See{3} http://steamstat.us", Colors.OLIVE, callback.Result, Colors.NORMAL, Colors.DARK_BLUE);
             IRC.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
 
             GameCoordinator.UpdateStatus(0, callback.Result.ToString());
