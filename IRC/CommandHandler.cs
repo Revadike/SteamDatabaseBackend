@@ -267,43 +267,41 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandBinaries(CommandArguments command)
         {
-            if (command.IsChatRoomCommand || !IRC.IsSenderOp(command.Channel, command.Nickname))
-            {
-                return;
-            }
-
             string cdn = "http://media.steampowered.com/client/";
 
             using (var webClient = new WebClient())
             {
-                var manifest = webClient.DownloadData(string.Format("{0}steam_client_publicbeta_osx?_={1}", cdn, DateTime.UtcNow.Ticks));
-
-                var kv = new KeyValue();
-
-                using (var ms = new MemoryStream(manifest))
+                webClient.DownloadDataCompleted += delegate(object sender, DownloadDataCompletedEventArgs e)
                 {
-                    try
+                    var kv = new KeyValue();
+
+                    using (var ms = new MemoryStream(e.Result))
                     {
-                        kv.ReadAsText(ms);
+                        try
+                        {
+                            kv.ReadAsText(ms);
+                        }
+                        catch
+                        {
+                            ReplyToCommand(command, "{0}{1}{2}: Something went horribly wrong and keyvalue parser died.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                            return;
+                        }
                     }
-                    catch
+
+                    if (kv["bins_osx"].Children.Count == 0)
                     {
-                        ReplyToCommand(command, "{0}{1}{2}: Something went horribly wrong and keyvalue parser died", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                        ReplyToCommand(command, "{0}{1}{2}: Failed to find binaries in parsed response.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
 
                         return;
                     }
-                }
 
-                if (kv["bins_osx"].Children.Count == 0)
-                {
-                    ReplyToCommand(command, "{0}{1}{2}: Failed to find binaries in parsed response.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                    kv = kv["bins_osx"];
 
-                    return;
-                }
+                    ReplyToCommand(command, "{0}{1}{2}:{3} {4}{5} {6}({7} MB)", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                };
 
-                kv = kv["bins_osx"];
-
-                ReplyToCommand(command, "{0}{1}{2}:{3} {4}{5} {6}({7} MB)", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_publicbeta_osx?_={1}", cdn, DateTime.UtcNow.Ticks)));
             }
         }
 
