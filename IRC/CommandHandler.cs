@@ -24,7 +24,6 @@ namespace SteamDatabaseBackend
             { "!players", OnCommandPlayers },
             { "!bins", OnCommandBinaries },
             { "!reload", OnCommandReload },
-            { "!force", OnCommandForce },
             { "!debug", OnCommanDebug }
         };
 
@@ -320,95 +319,6 @@ namespace SteamDatabaseBackend
             if (IRC.IsSenderOp(command.Channel, command.Nickname))
             {
                 SteamProxy.Instance.ReloadImportant(command.Channel, command.Nickname);
-            }
-        }
-
-        private static void OnCommandForce(CommandArguments command)
-        {
-            if (command.IsChatRoomCommand)
-            {
-                ReplyToCommand(command, "{0}: This command can only be used in IRC", command.Nickname);
-
-                return;
-            }
-
-            if (!IRC.IsSenderOp(command.Channel, command.Nickname))
-            {
-                return;
-            }
-
-            if (command.MessageArray.Length >= 3)
-            {
-                uint target;
-
-                if (!uint.TryParse(command.MessageArray[2], out target))
-                {
-                    ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
-
-                    return;
-                }
-
-                switch (command.MessageArray[1])
-                {
-                    case "app":
-                    {
-                        var apps = new List<uint>();
-
-                        apps.Add(target);
-
-                        Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
-
-                        ReplyToCommand(command, "{0}{1}{2}: Forced update for AppID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
-
-                        break;
-                    }
-
-                    case "sub":
-                    {
-                        Steam.Instance.Apps.PICSGetProductInfo(null, target, false, false);
-
-                        ReplyToCommand(command, "{0}{1}{2}: Forced update for SubID {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
-
-                        break;
-                    }
-
-#if DEBUG
-                    case "changelist":
-                    {
-                        if (Math.Abs(Steam.Instance.PreviousChange - target) > 100)
-                        {
-                            ReplyToCommand(command, "Changelist difference is too big, will not execute");
-
-                            break;
-                        }
-
-                        Steam.Instance.PreviousChange = target;
-
-                        Steam.Instance.GetPICSChanges();
-
-                        ReplyToCommand(command, "{0}{1}{2}: Requested changes since changelist {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, target);
-
-                        break;
-                    }
-#endif
-
-                    default:
-                    {
-                        ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
-
-                        break;
-                    }
-                }
-            }
-            else if (command.MessageArray.Length == 1)
-            {
-                Steam.Instance.GetPICSChanges();
-
-                ReplyToCommand(command, "{0}{1}{2}: Forced a check", Colors.OLIVE, command.Nickname, Colors.NORMAL);
-            }
-            else
-            {
-                ReplyToCommand(command, "Usage:{0} !force [<app/sub/changelist> <target>]", Colors.OLIVE);
             }
         }
     }
