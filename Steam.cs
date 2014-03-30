@@ -27,7 +27,6 @@ namespace SteamDatabaseBackend
         public SteamApps Apps { get; private set; }
         public SteamFriends Friends { get; private set; }
         public SteamUserStats UserStats { get; private set; }
-        public SteamUnifiedMessages Unified { get; private set; }
         public CallbackManager CallbackManager { get; private set; }
         private GameCoordinator GameCoordinator;
 
@@ -41,8 +40,8 @@ namespace SteamDatabaseBackend
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
 
-        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
-        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
+        private ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; set; }
+        private ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; set; }
 
         private string AuthCode;
 
@@ -101,7 +100,6 @@ namespace SteamDatabaseBackend
             Apps = Client.GetHandler<SteamApps>();
             Friends = Client.GetHandler<SteamFriends>();
             UserStats = Client.GetHandler<SteamUserStats>();
-            Unified = Client.GetHandler<SteamUnifiedMessages>();
 
             CallbackManager = new CallbackManager(Client);
 

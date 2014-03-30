@@ -23,8 +23,7 @@ namespace SteamDatabaseBackend
             { "!sub", OnCommandPackage },
             { "!players", OnCommandPlayers },
             { "!bins", OnCommandBinaries },
-            { "!reload", OnCommandReload },
-            { "!debug", OnCommanDebug }
+            { "!reload", OnCommandReload }
         };
 
         public class CommandArguments
@@ -112,22 +111,6 @@ namespace SteamDatabaseBackend
 
                 callbackFunction(command);
             }
-        }
-
-        private static void OnCommanDebug(CommandArguments command)
-        {
-            var response = string.Format("ProcessorPool: {0}/{1} threads, SecondaryPool: {2}/{3} threads, DepotProcessor: {4}/{5} threads, ProcessedApps: {6}, ProcessedSubs: {7}",
-                Steam.Instance.ProcessorPool.InUseThreads,
-                Steam.Instance.ProcessorPool.ActiveThreads,
-                Steam.Instance.SecondaryPool.InUseThreads,
-                Steam.Instance.SecondaryPool.ActiveThreads,
-                DepotProcessor.ThreadPool.InUseThreads,
-                DepotProcessor.ThreadPool.ActiveThreads,
-                Steam.Instance.ProcessedApps.Count,
-                Steam.Instance.ProcessedSubs.Count
-            );
-
-            ReplyToCommand(command, response);
         }
 
         private static void OnCommandHelp(CommandArguments command)
