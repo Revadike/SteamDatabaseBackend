@@ -181,7 +181,7 @@ namespace SteamDatabaseBackend
 
                 IRC.SendEmoteAnnounce("failed to connect: {0}", callback.Result);
 
-                Log.WriteError("Steam", "Could not connect: {0}", callback.Result);
+                Log.WriteInfo("Steam", "Could not connect: {0}", callback.Result);
 
                 IsRunning = false;
 
@@ -256,7 +256,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                Log.WriteError("Steam", "Failed to login: {0}", callback.Result);
+                Log.WriteInfo("Steam", "Failed to login: {0}", callback.Result);
 
                 IRC.SendEmoteAnnounce("failed to log in: {0}", callback.Result);
 
