@@ -230,6 +230,16 @@ namespace SteamDatabaseBackend
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
+            if (SteamProxy.Instance.IRCRequests.Count > 0)
+            {
+                foreach (var request in SteamProxy.Instance.IRCRequests)
+                {
+                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Your request failed.", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL);
+                }
+
+                SteamProxy.Instance.IRCRequests.Clear();
+            }
+
             const uint RETRY_DELAY = 15;
 
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
