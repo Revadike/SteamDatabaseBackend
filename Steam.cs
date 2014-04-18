@@ -603,9 +603,28 @@ namespace SteamDatabaseBackend
                 ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
             }
 
-            if (callback.UnknownPackages.Count > 0)
+            foreach (uint package in callback.UnknownPackages)
             {
-                Log.WriteError("Steam", "There are {0} unknown packages, we don't handle these!", callback.UnknownPackages.Count);
+                Log.WriteInfo("Steam", "Unknown SubID: {0}", package);
+
+                uint workaround = package;
+
+                IWorkItemResult mostRecentItem;
+                ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
+
+                var workerItem = ProcessorPool.QueueWorkItem(delegate
+                {
+                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    {
+                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing (unknown)", workaround);
+
+                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                    }
+
+                    new SubProcessor(workaround).ProcessUnknown();
+                });
+
+                ProcessedSubs.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
             }
         }
 

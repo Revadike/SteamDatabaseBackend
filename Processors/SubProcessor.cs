@@ -244,6 +244,53 @@ namespace SteamDatabaseBackend
 #endif
         }
 
+        public void ProcessUnknown()
+        {
+            Log.WriteInfo("Sub Processor", "Unknown SubID: {0}", SubID);
+
+            try
+            {
+                TryProcessUnknown();
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Sub Processor", "Caught exception while processing unknown sub {0}: {1}\n{2}", SubID, e.Message, e.StackTrace);
+            }
+        }
+
+        private void TryProcessUnknown()
+        {
+            string name;
+
+            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("SubID", SubID)))
+            {
+                if (!MainReader.Read())
+                {
+                    return;
+                }
+
+                name = DbWorker.GetString("Name", MainReader);
+            }
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
+            {
+                while (Reader.Read())
+                {
+                    if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
+                    {
+                        MakeHistory("removed_key", Reader.GetUInt32("Key"), DbWorker.GetString("Value", Reader));
+                    }
+                }
+            }
+
+            DbWorker.ExecuteNonQuery("DELETE FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
+            DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
+            DbWorker.ExecuteNonQuery("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
+
+            // TODO
+            MakeHistory("deleted_sub", 0, name);
+        }
+
         private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             // All keys in PICS are supposed to be lower case.
