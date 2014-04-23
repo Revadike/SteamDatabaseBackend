@@ -371,13 +371,13 @@ namespace SteamDatabaseBackend
 
             foreach(var license in licenseList.LicenseList)
             {
-                if (license.PackageID != 0 && timeNow.Subtract(license.TimeCreated).TotalSeconds < 3600)
+                if (license.PackageID != 0 && timeNow.Subtract(license.TimeCreated).TotalSeconds < 600)
                 {
-                    IRC.SendMain("New {0} license granted: {1}{2}{3} -{4} {5}{6}({7}, {8})",
+                    IRC.SendMain("New {0} license granted: {1}{2}{3} -{4} {5} {6}({7})",
                                  license.LicenseType,
                                  Colors.OLIVE, SteamProxy.GetPackageName(license.PackageID), Colors.NORMAL,
                                  Colors.DARK_BLUE, SteamDB.GetPackageURL(license.PackageID, "history"), Colors.NORMAL,
-                                 license.PaymentMethod, license.LicenseFlags
+                                 license.PaymentMethod
                     );
                 }
             }
@@ -624,7 +624,7 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround).ProcessUnknown();
                 });
 
-                ProcessedSubs.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
             }
         }
 

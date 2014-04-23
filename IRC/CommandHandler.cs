@@ -28,7 +28,7 @@ namespace SteamDatabaseBackend
 
         public class CommandArguments
         {
-            public string[] MessageArray { get; set; }
+            public string Message { get; set; }
             public string Channel { get; set; }
             public string Nickname { get; set; }
             public SteamID ChatRoomID { get; set; }
@@ -86,11 +86,13 @@ namespace SteamDatabaseBackend
 
             if (Commands.TryGetValue(e.Data.MessageArray[0], out callbackFunction))
             {
+                var input = e.Data.Message.Substring(e.Data.MessageArray[0].Length).Trim();
+
                 var command = new CommandArguments
                 {
                     Channel = e.Data.Channel,
                     Nickname = e.Data.Nick,
-                    MessageArray = e.Data.MessageArray
+                    Message = input
                 };
 
                 if (!Steam.Instance.Client.IsConnected)
@@ -120,7 +122,7 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandApp(CommandArguments command)
         {
-            if (command.MessageArray.Length < 2)
+            if (command.Message.Length == 0)
             {
                 ReplyToCommand(command, "Usage:{0} !app <appid or partial game name>", Colors.OLIVE);
 
@@ -129,7 +131,7 @@ namespace SteamDatabaseBackend
 
             uint appID;
 
-            if (uint.TryParse(command.MessageArray[1], out appID))
+            if (uint.TryParse(command.Message, out appID))
             {
                 var apps = new List<uint>();
 
@@ -147,7 +149,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                string name = string.Format("%{0}%", string.Join(" ", command.MessageArray.Skip(1)).Trim());
+                string name = string.Format("%{0}%", command.Message);
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {
@@ -181,7 +183,7 @@ namespace SteamDatabaseBackend
         {
             uint subID;
 
-            if (command.MessageArray.Length >= 2 && uint.TryParse(command.MessageArray[1], out subID))
+            if (command.Message.Length > 0 && uint.TryParse(command.Message, out subID))
             {
                 var jobID = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
 
@@ -201,7 +203,7 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandPlayers(CommandArguments command)
         {
-            if (command.MessageArray.Length < 2)
+            if (command.Message.Length == 0)
             {
                 ReplyToCommand(command, "Usage:{0} !players <appid or partial game name>", Colors.OLIVE);
 
@@ -210,7 +212,7 @@ namespace SteamDatabaseBackend
 
             uint appID;
 
-            if (uint.TryParse(command.MessageArray[1], out appID))
+            if (uint.TryParse(command.Message, out appID))
             {
                 var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
 
@@ -223,7 +225,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                string name = string.Format("%{0}%", string.Join(" ", command.MessageArray.Skip(1)).Trim());
+                string name = string.Format("%{0}%", command.Message);
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {
