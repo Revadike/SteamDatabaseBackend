@@ -288,7 +288,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                string url;
+                string graphUrl = string.Empty;
                 string name = GetAppName(request.Target);
 
                 if (string.IsNullOrEmpty(name))
@@ -296,19 +296,19 @@ namespace SteamDatabaseBackend
                     name = string.Format("AppID {0}", request.Target);
                 }
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Graph` = 1 AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE (`Graph` = 1 OR `MaxPlayers` > 0) AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
                 {
                     if (Reader.Read())
                     {
-                        url = string.Format("{0} - graph:{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
-                    }
-                    else
-                    {
-                        url = string.Format("{0} -{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
+                        graphUrl = string.Format("{0} -{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
                     }
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, name, Colors.NORMAL, Colors.GREEN, callback.NumPlayers, url);
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8} -{9} {10}{11}",
+                    Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                    Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
+                    Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target), graphUrl);
             }
         }
 
