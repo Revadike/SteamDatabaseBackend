@@ -172,18 +172,16 @@ namespace SteamDatabaseBackend
             }
 
             Action<CommandHandler.CommandArguments> callbackFunction;
-            var messageArray = callback.Message.Split(' '); // TODO
+            var messageArray = callback.Message.Split(' ', 2);
 
             if (CommandHandler.Commands.TryGetValue(messageArray[0], out callbackFunction))
             {
-                var input = callback.Message.Substring(messageArray[0].Length).Trim();
-
                 var command = new CommandHandler.CommandArguments
                 {
                     SenderID = callback.ChatterID,
                     ChatRoomID = callback.ChatRoomID,
                     Nickname = Steam.Instance.Friends.GetFriendPersonaName(callback.ChatterID),
-                    Message = input
+                    Message = messageArray[1].Trim()
                 };
 
                 if (SteamDB.IsBusy())
