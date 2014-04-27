@@ -14,21 +14,6 @@ namespace SteamDatabaseBackend
         public sealed class SteamJson
         {
             [JsonProperty(Required = Required.Always)]
-            public uint IdleAppID;
-
-            [JsonProperty(Required = Required.Always)]
-            public string Username;
-
-            [JsonProperty(Required = Required.Always)]
-            public string Password;
-        }
-
-        public sealed class SteamGCIdler
-        {
-            [JsonProperty(Required = Required.Always)]
-            public uint AppID;
-
-            [JsonProperty(Required = Required.Always)]
             public string Username;
 
             [JsonProperty(Required = Required.Always)]
@@ -69,7 +54,7 @@ namespace SteamDatabaseBackend
         public List<ulong> ChatRooms;
 
         [JsonProperty(Required = Required.Always)]
-        public SteamGCIdler[] GameCoordinatorIdlers;
+        public List<uint> GameCoordinatorIdlers;
 
         [JsonProperty(Required = Required.Always)]
         public SteamJson Steam;

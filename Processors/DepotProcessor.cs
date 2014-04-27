@@ -215,7 +215,9 @@ namespace SteamDatabaseBackend
 
         private static void DownloadManifest(ManifestJob request)
         {
-            var cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
+            // TODO: Refactor me
+            //var cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
+            var cdnClient = new CDNClient(Steam.Instance.Client, request.Ticket);
             List<CDNClient.Server> cdnServers = null;
 
             for (var i = 0; i <= 5; i++)
@@ -257,7 +259,9 @@ namespace SteamDatabaseBackend
                 {
                     cdnClient.Connect(server);
 
-                    depotManifest = cdnClient.DownloadManifest(request.ManifestID);
+                    cdnClient.AuthenticateDepot(request.DepotID, request.DepotKey);
+
+                    depotManifest = cdnClient.DownloadManifest(request.DepotID, request.ManifestID);
 
                     break;
                 }

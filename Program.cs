@@ -59,20 +59,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            foreach (var idler in Settings.Current.GameCoordinatorIdlers)
+            foreach (var appID in Settings.Current.GameCoordinatorIdlers)
             {
-                if (string.IsNullOrWhiteSpace(idler.Username) || string.IsNullOrWhiteSpace(idler.Password) || idler.AppID <= 0)
-                {
-                    Log.WriteWarn("Settings", "Invalid GC coordinator settings");
-                    continue;
-                }
-
-                Log.WriteInfo("Main", "Starting GC idler for app {0}", idler.AppID);
-
-                var instance = new GCIdler(idler.AppID, idler.Username, idler.Password);
+                var instance = new GCIdler(appID);
 
                 thread = new Thread(new ThreadStart(instance.Run));
-                thread.Name = string.Format("GC Idler {0}", idler.AppID);
+                thread.Name = string.Format("GC Idler {0}", appID);
                 thread.Start();
 
                 GCIdlers.Add(instance);

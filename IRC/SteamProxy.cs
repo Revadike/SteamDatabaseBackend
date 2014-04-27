@@ -172,7 +172,7 @@ namespace SteamDatabaseBackend
             }
 
             Action<CommandHandler.CommandArguments> callbackFunction;
-            var messageArray = callback.Message.Split(' ', 2);
+            var messageArray = callback.Message.Split(new Char[] {' '}, 2);
 
             if (CommandHandler.Commands.TryGetValue(messageArray[0], out callbackFunction))
             {

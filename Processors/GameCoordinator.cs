@@ -8,10 +8,7 @@ using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 using SteamKit2.GC;
-using SteamKit2.GC.CSGO.Internal;
-using SteamKit2.GC.Dota.Internal;
 using SteamKit2.GC.Internal;
-using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
@@ -32,11 +29,11 @@ namespace SteamDatabaseBackend
             // Map gc messages to our callback functions
             GCMessageMap = new Dictionary<uint, Action<IPacketGCMsg>>
             {
-                { (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome, OnClientWelcome },
+                { (uint)EGCBaseClientMsg.k_EMsgGCServerWelcome, OnWelcome },
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
                 { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage },
-                { (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus, OnClientConnectionStatus },
-                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnClientConnectionStatus }
+                { (uint)EGCBaseClientMsg.k_EMsgGCServerConnectionStatus, OnConnectionStatus },
+                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnConnectionStatus }
             };
 
             this.AppID = appID;
@@ -44,45 +41,22 @@ namespace SteamDatabaseBackend
             this.SteamGameCoordinator = SteamClient.GetHandler<SteamGameCoordinator>();
             this.Name = string.Format("GC {0}", appID);
 
-            // Make sure Steam knows we're playing the game
-            Timer = new System.Timers.Timer();
-            Timer.Elapsed += OnTimerPlayGame;
-            Timer.Interval = TimeSpan.FromMinutes(5).TotalMilliseconds;
-            Timer.Start();
-
             Timer = new System.Timers.Timer();
             Timer.Elapsed += OnTimer;
 
             callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
         }
-
-        private void OnTimerPlayGame(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            PlayGame();
-        }
-
+            
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
             Hello();
         }
 
-        public void PlayGame()
-        {
-            var clientGamesPlayed = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
-
-            clientGamesPlayed.Body.games_played.Add(new CMsgClientGamesPlayed.GamePlayed
-            {
-                game_id = AppID
-            });
-
-            SteamClient.Send(clientGamesPlayed);
-        }
-
         public void Hello()
         {
-            var clientHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
+            var serverHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCServerHello);
 
-            SteamGameCoordinator.Send(clientHello, AppID);
+            SteamGameCoordinator.Send(serverHello, AppID);
         }
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
@@ -106,33 +80,47 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnClientWelcome(IPacketGCMsg packetMsg)
+        private void OnWelcome(IPacketGCMsg packetMsg)
         {
             Timer.Stop();
 
-            var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body;
+            int version = -1;
 
-            Log.WriteInfo(Name, "New GC session ({0} -> {1})", LastVersion, msg.version);
-
-            string message = string.Format("New {0}{1}{2} GC session", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL);
-
-            if (LastVersion == -1 || LastVersion == msg.version)
+            // TF2 GC is not in sync
+            if (AppID == 440)
             {
-                message += string.Format(" {0}(version {1})", Colors.DARK_GRAY, msg.version);
+                var msg = new ClientGCMsgProtobuf<SteamKit2.GC.TF2.Internal.CMsgServerWelcome>(packetMsg).Body;
+
+                version = (int)msg.active_version;
             }
             else
             {
-                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARK_GRAY, LastVersion, msg.version);
+                var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body;
+
+                version = (int)msg.version;
             }
 
-            if (LastVersion != -1 && (LastVersion != msg.version || LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION))
+            Log.WriteInfo(Name, "New GC session ({0} -> {1})", LastVersion, version);
+
+            string message = string.Format("New {0}{1}{2} GC session", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL);
+
+            if (LastVersion == -1 || LastVersion == version)
+            {
+                message += string.Format(" {0}(version {1})", Colors.DARK_GRAY, version);
+            }
+            else
+            {
+                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARK_GRAY, LastVersion, version);
+            }
+
+            if (LastVersion != -1 && (LastVersion != version || LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION))
             {
                 IRC.SendMain(message);
             }
 
             IRC.SendAnnounce(message);
 
-            LastVersion = (int)msg.version;
+            LastVersion = version;
             LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
 
             UpdateStatus(AppID, LastStatus.ToString());
@@ -161,7 +149,7 @@ namespace SteamDatabaseBackend
             IRC.SendMain("{0}{1}{2} system message:{3} {4}", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.message);
         }
 
-        private void OnClientConnectionStatus(IPacketGCMsg packetMsg)
+        private void OnConnectionStatus(IPacketGCMsg packetMsg)
         {
             var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(packetMsg).Body;
 
@@ -191,8 +179,8 @@ namespace SteamDatabaseBackend
                 typeof(EGCItemMsg),
                 typeof(ESOMsg),
                 typeof(EGCSystemMsg),
-                typeof(EDOTAGCMsg),
-                typeof(ECsgoGCMsg)
+                typeof(SteamKit2.GC.Dota.Internal.EDOTAGCMsg),
+                typeof(SteamKit2.GC.CSGO.Internal.ECsgoGCMsg)
             };
 
             foreach (var enumType in eMsgEnums)
@@ -212,12 +200,6 @@ namespace SteamDatabaseBackend
                                      new MySqlParameter("@AppID", appID),
                                      new MySqlParameter("@Status", status)
             );
-
-            // We need to propagate Steam's status to main idler
-            if (appID == 0 && Settings.Current.Steam.IdleAppID > 0)
-            {
-                UpdateStatus(Settings.Current.Steam.IdleAppID, status.Equals("OK") ? "Launching" : status);
-            }
         }
     }
 }

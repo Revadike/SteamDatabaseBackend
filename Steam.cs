@@ -28,7 +28,6 @@ namespace SteamDatabaseBackend
         public SteamFriends Friends { get; private set; }
         public SteamUserStats UserStats { get; private set; }
         public CallbackManager CallbackManager { get; private set; }
-        private GameCoordinator GameCoordinator;
 
         public uint PreviousChange { get; set; }
 
@@ -125,12 +124,6 @@ namespace SteamDatabaseBackend
                 CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
                 CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
-
-                // game coordinator
-                if (Settings.Current.Steam.IdleAppID > 0)
-                {
-                    GameCoordinator = new GameCoordinator(Settings.Current.Steam.IdleAppID, Client, CallbackManager);
-                }
             }
             else
             {
@@ -295,15 +288,6 @@ namespace SteamDatabaseBackend
             else
             {
                 Timer.Start();
-
-                if (GameCoordinator != null)
-                {
-                    GameCoordinator.PlayGame();
-
-                    Thread.Sleep(TimeSpan.FromSeconds(2));
-
-                    GameCoordinator.Hello();
-                }
             }
         }
 

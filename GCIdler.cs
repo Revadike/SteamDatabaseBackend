@@ -14,30 +14,27 @@ namespace SteamDatabaseBackend
         public bool IsRunning { get; set; }
 
         public SteamClient Client { get; private set; }
-        private SteamUser User;
-        private SteamFriends Friends;
+        private SteamGameServer User;
         private CallbackManager CallbackManager;
         private GameCoordinator GameCoordinator;
 
         private uint AppID;
-        private string Username;
-        private string Password;
 
-        public GCIdler(uint appID, string username, string password)
+        public GCIdler(uint appID)
         {
-            Username = username;
-            Password = password;
             AppID = appID;
             
             Client = new SteamClient();
-            User = Client.GetHandler<SteamUser>();
-            Friends = Client.GetHandler<SteamFriends>();
+
+            User = Client.GetHandler<SteamGameServer>(); // TODO: Broken in SteamKit 1.5.1
+            //User = new SteamGCUser();
+
+            //Client.AddHandler(User);
 
             CallbackManager = new CallbackManager(Client);
 
             CallbackManager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
             CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
-            CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
             CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
             CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
 
@@ -62,11 +59,19 @@ namespace SteamDatabaseBackend
             {
                 GameCoordinator.UpdateStatus(AppID, "Launching");
 
-                GameCoordinator.PlayGame();
+                User.SendStatus(new SteamGameServer.StatusDetails
+                {
+                    AppID = AppID,
+                    Port = 27015,
+                    QueryPort = 27015,
+                    ServerFlags = EServerFlags.Private | EServerFlags.Passworded
+                });
 
-                Thread.Sleep(TimeSpan.FromSeconds(2));
-
-                GameCoordinator.Hello();
+                // TF2 GC will happily greet us
+                if (AppID != 440)
+                {
+                    GameCoordinator.Hello();
+                }
             }
             else
             {
@@ -77,11 +82,6 @@ namespace SteamDatabaseBackend
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             GameCoordinator.UpdateStatus(AppID, EResult.NotLoggedOn.ToString());
-        }
-
-        private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
-        {
-            Friends.SetPersonaState(EPersonaState.Busy);
         }
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
@@ -101,11 +101,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(string.Format("GC {0}", AppID), "Connected, logging in...");
 
-            User.LogOn(new SteamUser.LogOnDetails
-            {
-                Username = Username,
-                Password = Password
-            });
+            User.LogOnAnonymous(AppID);
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
