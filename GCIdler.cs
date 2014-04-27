@@ -26,10 +26,7 @@ namespace SteamDatabaseBackend
             
             Client = new SteamClient();
 
-            User = Client.GetHandler<SteamGameServer>(); // TODO: Broken in SteamKit 1.5.1
-            //User = new SteamGCUser();
-
-            //Client.AddHandler(User);
+            User = Client.GetHandler<SteamGameServer>();
 
             CallbackManager = new CallbackManager(Client);
 
