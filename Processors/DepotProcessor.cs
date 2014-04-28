@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
                     {
                         request.PreviousManifestID = Reader.GetUInt64("ManifestID");
 
-                        if (Settings.Current.FullRun > 1 && request.PreviousManifestID == manifestID)
+                        if (request.PreviousManifestID == manifestID && !Settings.IsFullRun)
                         {
                             continue;
                         }
@@ -243,7 +243,24 @@ namespace SteamDatabaseBackend
             CDNClient.Connect(request.Server); // TODO: AuthenticateDepot requires connectedServer not to be null
             CDNClient.AuthenticateDepot(request.DepotID, callback.DepotKey, request.CDNToken);
 
-            ThreadPool.QueueWorkItem(DownloadManifest, request);
+            ThreadPool.QueueWorkItem(TryDownloadManifest, request);
+        }
+
+        private static void TryDownloadManifest(ManifestJob request)
+        {
+            try
+            {
+                DownloadManifest(request);
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Depot Processor", "Caught exception while processing depot {0}: {1}\n{2}", request.DepotID, e.Message, e.StackTrace);
+            }
+
+            lock (ManifestJobs)
+            {
+                ManifestJobs.Remove(request);
+            }
         }
 
         private static void DownloadManifest(ManifestJob request)
@@ -266,14 +283,10 @@ namespace SteamDatabaseBackend
                     Log.WriteError(string.Format("Depot {0}, #{1}", request.DepotID, i), "{0} on {1}", e.Message, request.Server.Host);
                 }
             }
-            lock (ManifestJobs)
-            {
-                ManifestJobs.Remove(request);
-            }
 
             if (depotManifest == null)
             {
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (parent {1}) (jobs still in queue: {2})", request.DepotID, request.ParentAppID, ManifestJobs.Count);
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (parent {1}) (jobs still in queue: {2})", request.DepotID, request.ParentAppID, ManifestJobs.Count - 1);
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
@@ -292,7 +305,7 @@ namespace SteamDatabaseBackend
 
             bool shouldHistorize = false;
             var filesNew = new List<DepotFile>();
-            var filesOld = new List<DepotFile>();
+            var filesOld = new Dictionary<string, DepotFile>();
 
             foreach (var file in sortedFiles)
             {
@@ -324,7 +337,10 @@ namespace SteamDatabaseBackend
                     if (!string.IsNullOrEmpty(files))
                     {
                         shouldHistorize = true;
-                        filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files);
+
+                        var _filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files);
+
+                        filesOld = _filesOld.ToDictionary(x => x.Name);
                     }
                 }
             }
@@ -340,7 +356,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var file in filesNew)
                 {
-                    var oldFile = filesOld.Find(x => x.Name == file.Name);
+                    var oldFile = filesOld[file.Name];
 
                     if (oldFile == null)
                     {
@@ -358,13 +374,13 @@ namespace SteamDatabaseBackend
                             MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
                         }
 
-                        filesOld.Remove(oldFile);
+                        filesOld.Remove(file.Name);
                     }
                 }
 
                 foreach (var file in filesOld)
                 {
-                    MakeHistory(request, file.Name, "removed");
+                    MakeHistory(request, file.Value.Name, "removed");
                 }
 
                 foreach (string file in filesAdded)
@@ -375,7 +391,7 @@ namespace SteamDatabaseBackend
 
             lock (ManifestJobs)
             {
-                Log.WriteDebug("Depot Processor", "DepotID: Processed {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count);
+                Log.WriteDebug("Depot Processor", "DepotID: Processed {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count - 1);
             }
         }
 
