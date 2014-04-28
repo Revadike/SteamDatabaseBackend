@@ -33,10 +33,11 @@ namespace SteamDatabaseBackend
             public ulong ManifestID;
             public ulong PreviousManifestID;
             public string DepotName;
-            public byte[] Ticket;
-            public byte[] DepotKey;
+            public string CDNToken;
+            public CDNClient.Server Server;
         }
 
+        private static CDNClient CDNClient;
         private static List<ManifestJob> ManifestJobs;
         public static SmartThreadPool ThreadPool { get; private set; }
 
@@ -47,12 +48,17 @@ namespace SteamDatabaseBackend
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
 
-            Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.AppOwnershipTicketCallback>(OnAppOwnershipTicket));
+            Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
             Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
+
+            CDNClient = new CDNClient(Steam.Instance.Client);
         }
 
         public static void Process(uint appID, uint changeNumber, KeyValue depots)
         {
+            bool fetchedServers = false;
+            List<CDNClient.Server> cdnServers = null;
+
             foreach (KeyValue depot in depots.Children)
             {
                 // Ignore these for now, parent app should be updated too anyway
@@ -123,16 +129,47 @@ namespace SteamDatabaseBackend
                     }
                 }
 
+                if (!fetchedServers)
+                {
+                    for (var i = 0; i <= 5; i++)
+                    {
+                        try
+                        {
+                            cdnServers = CDNClient.FetchServerList();
+
+                            if (cdnServers.Count > 0)
+                            {
+                                cdnServers = cdnServers.Where(server => server.Type == "CDN").ToList();
+
+                                break;
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    if (cdnServers == null || cdnServers.Count == 0)
+                    {
+                        Log.WriteError("Depot Processor", "Failed to get server list for depot {0}", request.DepotID);
+
+                        continue;
+                    }
+
+                    fetchedServers = true;
+                }
+
                 lock (ManifestJobs)
                 {
                     ManifestJobs.Add(request);
                 }
 
-                request.JobID = Steam.Instance.Apps.GetAppOwnershipTicket(depotID);
+                request.Server = cdnServers[new Random().Next(cdnServers.Count)];
+                request.JobID = Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server.Host);
             }
         }
 
-        private static void OnAppOwnershipTicket(SteamApps.AppOwnershipTicketCallback callback, JobID jobID)
+        private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback, JobID jobID)
         {
             ManifestJob request;
 
@@ -153,16 +190,11 @@ namespace SteamDatabaseBackend
                     ManifestJobs.Remove(request);
                 }
 
-                if (callback.Result != EResult.AccessDenied)
-                {
-                    Log.WriteWarn("Depot Processor", "Failed to get app ticket for depot {0} (parent {1}) - {2}", callback.AppID, request.ParentAppID, callback.Result);
-                }
-
                 return;
             }
 
-            request.Ticket = callback.Ticket;
-            request.JobID = Steam.Instance.Apps.GetDepotDecryptionKey(callback.AppID, request.ParentAppID);
+            request.CDNToken = callback.Token;
+            request.JobID = Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID);
         }
 
         private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback, JobID jobID)
@@ -188,7 +220,7 @@ namespace SteamDatabaseBackend
 
                 if (callback.Result != EResult.Blocked)
                 {
-                    Log.WriteWarn("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
+                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
                 }
 
                 return;
@@ -208,66 +240,32 @@ namespace SteamDatabaseBackend
                 MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
             }
 
-            request.DepotKey = callback.DepotKey;
+            CDNClient.Connect(request.Server); // TODO: AuthenticateDepot requires connectedServer not to be null
+            CDNClient.AuthenticateDepot(request.DepotID, callback.DepotKey, request.CDNToken);
 
             ThreadPool.QueueWorkItem(DownloadManifest, request);
         }
 
         private static void DownloadManifest(ManifestJob request)
         {
-            // TODO: Refactor me
-            //var cdnClient = new CDNClient(Steam.Instance.Client, request.DepotID, request.Ticket, request.DepotKey);
-            var cdnClient = new CDNClient(Steam.Instance.Client, request.Ticket);
-            List<CDNClient.Server> cdnServers = null;
+            DepotManifest depotManifest = null;
 
+            // CDN is very random, just keep trying
             for (var i = 0; i <= 5; i++)
             {
                 try
                 {
-                    cdnServers = cdnClient.FetchServerList();
+                    CDNClient.Connect(request.Server);
 
-                    if (cdnServers.Count > 0)
-                    {
-                        break;
-                    }
-                }
-                catch { }
-            }
-
-            if (cdnServers == null || cdnServers.Count == 0)
-            {
-                Log.WriteError("Depot Processor", "Failed to get server list for depot {0}", request.DepotID);
-
-                if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
-                {
-                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to fetch server list", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED);
-                }
-
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Remove(request);
-                }
-
-                return;
-            }
-
-            DepotManifest depotManifest = null;
-
-            foreach (var server in cdnServers)
-            {
-                try
-                {
-                    cdnClient.Connect(server);
-
-                    cdnClient.AuthenticateDepot(request.DepotID, request.DepotKey);
-
-                    depotManifest = cdnClient.DownloadManifest(request.DepotID, request.ManifestID);
+                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID);
 
                     break;
                 }
-                catch { }
+                catch (Exception e)
+                {
+                    Log.WriteError(string.Format("Depot {0}, #{1}", request.DepotID, i), "{0} on {1}", e.Message, request.Server.Host);
+                }
             }
-
             lock (ManifestJobs)
             {
                 ManifestJobs.Remove(request);
@@ -279,7 +277,7 @@ namespace SteamDatabaseBackend
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
-                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to download depot manifest from {7} servers", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED, cdnServers.Count);
+                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED);
                 }
 
                 return;
