@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
                     {
                         request.PreviousManifestID = Reader.GetUInt64("ManifestID");
 
-                        if (request.PreviousManifestID == manifestID && !Settings.IsFullRun)
+                        if (request.PreviousManifestID == manifestID && Settings.Current.FullRun < 2)
                         {
                             continue;
                         }
@@ -356,15 +356,10 @@ namespace SteamDatabaseBackend
 
                 foreach (var file in filesNew)
                 {
-                    var oldFile = filesOld[file.Name];
+                    if (filesOld.ContainsKey(file.Name))
+                    {
+                        var oldFile = filesOld[file.Name];
 
-                    if (oldFile == null)
-                    {
-                        // We want to historize modifications first, and only then deletions and additions
-                        filesAdded.Add(file.Name);
-                    }
-                    else
-                    {
                         if (oldFile.Size != file.Size)
                         {
                             MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
@@ -375,6 +370,11 @@ namespace SteamDatabaseBackend
                         }
 
                         filesOld.Remove(file.Name);
+                    }
+                    else
+                    {
+                        // We want to historize modifications first, and only then deletions and additions
+                        filesAdded.Add(file.Name);
                     }
                 }
 

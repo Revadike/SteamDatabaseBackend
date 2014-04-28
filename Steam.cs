@@ -275,8 +275,6 @@ namespace SteamDatabaseBackend
             {
                 if (PreviousChange == 1)
                 {
-                    PreviousChange = 2;
-
                     GetPICSChanges();
                 }
             }
