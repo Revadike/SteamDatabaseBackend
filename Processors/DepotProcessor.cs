@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
                     {
                         request.PreviousManifestID = Reader.GetUInt64("ManifestID");
 
-                        if (Settings.Current.FullRun != 3 && request.PreviousManifestID == manifestID)
+                        if (Settings.Current.FullRun > 1 && request.PreviousManifestID == manifestID)
                         {
                             continue;
                         }

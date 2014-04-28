@@ -15,6 +15,8 @@ namespace SteamDatabaseBackend
     {
         private static SettingsJson _current = new SettingsJson();
 
+        public static bool IsFullRun { get; private set; }
+
         public static SettingsJson Current
         {
             get
@@ -46,10 +48,15 @@ namespace SteamDatabaseBackend
 
             if (Current.FullRun > 0)
             {
-                Log.WriteInfo("Settings", "Running full update with option \"{0}\"", Settings.Current.FullRun);
+                IsFullRun = true;
+
+                Log.WriteInfo("Settings", "Running full update with option \"{0}\"", Current.FullRun);
 
                 // Don't log full runs, regardless of setting
                 Current.LogToFile = false;
+
+                // Don't connect to IRC while doing a full run
+                Current.IRC.Enabled = false;
             }
             else if (!Current.LogToFile)
             {

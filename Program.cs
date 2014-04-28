@@ -52,10 +52,9 @@ namespace SteamDatabaseBackend
             thread.Name = "Steam";
             thread.Start();
 
-            if (Settings.Current.FullRun > 0)
+            // We don't need GC idlers in full run
+            if (Settings.IsFullRun)
             {
-                Settings.Current.IRC.Enabled = false;
-
                 return;
             }
 

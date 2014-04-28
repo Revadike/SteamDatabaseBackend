@@ -30,7 +30,7 @@ namespace SteamDatabaseBackend
             ChangeNumber = productInfo.ChangeNumber;
 
 #if !DEBUG
-            if (Settings.Current.FullRun > 0)
+            if (Settings.IsFullRun)
 #endif
             {
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
                     MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
 
                     // TODO: Testy testy
-                    if (Settings.Current.FullRun == 0
+                    if (!Settings.IsFullRun
                     &&  Settings.Current.ChatRooms.Count > 0
                     &&  !appName.StartsWith("SteamApp", StringComparison.Ordinal)
                     &&  !appName.StartsWith("ValveTest", StringComparison.Ordinal))
@@ -121,7 +121,7 @@ namespace SteamDatabaseBackend
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
 
                     // TODO: Testy testy
-                    if (Settings.Current.FullRun == 0
+                    if (!Settings.IsFullRun
                     &&  Settings.Current.ChatRooms.Count > 0
                     &&  !string.Equals(appName, newAppName, StringComparison.OrdinalIgnoreCase)
                     &&  !newAppName.StartsWith("SteamApp", StringComparison.Ordinal)
@@ -151,8 +151,8 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            // If we are full running with unknowns, process depots too
-            bool depotsSectionModified = Settings.Current.FullRun >= 2 && productInfo.KeyValues["depots"].Children.Count > 0;
+            // If we are full running, process depots too
+            bool depotsSectionModified = Settings.Current.FullRun > 1 && productInfo.KeyValues["depots"].Children.Count > 0;
 
             foreach (KeyValue section in productInfo.KeyValues.Children)
             {
@@ -308,7 +308,7 @@ namespace SteamDatabaseBackend
             }
 
             // TODO: This is a dirty hack so we somehow track these app changes
-            if (!historyChanged && Settings.Current.FullRun == 0)
+            if (!historyChanged && !Settings.IsFullRun)
             {
                 MakeHistory("removed_key", GetKeyNameID("root_change_number"), "0", "0");
             }

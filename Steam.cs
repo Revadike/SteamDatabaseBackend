@@ -31,7 +31,6 @@ namespace SteamDatabaseBackend
 
         public uint PreviousChange { get; set; }
 
-        private bool IsFullRun;
         public bool IsRunning { get; set; }
 
         public System.Timers.Timer Timer { get; private set; }
@@ -54,7 +53,7 @@ namespace SteamDatabaseBackend
         private void GetLastChangeNumber()
         {
             // If we're in a full run, request all changes from #1
-            if (!IsFullRun && Settings.Current.FullRun > 0)
+            if (Settings.IsFullRun)
             {
                 PreviousChange = 1;
 
@@ -115,8 +114,11 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
             CallbackManager.Register(new JobCallback<SteamApps.PICSTokensCallback>(OnPICSTokens));
 
-            // irc specific
-            if (Settings.Current.FullRun == 0)
+            if (Settings.IsFullRun)
+            {
+                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
+            }
+            else
             {
                 CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
                 CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
@@ -124,10 +126,6 @@ namespace SteamDatabaseBackend
                 CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
                 CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
-            }
-            else
-            {
-                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
             }
 
             // Use EU servers
@@ -273,17 +271,14 @@ namespace SteamDatabaseBackend
             IRC.SendMain("Logged in to Steam. Valve time: {0}{1}", Colors.DARK_GRAY, callback.ServerTime.ToString("R"));
             IRC.SendEmoteAnnounce("logged in.");
 
-            // Prevent bugs
-            if (IsFullRun)
+            if (Settings.IsFullRun)
             {
-                return;
-            }
+                if (PreviousChange == 1)
+                {
+                    PreviousChange = 2;
 
-            if (Settings.Current.FullRun > 0)
-            {
-                IsFullRun = true;
-
-                GetPICSChanges();
+                    GetPICSChanges();
+                }
             }
             else
             {

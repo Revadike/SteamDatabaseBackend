@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
             ChangeNumber = productInfo.ChangeNumber;
 
 #if !DEBUG
-            if (Settings.Current.FullRun > 0)
+            if (Settings.IsFullRun)
 #endif
             {
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
