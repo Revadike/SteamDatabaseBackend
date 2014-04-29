@@ -39,11 +39,14 @@ namespace SteamDatabaseBackend
 
         private static CDNClient CDNClient;
         private static List<ManifestJob> ManifestJobs;
+        private static List<CDNClient.Server> LastKnownServers;
         public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
             ManifestJobs = new List<ManifestJob>();
+
+            LastKnownServers = new List<CDNClient.Server>();
 
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
@@ -151,9 +154,22 @@ namespace SteamDatabaseBackend
 
                     if (cdnServers == null || cdnServers.Count == 0)
                     {
-                        Log.WriteError("Depot Processor", "Failed to get server list for depot {0}", request.DepotID);
+                        if (LastKnownServers.Count > 0)
+                        {
+                            cdnServers = LastKnownServers;
+
+                            Log.WriteError("Depot Processor", "Failed to get server list for depot {0}, using cached servers", request.DepotID);
+                        }
+                        else
+                        {
+                            Log.WriteError("Depot Processor", "Failed to get server list for depot {0}, no cached servers available", request.DepotID);
+                        }
 
                         continue;
+                    }
+                    else
+                    {
+                        LastKnownServers = cdnServers;
                     }
 
                     fetchedServers = true;
