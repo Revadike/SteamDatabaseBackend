@@ -43,8 +43,6 @@ namespace SteamDatabaseBackend
 
         private string AuthCode;
 
-        private ReadOnlyCollection<IPEndPoint> Servers;
-
         public void GetPICSChanges()
         {
             Apps.PICSGetChangesSince(PreviousChange, true, true);
@@ -128,30 +126,13 @@ namespace SteamDatabaseBackend
                 CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
             }
 
-            // Use EU servers
-            Servers = new ReadOnlyCollection<IPEndPoint>( new List<IPEndPoint>
-            {
-                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27017 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27018 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.12" ), 27019 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27017 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27018 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.13" ), 27019 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27017 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27018 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.14" ), 27019 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27017 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27018 ),
-                new IPEndPoint( IPAddress.Parse( "146.66.152.15" ), 27019 )
-            } );
-
             DepotProcessor.Init();
 
             GetLastChangeNumber();
 
             IsRunning = true;
 
-            Client.Connect(Servers[ new Random().Next( Servers.Count ) ]);
+            Client.Connect();
 
             while (IsRunning)
             {
