@@ -138,7 +138,7 @@ namespace SteamDatabaseBackend
                     {
                         try
                         {
-                            cdnServers = CDNClient.FetchServerList();
+                            cdnServers = CDNClient.FetchServerList( maxServers: 50 );
 
                             if (cdnServers.Count > 0)
                             {
@@ -282,6 +282,7 @@ namespace SteamDatabaseBackend
         private static void DownloadManifest(ManifestJob request)
         {
             DepotManifest depotManifest = null;
+            string lastError = string.Empty;
 
             // CDN is very random, just keep trying
             for (var i = 0; i <= 5; i++)
@@ -296,13 +297,13 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    Log.WriteError(string.Format("Depot {0}, #{1}", request.DepotID, i), "{0} on {1}", e.Message, request.Server.Host);
+                    lastError = e.Message;
                 }
             }
 
             if (depotManifest == null)
             {
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (parent {1}) (jobs still in queue: {2})", request.DepotID, request.ParentAppID, ManifestJobs.Count - 1);
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (jobs still in queue: {1}) ({2})", request.DepotID, ManifestJobs.Count - 1, lastError);
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
