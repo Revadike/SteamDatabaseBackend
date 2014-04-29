@@ -29,11 +29,12 @@ namespace SteamDatabaseBackend
             // Map gc messages to our callback functions
             GCMessageMap = new Dictionary<uint, Action<IPacketGCMsg>>
             {
+                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnConnectionStatus },
+                { (uint)EGCBaseClientMsg.k_EMsgGCServerConnectionStatus, OnConnectionStatus },
                 { (uint)EGCBaseClientMsg.k_EMsgGCServerWelcome, OnWelcome },
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
-                { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage },
-                { (uint)EGCBaseClientMsg.k_EMsgGCServerConnectionStatus, OnConnectionStatus },
-                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnConnectionStatus }
+                { (uint)EGCItemMsg.k_EMsgGCServerVersionUpdated, OnVersionUpdate },
+                { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage }
             };
 
             this.AppID = appID;
@@ -138,6 +139,17 @@ namespace SteamDatabaseBackend
             }
 
             LastSchemaVersion = msg.item_schema_version;
+        }
+
+        private void OnVersionUpdate(IPacketGCMsg packetMsg)
+        {
+            var msg = new ClientGCMsgProtobuf<CMsgGCServerVersionUpdated>(packetMsg).Body;
+
+            Log.WriteInfo(Name, "GC version changed ({0} -> {1})", LastVersion, msg.server_version);
+
+            IRC.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARK_GRAY, LastVersion);
+
+            //LastVersion = msg.server_version; // TODO
         }
 
         private void OnSystemMessage(IPacketGCMsg packetMsg)
