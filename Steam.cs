@@ -6,10 +6,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
@@ -586,9 +584,9 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static SteamApps.PICSRequest NewPICSRequest(uint id, ulong access_token = 0)
+        private static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken = 0)
         {
-            return new SteamApps.PICSRequest(id, access_token, false);
+            return new SteamApps.PICSRequest(id, accessToken, false);
         }
     }
 }

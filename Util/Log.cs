@@ -73,7 +73,19 @@ namespace SteamDatabaseBackend
                 Environment.NewLine
             );
 
-            Console.Write(logLine);
+            lock (logLock)
+            {
+                if (category == Category.ERROR)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write(logLine);
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.Write(logLine);
+                }
+            }
 
             if (!Settings.Current.LogToFile)
             {
