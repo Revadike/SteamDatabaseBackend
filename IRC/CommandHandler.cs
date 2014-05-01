@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("IRC", "Relogin forced by user {0} in channel {1}", e.Data.Nick, e.Data.Channel);
 
-                IRC.Send(e.Data.Channel, "You're responsible for death of everything and everyone now.");
+                ReplyToCommand(new CommandArguments { Channel = e.Data.Channel }, "{0} is responsible for death of everything and everyone now.", e.Data.Nick);
             }
 
             Action<CommandArguments> callbackFunction;
@@ -301,7 +301,7 @@ namespace SteamDatabaseBackend
 
             if (IRC.IsSenderOp(command.Channel, command.Nickname))
             {
-                SteamProxy.Instance.ReloadImportant(command.Channel, command.Nickname);
+                SteamProxy.Instance.ReloadImportant(command);
             }
         }
     }

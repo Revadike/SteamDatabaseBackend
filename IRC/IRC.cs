@@ -62,22 +62,29 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
         }
 
-        public static void Send(string channel, string format, params object[] args)
+        public static void SendAnnounce(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Instance.Client.SendMessage(SendType.Message, channel, string.Format(format, args));
+                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
             }
-        }
-
-        public static void SendAnnounce(string format, params object[] args)
-        {
-            Send(Settings.Current.IRC.Channel.Announce, format, args);
         }
 
         public static void SendMain(string format, params object[] args)
         {
-            Send(Settings.Current.IRC.Channel.Main, format, args);
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args), Priority.AboveMedium);
+            }
+        }
+
+        // Woo, hardcoding!
+        public static void SendSteamLUG(string message)
+        {
+            if (Settings.Current.IRC.Enabled)
+            {
+                Instance.Client.SendMessage(SendType.Message, "#steamlug", message, Priority.AboveMedium);
+            }
         }
 
         public static void SendEmoteAnnounce(string format, params object[] args)
@@ -102,7 +109,7 @@ namespace SteamDatabaseBackend
                 return true;
             }
 
-            IRC.Send(channel, "{0}{1}{2}: You're not op!", Colors.OLIVE, nickname, Colors.NORMAL);
+            Instance.Client.SendMessage(SendType.Message, channel, string.Format("{0}{1}{2}: You're not op!", Colors.OLIVE, nickname, Colors.NORMAL), Priority.AboveMedium);
 
             return false;
         }

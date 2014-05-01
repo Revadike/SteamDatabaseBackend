@@ -34,7 +34,6 @@ namespace SteamDatabaseBackend
         }
 
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
-        private static readonly string ChannelSteamLUG = "#steamlug";
 
         public List<IRCRequest> IRCRequests { get; private set; }
         public List<uint> ImportantApps { get; private set; }
@@ -48,7 +47,7 @@ namespace SteamDatabaseBackend
             ImportantSubs = new List<uint>();
         }
 
-        public void ReloadImportant(string channel = "", string nickName = "")
+        public void ReloadImportant(CommandHandler.CommandArguments command = null)
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
@@ -70,13 +69,13 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (string.IsNullOrEmpty(channel))
+            if (command == null)
             {
                 Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
             }
             else
             {
-                IRC.Send(channel, "{0}{1}{2}: Reloaded {3} important apps and {4} packages", Colors.OLIVE, nickName, Colors.NORMAL, ImportantApps.Count, ImportantSubs.Count);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2}: Reloaded {3} important apps and {4} packages", Colors.OLIVE, command.Nickname, Colors.NORMAL, ImportantApps.Count, ImportantSubs.Count);
             }
         }
 
@@ -233,7 +232,7 @@ namespace SteamDatabaseBackend
                 // Additionally send announcements to steamlug channel
                 if (callback.ClanID.Equals(SteamLUG))
                 {
-                    IRC.Send(ChannelSteamLUG, message);
+                    IRC.SendSteamLUG(message);
                 }
 
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
@@ -253,7 +252,7 @@ namespace SteamDatabaseBackend
                     // Send events only to steamlug channel
                     if (callback.ClanID.Equals(SteamLUG))
                     {
-                        IRC.Send(ChannelSteamLUG, message);
+                        IRC.SendSteamLUG(message);
                     }
                     else
                     {

@@ -152,7 +152,7 @@ namespace SteamDatabaseBackend
             }
 
             // If we are full running, process depots too
-            bool depotsSectionModified = Settings.Current.FullRun > 1 && productInfo.KeyValues["depots"].Children.Count > 0;
+            bool depotsSectionModified = Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0;
 
             foreach (KeyValue section in productInfo.KeyValues.Children)
             {

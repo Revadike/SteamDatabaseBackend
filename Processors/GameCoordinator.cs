@@ -149,7 +149,7 @@ namespace SteamDatabaseBackend
 
             IRC.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARK_GRAY, LastVersion);
 
-            //LastVersion = msg.server_version; // TODO
+            LastVersion = (int)msg.server_version;
         }
 
         private void OnSystemMessage(IPacketGCMsg packetMsg)
