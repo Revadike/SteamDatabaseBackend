@@ -47,13 +47,25 @@ namespace SteamDatabaseBackend
 
             callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
         }
-            
+
+        public void Login()
+        {
+            // TF2 GC should greet us on its own
+            if (AppID != 440)
+            {
+                Hello();
+            }
+
+            Timer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
+            Timer.Start();
+        }
+
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
             Hello();
         }
 
-        public void Hello()
+        private void Hello()
         {
             var serverHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCServerHello);
 

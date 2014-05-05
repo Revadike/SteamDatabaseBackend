@@ -64,11 +64,7 @@ namespace SteamDatabaseBackend
                     ServerFlags = EServerFlags.Private | EServerFlags.Passworded
                 });
 
-                // TF2 GC will happily greet us
-                if (AppID != 440)
-                {
-                    GameCoordinator.Hello();
-                }
+                GameCoordinator.Login();
             }
             else
             {
