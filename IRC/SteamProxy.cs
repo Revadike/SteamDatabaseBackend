@@ -79,15 +79,13 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static string GetPackageName(uint subID)
+        public static string GetPackageName(uint subID, bool returnEmptyOnFailure = false)
         {
-            string name = string.Empty;
-
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
             {
                 if (Reader.Read())
                 {
-                    name = DbWorker.GetString("Name", Reader);
+                    string name = DbWorker.GetString("Name", Reader);
 
                     if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                     {
@@ -98,53 +96,34 @@ namespace SteamDatabaseBackend
                             name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
                         }
                     }
+
+                    return name;
                 }
             }
 
-            return name;
+            return returnEmptyOnFailure ? string.Empty : string.Format("SubID {0}", subID);
         }
 
-        public static string GetAppName(uint appID)
+        public static string GetAppName(uint appID, bool returnEmptyOnFailure = false)
         {
-            string name = string.Empty;
-            string nameStore = string.Empty;
-
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
+            using (MySqlDataReader reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    name = DbWorker.GetString("Name", Reader);
-                    nameStore = DbWorker.GetString("StoreName", Reader);
-                }
-            }
+                    string name = DbWorker.GetString("Name", reader);
+                    //string nameStore = DbWorker.GetString("StoreName", reader);
+                    string nameLast = DbWorker.GetString("LastKnownName", reader);
 
-            if (string.IsNullOrEmpty(name) || name.StartsWith("ValveTestApp", StringComparison.Ordinal) || name.StartsWith("SteamDB Unknown App", StringComparison.Ordinal))
-            {
-                if (!string.IsNullOrEmpty(nameStore))
-                {
-                    return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
-                }
-
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `NewValue` FROM `AppsHistory` WHERE `AppID` = @AppID AND `Action` = 'created_info' AND `Key` = 1 LIMIT 1", new MySqlParameter("AppID", appID)))
-                {
-                    if (Reader.Read())
+                    if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
                     {
-                        nameStore = DbWorker.GetString("NewValue", Reader);
-
-                        if (string.IsNullOrEmpty(name))
-                        {
-                            name = string.Format("AppID {0}", appID);
-                        }
-
-                        if (!name.Equals(nameStore))
-                        {
-                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
-                        }
+                        return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameLast, Colors.NORMAL);
                     }
+
+                    return name;
                 }
             }
 
-            return name;
+            return returnEmptyOnFailure ? string.Empty : string.Format("AppID {0}", appID);
         }
 
         public void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)
@@ -287,11 +266,6 @@ namespace SteamDatabaseBackend
             {
                 string graphUrl = string.Empty;
                 string name = GetAppName(request.Target);
-
-                if (string.IsNullOrEmpty(name))
-                {
-                    name = string.Format("AppID {0}", request.Target);
-                }
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE (`Graph` = 1 OR `MaxPlayers` > 0) AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
                 {
@@ -468,7 +442,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var app in changeList.Apps)
                     {
-                        name = GetAppName(app.ID);
+                        name = GetAppName(app.ID, true);
 
                         if (string.IsNullOrEmpty(name))
                         {
@@ -487,7 +461,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var package in changeList.Packages)
                     {
-                        name = GetPackageName(package.ID);
+                        name = GetPackageName(package.ID, true);
 
                         if (string.IsNullOrEmpty(name))
                         {

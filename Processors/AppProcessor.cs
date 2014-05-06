@@ -106,7 +106,15 @@ namespace SteamDatabaseBackend
                     &&  !appName.StartsWith("SteamApp", StringComparison.Ordinal)
                     &&  !appName.StartsWith("ValveTest", StringComparison.Ordinal))
                     {
-                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: New {0} was published: {1} - {2}", currentType, productInfo.KeyValues["common"]["name"].AsString(), SteamDB.GetAppURL(AppID)));
+                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
+                            string.Format(
+                                ":retreat: New {0} was published: {1}\nSteamDB: {2}\nSteam: http://store.steampowered.com/app/{3}/",
+                                currentType,
+                                productInfo.KeyValues["common"]["name"].AsString(),
+                                SteamDB.GetAppURL(AppID),
+                                AppID
+                            )
+                        );
                     }
                 }
                 else if (!appName.Equals(productInfo.KeyValues["common"]["name"].Value))
@@ -127,7 +135,15 @@ namespace SteamDatabaseBackend
                     &&  !newAppName.StartsWith("SteamApp", StringComparison.Ordinal)
                     &&  !newAppName.StartsWith("ValveTest", StringComparison.Ordinal))
                     {
-                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg, string.Format(":retreat: {0} name was changed - {1}\n« {2}\n» {3}", currentType, SteamDB.GetAppURL(AppID, "history"), appName, newAppName));
+                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
+                            string.Format(
+                                ":retreat: {0} name was changed - {1}\n« {2}\n» {3}",
+                                currentType,
+                                SteamDB.GetAppURL(AppID, "history"),
+                                appName,
+                                newAppName
+                            )
+                        );
                     }
                 }
 

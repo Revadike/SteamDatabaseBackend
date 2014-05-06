@@ -100,7 +100,6 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
             CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
 
-            CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
             CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
             CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
 
@@ -122,6 +121,7 @@ namespace SteamDatabaseBackend
                 CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
                 CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
+                CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
             }
 
             DepotProcessor.Init();
