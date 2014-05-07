@@ -318,7 +318,7 @@ namespace SteamDatabaseBackend
                                               Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
-                                              info.MissingToken ? " (mising token)" : string.Empty
+                                              info.MissingToken ? " (missing token)" : string.Empty
                 );
             }
             else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
@@ -353,7 +353,7 @@ namespace SteamDatabaseBackend
                                               Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
-                                              info.MissingToken ? " (mising token)" : string.Empty
+                                              info.MissingToken ? " (missing token)" : string.Empty
                 );
             }
             else
