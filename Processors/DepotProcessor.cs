@@ -34,19 +34,18 @@ namespace SteamDatabaseBackend
             public ulong PreviousManifestID;
             public string DepotName;
             public string CDNToken;
-            public CDNClient.Server Server;
+            public string Server;
+            public byte[] DepotKey;
         }
 
         private static CDNClient CDNClient;
+        private static List<string> CDNServers;
         private static List<ManifestJob> ManifestJobs;
-        private static List<CDNClient.Server> LastKnownServers;
         public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
             ManifestJobs = new List<ManifestJob>();
-
-            LastKnownServers = new List<CDNClient.Server>();
 
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
@@ -55,13 +54,22 @@ namespace SteamDatabaseBackend
             Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
 
             CDNClient = new CDNClient(Steam.Instance.Client);
+
+            CDNServers = new List<string>
+            {
+                "content1.steampowered.com", // Limelight
+                "content2.steampowered.com", // Level3
+                "content3.steampowered.com", // Highwinds
+                //"content4.steampowered.com", // EdgeCast, seems to be missing content
+                "content5.steampowered.com", // CloudFront
+                //"content6.steampowered.com", // Comcast, non optimal
+                "content7.steampowered.com", // Akamai
+                "content8.steampowered.com" // Akamai
+            };
         }
 
         public static void Process(uint appID, uint changeNumber, KeyValue depots)
         {
-            bool fetchedServers = false;
-            List<CDNClient.Server> cdnServers = null;
-
             foreach (KeyValue depot in depots.Children)
             {
                 // Ignore these for now, parent app should be updated too anyway
@@ -132,56 +140,13 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (!fetchedServers)
-                {
-                    for (var i = 0; i <= 5; i++)
-                    {
-                        try
-                        {
-                            cdnServers = CDNClient.FetchServerList( maxServers: 50 );
-
-                            if (cdnServers.Count > 0)
-                            {
-                                cdnServers = cdnServers.Where(server => server.Type == "CDN").ToList();
-
-                                break;
-                            }
-                        }
-                        catch
-                        {
-                        }
-                    }
-
-                    if (cdnServers == null || cdnServers.Count == 0)
-                    {
-                        if (LastKnownServers.Count > 0)
-                        {
-                            cdnServers = LastKnownServers;
-
-                            Log.WriteError("Depot Processor", "Failed to get server list for depot {0}, using cached servers", request.DepotID);
-                        }
-                        else
-                        {
-                            Log.WriteError("Depot Processor", "Failed to get server list for depot {0}, no cached servers available", request.DepotID);
-                        }
-
-                        continue;
-                    }
-                    else
-                    {
-                        LastKnownServers = cdnServers;
-                    }
-
-                    fetchedServers = true;
-                }
-
                 lock (ManifestJobs)
                 {
                     ManifestJobs.Add(request);
                 }
 
-                request.Server = cdnServers[new Random().Next(cdnServers.Count)];
-                request.JobID = Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server.Host);
+                request.Server = CDNServers[new Random().Next(CDNServers.Count)];
+                request.JobID = Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server);
             }
         }
 
@@ -256,8 +221,7 @@ namespace SteamDatabaseBackend
                 MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
             }
 
-            CDNClient.Connect(request.Server); // TODO: AuthenticateDepot requires connectedServer not to be null
-            CDNClient.AuthenticateDepot(request.DepotID, callback.DepotKey, request.CDNToken);
+            request.DepotKey = callback.DepotKey;
 
             ThreadPool.QueueWorkItem(TryDownloadManifest, request);
         }
@@ -289,9 +253,7 @@ namespace SteamDatabaseBackend
             {
                 try
                 {
-                    CDNClient.Connect(request.Server);
-
-                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID);
+                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID, request.Server, request.DepotKey, request.CDNToken);
 
                     break;
                 }
@@ -303,11 +265,11 @@ namespace SteamDatabaseBackend
 
             if (depotManifest == null)
             {
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (jobs still in queue: {1}) ({2})", request.DepotID, ManifestJobs.Count - 1, lastError);
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (jobs still in queue: {1}) ({2}: {3})", request.DepotID, ManifestJobs.Count - 1, request.Server, lastError);
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
-                    IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.RED);
+                    IRC.SendMain("Important manifest update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
                 }
 
                 return;
@@ -315,7 +277,7 @@ namespace SteamDatabaseBackend
 
             if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
             {
-                IRC.SendMain("Important manifest update: {0}{1}{2} {3}(parent {4}){5} -{6} {7}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_GRAY, request.ParentAppID, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                IRC.SendMain("Important manifest update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
 
             var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
