@@ -38,6 +38,9 @@ namespace SteamDatabaseBackend
             public string Password;
 
             [JsonProperty(Required = Required.Always)]
+            public uint SendDelay;
+
+            [JsonProperty(Required = Required.Always)]
             public IrcChannelsJson Channel;
         }
 

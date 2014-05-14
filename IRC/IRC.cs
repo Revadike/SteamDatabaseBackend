@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
             Client.OnConnected += OnConnected;
 
             Client.Encoding = Encoding.UTF8;
-            Client.SendDelay = 700;
+            Client.SendDelay = (int)Settings.Current.IRC.SendDelay;
             Client.AutoRetry = true;
             Client.AutoRetryDelay = 15;
             Client.AutoRetryLimit = 0;

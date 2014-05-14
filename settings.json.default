@@ -30,6 +30,7 @@
 		"Port": 0,
 		"Nickname": "SteamDB",
 		"Password": "",
+		"SendDelay": 1000,
 		"Channel":
 		{
 			"Main": "#steamdb-test",
