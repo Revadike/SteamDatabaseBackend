@@ -33,6 +33,10 @@ namespace SteamDatabaseBackend
             public SteamID SteamID { get; set; }
         }
 
+        // Look at this, mom
+        private static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL);
+        private static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.GREEN, Colors.NORMAL);
+
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
 
         public List<IRCRequest> IRCRequests { get; private set; }
@@ -149,17 +153,21 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Action<CommandHandler.CommandArguments> callbackFunction;
-            var messageArray = callback.Message.Split(new Char[] {' '}, 2);
+            var i = callback.Message.IndexOf(' ');
+            var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
 
-            if (CommandHandler.Commands.TryGetValue(messageArray[0], out callbackFunction))
+            Action<CommandHandler.CommandArguments> callbackFunction;
+
+            if (CommandHandler.Commands.TryGetValue(inputCommand, out callbackFunction))
             {
+                var input = i == -1 ? string.Empty : callback.Message.Substring(i).Trim();
+
                 var command = new CommandHandler.CommandArguments
                 {
                     SenderID = callback.ChatterID,
                     ChatRoomID = callback.ChatRoomID,
                     Nickname = Steam.Instance.Friends.GetFriendPersonaName(callback.ChatterID),
-                    Message = messageArray[1].Trim()
+                    Message = input
                 };
 
                 if (SteamDB.IsBusy())
@@ -169,7 +177,7 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", messageArray[0], callback.ChatterID, callback.ChatRoomID);
+                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", inputCommand, callback.ChatterID, callback.ChatRoomID);
 
                 callbackFunction(command);
             }
@@ -421,7 +429,9 @@ namespace SteamDatabaseBackend
                     Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
                 );
 
-                if (appCount >= 50 || packageCount >= 50)
+                var changesCount = appCount + packageCount;
+
+                if (changesCount >= 50)
                 {
                     IRC.SendMain(Message);
                 }
@@ -429,7 +439,7 @@ namespace SteamDatabaseBackend
                 IRC.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, Message);
 
                 // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
-                if (appCount + packageCount > 500)
+                if (changesCount > 500)
                 {
                     IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it on our website", Colors.RED);
 
@@ -453,7 +463,7 @@ namespace SteamDatabaseBackend
                             name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
                         }
 
-                        IRC.SendAnnounce("  App: {0}{1}", name, app.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty);
+                        IRC.SendAnnounce("  App: {0}{1}", name, app.NeedsToken ? StringNeedToken : string.Empty);
                     }
                 }
 
@@ -472,7 +482,11 @@ namespace SteamDatabaseBackend
                             name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, package.ID, Colors.NORMAL, name);
                         }
 
-                        IRC.SendAnnounce("  Package: {0}{1}", name, package.NeedsToken ? string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL) : string.Empty);
+                        IRC.SendAnnounce("  Package: {0}{1}{2}",
+                            name,
+                            package.NeedsToken ? StringNeedToken : string.Empty,
+                            Steam.Instance.OwnedPackages.Contains(package.ID) ? StringCheckmark : string.Empty
+                        );
                     }
                 }
             }

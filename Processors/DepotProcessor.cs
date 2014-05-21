@@ -269,7 +269,7 @@ namespace SteamDatabaseBackend
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {
-                    IRC.SendMain("Important manifest update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
+                    IRC.SendMain("Important depot update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
                 }
 
                 return;
@@ -277,7 +277,7 @@ namespace SteamDatabaseBackend
 
             if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
             {
-                IRC.SendMain("Important manifest update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                IRC.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
 
             var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);

@@ -118,7 +118,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.Kill();
             }
 
-            DbWorker.ExecuteNonQuery("TRUNCATE TABLE `GC`");
+            DbWorker.ExecuteNonQuery("DELETE FROM `GC`");
         }
     }
 }

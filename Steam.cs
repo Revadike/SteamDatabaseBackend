@@ -36,6 +36,8 @@ namespace SteamDatabaseBackend
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
 
+        public List<uint> OwnedPackages { get; private set; }
+
         private ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; set; }
         private ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; set; }
 
@@ -80,6 +82,8 @@ namespace SteamDatabaseBackend
 
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
+
+            OwnedPackages = new List<uint>();
 
             ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
             ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
@@ -327,16 +331,19 @@ namespace SteamDatabaseBackend
 
             foreach(var license in licenseList.LicenseList)
             {
-                if (license.PackageID != 0 && timeNow.Subtract(license.TimeCreated).TotalSeconds < 600)
+                if (license.PackageID != 0 && !OwnedPackages.Contains(license.PackageID) && timeNow.Subtract(license.TimeCreated).TotalSeconds < 600)
                 {
-                    IRC.SendMain("New {0} license granted: {1}{2}{3} -{4} {5} {6}({7})",
-                                 license.LicenseType,
+                    IRC.SendMain("New license granted: {0}{1}{2} -{3} {4} {5}({6}, {7})",
                                  Colors.OLIVE, SteamProxy.GetPackageName(license.PackageID), Colors.NORMAL,
-                                 Colors.DARK_BLUE, SteamDB.GetPackageURL(license.PackageID, "history"), Colors.NORMAL,
-                                 license.PaymentMethod
+                                 Colors.DARK_BLUE, SteamDB.GetPackageURL(license.PackageID), Colors.NORMAL,
+                                 license.LicenseType, license.PaymentMethod
                     );
                 }
+
+                OwnedPackages.Add(license.PackageID);
             }
+
+            // TODO: Probably should handle deletions too, for OwnedPackages
         }
 
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback, JobID job)

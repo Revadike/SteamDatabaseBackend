@@ -51,8 +51,10 @@ namespace SteamDatabaseBackend
         {
             try
             {
-                Client.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
-                Client.Disconnect();
+                Instance.Client.AutoReconnect = false;
+                Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Main, "is exiting... will be back shortly!", Priority.Critical);
+                Instance.Client.RfcQuit("Exiting, will be back shortly!", Priority.Critical);
+                Instance.Client.Disconnect();
             }
             catch { }
         }

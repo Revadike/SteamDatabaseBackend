@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 using System;
-using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -44,7 +43,7 @@ namespace SteamDatabaseBackend
 
         public static string GetAppURL(uint appID, string section)
         {
-            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/#section_{1}", appID, section)).AbsoluteUri;
+            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/{1}/", appID, section)).AbsoluteUri;
         }
 
         public static string GetDepotURL(uint appID, string section)
@@ -59,12 +58,7 @@ namespace SteamDatabaseBackend
 
         public static string GetPackageURL(uint subID, string section)
         {
-            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/#section_{1}", subID, section)).AbsoluteUri;
-        }
-
-        public static string GetCalculatorURL(SteamID steamID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/calculator/?player={0}", steamID.ConvertToUInt64())).AbsoluteUri;
+            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
         }
     }
 }

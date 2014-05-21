@@ -151,6 +151,10 @@ namespace SteamDatabaseBackend
             }
 
             LastSchemaVersion = msg.item_schema_version;
+
+#if DEBUG
+            Log.WriteDebug(Name, msg.items_game_url);
+#endif
         }
 
         private void OnVersionUpdate(IPacketGCMsg packetMsg)
