@@ -22,6 +22,7 @@ namespace SteamDatabaseBackend
             { "!app", OnCommandApp },
             { "!sub", OnCommandPackage },
             { "!players", OnCommandPlayers },
+            { "!eresult", OnCommandEResult },
             { "!bins", OnCommandBinaries },
             { "!reload", OnCommandReload }
         };
@@ -248,6 +249,27 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
+        }
+
+        private static void OnCommandEResult(CommandArguments command)
+        {
+            if (command.Message.Length == 0)
+            {
+                ReplyToCommand(command, "Usage:{0} !eresult <number>", Colors.OLIVE);
+
+                return;
+            }
+
+            int eResult;
+
+            if (!int.TryParse(command.Message, out eResult) || !Enum.IsDefined(typeof(EResult), eResult))
+            {
+                ReplyToCommand(command, "{0}{1}{2}: Invalid EResult", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+
+                return;
+            }
+
+            ReplyToCommand(command, "{0}{1}{2}: {3}{4}{5} = {6}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.LIGHT_GRAY, eResult, Colors.NORMAL, (EResult)eResult);
         }
 
         private static void OnCommandBinaries(CommandArguments command)
