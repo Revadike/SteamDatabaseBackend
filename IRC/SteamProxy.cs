@@ -110,12 +110,11 @@ namespace SteamDatabaseBackend
 
         public static string GetAppName(uint appID, bool returnEmptyOnFailure = false)
         {
-            using (MySqlDataReader reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
+            using (MySqlDataReader reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
             {
                 if (reader.Read())
                 {
                     string name = DbWorker.GetString("Name", reader);
-                    //string nameStore = DbWorker.GetString("StoreName", reader);
                     string nameLast = DbWorker.GetString("LastKnownName", reader);
 
                     if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
@@ -322,11 +321,12 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}{10}",
                                               Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
-                                              info.MissingToken ? " (missing token)" : string.Empty
+                                              info.MissingToken ? StringNeedToken : string.Empty,
+                                              Steam.Instance.OwnedPackages.Contains(info.ID) ? StringCheckmark : string.Empty
                 );
             }
             else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
@@ -361,7 +361,7 @@ namespace SteamDatabaseBackend
                                               Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
-                                              info.MissingToken ? " (missing token)" : string.Empty
+                                              info.MissingToken ? StringNeedToken : string.Empty
                 );
             }
             else
