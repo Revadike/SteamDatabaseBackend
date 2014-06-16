@@ -117,17 +117,19 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                var depotName = depot["name"].AsString();
+
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
                     ParentAppID = appID,
                     DepotID = depotID,
                     ManifestID = manifestID,
-                    DepotName = depot["name"].AsString()
+                    DepotName = depotName
                 };
 
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
                 {
                     if (Reader.Read())
                     {
@@ -135,9 +137,30 @@ namespace SteamDatabaseBackend
 
                         if (request.PreviousManifestID == manifestID && Settings.Current.FullRun < 2)
                         {
+                            // Update depot name if changed
+                            if(!depotName.Equals(Reader.GetString("Name")))
+                            {
+                                DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Name` = @Name WHERE `DepotID` = @DepotID",
+                                    new MySqlParameter("@DepotID", request.DepotID),
+                                    new MySqlParameter("@Name", request.DepotName)
+                                );
+                            }
+
                             continue;
                         }
                     }
+                }
+
+                // Update/insert depot information straight away
+                if (request.PreviousManifestID != request.ManifestID)
+                {
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
+                        new MySqlParameter("@DepotID", request.DepotID),
+                        new MySqlParameter("@ManifestID", request.ManifestID),
+                        new MySqlParameter("@Name", request.DepotName)
+                    );
+
+                    MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
                 }
 
                 lock (ManifestJobs)
@@ -208,18 +231,6 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
-
-            if (request.PreviousManifestID != request.ManifestID)
-            {
-                // Update manifestid here because actually downloading the manifest has chances of failing
-                DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
-                                         new MySqlParameter("@DepotID", request.DepotID),
-                                         new MySqlParameter("@ManifestID", request.ManifestID),
-                                         new MySqlParameter("@Name", request.DepotName)
-                );
-
-                MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
-            }
 
             request.DepotKey = callback.DepotKey;
 
