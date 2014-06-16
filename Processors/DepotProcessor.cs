@@ -99,6 +99,8 @@ namespace SteamDatabaseBackend
 
                 ulong manifestID;
 
+                var depotName = depot["name"].AsString();
+
                 if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out manifestID))
                 {
 #if false
@@ -114,11 +116,14 @@ namespace SteamDatabaseBackend
                     }
 #endif
 
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name",
+                        new MySqlParameter("@DepotID", depotID),
+                        new MySqlParameter("@Name", depotName)
+                    );
+
                     continue;
                 }
-
-                var depotName = depot["name"].AsString();
-
+                    
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
