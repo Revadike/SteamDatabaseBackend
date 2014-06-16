@@ -260,11 +260,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (command.Message.Equals("consistency", StringComparison.CurrentCultureIgnoreCase))
+            {
+                ReplyToCommand(command, "{0}{1}{2}: {3}Consistency{4} = {5}Valve", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.LIGHT_GRAY, Colors.NORMAL, Colors.RED);
+
+                return;
+            }
+
             int eResult;
 
-            if (!int.TryParse(command.Message, out eResult) || !Enum.IsDefined(typeof(EResult), eResult))
+            if (!int.TryParse(command.Message, out eResult))
             {
-                ReplyToCommand(command, "{0}{1}{2}: Invalid EResult", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                eResult = (int)Enum.Parse(typeof(EResult), command.Message);
+            }
+
+            if(!Enum.IsDefined(typeof(EResult), eResult))
+            {
+                ReplyToCommand(command, "{0}{1}{2}: Unknown or invalid EResult", Colors.OLIVE, command.Nickname, Colors.NORMAL);
 
                 return;
             }
