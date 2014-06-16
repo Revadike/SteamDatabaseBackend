@@ -271,7 +271,14 @@ namespace SteamDatabaseBackend
 
             if (!int.TryParse(command.Message, out eResult))
             {
-                eResult = (int)Enum.Parse(typeof(EResult), command.Message);
+                try
+                {
+                    eResult = (int)Enum.Parse(typeof(EResult), command.Message, true);
+                }
+                catch
+                {
+                    eResult = -1;
+                }
             }
 
             if(!Enum.IsDefined(typeof(EResult), eResult))
