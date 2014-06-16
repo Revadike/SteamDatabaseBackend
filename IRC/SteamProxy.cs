@@ -250,9 +250,9 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback, JobID jobID)
+        public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
         {
-            var request = IRCRequests.Find(r => r.JobID == jobID);
+            var request = IRCRequests.Find(r => r.JobID == callback.JobID);
 
             if (request == null)
             {

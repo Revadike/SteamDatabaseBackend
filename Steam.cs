@@ -109,18 +109,18 @@ namespace SteamDatabaseBackend
 
             CallbackManager.Register(new Callback<SteamApps.LicenseListCallback>(OnLicenseListCallback));
 
-            CallbackManager.Register(new JobCallback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
-            CallbackManager.Register(new JobCallback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
-            CallbackManager.Register(new JobCallback<SteamApps.PICSTokensCallback>(OnPICSTokens));
+            CallbackManager.Register(new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
+            CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
+            CallbackManager.Register(new Callback<SteamApps.PICSTokensCallback>(OnPICSTokens));
 
             if (Settings.IsFullRun)
             {
-                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
+                CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
             }
             else
             {
-                CallbackManager.Register(new JobCallback<SteamApps.PICSChangesCallback>(OnPICSChanges));
-                CallbackManager.Register(new JobCallback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
+                CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
+                CallbackManager.Register(new Callback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
                 CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
@@ -279,7 +279,7 @@ namespace SteamDatabaseBackend
             GameCoordinator.UpdateStatus(0, callback.Result.ToString());
         }
 
-        private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback, JobID jobId)
+        private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
             Log.WriteInfo("Steam", "Updating sentry file...");
 
@@ -289,7 +289,7 @@ namespace SteamDatabaseBackend
 
             User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
             {
-                JobID = jobId,
+                JobID = callback.JobID,
 
                 FileName = callback.FileName,
 
@@ -346,7 +346,7 @@ namespace SteamDatabaseBackend
             // TODO: Probably should handle deletions too, for OwnedPackages
         }
 
-        private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback, JobID job)
+        private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
         {
             // Hackiness to prevent processing legit changelists after our request if that ever happens
             if (PreviousChange != 1)
@@ -364,7 +364,7 @@ namespace SteamDatabaseBackend
             Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>());
         }
 
-        private void OnPICSChanges(SteamApps.PICSChangesCallback callback, JobID job)
+        private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
             if (PreviousChange == callback.CurrentChangeNumber)
             {
@@ -461,7 +461,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnPICSTokens(SteamApps.PICSTokensCallback callback, JobID jobID)
+        private void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
             Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
 
@@ -469,7 +469,7 @@ namespace SteamDatabaseBackend
                 .Select(app => NewPICSRequest(app))
                 .Concat(callback.AppTokens.Select(app => NewPICSRequest(app.Key, app.Value)));
 
-            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == jobID);
+            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == callback.JobID);
 
             if (request != null)
             {
@@ -481,9 +481,9 @@ namespace SteamDatabaseBackend
             Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
         }
 
-        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback, JobID jobID)
+        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
-            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == jobID);
+            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == callback.JobID);
 
             if (request != null)
             {

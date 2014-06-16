@@ -50,8 +50,8 @@ namespace SteamDatabaseBackend
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
 
-            Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
-            Steam.Instance.CallbackManager.Register(new JobCallback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
+            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
+            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
 
             CDNClient = new CDNClient(Steam.Instance.Client);
 
@@ -178,13 +178,13 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback, JobID jobID)
+        private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
         {
             ManifestJob request;
 
             lock (ManifestJobs)
             {
-                request = ManifestJobs.Find(r => r.JobID == jobID);
+                request = ManifestJobs.Find(r => r.JobID == callback.JobID);
             }
 
             if (request == null)
@@ -206,13 +206,13 @@ namespace SteamDatabaseBackend
             request.JobID = Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID);
         }
 
-        private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback, JobID jobID)
+        private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
         {
             ManifestJob request;
 
             lock (ManifestJobs)
             {
-                request = ManifestJobs.Find(r => r.JobID == jobID);
+                request = ManifestJobs.Find(r => r.JobID == callback.JobID);
             }
 
             if (request == null)
@@ -269,7 +269,7 @@ namespace SteamDatabaseBackend
             {
                 try
                 {
-                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID, request.Server, request.DepotKey, request.CDNToken);
+                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID, request.Server, request.CDNToken, request.DepotKey);
 
                     break;
                 }
