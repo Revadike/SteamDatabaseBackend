@@ -147,7 +147,10 @@ namespace SteamDatabaseBackend
 
         public void OnChatMessage(SteamFriends.ChatMsgCallback callback)
         {
-            if (callback.ChatMsgType != EChatEntryType.ChatMsg || callback.Message[0] != '!' || callback.Message.Contains('\n'))
+            if (callback.ChatMsgType != EChatEntryType.ChatMsg
+            ||  callback.ChatterID == Steam.Instance.Client.SteamID
+            ||  callback.Message[0] != '!'
+            ||  callback.Message.Contains('\n'))
             {
                 return;
             }
@@ -357,11 +360,12 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}",
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}{10}",
                                               Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
-                                              info.MissingToken ? StringNeedToken : string.Empty
+                                              info.MissingToken ? StringNeedToken : string.Empty,
+                                              Steam.Instance.OwnedApps.Contains(info.ID) ? StringCheckmark : string.Empty
                 );
             }
             else
@@ -463,7 +467,11 @@ namespace SteamDatabaseBackend
                             name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
                         }
 
-                        IRC.SendAnnounce("  App: {0}{1}", name, app.NeedsToken ? StringNeedToken : string.Empty);
+                        IRC.SendAnnounce("  App: {0}{1}{2}",
+                            name,
+                            app.NeedsToken ? StringNeedToken : string.Empty,
+                            Steam.Instance.OwnedApps.Contains(app.ID) ? StringCheckmark : string.Empty
+                        );
                     }
                 }
 

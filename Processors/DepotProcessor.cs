@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
                 };
 
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID AND `Files` != '' LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
                 {
                     if (Reader.Read())
                     {
@@ -239,7 +239,15 @@ namespace SteamDatabaseBackend
 
             request.DepotKey = callback.DepotKey;
 
-            ThreadPool.QueueWorkItem(TryDownloadManifest, request);
+            // In full run, process depots after everything else
+            if (Settings.IsFullRun)
+            {
+                Steam.Instance.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
+            }
+            else
+            {
+                ThreadPool.QueueWorkItem(TryDownloadManifest, request);
+            }
         }
 
         private static void TryDownloadManifest(ManifestJob request)

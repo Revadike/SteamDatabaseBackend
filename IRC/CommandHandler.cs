@@ -118,6 +118,11 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandHelp(CommandArguments command)
         {
+            if (command.Message.Length > 0)
+            {
+                return;
+            }
+
             ReplyToCommand(command, "{0}{1}{2}: Available commands: {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
         }
 
@@ -228,7 +233,8 @@ namespace SteamDatabaseBackend
             {
                 string name = string.Format("%{0}%", command.Message);
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                // Ugh, have to filter out "games" that have "Demo" in their name, because valve cannot into consistency, some servers and demos are marked as games
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT LIKE '% Demo' AND `Apps`.`Name` NOT LIKE '%Dedicated Server%' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {
                     if (Reader.Read())
                     {

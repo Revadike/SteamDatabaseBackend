@@ -37,6 +37,7 @@ namespace SteamDatabaseBackend
         public SmartThreadPool SecondaryPool { get; private set; }
 
         public List<uint> OwnedPackages { get; private set; }
+        public List<uint> OwnedApps { get; private set; }
 
         private ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; set; }
         private ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; set; }
@@ -84,6 +85,7 @@ namespace SteamDatabaseBackend
             SecondaryPool.Name = "Secondary Pool";
 
             OwnedPackages = new List<uint>();
+            OwnedApps = new List<uint>();
 
             ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
             ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
@@ -325,25 +327,21 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Steam", "{0} Licenses: {1}", licenseList.LicenseList.Count, string.Join(", ", licenseList.LicenseList.Select(lic => lic.PackageID)));
+            Log.WriteInfo("Steam", "{0} licenses received", licenseList.LicenseList.Count);
 
-            var timeNow = DateTime.Now;
+            OwnedPackages = licenseList.LicenseList.Select(lic => lic.PackageID).ToList();
 
-            foreach(var license in licenseList.LicenseList)
+            var ownedApps = new List<uint>();
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", OwnedPackages))))
             {
-                if (license.PackageID != 0 && !OwnedPackages.Contains(license.PackageID) && timeNow.Subtract(license.TimeCreated).TotalSeconds < 600)
+                while (Reader.Read())
                 {
-                    IRC.SendMain("New license granted: {0}{1}{2} -{3} {4} {5}({6}, {7})",
-                                 Colors.OLIVE, SteamProxy.GetPackageName(license.PackageID), Colors.NORMAL,
-                                 Colors.DARK_BLUE, SteamDB.GetPackageURL(license.PackageID), Colors.NORMAL,
-                                 license.LicenseType, license.PaymentMethod
-                    );
+                    ownedApps.Add(Reader.GetUInt32("AppID"));
                 }
-
-                OwnedPackages.Add(license.PackageID);
             }
 
-            // TODO: Probably should handle deletions too, for OwnedPackages
+            OwnedApps = ownedApps;
         }
 
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
