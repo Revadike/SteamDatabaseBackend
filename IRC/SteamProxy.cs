@@ -40,8 +40,8 @@ namespace SteamDatabaseBackend
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
 
         public List<IRCRequest> IRCRequests { get; private set; }
-        public List<uint> ImportantApps { get; private set; }
-        private List<uint> ImportantSubs;
+        public List<uint> ImportantApps { get; set; }
+        public List<uint> ImportantSubs { get; set; }
 
         public SteamProxy()
         {

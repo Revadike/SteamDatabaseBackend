@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
             { "!players", OnCommandPlayers },
             { "!eresult", OnCommandEResult },
             { "!bins", OnCommandBinaries },
-            { "!reload", OnCommandReload }
+            { "!important", OnCommandImportant }
         };
 
         public class CommandArguments
@@ -337,7 +337,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnCommandReload(CommandArguments command)
+        private static void OnCommandImportant(CommandArguments command)
         {
             if (command.IsChatRoomCommand)
             {
@@ -346,10 +346,140 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (IRC.IsSenderOp(command.Channel, command.Nickname))
+            if (!IRC.IsSenderOp(command.Channel, command.Nickname))
             {
-                SteamProxy.Instance.ReloadImportant(command);
+                return;
             }
+
+            var s = command.Message.Split(' ');
+            var count = s.Count();
+
+            if (count > 0)
+            {
+                switch (s[0])
+                {
+                    case "reload":
+                    {
+                        SteamProxy.Instance.ReloadImportant(command);
+
+                        return;
+                    }
+
+                    case "add":
+                    {
+                        if (count < 3)
+                        {
+                            break;
+                        }
+
+                        uint id;
+
+                        if (!uint.TryParse(s[2], out id))
+                        {
+                            break;
+                        }
+
+                        switch(s[1])
+                        {
+                            case "app":
+                            {
+                                if (SteamProxy.Instance.ImportantApps.Contains(id))
+                                {
+                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                }
+                                else
+                                {
+                                    SteamProxy.Instance.ImportantApps.Add(id);
+
+                                    DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
+
+                                    ReplyToCommand(command, "{0}{1}{2}: Marked app {3}{4}{5} ({6}) as important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                }
+
+                                return;
+                            }
+                            case "sub":
+                            {
+                                if (SteamProxy.Instance.ImportantSubs.Contains(id))
+                                {
+                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                }
+                                else
+                                {
+                                    SteamProxy.Instance.ImportantSubs.Add(id);
+
+                                    DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
+
+                                    ReplyToCommand(command, "{0}{1}{2}: Marked package {3}{4}{5} ({6}) as important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                }
+
+                                return;
+                            }
+                        }
+
+                        break;
+                    }
+
+                    case "remove":
+                    {
+                        if (count < 3)
+                        {
+                            break;
+                        }
+
+                        uint id;
+
+                        if (!uint.TryParse(s[2], out id))
+                        {
+                            break;
+                        }
+
+                        switch(s[1])
+                        {
+                            case "app":
+                                {
+                                    if (!SteamProxy.Instance.ImportantApps.Contains(id))
+                                    {
+                                        ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                    }
+                                    else
+                                    {
+                                        SteamProxy.Instance.ImportantApps.Remove(id);
+
+                                        DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
+
+                                        ReplyToCommand(command, "{0}{1}{2}: Removed app {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                    }
+
+                                    return;
+                                }
+                            case "sub":
+                                {
+                                    if (!SteamProxy.Instance.ImportantSubs.Contains(id))
+                                    {
+                                        ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                    }
+                                    else
+                                    {
+                                        SteamProxy.Instance.ImportantSubs.Remove(id);
+
+                                        DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
+
+                                        ReplyToCommand(command, "{0}{1}{2}: Removed package {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                    }
+
+                                    return;
+                                }
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+
+
+            ReplyToCommand(command, "Usage:{0} !important reload {1}or{2} !important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
         }
     }
 }
