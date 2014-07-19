@@ -27,7 +27,21 @@ namespace SteamDatabaseBackend
 
         public static int ExecuteNonQuery(string text, params MySqlParameter[] parameters)
         {
-            return MySqlHelper.ExecuteNonQuery(Settings.Current.ConnectionString, text, parameters);
+            int res;
+
+            try
+            {
+                res = MySqlHelper.ExecuteNonQuery(Settings.Current.ConnectionString, text, parameters);
+            }
+            catch (MySqlException e)
+            {
+                Log.WriteError("DbWorker", "Caught exception while executing a query: {0}\nMessage: {1}\n{2}", text, e.Message, e.StackTrace);
+
+                // Try again
+                res = MySqlHelper.ExecuteNonQuery(Settings.Current.ConnectionString, text, parameters);
+            }
+
+            return res;
         }
 
         public static string GetString(string fieldName, MySqlDataReader reader)
