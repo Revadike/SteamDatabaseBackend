@@ -9,9 +9,7 @@ settings.json
 *.suo
 *.user
 *.userprefs
-*.sln
 *.sln.docstates
-*.csproj
 *.dll
 
 # Build results
