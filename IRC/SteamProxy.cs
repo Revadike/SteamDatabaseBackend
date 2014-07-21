@@ -277,7 +277,7 @@ namespace SteamDatabaseBackend
                 string graphUrl = string.Empty;
                 string name = GetAppName(request.Target);
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE (`Graph` = 1 OR `MaxPlayers` > 0) AND `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
                 {
                     if (Reader.Read())
                     {
