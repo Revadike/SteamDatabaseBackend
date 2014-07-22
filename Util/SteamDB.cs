@@ -31,11 +31,6 @@ namespace SteamDatabaseBackend
             return new Uri(Settings.Current.RawBaseURL, string.Format("/sub/{0}.vdf", subID)).AbsoluteUri;
         }
 
-        public static string GetGraphURL(uint appID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/graph/{0}/", appID)).AbsoluteUri;
-        }
-
         public static string GetAppURL(uint appID)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/", appID)).AbsoluteUri;

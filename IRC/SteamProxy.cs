@@ -270,26 +270,15 @@ namespace SteamDatabaseBackend
             }
             else if (request.Target == 0)
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4:N0}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(0));
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4:N0}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(753, "graph"));
             }
             else
             {
-                string graphUrl = string.Empty;
-                string name = GetAppName(request.Target);
-
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", request.Target)))
-                {
-                    if (Reader.Read())
-                    {
-                        graphUrl = string.Format("{0} -{1} {2}", Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetGraphURL(request.Target));
-                    }
-                }
-
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8} -{9} {10}{11}",
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8} -{9} {10}",
                     Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
-                    Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.OLIVE, GetAppName(request.Target), Colors.NORMAL,
                     Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target), graphUrl);
+                    Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
             }
         }
 
