@@ -167,8 +167,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            // If we are full running, process depots too
-            bool depotsSectionModified = Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0;
+            bool depotsSectionModified = false;
 
             foreach (KeyValue section in productInfo.KeyValues.Children)
             {
@@ -265,13 +264,16 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (depotsSectionModified)
+            if (depotsSectionModified || (Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0))
             {
                 DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
 
-                DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID",
-                    new MySqlParameter("@AppID", AppID)
-                );
+                if (depotsSectionModified)
+                {
+                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID",
+                        new MySqlParameter("@AppID", AppID)
+                    );
+                }
             }
         }
 

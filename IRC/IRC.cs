@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
             catch { }
         }
 
-        public static void OnConnected(object sender, EventArgs e)
+        private static void OnConnected(object sender, EventArgs e)
         {
             Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
         }
