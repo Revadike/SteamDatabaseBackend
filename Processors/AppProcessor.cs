@@ -268,6 +268,10 @@ namespace SteamDatabaseBackend
             if (depotsSectionModified)
             {
                 DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
+
+                DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID",
+                    new MySqlParameter("@AppID", AppID)
+                );
             }
         }
 
