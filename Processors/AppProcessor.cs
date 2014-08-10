@@ -341,7 +341,7 @@ namespace SteamDatabaseBackend
         private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             // All keys in PICS are supposed to be lower case
-            keyName = keyName.ToLower();
+            keyName = keyName.ToLower().Trim();
 
             if (!CurrentData.ContainsKey(keyName))
             {

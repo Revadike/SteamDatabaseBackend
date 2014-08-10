@@ -296,7 +296,7 @@ namespace SteamDatabaseBackend
             // All keys in PICS are supposed to be lower case.
             // But currently some keys in packages are not lowercased,
             // this lowercases everything to make sure nothing breaks in future
-            keyName = keyName.ToLower();
+            keyName = keyName.ToLower().Trim();
 
             if (!CurrentData.ContainsKey(keyName))
             {
