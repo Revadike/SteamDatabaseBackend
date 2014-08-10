@@ -70,6 +70,8 @@ namespace SteamDatabaseBackend
 
         public static void Process(uint appID, uint changeNumber, KeyValue depots)
         {
+            var buildID = depots["branches"]["public"]["buildid"].AsInteger();
+
             foreach (KeyValue depot in depots.Children)
             {
                 // Ignore these for now, parent app should be updated too anyway
@@ -133,11 +135,20 @@ namespace SteamDatabaseBackend
                     DepotName = depotName
                 };
 
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Add(request);
+                }
+
+                int currentBuildID = 0;
+
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
                 {
                     if (Reader.Read())
                     {
+                        currentBuildID = Reader.GetInt32("buildID");
+
                         request.PreviousManifestID = Reader.GetUInt64("ManifestID");
 
                         if (request.PreviousManifestID == manifestID && Settings.Current.FullRun < 2)
@@ -153,24 +164,26 @@ namespace SteamDatabaseBackend
 
                             continue;
                         }
+
+                        if (currentBuildID > buildID)
+                        {
+                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", depotID, currentBuildID, buildID);
+                            continue;
+                        }
                     }
                 }
 
                 // Update/insert depot information straight away
-                if (request.PreviousManifestID != request.ManifestID)
+                if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID)
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `ManifestID`) VALUES (@DepotID, @Name, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `ManifestID` = @ManifestID",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @Name, @BuildID, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
                         new MySqlParameter("@DepotID", request.DepotID),
+                        new MySqlParameter("@BuildID", buildID),
                         new MySqlParameter("@ManifestID", request.ManifestID),
                         new MySqlParameter("@Name", request.DepotName)
                     );
 
                     MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
-                }
-
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Add(request);
                 }
 
                 request.Server = CDNServers[new Random().Next(CDNServers.Count)];
@@ -264,6 +277,8 @@ namespace SteamDatabaseBackend
             lock (ManifestJobs)
             {
                 ManifestJobs.Remove(request);
+
+                Log.WriteDebug("Depot Processor", "Processed depot {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count());
             }
         }
 
@@ -390,11 +405,6 @@ namespace SteamDatabaseBackend
                 {
                     MakeHistory(request, file, "added");
                 }
-            }
-
-            lock (ManifestJobs)
-            {
-                Log.WriteDebug("Depot Processor", "DepotID: Processed {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count - 1);
             }
         }
 
