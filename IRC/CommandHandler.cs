@@ -299,7 +299,7 @@ namespace SteamDatabaseBackend
 
         private static void OnCommandBinaries(CommandArguments command)
         {
-            string cdn = "http://media.steampowered.com/client/";
+            string cdn = "https://steamcdn-a.akamaihd.net/client/";
 
             using (var webClient = new WebClient())
             {
@@ -385,7 +385,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (SteamProxy.Instance.ImportantApps.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} ({6}) is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
                                 else
                                 {
@@ -402,7 +402,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (SteamProxy.Instance.ImportantSubs.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
+                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} ({6}) is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
                                 else
                                 {
@@ -437,47 +437,45 @@ namespace SteamDatabaseBackend
                         switch(s[1])
                         {
                             case "app":
+                            {
+                                if (!SteamProxy.Instance.ImportantApps.Contains(id))
                                 {
-                                    if (!SteamProxy.Instance.ImportantApps.Contains(id))
-                                    {
-                                        ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
-                                    }
-                                    else
-                                    {
-                                        SteamProxy.Instance.ImportantApps.Remove(id);
-
-                                        DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
-
-                                        ReplyToCommand(command, "{0}{1}{2}: Removed app {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
-                                    }
-
-                                    return;
+                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} ({6}) is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
+                                else
+                                {
+                                    SteamProxy.Instance.ImportantApps.Remove(id);
+
+                                    DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
+
+                                    ReplyToCommand(command, "{0}{1}{2}: Removed app {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                }
+
+                                return;
+                            }
                             case "sub":
+                            {
+                                if (!SteamProxy.Instance.ImportantSubs.Contains(id))
                                 {
-                                    if (!SteamProxy.Instance.ImportantSubs.Contains(id))
-                                    {
-                                        ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL);
-                                    }
-                                    else
-                                    {
-                                        SteamProxy.Instance.ImportantSubs.Remove(id);
-
-                                        DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
-
-                                        ReplyToCommand(command, "{0}{1}{2}: Removed package {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
-                                    }
-
-                                    return;
+                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} ({6}) is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
+                                else
+                                {
+                                    SteamProxy.Instance.ImportantSubs.Remove(id);
+
+                                    DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
+
+                                    ReplyToCommand(command, "{0}{1}{2}: Removed package {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                }
+
+                                return;
+                            }
                         }
 
                         break;
                     }
                 }
             }
-
-
 
             ReplyToCommand(command, "Usage:{0} !important reload {1}or{2} !important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
         }
