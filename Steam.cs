@@ -210,7 +210,7 @@ namespace SteamDatabaseBackend
             {
                 foreach (var request in SteamProxy.Instance.IRCRequests)
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Your request failed.", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL);
+                    CommandHandler.ReplyToCommand(request.Command, "Your request failed.");
                 }
 
                 SteamProxy.Instance.IRCRequests.Clear();

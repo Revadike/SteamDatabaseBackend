@@ -19,6 +19,7 @@ namespace SteamDatabaseBackend
         public void Init()
         {
             Client.OnChannelMessage += CommandHandler.OnChannelMessage;
+            Client.OnQueryMessage += CommandHandler.OnChannelMessage;
             Client.OnConnected += OnConnected;
 
             Client.Encoding = Encoding.UTF8;
@@ -97,23 +98,11 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static bool IsSenderOp(string channel, string nickname)
+        public static bool IsSenderOp(IrcMessageData message)
         {
-            ChannelUser user = Instance.Client.GetChannelUser(channel, nickname);
+            ChannelUser user = Instance.Client.GetChannelUser(message.Channel, message.Nick);
 
-            if (user == null)
-            {
-                return false;
-            }
-
-            if (user.IsOp)
-            {
-                return true;
-            }
-
-            Instance.Client.SendMessage(SendType.Message, channel, string.Format("{0}{1}{2}: You're not op!", Colors.OLIVE, nickname, Colors.NORMAL), Priority.AboveMedium);
-
-            return false;
+            return user != null && user.IsOp;
         }
     }
 }

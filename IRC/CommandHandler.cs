@@ -16,22 +16,36 @@ namespace SteamDatabaseBackend
 {
     public static class CommandHandler
     {
-        public static readonly Dictionary<string, Action<CommandArguments>> Commands = new Dictionary<string, Action<CommandArguments>>
+        public static readonly Dictionary<string, CommandData> Commands = new Dictionary<string, CommandData>
         {
-            { "!help", OnCommandHelp },
-            { "!app", OnCommandApp },
-            { "!sub", OnCommandPackage },
-            { "!players", OnCommandPlayers },
-            { "!eresult", OnCommandEResult },
-            { "!bins", OnCommandBinaries },
-            { "!important", OnCommandImportant }
+            { "!help",      new CommandData(OnCommandHelp,       false, false) },
+            { "!app",       new CommandData(OnCommandApp,        true,  false) },
+            { "!sub",       new CommandData(OnCommandPackage,    true,  false) },
+            { "!players",   new CommandData(OnCommandPlayers,    true,  false) },
+            { "!eresult",   new CommandData(OnCommandEResult,    false, false) },
+            { "!bins",      new CommandData(OnCommandBinaries,   false, false) },
+            { "!important", new CommandData(OnCommandImportant,  false,  true) },
+            { "!relogin",   new CommandData(OnCommandRelogin,    false,  true) },
         };
+
+        public struct CommandData
+        {
+            public Action<CommandArguments> Callback;
+            public bool RequiresSteam;
+            public bool OpsOnly;
+
+            public CommandData(Action<CommandArguments> callback, bool requiresSteam, bool opsOnly)
+            {
+                Callback = callback;
+                RequiresSteam = requiresSteam;
+                OpsOnly = opsOnly;
+            }
+        }
 
         public class CommandArguments
         {
             public string Message { get; set; }
-            public string Channel { get; set; }
-            public string Nickname { get; set; }
+            public IrcMessageData MessageData { get; set; }
             public SteamID ChatRoomID { get; set; }
             public SteamID SenderID { get; set; }
 
@@ -46,13 +60,20 @@ namespace SteamDatabaseBackend
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
         {
+            message = string.Format(message, args);
+
             if (command.IsChatRoomCommand)
             {
-                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}", Colors.StripColors(string.Format(message, args))));
+                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
             }
             else
             {
-                IRC.Instance.Client.SendMessage(SendType.Message, command.Channel, string.Format(message, args), Priority.High);
+                if (command.MessageData.Type == ReceiveType.ChannelMessage)
+                {
+                    message = string.Format("{0}{1}{2}: {3}", Colors.OLIVE, command.MessageData.Nick, Colors.NORMAL, message);
+                }
+
+                IRC.Instance.Client.SendReply(command.MessageData, message, Priority.High);
             }
         }
 
@@ -63,56 +84,43 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (e.Data.Message == "!relogin" && IRC.IsSenderOp(e.Data.Channel, e.Data.Nick))
-            {
-                if (Steam.Instance.Client.IsConnected)
-                {
-                    Steam.Instance.Client.Disconnect();
-                }
+            CommandData commandData;
 
-                foreach (var idler in Program.GCIdlers)
-                {
-                    if (idler.Client.IsConnected)
-                    {
-                        idler.Client.Disconnect();
-                    }
-                }
-
-                Log.WriteInfo("IRC", "Relogin forced by user {0} in channel {1}", e.Data.Nick, e.Data.Channel);
-
-                ReplyToCommand(new CommandArguments { Channel = e.Data.Channel }, "{0} is responsible for death of everything and everyone now.", e.Data.Nick);
-            }
-
-            Action<CommandArguments> callbackFunction;
-
-            if (Commands.TryGetValue(e.Data.MessageArray[0], out callbackFunction))
+            if (Commands.TryGetValue(e.Data.MessageArray[0], out commandData))
             {
                 var input = e.Data.Message.Substring(e.Data.MessageArray[0].Length).Trim();
 
                 var command = new CommandArguments
                 {
-                    Channel = e.Data.Channel,
-                    Nickname = e.Data.Nick,
+                    MessageData = e.Data,
                     Message = input
                 };
 
-                if (!Steam.Instance.Client.IsConnected)
+                if (commandData.RequiresSteam && !Steam.Instance.Client.IsConnected)
                 {
-                    ReplyToCommand(command, "{0}{1}{2}: Not connected to Steam.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                    ReplyToCommand(command, "Not connected to Steam.");
+
+                    return;
+                }
+                else if (commandData.OpsOnly)
+                {
+                    if (!IRC.IsSenderOp(e.Data))
+                    {
+                        ReplyToCommand(command, "You're not op!");
+
+                        return;
+                    }
+                }
+                else if (SteamDB.IsBusy())
+                {
+                    ReplyToCommand(command, "The bot is currently busy.");
 
                     return;
                 }
 
-                if (SteamDB.IsBusy())
-                {
-                    ReplyToCommand(command, "{0}{1}{2}: The bot is currently busy.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}) in channel {3}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Channel);
 
-                    return;
-                }
-
-                Log.WriteInfo("IRC", "Handling command {0} for user {1} in channel {2}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Channel);
-
-                callbackFunction(command);
+                commandData.Callback(command);
             }
         }
 
@@ -123,7 +131,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            ReplyToCommand(command, "{0}{1}{2}: Available commands: {3}{4}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
+            ReplyToCommand(command, "Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
         }
 
         private static void OnCommandApp(CommandArguments command)
@@ -179,7 +187,7 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        ReplyToCommand(command, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                        ReplyToCommand(command, "Nothing was found matching your request.");
                     }
                 }
             }
@@ -251,7 +259,7 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        ReplyToCommand(command, "{0}{1}{2}: Nothing was found matching your request", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                        ReplyToCommand(command, "Nothing was found matching your request.");
                     }
                 }
             }
@@ -268,7 +276,7 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Equals("consistency", StringComparison.CurrentCultureIgnoreCase))
             {
-                ReplyToCommand(command, "{0}{1}{2}: {3}Consistency{4} = {5}Valve", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.LIGHT_GRAY, Colors.NORMAL, Colors.RED);
+                ReplyToCommand(command, "{0}Consistency{1} = {2}Valve", Colors.LIGHT_GRAY, Colors.NORMAL, Colors.RED);
 
                 return;
             }
@@ -289,12 +297,12 @@ namespace SteamDatabaseBackend
 
             if(!Enum.IsDefined(typeof(EResult), eResult))
             {
-                ReplyToCommand(command, "{0}{1}{2}: Unknown or invalid EResult", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                ReplyToCommand(command, "Unknown or invalid EResult.");
 
                 return;
             }
 
-            ReplyToCommand(command, "{0}{1}{2}: {3}{4}{5} = {6}", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.LIGHT_GRAY, eResult, Colors.NORMAL, (EResult)eResult);
+            ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.LIGHT_GRAY, eResult, Colors.NORMAL, (EResult)eResult);
         }
 
         private static void OnCommandBinaries(CommandArguments command)
@@ -315,7 +323,7 @@ namespace SteamDatabaseBackend
                         }
                         catch
                         {
-                            ReplyToCommand(command, "{0}{1}{2}: Something went horribly wrong and keyvalue parser died.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                            ReplyToCommand(command, "Something went horribly wrong and keyvalue parser died.");
 
                             return;
                         }
@@ -323,34 +331,40 @@ namespace SteamDatabaseBackend
 
                     if (kv["bins_osx"].Children.Count == 0)
                     {
-                        ReplyToCommand(command, "{0}{1}{2}: Failed to find binaries in parsed response.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                        ReplyToCommand(command, "Failed to find binaries in parsed response.");
 
                         return;
                     }
 
                     kv = kv["bins_osx"];
 
-                    ReplyToCommand(command, "{0}{1}{2}:{3} {4}{5} {6}({7} MB)", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                    ReplyToCommand(command, "You're on your own:{0} {1}{2} {3}({4} MB)", Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
                 };
 
                 webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_publicbeta_osx?_={1}", cdn, DateTime.UtcNow.Ticks)));
             }
         }
 
+        private static void OnCommandRelogin(CommandArguments command)
+        {
+            if (Steam.Instance.Client.IsConnected)
+            {
+                Steam.Instance.Client.Connect();
+            }
+
+            foreach (var idler in Program.GCIdlers)
+            {
+                if (idler.Client.IsConnected)
+                {
+                    idler.Client.Connect();
+                }
+            }
+
+            ReplyToCommand(command, "Reconnect forced.");
+        }
+
         private static void OnCommandImportant(CommandArguments command)
         {
-            if (command.IsChatRoomCommand)
-            {
-                ReplyToCommand(command, "{0}: This command can only be used in IRC", command.Nickname);
-
-                return;
-            }
-
-            if (!IRC.IsSenderOp(command.Channel, command.Nickname))
-            {
-                return;
-            }
-
             var s = command.Message.Split(' ');
             var count = s.Count();
 
@@ -385,7 +399,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (SteamProxy.Instance.ImportantApps.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} ({6}) is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                    ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
                                 else
                                 {
@@ -393,7 +407,7 @@ namespace SteamDatabaseBackend
 
                                     DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
 
-                                    ReplyToCommand(command, "{0}{1}{2}: Marked app {3}{4}{5} ({6}) as important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                    ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
 
                                 return;
@@ -402,7 +416,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (SteamProxy.Instance.ImportantSubs.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} ({6}) is already important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                    ReplyToCommand(command, "Package {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
                                 else
                                 {
@@ -410,7 +424,7 @@ namespace SteamDatabaseBackend
 
                                     DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
 
-                                    ReplyToCommand(command, "{0}{1}{2}: Marked package {3}{4}{5} ({6}) as important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                    ReplyToCommand(command, "Marked package {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
 
                                 return;
@@ -440,7 +454,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (!SteamProxy.Instance.ImportantApps.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: App {3}{4}{5} ({6}) is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                    ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.",  Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
                                 else
                                 {
@@ -448,7 +462,7 @@ namespace SteamDatabaseBackend
 
                                     DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
 
-                                    ReplyToCommand(command, "{0}{1}{2}: Removed app {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
+                                    ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
                                 }
 
                                 return;
@@ -457,7 +471,7 @@ namespace SteamDatabaseBackend
                             {
                                 if (!SteamProxy.Instance.ImportantSubs.Contains(id))
                                 {
-                                    ReplyToCommand(command, "{0}{1}{2}: Package {3}{4}{5} ({6}) is not important.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                    ReplyToCommand(command, "Package {0}{1}{2} ({3}) is not important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
                                 else
                                 {
@@ -465,7 +479,7 @@ namespace SteamDatabaseBackend
 
                                     DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
 
-                                    ReplyToCommand(command, "{0}{1}{2}: Removed package {3}{4}{5} ({6}) from the important list.", Colors.OLIVE, command.Nickname, Colors.NORMAL, Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
+                                    ReplyToCommand(command, "Removed package {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
                                 }
 
                                 return;

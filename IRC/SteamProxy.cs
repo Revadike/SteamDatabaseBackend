@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2}: Reloaded {3} important apps and {4} packages", Colors.OLIVE, command.Nickname, Colors.NORMAL, ImportantApps.Count, ImportantSubs.Count);
+                CommandHandler.ReplyToCommand(command, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
             }
         }
 
@@ -158,9 +158,9 @@ namespace SteamDatabaseBackend
             var i = callback.Message.IndexOf(' ');
             var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
 
-            Action<CommandHandler.CommandArguments> callbackFunction;
+            CommandHandler.CommandData commandData;
 
-            if (CommandHandler.Commands.TryGetValue(inputCommand, out callbackFunction))
+            if (CommandHandler.Commands.TryGetValue(inputCommand, out commandData))
             {
                 var input = i == -1 ? string.Empty : callback.Message.Substring(i).Trim();
 
@@ -168,20 +168,25 @@ namespace SteamDatabaseBackend
                 {
                     SenderID = callback.ChatterID,
                     ChatRoomID = callback.ChatRoomID,
-                    Nickname = Steam.Instance.Friends.GetFriendPersonaName(callback.ChatterID),
                     Message = input
                 };
 
-                if (SteamDB.IsBusy())
+                if (commandData.OpsOnly)
                 {
-                    CommandHandler.ReplyToCommand(command, "{0}{1}{2}: The bot is currently busy.", Colors.OLIVE, command.Nickname, Colors.NORMAL);
+                    CommandHandler.ReplyToCommand(command, "This command can only be used in IRC.");
+
+                    return;
+                }
+                else if (SteamDB.IsBusy())
+                {
+                    CommandHandler.ReplyToCommand(command, "The bot is currently busy.");
 
                     return;
                 }
 
                 Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", inputCommand, callback.ChatterID, callback.ChatRoomID);
 
-                callbackFunction(command);
+                commandData.Callback(command);
             }
         }
 
@@ -266,16 +271,15 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to request player count: {3}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, callback.Result);
+                CommandHandler.ReplyToCommand(request.Command, "Unable to request player count: {0}", callback.Result);
             }
             else if (request.Target == 0)
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: {3}{4:N0}{5} people praising lord Gaben right now, influence:{6} {7}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(753, "graph"));
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}", Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(753, "graph"));
             }
             else
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: People playing {3}{4}{5} right now: {6}{7:N0}{8} -{9} {10}",
-                    Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                CommandHandler.ReplyToCommand(request.Command, "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
                     Colors.OLIVE, GetAppName(request.Target), Colors.NORMAL,
                     Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
                     Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
@@ -288,7 +292,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unknown SubID: {3}{4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}", Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -308,13 +312,12 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, name, e.Message);
+                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {3}: {4}", name, e.Message);
 
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}{10}",
-                                              Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                                               info.MissingToken ? StringNeedToken : string.Empty,
@@ -325,7 +328,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unknown AppID: {3}{4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}", Colors.OLIVE, request.Target);
 
                     return;
                 }
@@ -344,13 +347,12 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Unable to save file for {3}: {4}", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL, name, e.Message);
+                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {0}: {1}", name, e.Message);
 
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: Dump for {3}{4}{5} -{6} {7}{8}{9}{10}",
-                                              Colors.OLIVE, request.Command.Nickname, Colors.NORMAL,
+                CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
                                               Colors.OLIVE, name, Colors.NORMAL,
                                               Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                                               info.MissingToken ? StringNeedToken : string.Empty,
@@ -359,7 +361,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2}: I have no idea what happened here!", Colors.OLIVE, request.Command.Nickname, Colors.NORMAL);
+                CommandHandler.ReplyToCommand(request.Command, "I have no idea what happened here!");
             }
         }
 
