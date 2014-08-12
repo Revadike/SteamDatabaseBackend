@@ -29,6 +29,9 @@ namespace SteamDatabaseBackend
             public string[] Servers;
 
             [JsonProperty(Required = Required.Always)]
+            public List<string> Admins;
+
+            [JsonProperty(Required = Required.Always)]
             public int Port;
 
             [JsonProperty(Required = Required.Always)]

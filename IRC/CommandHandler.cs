@@ -104,9 +104,10 @@ namespace SteamDatabaseBackend
                 }
                 else if (commandData.OpsOnly)
                 {
-                    if (!IRC.IsSenderOp(e.Data))
+                    // Check if user is in admin list or op in a channel
+                    if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.IsSenderOp(e.Data)))
                     {
-                        ReplyToCommand(command, "You're not op!");
+                        ReplyToCommand(command, "You're not an admin!");
 
                         return;
                     }
@@ -118,7 +119,7 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}) in channel {3}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Channel);
+                Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
 
                 commandData.Callback(command);
             }
