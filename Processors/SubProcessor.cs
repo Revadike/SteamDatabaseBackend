@@ -48,6 +48,7 @@ namespace SteamDatabaseBackend
         private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
             string packageName = string.Empty;
+            string packageNameCurrent = string.Empty;
             var apps = new Dictionary<uint, string>();
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
@@ -62,7 +63,7 @@ namespace SteamDatabaseBackend
             {
                 if (Reader.Read())
                 {
-                    packageName = DbWorker.GetString("Name", Reader);
+                    packageNameCurrent = DbWorker.GetString("Name", Reader);
                 }
             }
 
@@ -76,27 +77,31 @@ namespace SteamDatabaseBackend
 
             var kv = productInfo.KeyValues.Children.FirstOrDefault();
 
-            if (kv["name"].Value != null)
+            packageName = kv["name"].Value;
+
+            if (packageName != null)
             {
-                if (string.IsNullOrEmpty(packageName))
+                if (string.IsNullOrEmpty(packageNameCurrent))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@Name", kv["name"].Value)
+                                             new MySqlParameter("@Name", packageName)
                     );
 
                     MakeHistory("created_sub");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, kv["name"].Value);
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, packageName);
                 }
-                else if (!packageName.Equals(kv["name"].Value))
+                else if (!packageNameCurrent.Equals(packageName))
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID",
                                              new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@Name", kv["name"].Value)
+                                             new MySqlParameter("@Name", packageName)
                     );
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageName, kv["name"].Value);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageNameCurrent, packageName);
                 }
+
+
             }
 
             foreach (KeyValue section in kv.Children)
@@ -227,7 +232,7 @@ namespace SteamDatabaseBackend
             }
 
 #if DEBUG
-            if (kv["name"].Value == null)
+            if (packageName == null)
             {
                 if (string.IsNullOrEmpty(packageName)) // We don't have the package in our database yet
                 {
