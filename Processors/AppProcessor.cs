@@ -253,7 +253,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!appName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    IRC.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(AppID));
+                    IRC.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, SteamProxy.GetAppName(AppID), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(AppID, "history"));
 
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
