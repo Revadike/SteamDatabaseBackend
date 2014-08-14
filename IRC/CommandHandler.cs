@@ -19,6 +19,7 @@ namespace SteamDatabaseBackend
         public static readonly Dictionary<string, CommandData> Commands = new Dictionary<string, CommandData>
         {
             { "!help",      new CommandData(OnCommandHelp,       false, false) },
+            { "!blog",      new CommandData(OnCommandBlog,       false, false) },
             { "!app",       new CommandData(OnCommandApp,        true,  false) },
             { "!sub",       new CommandData(OnCommandPackage,    true,  false) },
             { "!players",   new CommandData(OnCommandPlayers,    true,  false) },
@@ -133,6 +134,21 @@ namespace SteamDatabaseBackend
             }
 
             ReplyToCommand(command, "Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
+        }
+
+        private static void OnCommandBlog(CommandArguments command)
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1"))
+            {
+                if (Reader.Read())
+                {
+                    ReplyToCommand(command, "Latest blog post:{0} {1}{2} -{3} {4}", Colors.GREEN, Reader.GetString("Title"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetBlogURL(Reader.GetUInt32("ID")));
+
+                    return;
+                }
+            }
+
+            ReplyToCommand(command, "Something went wrong.");
         }
 
         private static void OnCommandApp(CommandArguments command)
