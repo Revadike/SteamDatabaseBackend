@@ -135,11 +135,6 @@ namespace SteamDatabaseBackend
                     DepotName = depotName
                 };
 
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Add(request);
-                }
-
                 int currentBuildID = 0;
 
                 // Check if manifestid in our database is equal
@@ -171,6 +166,11 @@ namespace SteamDatabaseBackend
                             continue;
                         }
                     }
+                }
+
+                lock (ManifestJobs)
+                {
+                    ManifestJobs.Add(request);
                 }
 
                 // Update/insert depot information straight away
