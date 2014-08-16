@@ -100,8 +100,6 @@ namespace SteamDatabaseBackend
 
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, packageNameCurrent, packageName);
                 }
-
-
             }
 
             foreach (KeyValue section in kv.Children)
@@ -161,6 +159,14 @@ namespace SteamDatabaseBackend
                                 );
                             }
                         }
+                    }
+
+                    // TODO: Probably should check if apps are owned
+                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Steam.Instance.OwnedPackages.Contains(SubID)) // 12 == free on demand
+                    {
+                        Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
+
+                        SteamDB.RequestFreeLicense(section.Children.Select(appid => (uint)appid.AsInteger()).ToList());
                     }
                 }
                 else if (sectionName.Equals("extended"))

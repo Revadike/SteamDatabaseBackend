@@ -115,6 +115,8 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
             CallbackManager.Register(new Callback<SteamApps.PICSTokensCallback>(OnPICSTokens));
 
+            Client.AddHandler(new FreeLicenseHandler());
+
             if (Settings.IsFullRun)
             {
                 CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
@@ -371,7 +373,7 @@ namespace SteamDatabaseBackend
 
             if (ProcessorPool.IsIdle)
             {
-                Log.WriteDebug("Steam", "Cleaning processed apps and subs");
+                //Log.WriteDebug("Steam", "Cleaning processed apps and subs");
 
                 ProcessedApps.Clear();
                 ProcessedSubs.Clear();

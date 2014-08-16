@@ -4,11 +4,15 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
+using SteamKit2;
+using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
     public static class SteamDB
     {
+        private static bool ALLOW_FREE_LICENSES = false;
         public const string UNKNOWN_APP  = "SteamDB Unknown App";
 
         public static bool IsBusy()
@@ -16,7 +20,7 @@ namespace SteamDatabaseBackend
             return Steam.Instance.ProcessorPool.InUseThreads > 15 || Steam.Instance.SecondaryPool.InUseThreads > 10;
         }
 
-        public static string GetBlogURL(uint postID)
+        public static string GetBlogURL(string postID)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/blog/{0}/", postID)).AbsoluteUri;
         }
@@ -59,6 +63,20 @@ namespace SteamDatabaseBackend
         public static string GetPackageURL(uint subID, string section)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
+        }
+
+        public static void RequestFreeLicense(List<uint> appids)
+        {
+            if (!ALLOW_FREE_LICENSES)
+            {
+                return;
+            }
+
+            var clientMsg = new ClientMsgProtobuf<CMsgClientRequestFreeLicense>(EMsg.ClientRequestFreeLicense);
+
+            clientMsg.Body.appids.AddRange(appids);
+
+            Steam.Instance.Client.Send(clientMsg);
         }
     }
 }
