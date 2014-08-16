@@ -127,24 +127,6 @@ namespace SteamDatabaseBackend
                     );
 
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
-
-                    // TODO: Testy testy
-                    if (!Settings.IsFullRun
-                    &&  Settings.Current.ChatRooms.Count > 0
-                    &&  !string.Equals(appName, newAppName, StringComparison.OrdinalIgnoreCase)
-                    &&  !newAppName.StartsWith("SteamApp", StringComparison.Ordinal)
-                    &&  !newAppName.StartsWith("ValveTest", StringComparison.Ordinal))
-                    {
-                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
-                            string.Format(
-                                ":retreat: {0} name was changed - {1}\n« {2}\n» {3}",
-                                currentType,
-                                SteamDB.GetAppURL(AppID, "history"),
-                                appName,
-                                newAppName
-                            )
-                        );
-                    }
                 }
 
                 if (appType.Equals("0"))
