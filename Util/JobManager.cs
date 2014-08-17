@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -13,7 +14,6 @@ namespace SteamDatabaseBackend
     {
         public class JobAction
         {
-            public JobID JobID;
             public Func<JobID> Action;
             public IRCRequest CommandRequest;
 
@@ -39,7 +39,7 @@ namespace SteamDatabaseBackend
             TYPE_SUB
         }
 
-        private static List<JobAction> Jobs = new List<JobAction>();
+        private static Dictionary<JobID, JobAction> Jobs = new Dictionary<JobID, JobAction>();
 
         public static void AddJob(Func<JobID> action)
         {
@@ -47,13 +47,12 @@ namespace SteamDatabaseBackend
 
             var job = new JobAction
             {
-                JobID = jobID,
                 Action = action
             };
 
             Log.WriteDebug("Job Manager", "New job: {0}", jobID);
 
-            Jobs.Add(job);
+            Jobs.Add(jobID, job);
         }
 
         public static void AddJob(Func<JobID> action, IRCRequest request)
@@ -62,23 +61,22 @@ namespace SteamDatabaseBackend
 
             var job = new JobAction
             {
-                JobID = jobID,
                 Action = action,
                 CommandRequest = request
             };
 
             Log.WriteDebug("Job Manager", "New IRC job: {0} ({1})", jobID, request.Command.MessageData.Message);
 
-            Jobs.Add(job);
+            Jobs.Add(jobID, job);
         }
 
         public static JobAction RemoveJob(JobID jobID)
         {
-            var job = Jobs.Find(r => r.JobID == jobID);
+            JobAction job;
 
-            if (job != null)
+            if (Jobs.TryGetValue(jobID, out job))
             {
-                Jobs.Remove(job);
+                Jobs.Remove(jobID);
             }
 
             Log.WriteDebug("Job Manager", "Removed job {0}. {1} jobs left", jobID, Jobs.Count);
@@ -95,22 +93,25 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Job Manager", "Restarting {0} jobs", Jobs.Count);
 
-            foreach (var job in Jobs)
+            var jobs = Jobs;
+
+            Jobs.Clear();
+
+            foreach (var job in jobs)
             {
-                job.JobID = job.Action();
+                Jobs.Add(job.Value.Action(), job.Value);
             }
         }
 
         public static void CancelChatJobsIfAny()
         {
-            foreach (var job in Jobs)
-            {
-                if (job.IsCommand)
-                {
-                    CommandHandler.ReplyToCommand(job.CommandRequest.Command, "Your request failed.");
+            var jobs = Jobs.Where(job => job.Value.IsCommand);
 
-                    Jobs.Remove(job);
-                }
+            foreach (var job in jobs)
+            {
+                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, "Your request failed.");
+
+                Jobs.Remove(job.Key);
             }
         }
     }
