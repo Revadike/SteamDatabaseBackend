@@ -24,9 +24,8 @@ namespace SteamDatabaseBackend
             public int Flags;
         }
 
-        private sealed class ManifestJob
+        public class ManifestJob
         {
-            public JobID JobID;
             public uint ChangeNumber;
             public uint ParentAppID;
             public uint DepotID;
@@ -40,13 +39,10 @@ namespace SteamDatabaseBackend
 
         private static CDNClient CDNClient;
         private static List<string> CDNServers;
-        private static List<ManifestJob> ManifestJobs;
         public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
-            ManifestJobs = new List<ManifestJob>();
-
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
 
@@ -90,14 +86,13 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                lock (ManifestJobs)
+                // TODO: Lock depotids, using JobManager for this is far from ideal
+#if false
+                if ()
                 {
-                    if (ManifestJobs.Find(r => r.DepotID == depotID) != null)
-                    {
-                        // If we already have this depot in our job list, ignore it
-                        continue;
-                    }
+                    continue;
                 }
+#endif
 
                 ulong manifestID;
 
@@ -168,11 +163,6 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Add(request);
-                }
-
                 // Update/insert depot information straight away
                 if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID)
                 {
@@ -187,59 +177,40 @@ namespace SteamDatabaseBackend
                 }
 
                 request.Server = CDNServers[new Random().Next(CDNServers.Count)];
-                request.JobID = Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server);
+
+                JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server), request);
             }
         }
 
         private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
         {
-            ManifestJob request;
+            var job = JobManager.RemoveJob(callback.JobID);
 
-            lock (ManifestJobs)
-            {
-                request = ManifestJobs.Find(r => r.JobID == callback.JobID);
-            }
-
-            if (request == null)
+            if (job == null || callback.Result != EResult.OK)
             {
                 return;
             }
 
-            if (callback.Result != EResult.OK)
-            {
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Remove(request);
-                }
-
-                return;
-            }
+            var request = job.ManifestJob;
 
             request.CDNToken = callback.Token;
-            request.JobID = Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID);
+
+            JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
         }
 
         private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
         {
-            ManifestJob request;
+            var job = JobManager.RemoveJob(callback.JobID);
 
-            lock (ManifestJobs)
-            {
-                request = ManifestJobs.Find(r => r.JobID == callback.JobID);
-            }
-
-            if (request == null)
+            if (job == null)
             {
                 return;
             }
 
+            var request = job.ManifestJob;
+
             if (callback.Result != EResult.OK)
             {
-                lock (ManifestJobs)
-                {
-                    ManifestJobs.Remove(request);
-                }
-
                 if (callback.Result != EResult.Blocked)
                 {
                     Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
@@ -274,12 +245,7 @@ namespace SteamDatabaseBackend
                 Log.WriteError("Depot Processor", "Caught exception while processing depot {0}: {1}\n{2}", request.DepotID, e.Message, e.StackTrace);
             }
 
-            lock (ManifestJobs)
-            {
-                ManifestJobs.Remove(request);
-
-                Log.WriteDebug("Depot Processor", "Processed depot {0} (jobs still in queue: {1})", request.DepotID, ManifestJobs.Count());
-            }
+            Log.WriteDebug("Depot Processor", "Processed depot {0}", request.DepotID);
         }
 
         private static void DownloadManifest(ManifestJob request)
@@ -304,7 +270,7 @@ namespace SteamDatabaseBackend
 
             if (depotManifest == null)
             {
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} (jobs still in queue: {1}) ({2}: {3})", request.DepotID, ManifestJobs.Count - 1, request.Server, lastError);
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
 
                 if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
                 {

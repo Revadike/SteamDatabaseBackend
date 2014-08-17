@@ -16,6 +16,15 @@ namespace SteamDatabaseBackend
         {
             public Func<JobID> Action;
             public IRCRequest CommandRequest;
+            public DepotProcessor.ManifestJob ManifestJob;
+
+            public bool IsManifestJob
+            {
+                get
+                {
+                    return ManifestJob != null;
+                }
+            }
 
             public bool IsCommand
             {
@@ -65,7 +74,23 @@ namespace SteamDatabaseBackend
                 CommandRequest = request
             };
 
-            Log.WriteDebug("Job Manager", "New IRC job: {0} ({1})", jobID, request.Command.MessageData.Message);
+            // Chat rooms don't have full message saved
+            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, request.Command.IsChatRoomCommand ? request.Command.Message : request.Command.MessageData.Message);
+
+            Jobs.Add(jobID, job);
+        }
+
+        public static void AddJob(Func<JobID> action, DepotProcessor.ManifestJob manifestJob)
+        {
+            var jobID = action();
+
+            var job = new JobAction
+            {
+                Action = action,
+                ManifestJob = manifestJob
+            };
+
+            Log.WriteDebug("Job Manager", "New depot job: {0} ({1} - {2})", jobID, manifestJob.DepotID, manifestJob.ManifestID);
 
             Jobs.Add(jobID, job);
         }
@@ -79,7 +104,7 @@ namespace SteamDatabaseBackend
                 Jobs.Remove(jobID);
             }
 
-            Log.WriteDebug("Job Manager", "Removed job {0}. {1} jobs left", jobID, Jobs.Count);
+            Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
 
             return job;
         }
