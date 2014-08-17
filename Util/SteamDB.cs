@@ -65,18 +65,21 @@ namespace SteamDatabaseBackend
             return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
         }
 
-        public static void RequestFreeLicense(List<uint> appids)
+        public static JobID RequestFreeLicense(List<uint> appids)
         {
             if (!ALLOW_FREE_LICENSES)
             {
-                return;
+                return null;
             }
 
             var clientMsg = new ClientMsgProtobuf<CMsgClientRequestFreeLicense>(EMsg.ClientRequestFreeLicense);
+            clientMsg.SourceJobID = Steam.Instance.Client.GetNextJobID();
 
             clientMsg.Body.appids.AddRange(appids);
 
             Steam.Instance.Client.Send(clientMsg);
+
+            return clientMsg.SourceJobID;
         }
     }
 }

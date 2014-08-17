@@ -38,6 +38,8 @@ namespace SteamDatabaseBackend
         {
             var resp = new ClientMsgProtobuf<CMsgClientRequestFreeLicenseResponse>(packetMsg);
 
+            JobManager.RemoveJob(packetMsg.TargetJobID);
+
             var packageIDs = resp.Body.granted_packageids;
             var appIDs = resp.Body.granted_appids;
 

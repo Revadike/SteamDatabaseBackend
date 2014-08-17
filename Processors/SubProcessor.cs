@@ -166,7 +166,7 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
-                        SteamDB.RequestFreeLicense(section.Children.Select(appid => (uint)appid.AsInteger()).ToList());
+                        JobManager.AddJob(() => SteamDB.RequestFreeLicense(section.Children.Select(appid => (uint)appid.AsInteger()).ToList()));
                     }
                 }
                 else if (sectionName.Equals("extended"))
