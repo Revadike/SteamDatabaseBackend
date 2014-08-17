@@ -175,13 +175,10 @@ namespace SteamDatabaseBackend
 
                 apps.Add(appID);
 
-                var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
-
-                SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
                 {
-                    JobID = jobID,
                     Target = appID,
-                    Type = SteamProxy.IRCRequestType.TYPE_APP,
+                    Type = JobManager.IRCRequestType.TYPE_APP,
                     Command = command
                 });
             }
@@ -199,15 +196,12 @@ namespace SteamDatabaseBackend
 
                         apps.Add(appID);
 
-                        var jobID = Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
-
-                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
-                            {
-                                JobID = jobID,
-                                Target = appID,
-                                Type = SteamProxy.IRCRequestType.TYPE_APP,
-                                Command = command
-                            });
+                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
+                        {
+                            Target = appID,
+                            Type = JobManager.IRCRequestType.TYPE_APP,
+                            Command = command
+                        });
                     }
                     else
                     {
@@ -223,13 +217,10 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Length > 0 && uint.TryParse(command.Message, out subID))
             {
-                var jobID = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
-
-                SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false), new JobManager.IRCRequest
                 {
-                    JobID = jobID,
                     Target = subID,
-                    Type = SteamProxy.IRCRequestType.TYPE_SUB,
+                    Type = JobManager.IRCRequestType.TYPE_SUB,
                     Command = command
                 });
             }
@@ -252,11 +243,8 @@ namespace SteamDatabaseBackend
 
             if (uint.TryParse(command.Message, out appID))
             {
-                var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
-
-                SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
                 {
-                    JobID = jobID,
                     Target = appID,
                     Command = command
                 });
@@ -272,11 +260,8 @@ namespace SteamDatabaseBackend
                     {
                         appID = Reader.GetUInt32("AppID");
 
-                        var jobID = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
-
-                        SteamProxy.Instance.IRCRequests.Add(new SteamProxy.IRCRequest
+                        JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
                         {
-                            JobID = jobID,
                             Target = appID,
                             Command = command
                         });

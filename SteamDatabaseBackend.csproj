@@ -76,6 +76,7 @@
     <Compile Include="Util\Utils.cs" />
     <Compile Include="Util\SettingsJson.cs" />
     <Compile Include="Util\FreeLicenseHandler.cs" />
+    <Compile Include="Util\JobManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

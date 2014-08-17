@@ -208,15 +208,7 @@ namespace SteamDatabaseBackend
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
-            if (SteamProxy.Instance.IRCRequests.Count > 0)
-            {
-                foreach (var request in SteamProxy.Instance.IRCRequests)
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Your request failed.");
-                }
-
-                SteamProxy.Instance.IRCRequests.Clear();
-            }
+            JobManager.CancelChatJobsIfAny();
 
             const uint RETRY_DELAY = 15;
 
@@ -267,6 +259,8 @@ namespace SteamDatabaseBackend
             }
             else
             {
+                JobManager.RestartJobsIfAny();
+
                 Timer.Start();
             }
         }
@@ -360,8 +354,8 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
 
-            Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package)));
-            Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>());
+            JobManager.AddJob(() => Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package))));
+            JobManager.AddJob(() => Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
@@ -400,13 +394,13 @@ namespace SteamDatabaseBackend
             // Packages have no tokens so we request info for them right away
             if (packageChangesCount > 0)
             {
-                Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package)));
+                JobManager.AddJob(() => Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package))));
             }
 
             if (appChangesCount > 0)
             {
                 // Get all app tokens
-                Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>());
+                JobManager.AddJob(() => Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
                 SecondaryPool.QueueWorkItem(delegate
                 {
@@ -463,33 +457,33 @@ namespace SteamDatabaseBackend
 
         private void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
+            var job = JobManager.RemoveJob(callback.JobID);
+
             Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
 
             var apps = callback.AppTokensDenied
                 .Select(app => NewPICSRequest(app))
                 .Concat(callback.AppTokens.Select(app => NewPICSRequest(app.Key, app.Value)));
 
-            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == callback.JobID);
+            System.Func<JobID> func = () => Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
 
-            if (request != null)
+            if (job != null && job.IsCommand)
             {
-                request.JobID = Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
+                JobManager.AddJob(func, job.CommandRequest);
 
                 return;
             }
 
-            Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
+            JobManager.AddJob(func);
         }
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
-            var request = SteamProxy.Instance.IRCRequests.Find(r => r.JobID == callback.JobID);
+            var job = JobManager.RemoveJob(callback.JobID);
 
-            if (request != null)
+            if (job != null && job.IsCommand)
             {
-                SteamProxy.Instance.IRCRequests.Remove(request);
-
-                SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnProductInfo, request, callback);
+                SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnProductInfo, job.CommandRequest, callback);
 
                 return;
             }

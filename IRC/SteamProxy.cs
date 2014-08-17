@@ -17,36 +17,17 @@ namespace SteamDatabaseBackend
         private static SteamProxy _instance = new SteamProxy();
         public static SteamProxy Instance { get { return _instance; } }
 
-        public enum IRCRequestType
-        {
-            TYPE_APP,
-            TYPE_SUB
-        }
-
-        public class IRCRequest
-        {
-            public CommandHandler.CommandArguments Command { get; set; }
-            public IRCRequestType Type { get; set; }
-            public JobID JobID { get; set; }
-            public uint Target { get; set; }
-            public uint DepotID { get; set; }
-            public SteamID SteamID { get; set; }
-        }
-
         // Look at this, mom
         private static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL);
         private static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.GREEN, Colors.NORMAL);
 
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
 
-        public List<IRCRequest> IRCRequests { get; private set; }
         public List<uint> ImportantApps { get; set; }
         public List<uint> ImportantSubs { get; set; }
 
         public SteamProxy()
         {
-            IRCRequests = new List<IRCRequest>();
-
             ImportantApps = new List<uint>();
             ImportantSubs = new List<uint>();
         }
@@ -260,14 +241,14 @@ namespace SteamDatabaseBackend
 
         public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
         {
-            var request = IRCRequests.Find(r => r.JobID == callback.JobID);
+            var job = JobManager.RemoveJob(callback.JobID);
 
-            if (request == null)
+            if (job == null || !job.IsCommand)
             {
                 return;
             }
 
-            IRCRequests.Remove(request);
+            var request = job.CommandRequest;
 
             if (callback.Result != EResult.OK)
             {
@@ -286,9 +267,9 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void OnProductInfo(IRCRequest request, SteamApps.PICSProductInfoCallback callback)
+        public void OnProductInfo(JobManager.IRCRequest request, SteamApps.PICSProductInfoCallback callback)
         {
-            if (request.Type == SteamProxy.IRCRequestType.TYPE_SUB)
+            if (request.Type == JobManager.IRCRequestType.TYPE_SUB)
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
@@ -312,7 +293,7 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {3}: {4}", name, e.Message);
+                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {0}: {1}", name, e.Message);
 
                     return;
                 }
@@ -324,7 +305,7 @@ namespace SteamDatabaseBackend
                                               Steam.Instance.OwnedPackages.Contains(info.ID) ? StringCheckmark : string.Empty
                 );
             }
-            else if (request.Type == SteamProxy.IRCRequestType.TYPE_APP)
+            else if (request.Type == JobManager.IRCRequestType.TYPE_APP)
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
