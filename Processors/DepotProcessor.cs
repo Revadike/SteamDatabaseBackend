@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Amib.Threading;
@@ -39,10 +40,13 @@ namespace SteamDatabaseBackend
 
         private static CDNClient CDNClient;
         private static List<string> CDNServers;
+        private static ConcurrentDictionary<uint, byte> DepotLocks;
         public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
+            DepotLocks = new ConcurrentDictionary<uint, byte>();
+
             ThreadPool = new SmartThreadPool();
             ThreadPool.Name = "Depot Processor Pool";
 
@@ -86,13 +90,11 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                // TODO: Lock depotids, using JobManager for this is far from ideal
-#if false
-                if ()
+                // TODO: instead of locking we could wait for current process to finish
+                if (DepotLocks.ContainsKey(depotID))
                 {
                     continue;
                 }
-#endif
 
                 ulong manifestID;
 
@@ -163,6 +165,8 @@ namespace SteamDatabaseBackend
                     }
                 }
 
+                DepotLocks.TryAdd(depotID, 1);
+
                 // Update/insert depot information straight away
                 if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID)
                 {
@@ -186,12 +190,19 @@ namespace SteamDatabaseBackend
         {
             var job = JobManager.RemoveJob(callback.JobID);
 
-            if (job == null || callback.Result != EResult.OK)
+            if (job == null)
             {
                 return;
             }
 
             var request = job.ManifestJob;
+
+            if (callback.Result != EResult.OK)
+            {
+                RemoveLock(request.DepotID);
+
+                return;
+            }
 
             request.CDNToken = callback.Token;
 
@@ -215,6 +226,8 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
                 }
+
+                RemoveLock(request.DepotID);
 
                 return;
             }
@@ -246,6 +259,8 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteDebug("Depot Processor", "Processed depot {0}", request.DepotID);
+
+            RemoveLock(request.DepotID);
         }
 
         private static void DownloadManifest(ManifestJob request)
@@ -384,6 +399,13 @@ namespace SteamDatabaseBackend
                                      new MySqlParameter("@OldValue", oldValue),
                                      new MySqlParameter("@NewValue", newValue)
             );
+        }
+
+        private static void RemoveLock(uint depotID)
+        {
+            byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
+
+            DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam);
         }
     }
 }
