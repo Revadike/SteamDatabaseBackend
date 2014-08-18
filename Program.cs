@@ -22,7 +22,8 @@ namespace SteamDatabaseBackend
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             string date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
 
-            Log.WriteInfo("Main", "Built on {0} UTC", date);
+            Log.WriteInfo("Main", "Steam Database backend application. Built on {0} UTC", date);
+            Log.WriteInfo("Main", "Copyright (c) 2013, SteamDB. See LICENSE file for more information.");
 
             try
             {
