@@ -32,7 +32,7 @@ namespace SteamDatabaseBackend
             ImportantSubs = new List<uint>();
         }
 
-        public void ReloadImportant(CommandHandler.CommandArguments command = null)
+        public void ReloadImportant(CommandArguments command = null)
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
@@ -125,52 +125,7 @@ namespace SteamDatabaseBackend
                 }
             }
         }
-
-        public void OnChatMessage(SteamFriends.ChatMsgCallback callback)
-        {
-            if (callback.ChatMsgType != EChatEntryType.ChatMsg
-            ||  callback.ChatterID == Steam.Instance.Client.SteamID
-            ||  callback.Message[0] != '!'
-            ||  callback.Message.Contains('\n'))
-            {
-                return;
-            }
-
-            var i = callback.Message.IndexOf(' ');
-            var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
-
-            CommandHandler.CommandData commandData;
-
-            if (CommandHandler.Commands.TryGetValue(inputCommand, out commandData))
-            {
-                var input = i == -1 ? string.Empty : callback.Message.Substring(i).Trim();
-
-                var command = new CommandHandler.CommandArguments
-                {
-                    SenderID = callback.ChatterID,
-                    ChatRoomID = callback.ChatRoomID,
-                    Message = input
-                };
-
-                if (commandData.OpsOnly)
-                {
-                    CommandHandler.ReplyToCommand(command, "This command can only be used in IRC.");
-
-                    return;
-                }
-                else if (SteamDB.IsBusy())
-                {
-                    CommandHandler.ReplyToCommand(command, "The bot is currently busy.");
-
-                    return;
-                }
-
-                Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", inputCommand, callback.ChatterID, callback.ChatRoomID);
-
-                commandData.Callback(command);
-            }
-        }
-
+            
         public void OnClanState(SteamFriends.ClanStateCallback callback)
         {
             if (callback.Events.Count == 0 && callback.Announcements.Count == 0)
@@ -238,35 +193,7 @@ namespace SteamDatabaseBackend
                 }
             }
         }
-
-        public void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
-        {
-            var job = JobManager.RemoveJob(callback.JobID);
-
-            if (job == null || !job.IsCommand)
-            {
-                return;
-            }
-
-            var request = job.CommandRequest;
-
-            if (callback.Result != EResult.OK)
-            {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to request player count: {0}", callback.Result);
-            }
-            else if (request.Target == 0)
-            {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}", Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(753, "graph"));
-            }
-            else
-            {
-                CommandHandler.ReplyToCommand(request.Command, "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
-                    Colors.OLIVE, GetAppName(request.Target), Colors.NORMAL,
-                    Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
-            }
-        }
-
+            
         public void OnProductInfo(JobManager.IRCRequest request, SteamApps.PICSProductInfoCallback callback)
         {
             if (request.Type == JobManager.IRCRequestType.TYPE_SUB)

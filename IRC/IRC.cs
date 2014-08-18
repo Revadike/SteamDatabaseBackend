@@ -18,8 +18,8 @@ namespace SteamDatabaseBackend
 
         public void Init()
         {
-            Client.OnChannelMessage += CommandHandler.OnChannelMessage;
-            Client.OnQueryMessage += CommandHandler.OnChannelMessage;
+            Client.OnChannelMessage += CommandHandler.OnIRCMessage;
+            Client.OnQueryMessage += CommandHandler.OnIRCMessage;
             Client.OnConnected += OnConnected;
 
             Client.Encoding = Encoding.UTF8;

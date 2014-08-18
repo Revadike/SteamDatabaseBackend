@@ -77,6 +77,16 @@
     <Compile Include="Util\SettingsJson.cs" />
     <Compile Include="Util\FreeLicenseHandler.cs" />
     <Compile Include="Util\JobManager.cs" />
+    <Compile Include="IRC\Commands\Help.cs" />
+    <Compile Include="IRC\Command.cs" />
+    <Compile Include="IRC\Commands\Blog.cs" />
+    <Compile Include="IRC\Commands\App.cs" />
+    <Compile Include="IRC\Commands\Package.cs" />
+    <Compile Include="IRC\Commands\Players.cs" />
+    <Compile Include="IRC\Commands\EResult.cs" />
+    <Compile Include="IRC\Commands\Binaries.cs" />
+    <Compile Include="IRC\Commands\Relogin.cs" />
+    <Compile Include="IRC\Commands\Important.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -106,5 +116,6 @@
     <Folder Include="IRC\" />
     <Folder Include="Processors\" />
     <Folder Include="Util\" />
+    <Folder Include="IRC\Commands\" />
   </ItemGroup>
 </Project>

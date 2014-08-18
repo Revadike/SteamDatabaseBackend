@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class MarketingHandler
+    public static class MarketingHandler
     {
         public static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {

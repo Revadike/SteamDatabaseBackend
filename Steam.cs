@@ -123,13 +123,11 @@ namespace SteamDatabaseBackend
             }
             else
             {
+                CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
                 CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
-                CallbackManager.Register(new Callback<SteamUserStats.NumberOfPlayersCallback>(SteamProxy.Instance.OnNumberOfPlayers));
                 CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
-                CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(SteamProxy.Instance.OnChatMessage));
                 CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
                 CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
-                CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
             }
 
             DepotProcessor.Init();

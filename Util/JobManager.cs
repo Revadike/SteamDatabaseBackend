@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
 
         public class IRCRequest
         {
-            public CommandHandler.CommandArguments Command { get; set; }
+            public CommandArguments Command { get; set; }
             public IRCRequestType Type { get; set; }
             public uint Target { get; set; }
         }

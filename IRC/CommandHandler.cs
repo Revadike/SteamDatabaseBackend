@@ -5,58 +5,31 @@
  */
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
 using Meebey.SmartIrc4net;
-using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     public static class CommandHandler
     {
-        public static readonly Dictionary<string, CommandData> Commands = new Dictionary<string, CommandData>
+        public static List<Command> RegisteredCommands { get; private set; }
+
+        static CommandHandler()
         {
-            { "!help",      new CommandData(OnCommandHelp,       false, false) },
-            { "!blog",      new CommandData(OnCommandBlog,       false, false) },
-            { "!app",       new CommandData(OnCommandApp,        true,  false) },
-            { "!sub",       new CommandData(OnCommandPackage,    true,  false) },
-            { "!players",   new CommandData(OnCommandPlayers,    true,  false) },
-            { "!eresult",   new CommandData(OnCommandEResult,    false, false) },
-            { "!bins",      new CommandData(OnCommandBinaries,   false, false) },
-            { "!important", new CommandData(OnCommandImportant,  false,  true) },
-            { "!relogin",   new CommandData(OnCommandRelogin,    false,  true) },
-        };
+            RegisteredCommands = new List<Command>();
 
-        public struct CommandData
-        {
-            public Action<CommandArguments> Callback;
-            public bool RequiresSteam;
-            public bool OpsOnly;
+            RegisteredCommands.Add(new HelpCommand());
+            RegisteredCommands.Add(new BlogCommand());
+            RegisteredCommands.Add(new PlayersCommand());
+            RegisteredCommands.Add(new AppCommand());
+            RegisteredCommands.Add(new PackageCommand());
+            RegisteredCommands.Add(new EResultCommand());
+            RegisteredCommands.Add(new BinariesCommand());
+            RegisteredCommands.Add(new ImportantCommand());
+            RegisteredCommands.Add(new ReloginCommand());
 
-            public CommandData(Action<CommandArguments> callback, bool requiresSteam, bool opsOnly)
-            {
-                Callback = callback;
-                RequiresSteam = requiresSteam;
-                OpsOnly = opsOnly;
-            }
-        }
-
-        public class CommandArguments
-        {
-            public string Message { get; set; }
-            public IrcMessageData MessageData { get; set; }
-            public SteamID ChatRoomID { get; set; }
-            public SteamID SenderID { get; set; }
-
-            public bool IsChatRoomCommand
-            {
-                get
-                {
-                    return this.ChatRoomID != null;
-                }
-            }
+            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(OnSteamChatMessage));
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
@@ -78,429 +51,102 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static void OnChannelMessage(object sender, IrcEventArgs e)
+        public static void OnIRCMessage(object sender, IrcEventArgs e)
         {
             if (e.Data.Message[0] != '!')
             {
                 return;
             }
 
-            CommandData commandData;
+            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(e.Data.MessageArray[0]));
 
-            if (Commands.TryGetValue(e.Data.MessageArray[0], out commandData))
-            {
-                var input = e.Data.Message.Substring(e.Data.MessageArray[0].Length).Trim();
-
-                var command = new CommandArguments
-                {
-                    MessageData = e.Data,
-                    Message = input
-                };
-
-                if (commandData.RequiresSteam && !Steam.Instance.Client.IsConnected)
-                {
-                    ReplyToCommand(command, "Not connected to Steam.");
-
-                    return;
-                }
-                else if (commandData.OpsOnly)
-                {
-                    // Check if user is in admin list or op in a channel
-                    if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.IsSenderOp(e.Data)))
-                    {
-                        ReplyToCommand(command, "You're not an admin!");
-
-                        return;
-                    }
-                }
-                else if (SteamDB.IsBusy())
-                {
-                    ReplyToCommand(command, "The bot is currently busy.");
-
-                    return;
-                }
-
-                Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
-
-                commandData.Callback(command);
-            }
-        }
-
-        private static void OnCommandHelp(CommandArguments command)
-        {
-            if (command.Message.Length > 0)
+            if (command == null)
             {
                 return;
             }
 
-            ReplyToCommand(command, "Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Commands.Keys));
-        }
+            var input = e.Data.Message.Substring(e.Data.MessageArray[0].Length).Trim();
 
-        private static void OnCommandBlog(CommandArguments command)
-        {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1"))
+            var commandData = new CommandArguments
             {
-                if (Reader.Read())
+                MessageData = e.Data,
+                Message = input
+            };
+
+            if (command.IsSteamCommand && !Steam.Instance.Client.IsConnected)
+            {
+                ReplyToCommand(commandData, "Not connected to Steam.");
+
+                return;
+            }
+            else if (command.IsAdminCommand)
+            {
+                // Check if user is in admin list or op in a channel
+                if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.IsSenderOp(e.Data)))
                 {
-                    var slug = Reader.GetString("Slug");
-
-                    if (slug.Length == 0)
-                    {
-                        slug = Reader.GetString("ID");
-                    }
-
-                    ReplyToCommand(command, "Latest blog post:{0} {1}{2} -{3} {4}", Colors.GREEN, Reader.GetString("Title"), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetBlogURL(slug));
+                    ReplyToCommand(commandData, "You're not an admin!");
 
                     return;
                 }
             }
-
-            ReplyToCommand(command, "Something went wrong.");
-        }
-
-        private static void OnCommandApp(CommandArguments command)
-        {
-            if (command.Message.Length == 0)
+            else if (SteamDB.IsBusy())
             {
-                ReplyToCommand(command, "Usage:{0} !app <appid or partial game name>", Colors.OLIVE);
+                ReplyToCommand(commandData, "The bot is currently busy.");
 
                 return;
             }
 
-            uint appID;
+            Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
 
-            if (uint.TryParse(command.Message, out appID))
-            {
-                var apps = new List<uint>();
-
-                apps.Add(appID);
-
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
-                {
-                    Target = appID,
-                    Type = JobManager.IRCRequestType.TYPE_APP,
-                    Command = command
-                });
-            }
-            else
-            {
-                string name = string.Format("%{0}%", command.Message);
-
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
-                {
-                    if (Reader.Read())
-                    {
-                        appID = Reader.GetUInt32("AppID");
-
-                        var apps = new List<uint>();
-
-                        apps.Add(appID);
-
-                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
-                        {
-                            Target = appID,
-                            Type = JobManager.IRCRequestType.TYPE_APP,
-                            Command = command
-                        });
-                    }
-                    else
-                    {
-                        ReplyToCommand(command, "Nothing was found matching your request.");
-                    }
-                }
-            }
+            command.OnCommand(commandData);
         }
 
-        private static void OnCommandPackage(CommandArguments command)
+        private static void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
         {
-            uint subID;
-
-            if (command.Message.Length > 0 && uint.TryParse(command.Message, out subID))
+            if (callback.ChatMsgType != EChatEntryType.ChatMsg          // Is chat message
+                ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
+                ||  callback.Message[0] != '!'                          // Starts with !
+                ||  callback.Message.Contains('\n')                     // Does not contain new lines
+            )
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false), new JobManager.IRCRequest
-                {
-                    Target = subID,
-                    Type = JobManager.IRCRequestType.TYPE_SUB,
-                    Command = command
-                });
+                return;
             }
-            else
-            {
-                ReplyToCommand(command, "Usage:{0} !sub <subid>", Colors.OLIVE);
-            }
-        }
 
-        private static void OnCommandPlayers(CommandArguments command)
-        {
-            if (command.Message.Length == 0)
+            var i = callback.Message.IndexOf(' ');
+            var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
+
+            var command = CommandHandler.RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(inputCommand));
+
+            if (command == null)
             {
-                ReplyToCommand(command, "Usage:{0} !players <appid or partial game name>", Colors.OLIVE);
+                return;
+            }
+
+            var input = i == -1 ? string.Empty : callback.Message.Substring(i).Trim();
+
+            var commandData = new CommandArguments
+            {
+                SenderID = callback.ChatterID,
+                ChatRoomID = callback.ChatRoomID,
+                Message = input
+            };
+
+            if (command.IsAdminCommand)
+            {
+                CommandHandler.ReplyToCommand(commandData, "This command can only be used in IRC.");
+
+                return;
+            }
+            else if (SteamDB.IsBusy())
+            {
+                CommandHandler.ReplyToCommand(commandData, "The bot is currently busy.");
 
                 return;
             }
 
-            uint appID;
+            Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", inputCommand, callback.ChatterID, callback.ChatRoomID);
 
-            if (uint.TryParse(command.Message, out appID))
-            {
-                JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
-                {
-                    Target = appID,
-                    Command = command
-                });
-            }
-            else
-            {
-                string name = string.Format("%{0}%", command.Message);
-
-                // Ugh, have to filter out "games" that have "Demo" in their name, because valve cannot into consistency, some servers and demos are marked as games
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT LIKE '% Demo' AND `Apps`.`Name` NOT LIKE '%Dedicated Server%' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
-                {
-                    if (Reader.Read())
-                    {
-                        appID = Reader.GetUInt32("AppID");
-
-                        JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
-                        {
-                            Target = appID,
-                            Command = command
-                        });
-                    }
-                    else
-                    {
-                        ReplyToCommand(command, "Nothing was found matching your request.");
-                    }
-                }
-            }
-        }
-
-        private static void OnCommandEResult(CommandArguments command)
-        {
-            if (command.Message.Length == 0)
-            {
-                ReplyToCommand(command, "Usage:{0} !eresult <number>", Colors.OLIVE);
-
-                return;
-            }
-
-            if (command.Message.Equals("consistency", StringComparison.CurrentCultureIgnoreCase))
-            {
-                ReplyToCommand(command, "{0}Consistency{1} = {2}Valve", Colors.LIGHT_GRAY, Colors.NORMAL, Colors.RED);
-
-                return;
-            }
-
-            int eResult;
-
-            if (!int.TryParse(command.Message, out eResult))
-            {
-                try
-                {
-                    eResult = (int)Enum.Parse(typeof(EResult), command.Message, true);
-                }
-                catch
-                {
-                    eResult = -1;
-                }
-            }
-
-            if(!Enum.IsDefined(typeof(EResult), eResult))
-            {
-                ReplyToCommand(command, "Unknown or invalid EResult.");
-
-                return;
-            }
-
-            ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.LIGHT_GRAY, eResult, Colors.NORMAL, (EResult)eResult);
-        }
-
-        private static void OnCommandBinaries(CommandArguments command)
-        {
-            string cdn = "https://steamcdn-a.akamaihd.net/client/";
-
-            using (var webClient = new WebClient())
-            {
-                webClient.DownloadDataCompleted += delegate(object sender, DownloadDataCompletedEventArgs e)
-                {
-                    var kv = new KeyValue();
-
-                    using (var ms = new MemoryStream(e.Result))
-                    {
-                        try
-                        {
-                            kv.ReadAsText(ms);
-                        }
-                        catch
-                        {
-                            ReplyToCommand(command, "Something went horribly wrong and keyvalue parser died.");
-
-                            return;
-                        }
-                    }
-
-                    if (kv["bins_osx"].Children.Count == 0)
-                    {
-                        ReplyToCommand(command, "Failed to find binaries in parsed response.");
-
-                        return;
-                    }
-
-                    kv = kv["bins_osx"];
-
-                    ReplyToCommand(command, "You're on your own:{0} {1}{2} {3}({4} MB)", Colors.DARK_BLUE, cdn, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
-                };
-
-                webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_publicbeta_osx?_={1}", cdn, DateTime.UtcNow.Ticks)));
-            }
-        }
-
-        private static void OnCommandRelogin(CommandArguments command)
-        {
-            if (Steam.Instance.Client.IsConnected)
-            {
-                Steam.Instance.Client.Connect();
-            }
-
-            foreach (var idler in Program.GCIdlers)
-            {
-                if (idler.Client.IsConnected)
-                {
-                    idler.Client.Connect();
-                }
-            }
-
-            ReplyToCommand(command, "Reconnect forced.");
-        }
-
-        private static void OnCommandImportant(CommandArguments command)
-        {
-            var s = command.Message.Split(' ');
-            var count = s.Count();
-
-            if (count > 0)
-            {
-                switch (s[0])
-                {
-                    case "reload":
-                    {
-                        SteamProxy.Instance.ReloadImportant(command);
-
-                        return;
-                    }
-
-                    case "add":
-                    {
-                        if (count < 3)
-                        {
-                            break;
-                        }
-
-                        uint id;
-
-                        if (!uint.TryParse(s[2], out id))
-                        {
-                            break;
-                        }
-
-                        switch(s[1])
-                        {
-                            case "app":
-                            {
-                                if (SteamProxy.Instance.ImportantApps.Contains(id))
-                                {
-                                    ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
-                                }
-                                else
-                                {
-                                    SteamProxy.Instance.ImportantApps.Add(id);
-
-                                    DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
-
-                                    ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
-                                }
-
-                                return;
-                            }
-                            case "sub":
-                            {
-                                if (SteamProxy.Instance.ImportantSubs.Contains(id))
-                                {
-                                    ReplyToCommand(command, "Package {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
-                                }
-                                else
-                                {
-                                    SteamProxy.Instance.ImportantSubs.Add(id);
-
-                                    DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
-
-                                    ReplyToCommand(command, "Marked package {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
-                                }
-
-                                return;
-                            }
-                        }
-
-                        break;
-                    }
-
-                    case "remove":
-                    {
-                        if (count < 3)
-                        {
-                            break;
-                        }
-
-                        uint id;
-
-                        if (!uint.TryParse(s[2], out id))
-                        {
-                            break;
-                        }
-
-                        switch(s[1])
-                        {
-                            case "app":
-                            {
-                                if (!SteamProxy.Instance.ImportantApps.Contains(id))
-                                {
-                                    ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.",  Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
-                                }
-                                else
-                                {
-                                    SteamProxy.Instance.ImportantApps.Remove(id);
-
-                                    DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
-
-                                    ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetAppName(id));
-                                }
-
-                                return;
-                            }
-                            case "sub":
-                            {
-                                if (!SteamProxy.Instance.ImportantSubs.Contains(id))
-                                {
-                                    ReplyToCommand(command, "Package {0}{1}{2} ({3}) is not important.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
-                                }
-                                else
-                                {
-                                    SteamProxy.Instance.ImportantSubs.Remove(id);
-
-                                    DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
-
-                                    ReplyToCommand(command, "Removed package {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, SteamProxy.GetPackageName(id));
-                                }
-
-                                return;
-                            }
-                        }
-
-                        break;
-                    }
-                }
-            }
-
-            ReplyToCommand(command, "Usage:{0} !important reload {1}or{2} !important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
+            command.OnCommand(commandData);
         }
     }
 }
