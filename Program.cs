@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013, SteamDB. All rights reserved.
+ * Copyright (c) 2013-2015, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  * 
@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
             string date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
 
             Log.WriteInfo("Main", "Steam Database backend application. Built on {0} UTC", date);
-            Log.WriteInfo("Main", "Copyright (c) 2013, SteamDB. See LICENSE file for more information.");
+            Log.WriteInfo("Main", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             try
             {
