@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013, SteamDB. All rights reserved.
+ * Copyright (c) 2013-2015, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -455,8 +455,6 @@ namespace SteamDatabaseBackend
 
         private void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
-            var job = JobManager.RemoveJob(callback.JobID);
-
             Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
 
             var apps = callback.AppTokensDenied
@@ -465,7 +463,9 @@ namespace SteamDatabaseBackend
 
             System.Func<JobID> func = () => Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
 
-            if (job != null && job.IsCommand)
+            JobAction job;
+
+            if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
             {
                 JobManager.AddJob(func, job.CommandRequest);
 
@@ -477,9 +477,9 @@ namespace SteamDatabaseBackend
 
         private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
-            var job = JobManager.RemoveJob(callback.JobID);
+            JobAction job;
 
-            if (job != null && job.IsCommand)
+            if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
             {
                 SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnProductInfo, job.CommandRequest, callback);
 

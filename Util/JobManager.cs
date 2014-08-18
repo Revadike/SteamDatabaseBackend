@@ -10,31 +10,31 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class JobManager
+    public class JobAction
     {
-        public class JobAction
+        public Func<JobID> Action;
+        public JobManager.IRCRequest CommandRequest;
+        public DepotProcessor.ManifestJob ManifestJob;
+
+        public bool IsManifestJob
         {
-            public Func<JobID> Action;
-            public IRCRequest CommandRequest;
-            public DepotProcessor.ManifestJob ManifestJob;
-
-            public bool IsManifestJob
+            get
             {
-                get
-                {
-                    return ManifestJob != null;
-                }
-            }
-
-            public bool IsCommand
-            {
-                get
-                {
-                    return CommandRequest != null;
-                }
+                return ManifestJob != null;
             }
         }
 
+        public bool IsCommand
+        {
+            get
+            {
+                return CommandRequest != null;
+            }
+        }
+    }
+
+    public static class JobManager
+    {
         public class IRCRequest
         {
             public CommandArguments Command { get; set; }
@@ -95,18 +95,18 @@ namespace SteamDatabaseBackend
             Jobs.Add(jobID, job);
         }
 
-        public static JobAction RemoveJob(JobID jobID)
+        public static bool TryRemoveJob(JobID jobID, out JobAction job)
         {
-            JobAction job;
-
             if (Jobs.TryGetValue(jobID, out job))
             {
                 Jobs.Remove(jobID);
+
+                Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
+
+                return true;
             }
 
-            Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
-
-            return job;
+            return false;
         }
 
         public static void RestartJobsIfAny()

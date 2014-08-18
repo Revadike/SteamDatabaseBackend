@@ -59,11 +59,11 @@ namespace SteamDatabaseBackend
             CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
         }
 
-        private void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
+        private static void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
         {
-            var job = JobManager.RemoveJob(callback.JobID);
+            JobAction job;
 
-            if (job == null || !job.IsCommand)
+            if (!JobManager.TryRemoveJob(callback.JobID, out job) || !job.IsCommand)
             {
                 return;
             }

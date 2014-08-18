@@ -188,9 +188,9 @@ namespace SteamDatabaseBackend
 
         private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
         {
-            var job = JobManager.RemoveJob(callback.JobID);
+            JobAction job;
 
-            if (job == null)
+            if (!JobManager.TryRemoveJob(callback.JobID, out job))
             {
                 return;
             }
@@ -211,9 +211,9 @@ namespace SteamDatabaseBackend
 
         private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
         {
-            var job = JobManager.RemoveJob(callback.JobID);
+            JobAction job;
 
-            if (job == null)
+            if (!JobManager.TryRemoveJob(callback.JobID, out job))
             {
                 return;
             }
