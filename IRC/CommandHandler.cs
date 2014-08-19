@@ -24,12 +24,17 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new PlayersCommand());
             RegisteredCommands.Add(new AppCommand());
             RegisteredCommands.Add(new PackageCommand());
-            RegisteredCommands.Add(new EResultCommand());
+            RegisteredCommands.Add(new EnumCommand());
             RegisteredCommands.Add(new BinariesCommand());
             RegisteredCommands.Add(new ImportantCommand());
             RegisteredCommands.Add(new ReloginCommand());
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(OnSteamChatMessage));
+        }
+
+        public static void Init()
+        {
+
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)

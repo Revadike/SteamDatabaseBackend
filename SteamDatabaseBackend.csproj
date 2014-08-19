@@ -83,10 +83,10 @@
     <Compile Include="IRC\Commands\App.cs" />
     <Compile Include="IRC\Commands\Package.cs" />
     <Compile Include="IRC\Commands\Players.cs" />
-    <Compile Include="IRC\Commands\EResult.cs" />
     <Compile Include="IRC\Commands\Binaries.cs" />
     <Compile Include="IRC\Commands\Relogin.cs" />
     <Compile Include="IRC\Commands\Important.cs" />
+    <Compile Include="IRC\Commands\Enum.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
