@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID`, MATCH(`Apps`.`Name`, `StoreName`, `LastKnownName`) AGAINST(@Name) as `Score` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND `Apps`.`Name` NOT REGEXP '.* (Demo|Dedicated Server)' HAVING `Score` > 0 ORDER BY `Score` DESC LIMIT 1", new MySqlParameter("Name", command.Message)))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT REGEXP '.* (Demo|Dedicated Server)' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", command.Message)))
             {
                 if (Reader.Read())
                 {
