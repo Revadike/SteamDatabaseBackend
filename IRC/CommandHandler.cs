@@ -101,9 +101,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("IRC", "Handling command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
+            Log.WriteInfo("CommandHandler", "Handling IRC command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
 
-            command.OnCommand(commandData);
+            TryCommand(command, commandData);
         }
 
         private static void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
@@ -149,9 +149,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Steam", "Handling command {0} for user {1} in chatroom {2}", inputCommand, callback.ChatterID, callback.ChatRoomID);
+            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
 
-            command.OnCommand(commandData);
+            TryCommand(command, commandData);
+        }
+
+        private static void TryCommand(Command command, CommandArguments commandData)
+        {
+            try
+            {
+                command.OnCommand(commandData);
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("CommandHandler", "Exception while executing a command: {0}\n{1}", e.Message, e.StackTrace);
+
+                ReplyToCommand(commandData, "Exception: {0}", e.Message);
+            }
         }
     }
 }
