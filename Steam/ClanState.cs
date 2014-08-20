@@ -1,0 +1,90 @@
+﻿/*
+ * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+using System;
+using SteamKit2;
+
+namespace SteamDatabaseBackend
+{
+    public class ClanState
+    {
+        private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
+
+        public ClanState()
+        {
+            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(OnClanState));
+        }
+
+        private static void OnClanState(SteamFriends.ClanStateCallback callback)
+        {
+            if (callback.Events.Count == 0 && callback.Announcements.Count == 0)
+            {
+                return;
+            }
+
+            string groupName = callback.ClanName;
+            string message;
+
+            if (string.IsNullOrEmpty(groupName))
+            {
+                groupName = Steam.Instance.Friends.GetClanName(callback.ClanID);
+
+                // Check once more, because that can fail too
+                if (string.IsNullOrEmpty(groupName))
+                {
+                    groupName = "Group";
+
+                    Log.WriteError("ClanState", "ClanID: {0} - no group name", callback.ClanID);
+                }
+            }
+
+            foreach (var announcement in callback.Announcements)
+            {
+                message = string.Format("{0}{1}{2} announcement: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/announcements/detail/{8}",
+                    Colors.OLIVE, groupName, Colors.NORMAL,
+                    Colors.GREEN, announcement.Headline, Colors.NORMAL,
+                    Colors.DARK_BLUE, callback.ClanID, announcement.ID
+                );
+
+                IRC.SendMain(message);
+
+                // Additionally send announcements to steamlug channel
+                if (callback.ClanID.Equals(SteamLUG))
+                {
+                    IRC.SendSteamLUG(message);
+                }
+
+                Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
+            }
+
+            foreach (var groupEvent in callback.Events)
+            {
+                if (!groupEvent.JustPosted)
+                {
+                    continue;
+                }
+
+                message = string.Format("{0}{1}{2} event: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/events/{8} {9}({10})",
+                    Colors.OLIVE, groupName, Colors.NORMAL,
+                    Colors.GREEN, groupEvent.Headline,Colors.NORMAL,
+                    Colors.DARK_BLUE, callback.ClanID, groupEvent.ID,
+                    Colors.DARK_GRAY, groupEvent.EventTime.ToString()
+                );
+
+                // Send events only to steamlug channel
+                if (callback.ClanID.Equals(SteamLUG))
+                {
+                    IRC.SendSteamLUG(message);
+                }
+                else
+                {
+                    IRC.SendMain(message);
+                }
+
+                Log.WriteInfo("Group Announcement", "{0} Event \"{1}\"", groupName, groupEvent.Headline);
+            }
+        }
+    }
+}

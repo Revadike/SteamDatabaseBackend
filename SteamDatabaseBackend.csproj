@@ -60,7 +60,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Steam.cs" />
     <Compile Include="IRC\Color.cs" />
-    <Compile Include="IRC\SteamProxy.cs" />
     <Compile Include="IRC\CommandHandler.cs" />
     <Compile Include="IRC\IRC.cs" />
     <Compile Include="Processors\SubProcessor.cs" />
@@ -72,10 +71,8 @@
     <Compile Include="Processors\DepotProcessor.cs" />
     <Compile Include="Processors\GameCoordinator.cs" />
     <Compile Include="GCIdler.cs" />
-    <Compile Include="MarketingHandler.cs" />
     <Compile Include="Util\Utils.cs" />
     <Compile Include="Util\SettingsJson.cs" />
-    <Compile Include="Util\FreeLicenseHandler.cs" />
     <Compile Include="Util\JobManager.cs" />
     <Compile Include="IRC\Commands\Help.cs" />
     <Compile Include="IRC\Command.cs" />
@@ -87,6 +84,15 @@
     <Compile Include="IRC\Commands\Relogin.cs" />
     <Compile Include="IRC\Commands\Important.cs" />
     <Compile Include="IRC\Commands\Enum.cs" />
+    <Compile Include="Steam\SteamHandler.cs" />
+    <Compile Include="Steam\AccountInfo.cs" />
+    <Compile Include="Steam\MarketingMessage.cs" />
+    <Compile Include="Steam\ClanState.cs" />
+    <Compile Include="Steam\ChatMemberInfo.cs" />
+    <Compile Include="Steam\PICSChanges.cs" />
+    <Compile Include="Steam\FreeLicense.cs" />
+    <Compile Include="Steam\ProductInfo.cs" />
+    <Compile Include="Steam\PICSTokens.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -120,5 +126,6 @@
     <Folder Include="Processors\" />
     <Folder Include="Util\" />
     <Folder Include="IRC\Commands\" />
+    <Folder Include="Steam\" />
   </ItemGroup>
 </Project>

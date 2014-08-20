@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -35,6 +36,11 @@ namespace SteamDatabaseBackend
                 from leftValue in leftLookup[key].DefaultIfEmpty(defaultLeft)
                 from rightValue in rightLookup[key].DefaultIfEmpty(defaultRight)
                 select resultSelector(leftValue, rightValue, key);
+        }
+
+        public static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken = 0)
+        {
+            return new SteamApps.PICSRequest(id, accessToken, false);
         }
     }
 

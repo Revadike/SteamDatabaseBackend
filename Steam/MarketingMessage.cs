@@ -1,17 +1,22 @@
-/*
+﻿/*
  * Copyright (c) 2013-2015, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
 using System;
-using MySql.Data.MySqlClient;
 using SteamKit2;
+using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
 {
-    public static class MarketingHandler
+    public class MarketingMessage
     {
-        public static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
+        public MarketingMessage()
+        {
+            Steam.Instance.CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(OnMarketingMessage));
+        }
+
+        private static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {
             foreach (var message in callback.Messages)
             {
@@ -34,10 +39,11 @@ namespace SteamDatabaseBackend
                 }
 
                 DbWorker.ExecuteNonQuery("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)",
-                                         new MySqlParameter("@ID", message.ID),
-                                         new MySqlParameter("@Flags", message.Flags)
+                    new MySqlParameter("@ID", message.ID),
+                    new MySqlParameter("@Flags", message.Flags)
                 );
             }
         }
     }
 }
+    

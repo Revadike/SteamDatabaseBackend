@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
             else
             {
                 CommandHandler.ReplyToCommand(request.Command, "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
-                    Colors.OLIVE, SteamProxy.GetAppName(request.Target), Colors.NORMAL,
+                    Colors.OLIVE, Steam.GetAppName(request.Target), Colors.NORMAL,
                     Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
                     Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
             }

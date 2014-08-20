@@ -287,7 +287,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
 
-                if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
+                if (Steam.Instance.ImportantApps.ContainsKey(request.ParentAppID))
                 {
                     IRC.SendMain("Important depot update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
                 }
@@ -295,7 +295,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (SteamProxy.Instance.ImportantApps.Contains(request.ParentAppID))
+            if (Steam.Instance.ImportantApps.ContainsKey(request.ParentAppID))
             {
                 IRC.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }

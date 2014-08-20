@@ -11,7 +11,7 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class FreeLicenseHandler : ClientMsgHandler
+    class FreeLicense : ClientMsgHandler
     {
         public JobID RequestFreeLicence(IEnumerable<uint> appIDs)
         {
@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        void HandleClientRequestFreeLicenseResponse(IPacketMsg packetMsg)
+        private static void HandleClientRequestFreeLicenseResponse(IPacketMsg packetMsg)
         {
             var resp = new ClientMsgProtobuf<CMsgClientRequestFreeLicenseResponse>(packetMsg);
 
@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var package in packageIDs)
                     {
-                        IRC.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, SteamProxy.GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package));
+                        IRC.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package));
                     }
                 }
             }

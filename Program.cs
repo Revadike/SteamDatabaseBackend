@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.CanConnectToIRC())
             {
-                SteamProxy.Instance.ReloadImportant();
+                Steam.Instance.ReloadImportant();
 
                 IRC.Instance.Init();
             }

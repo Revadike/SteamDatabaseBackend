@@ -27,8 +27,6 @@ namespace SteamDatabaseBackend
         public SteamUserStats UserStats { get; private set; }
         public CallbackManager CallbackManager { get; private set; }
 
-        public uint PreviousChange { get; set; }
-
         public bool IsRunning { get; set; }
 
         public System.Timers.Timer Timer { get; private set; }
@@ -36,44 +34,22 @@ namespace SteamDatabaseBackend
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
 
-        public List<uint> OwnedPackages { get; private set; }
-        public List<uint> OwnedApps { get; private set; }
+        public Dictionary<uint, byte> OwnedPackages { get; private set; }
+        public Dictionary<uint, byte> OwnedApps { get; private set; }
 
-        private ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; set; }
-        private ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; set; }
+        public Dictionary<uint, byte> ImportantApps { get; set; }
+        public Dictionary<uint, byte> ImportantSubs { get; set; }
+
+        private PICSChanges PICSChangesHandler;
+
+        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
+        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
         private string AuthCode;
 
         public void GetPICSChanges()
         {
-            Apps.PICSGetChangesSince(PreviousChange, true, true);
-        }
-
-        private void GetLastChangeNumber()
-        {
-            // If we're in a full run, request all changes from #1
-            if (Settings.IsFullRun)
-            {
-                PreviousChange = 1;
-
-                return;
-            }
-
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
-            {
-                if (Reader.Read())
-                {
-                    PreviousChange = Reader.GetUInt32("ChangeID");
-
-                    Log.WriteInfo("Steam", "Previous changelist was {0}", PreviousChange);
-                }
-            }
-
-            if (PreviousChange == 0)
-            {
-                Log.WriteWarn("Steam", "Looks like there are no changelists in the database.");
-                Log.WriteWarn("Steam", "If you want to fill up your database first, restart with \"FullRun\" setting set to 1.");
-            }
+            Apps.PICSGetChangesSince(PICSChangesHandler.PreviousChangeNumber, true, true);
         }
 
         public void Init()
@@ -84,8 +60,11 @@ namespace SteamDatabaseBackend
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
 
-            OwnedPackages = new List<uint>();
-            OwnedApps = new List<uint>();
+            OwnedPackages = new Dictionary<uint, byte>();
+            OwnedApps = new Dictionary<uint, byte>();
+
+            ImportantApps = new Dictionary<uint, byte>();
+            ImportantSubs = new Dictionary<uint, byte>();
 
             ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
             ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
@@ -105,36 +84,29 @@ namespace SteamDatabaseBackend
 
             CallbackManager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
             CallbackManager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
-
             CallbackManager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
             CallbackManager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
-
             CallbackManager.Register(new Callback<SteamApps.LicenseListCallback>(OnLicenseListCallback));
-
             CallbackManager.Register(new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
-            CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
-            CallbackManager.Register(new Callback<SteamApps.PICSTokensCallback>(OnPICSTokens));
 
-            Client.AddHandler(new FreeLicenseHandler());
+            Client.AddHandler(new FreeLicense());
 
-            if (Settings.IsFullRun)
+            new ProductInfo();
+            new PICSTokens();
+
+            PICSChangesHandler = new PICSChanges();
+
+            if (!Settings.IsFullRun)
             {
-                CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
-            }
-            else
-            {
-                CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
-                CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
-                CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(SteamProxy.Instance.OnClanState));
-                CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(SteamProxy.Instance.OnChatMemberInfo));
-                CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(MarketingHandler.OnMarketingMessage));
+                new AccountInfo();
+                new MarketingMessage();
+                new ClanState();
+                new ChatMemberInfo();
 
                 CommandHandler.Init();
             }
 
             DepotProcessor.Init();
-
-            GetLastChangeNumber();
 
             IsRunning = true;
 
@@ -149,6 +121,84 @@ namespace SteamDatabaseBackend
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
             GetPICSChanges();
+        }
+
+        public void ReloadImportant(CommandArguments command = null)
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
+            {
+                ImportantApps.Clear();
+
+                while (Reader.Read())
+                {
+                    ImportantApps.Add(Reader.GetUInt32("AppID"), 1);
+                }
+            }
+
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
+            {
+                ImportantSubs.Clear();
+
+                while (Reader.Read())
+                {
+                    ImportantSubs.Add(Reader.GetUInt32("SubID"), 1);
+                }
+            }
+
+            if (command == null)
+            {
+                Log.WriteInfo("IRC Proxy", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+            }
+            else
+            {
+                CommandHandler.ReplyToCommand(command, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+            }
+        }
+
+        public static string GetPackageName(uint subID, bool returnEmptyOnFailure = false)
+        {
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
+            {
+                if (Reader.Read())
+                {
+                    string name = DbWorker.GetString("Name", Reader);
+
+                    if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
+                    {
+                        string nameStore = DbWorker.GetString("StoreName", Reader);
+
+                        if (!string.IsNullOrEmpty(nameStore))
+                        {
+                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
+                        }
+                    }
+
+                    return name;
+                }
+            }
+
+            return returnEmptyOnFailure ? string.Empty : string.Format("SubID {0}", subID);
+        }
+
+        public static string GetAppName(uint appID, bool returnEmptyOnFailure = false)
+        {
+            using (MySqlDataReader reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
+            {
+                if (reader.Read())
+                {
+                    string name = DbWorker.GetString("Name", reader);
+                    string nameLast = DbWorker.GetString("LastKnownName", reader);
+
+                    if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+                    {
+                        return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameLast, Colors.NORMAL);
+                    }
+
+                    return name;
+                }
+            }
+
+            return returnEmptyOnFailure ? string.Empty : string.Format("AppID {0}", appID);
         }
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
@@ -252,7 +302,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.IsFullRun)
             {
-                if (PreviousChange == 1)
+                if (PICSChangesHandler.PreviousChangeNumber == 1)
                 {
                     GetPICSChanges();
                 }
@@ -304,16 +354,6 @@ namespace SteamDatabaseBackend
             });
         }
 
-        private void OnAccountInfo(SteamUser.AccountInfoCallback callback)
-        {
-            Friends.SetPersonaState(EPersonaState.Busy);
-
-            foreach (var chatRoom in Settings.Current.ChatRooms)
-            {
-                Friends.JoinChat(chatRoom);
-            }
-        }
-
         private void OnLicenseListCallback(SteamApps.LicenseListCallback licenseList)
         {
             if (licenseList.Result != EResult.OK)
@@ -325,269 +365,17 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "{0} licenses received", licenseList.LicenseList.Count);
 
-            OwnedPackages = licenseList.LicenseList.Select(lic => lic.PackageID).ToList();
+            OwnedPackages = licenseList.LicenseList.ToDictionary(lic => lic.PackageID, lic => (byte)1);
 
-            var ownedApps = new List<uint>();
+            OwnedApps.Clear();
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", OwnedPackages))))
             {
                 while (Reader.Read())
                 {
-                    ownedApps.Add(Reader.GetUInt32("AppID"));
+                    OwnedApps.Add(Reader.GetUInt32("AppID"), 1);
                 }
             }
-
-            OwnedApps = ownedApps;
-        }
-
-        private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
-        {
-            // Hackiness to prevent processing legit changelists after our request if that ever happens
-            if (PreviousChange != 1)
-            {
-                Log.WriteWarn("Steam", "Got changelist {0}, but ignoring it because we're in a full run", callback.CurrentChangeNumber);
-
-                return;
-            }
-
-            PreviousChange = 2;
-
-            Log.WriteInfo("Steam", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
-
-            JobManager.AddJob(() => Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package))));
-            JobManager.AddJob(() => Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
-        }
-
-        private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
-        {
-            if (PreviousChange == callback.CurrentChangeNumber)
-            {
-                return;
-            }
-
-            if (ProcessorPool.IsIdle)
-            {
-                //Log.WriteDebug("Steam", "Cleaning processed apps and subs");
-
-                ProcessedApps.Clear();
-                ProcessedSubs.Clear();
-            }
-
-            var packageChangesCount = callback.PackageChanges.Count;
-            var appChangesCount = callback.AppChanges.Count;
-
-            Log.WriteInfo("Steam", "Changelist {0} -> {1} ({2} apps, {3} packages)", PreviousChange, callback.CurrentChangeNumber, appChangesCount, packageChangesCount);
-
-            PreviousChange = callback.CurrentChangeNumber;
-
-            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
-
-            if (appChangesCount == 0 && packageChangesCount == 0)
-            {
-                IRC.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChange, Colors.DARK_GRAY);
-
-                return;
-            }
-
-            SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnPICSChanges, callback);
-
-            // Packages have no tokens so we request info for them right away
-            if (packageChangesCount > 0)
-            {
-                JobManager.AddJob(() => Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => NewPICSRequest(package))));
-            }
-
-            if (appChangesCount > 0)
-            {
-                // Get all app tokens
-                JobManager.AddJob(() => Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
-
-                SecondaryPool.QueueWorkItem(delegate
-                {
-                    string changes = string.Empty;
-
-                    foreach (var app in callback.AppChanges.Values)
-                    {
-                        if (callback.CurrentChangeNumber != app.ChangeNumber)
-                        {
-                            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
-                        }
-
-                        DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-
-                        changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
-                    }
-
-                    if (!changes.Equals(string.Empty))
-                    {
-                        changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
-
-                        DbWorker.ExecuteNonQuery(changes);
-                    }
-                });
-            }
-
-            if (packageChangesCount > 0)
-            {
-                SecondaryPool.QueueWorkItem(delegate
-                {
-                    string changes = string.Empty;
-
-                    foreach (var package in callback.PackageChanges.Values)
-                    {
-                        if (callback.CurrentChangeNumber != package.ChangeNumber)
-                        {
-                            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
-                        }
-
-                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-
-                        changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
-                    }
-
-                    if (!changes.Equals(string.Empty))
-                    {
-                        changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
-
-                        DbWorker.ExecuteNonQuery(changes);
-                    }
-                });
-            }
-        }
-
-        private void OnPICSTokens(SteamApps.PICSTokensCallback callback)
-        {
-            Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
-
-            var apps = callback.AppTokensDenied
-                .Select(app => NewPICSRequest(app))
-                .Concat(callback.AppTokens.Select(app => NewPICSRequest(app.Key, app.Value)));
-
-            System.Func<JobID> func = () => Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
-
-            JobAction job;
-
-            if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
-            {
-                JobManager.AddJob(func, job.CommandRequest);
-
-                return;
-            }
-
-            JobManager.AddJob(func);
-        }
-
-        private void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
-        {
-            JobAction job;
-
-            if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
-            {
-                SecondaryPool.QueueWorkItem(SteamProxy.Instance.OnProductInfo, job.CommandRequest, callback);
-
-                return;
-            }
-
-            foreach (var app in callback.Apps)
-            {
-                Log.WriteInfo("Steam", "AppID: {0}", app.Key);
-
-                var workaround = app;
-
-                IWorkItemResult mostRecentItem;
-                ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
-
-                var workerItem = ProcessorPool.QueueWorkItem(delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing", workaround.Key);
-                        
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
-                    }
-
-                    new AppProcessor(workaround.Key).Process(workaround.Value);
-                });
-
-                ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
-            }
-
-            foreach (var package in callback.Packages)
-            {
-                Log.WriteInfo("Steam", "SubID: {0}", package.Key);
-
-                var workaround = package;
-
-                IWorkItemResult mostRecentItem;
-                ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
-
-                var workerItem = ProcessorPool.QueueWorkItem(delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing", workaround.Key);
-
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
-                    }
-
-                    new SubProcessor(workaround.Key).Process(workaround.Value);
-                });
-
-                ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
-            }
-
-            foreach (uint app in callback.UnknownApps)
-            {
-                Log.WriteInfo("Steam", "Unknown AppID: {0}", app);
-
-                uint workaround = app;
-
-                IWorkItemResult mostRecentItem;
-                ProcessedApps.TryGetValue(workaround, out mostRecentItem);
-
-                var workerItem = ProcessorPool.QueueWorkItem(delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing (unknown)", workaround);
-
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
-                    }
-
-                    new AppProcessor(workaround).ProcessUnknown();
-                });
-
-                ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
-            }
-
-            foreach (uint package in callback.UnknownPackages)
-            {
-                Log.WriteInfo("Steam", "Unknown SubID: {0}", package);
-
-                uint workaround = package;
-
-                IWorkItemResult mostRecentItem;
-                ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
-
-                var workerItem = ProcessorPool.QueueWorkItem(delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing (unknown)", workaround);
-
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
-                    }
-
-                    new SubProcessor(workaround).ProcessUnknown();
-                });
-
-                ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
-            }
-        }
-
-        private static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken = 0)
-        {
-            return new SteamApps.PICSRequest(id, accessToken, false);
         }
     }
 }

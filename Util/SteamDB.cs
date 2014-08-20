@@ -15,6 +15,9 @@ namespace SteamDatabaseBackend
         private static bool ALLOW_FREE_LICENSES = false;
         public const string UNKNOWN_APP  = "SteamDB Unknown App";
 
+        public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.RED, Colors.NORMAL);
+        public static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.GREEN, Colors.NORMAL);
+
         public static bool IsBusy()
         {
             return Steam.Instance.ProcessorPool.InUseThreads > 15 || Steam.Instance.SecondaryPool.InUseThreads > 10;
