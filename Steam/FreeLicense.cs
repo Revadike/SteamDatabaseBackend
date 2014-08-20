@@ -52,13 +52,13 @@ namespace SteamDatabaseBackend
 
                 if (packageIDs.Count > 5)
                 {
-                    IRC.SendMain("{0}{1}{2} new free licenses granted", Colors.OLIVE, packageIDs.Count, Colors.NORMAL);
+                    IRC.Instance.SendMain("{0}{1}{2} new free licenses granted", Colors.OLIVE, packageIDs.Count, Colors.NORMAL);
                 }
                 else
                 {
                     foreach (var package in packageIDs)
                     {
-                        IRC.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package));
+                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package));
                     }
                 }
             }

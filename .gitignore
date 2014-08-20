@@ -48,6 +48,7 @@ TestResults
 *.Cache
 ClientBin
 [Ss]tyle[Cc]op.*
+Settings.StyleCop
 ~$*
 *.dbmdl
 

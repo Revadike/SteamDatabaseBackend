@@ -85,7 +85,7 @@ namespace SteamDatabaseBackend
                         Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, currentType);
 
                         // TODO: This is debuggy just so we are aware of new app types
-                        IRC.SendAnnounce("Unknown app type \"{0}\" for appid {1}, cc Alram and xPaw", currentType, AppID);
+                        IRC.Instance.SendAnnounce("Unknown app type \"{0}\" for appid {1}, cc Alram and xPaw", currentType, AppID);
                     }
                 }
 
@@ -235,7 +235,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!appName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    IRC.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                    IRC.Instance.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
 
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),

@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
 
-        public IrcClient Client = new IrcClient();
+        private IrcClient Client = new IrcClient();
 
         public void Init()
         {
@@ -52,55 +52,60 @@ namespace SteamDatabaseBackend
         {
             try
             {
-                Instance.Client.AutoReconnect = false;
-                Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Main, "is exiting... send help", Priority.Critical);
-                Instance.Client.RfcQuit("Exit", Priority.Critical);
-                Instance.Client.Disconnect();
+                Client.AutoReconnect = false;
+                Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Main, "is exiting... send help", Priority.Critical);
+                Client.RfcQuit("Exit", Priority.Critical);
+                Client.Disconnect();
             }
             catch { }
         }
 
         private void OnConnected(object sender, EventArgs e)
         {
-            Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
+            Log.WriteInfo("IRC", "Connected to IRC successfully");
         }
 
-        public static void SendAnnounce(string format, params object[] args)
+        public void SendReply(IrcMessageData data, string message, Priority priority)
+        {
+            Client.SendReply(data, message, priority);
+        }
+
+        public void SendAnnounce(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+                Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
             }
         }
 
-        public static void SendMain(string format, params object[] args)
+        public void SendMain(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Instance.Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args), Priority.AboveMedium);
+                Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args), Priority.AboveMedium);
             }
         }
 
         // Woo, hardcoding!
-        public static void SendSteamLUG(string message)
+        public void SendSteamLUG(string message)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Instance.Client.SendMessage(SendType.Message, "#steamlug", message, Priority.AboveMedium);
+                Client.SendMessage(SendType.Message, "#steamlug", message, Priority.AboveMedium);
             }
         }
 
-        public static void SendEmoteAnnounce(string format, params object[] args)
+        public void SendEmoteAnnounce(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Instance.Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+                Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
             }
         }
 
-        public static bool IsSenderOp(IrcMessageData message)
+        public bool IsSenderOp(IrcMessageData message)
         {
-            ChannelUser user = Instance.Client.GetChannelUser(message.Channel, message.Nick);
+            ChannelUser user = Client.GetChannelUser(message.Channel, message.Nick);
 
             return user != null && user.IsOp;
         }

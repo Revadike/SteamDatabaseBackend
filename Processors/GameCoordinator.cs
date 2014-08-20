@@ -128,10 +128,10 @@ namespace SteamDatabaseBackend
 
             if (LastVersion != -1 && (LastVersion != version || LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION))
             {
-                IRC.SendMain(message);
+                IRC.Instance.SendMain(message);
             }
 
-            IRC.SendAnnounce(message);
+            IRC.Instance.SendAnnounce(message);
 
             LastVersion = version;
             LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
@@ -147,7 +147,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo(Name, "Schema change from {0} to {1}", LastSchemaVersion, msg.item_schema_version);
 
-                IRC.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
+                IRC.Instance.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
             }
 
             LastSchemaVersion = msg.item_schema_version;
@@ -163,7 +163,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(Name, "GC version changed ({0} -> {1})", LastVersion, msg.server_version);
 
-            IRC.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARKGRAY, LastVersion);
+            IRC.Instance.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARKGRAY, LastVersion);
 
             LastVersion = (int)msg.server_version;
         }
@@ -174,7 +174,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(Name, "Message: {0}", msg.message);
 
-            IRC.SendMain("{0}{1}{2} system message:{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.message);
+            IRC.Instance.SendMain("{0}{1}{2} system message:{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.message);
         }
 
         private void OnConnectionStatus(IPacketGCMsg packetMsg)
@@ -187,7 +187,7 @@ namespace SteamDatabaseBackend
 
             string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, LastStatus);
 
-            IRC.SendAnnounce(message);
+            IRC.Instance.SendAnnounce(message);
 
             if (LastStatus == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
             {

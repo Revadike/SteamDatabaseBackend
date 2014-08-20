@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
                     message = string.Format("{0}{1}{2}: {3}", Colors.OLIVE, command.MessageData.Nick, Colors.NORMAL, message);
                 }
 
-                IRC.Instance.Client.SendReply(command.MessageData, message, Priority.High);
+                IRC.Instance.SendReply(command.MessageData, message, Priority.High);
             }
         }
 
@@ -87,7 +87,7 @@ namespace SteamDatabaseBackend
             else if (command.IsAdminCommand)
             {
                 // Check if user is in admin list or op in a channel
-                if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.IsSenderOp(e.Data)))
+                if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.Instance.IsSenderOp(e.Data)))
                 {
                     ReplyToCommand(commandData, "You're not an admin!");
 

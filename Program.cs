@@ -86,7 +86,7 @@ namespace SteamDatabaseBackend
 
             if (args.IsTerminating)
             {
-                IRC.SendMain("Hey, xPaw and Alram, I'm crashing over here!!");
+                IRC.Instance.SendMain("Hey, xPaw and Alram, I'm crashing over here!!");
 
                 Cleanup();
             }

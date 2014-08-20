@@ -49,12 +49,12 @@ namespace SteamDatabaseBackend
                     Colors.DARKBLUE, callback.ClanID, announcement.ID
                 );
 
-                IRC.SendMain(message);
+                IRC.Instance.SendMain(message);
 
                 // Additionally send announcements to steamlug channel
                 if (callback.ClanID.Equals(SteamLUG))
                 {
-                    IRC.SendSteamLUG(message);
+                    IRC.Instance.SendSteamLUG(message);
                 }
 
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
@@ -78,11 +78,11 @@ namespace SteamDatabaseBackend
                 // Send events only to steamlug channel
                 if (callback.ClanID.Equals(SteamLUG))
                 {
-                    IRC.SendSteamLUG(message);
+                    IRC.Instance.SendSteamLUG(message);
                 }
                 else
                 {
-                    IRC.SendMain(message);
+                    IRC.Instance.SendMain(message);
                 }
 
                 Log.WriteInfo("Group Announcement", "{0} Event \"{1}\"", groupName, groupEvent.Headline);
