@@ -41,14 +41,10 @@ namespace SteamDatabaseBackend
         private static CDNClient CDNClient;
         private static List<string> CDNServers;
         private static ConcurrentDictionary<uint, byte> DepotLocks;
-        public static SmartThreadPool ThreadPool { get; private set; }
 
         public static void Init()
         {
             DepotLocks = new ConcurrentDictionary<uint, byte>();
-
-            ThreadPool = new SmartThreadPool();
-            ThreadPool.Name = "Depot Processor Pool";
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
             Steam.Instance.CallbackManager.Register(new Callback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
@@ -243,7 +239,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                ThreadPool.QueueWorkItem(TryDownloadManifest, request);
+                Steam.Instance.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
             }
         }
 

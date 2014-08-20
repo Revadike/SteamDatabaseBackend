@@ -109,7 +109,6 @@ namespace SteamDatabaseBackend
             Steam.Instance.IsRunning = false;
 
             try { Steam.Instance.Timer.Stop();                       } catch { }
-            try { DepotProcessor.ThreadPool.Shutdown(true, 1000);    } catch { }
             try { Steam.Instance.SecondaryPool.Shutdown(true, 1000); } catch { }
             try { Steam.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
             try { Steam.Instance.Client.Disconnect();                } catch { }
