@@ -368,7 +368,7 @@ namespace SteamDatabaseBackend
 
             OwnedApps.Clear();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", OwnedPackages))))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", OwnedPackages.Keys))))
             {
                 while (Reader.Read())
                 {
