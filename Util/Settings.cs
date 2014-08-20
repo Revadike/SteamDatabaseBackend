@@ -62,9 +62,11 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo("Settings", "File logging is disabled");
             }
+
+            Current.IRC.Enabled = CanConnectToIRC();
         }
 
-        public static bool CanConnectToIRC()
+        private static bool CanConnectToIRC()
         {
             if (!Current.IRC.Enabled)
             {

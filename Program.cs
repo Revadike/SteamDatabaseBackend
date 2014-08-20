@@ -69,13 +69,6 @@ namespace SteamDatabaseBackend
 
                 GCIdlers.Add(instance);
             }
-
-            if (Settings.CanConnectToIRC())
-            {
-                Steam.Instance.ReloadImportant();
-
-                IRC.Instance.Init();
-            }
         }
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)

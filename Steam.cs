@@ -15,6 +15,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
+    // TODO: Rename 'Steam' to something more common
     class Steam
     {
         private static Steam _instance = new Steam();
@@ -99,9 +100,18 @@ namespace SteamDatabaseBackend
                 new ClanState();
                 new ChatMemberInfo();
 
+                Steam.Instance.ReloadImportant();
+
                 if (Settings.Current.IRC.Enabled || Settings.Current.ChatRooms.Count > 0)
                 {
                     CommandHandler = new CommandHandler();
+                }
+
+                if (Settings.Current.IRC.Enabled)
+                {
+                    var thread = new Thread(new ThreadStart(IRC.Instance.Init));
+                    thread.Name = "IRC";
+                    thread.Start();
                 }
             }
 

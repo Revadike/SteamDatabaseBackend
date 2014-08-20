@@ -14,10 +14,12 @@ namespace SteamDatabaseBackend
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
 
-        private IrcClient Client = new IrcClient();
+        private IrcClient Client;
 
         public void Init()
         {
+            Client = new IrcClient();
+
             Client.OnChannelMessage += Steam.Instance.CommandHandler.OnIRCMessage;
             Client.OnQueryMessage += Steam.Instance.CommandHandler.OnIRCMessage;
             Client.OnConnected += OnConnected;
