@@ -90,9 +90,9 @@
     <Compile Include="Steam\ChatMemberInfo.cs" />
     <Compile Include="Steam\PICSChanges.cs" />
     <Compile Include="Steam\FreeLicense.cs" />
-    <Compile Include="Steam\ProductInfo.cs" />
     <Compile Include="Steam\PICSTokens.cs" />
     <Compile Include="Util\SteamHandler.cs" />
+    <Compile Include="Steam\PICSProductInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

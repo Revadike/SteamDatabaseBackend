@@ -11,9 +11,9 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class ProductInfo : SteamHandler
+    class PICSProductInfo : SteamHandler
     {
-        public ProductInfo()
+        public PICSProductInfo()
         {
             Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
         }

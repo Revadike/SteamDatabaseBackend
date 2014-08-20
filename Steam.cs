@@ -43,13 +43,10 @@ namespace SteamDatabaseBackend
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
+        public CommandHandler CommandHandler { get; private set; }
+
         private PICSChanges PICSChangesHandler;
         private string AuthCode;
-
-        public void GetPICSChanges()
-        {
-            Apps.PICSGetChangesSince(PICSChangesHandler.PreviousChangeNumber, true, true);
-        }
 
         public void Init()
         {
@@ -90,7 +87,7 @@ namespace SteamDatabaseBackend
 
             Client.AddHandler(new FreeLicense());
 
-            new ProductInfo();
+            new PICSProductInfo();
             new PICSTokens();
 
             PICSChangesHandler = new PICSChanges();
@@ -102,7 +99,10 @@ namespace SteamDatabaseBackend
                 new ClanState();
                 new ChatMemberInfo();
 
-                CommandHandler.Init();
+                if (Settings.Current.IRC.Enabled || Settings.Current.ChatRooms.Count > 0)
+                {
+                    CommandHandler = new CommandHandler();
+                }
             }
 
             DepotProcessor.Init();
@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
 
         private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
         {
-            GetPICSChanges();
+            Apps.PICSGetChangesSince(PICSChangesHandler.PreviousChangeNumber, true, true);
         }
 
         public void ReloadImportant(CommandArguments command = null)
@@ -303,7 +303,7 @@ namespace SteamDatabaseBackend
             {
                 if (PICSChangesHandler.PreviousChangeNumber == 1)
                 {
-                    GetPICSChanges();
+                    Apps.PICSGetChangesSince(1, true, true);
                 }
             }
             else

@@ -11,11 +11,11 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class CommandHandler
+    class CommandHandler
     {
-        public static List<Command> RegisteredCommands { get; private set; }
+        public List<Command> RegisteredCommands { get; private set; }
 
-        static CommandHandler()
+        public CommandHandler()
         {
             RegisteredCommands = new List<Command>();
 
@@ -30,11 +30,6 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new ReloginCommand());
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(OnSteamChatMessage));
-        }
-
-        public static void Init()
-        {
-            // TODO: Make CommandHandler not static
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
@@ -56,7 +51,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static void OnIRCMessage(object sender, IrcEventArgs e)
+        public void OnIRCMessage(object sender, IrcEventArgs e)
         {
             if (e.Data.Message[0] != '!')
             {
@@ -106,7 +101,7 @@ namespace SteamDatabaseBackend
             TryCommand(command, commandData);
         }
 
-        private static void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
+        private void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg      // Is chat message
             ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
@@ -120,7 +115,7 @@ namespace SteamDatabaseBackend
             var i = callback.Message.IndexOf(' ');
             var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
 
-            var command = CommandHandler.RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(inputCommand));
+            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(inputCommand));
 
             if (command == null)
             {
