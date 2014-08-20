@@ -9,7 +9,7 @@ using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
 {
-    public class MarketingMessage
+    class MarketingMessage : SteamHandler
     {
         public MarketingMessage()
         {
@@ -31,11 +31,11 @@ namespace SteamDatabaseBackend
 
                 if (message.Flags == EMarketingMessageFlags.None)
                 {
-                    IRC.SendMain("New marketing message:{0} {1}", Colors.DARK_BLUE, message.URL);
+                    IRC.SendMain("New marketing message:{0} {1}", Colors.DARKBLUE, message.URL);
                 }
                 else
                 {
-                    IRC.SendMain("New marketing message:{0} {1} {2}({3})", Colors.DARK_BLUE, message.URL, Colors.DARK_GRAY, message.Flags.ToString().Replace("Platform", string.Empty));
+                    IRC.SendMain("New marketing message:{0} {1} {2}({3})", Colors.DARKBLUE, message.URL, Colors.DARKGRAY, message.Flags.ToString().Replace("Platform", string.Empty));
                 }
 
                 DbWorker.ExecuteNonQuery("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)",

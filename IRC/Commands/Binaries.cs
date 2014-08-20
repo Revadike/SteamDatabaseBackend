@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
 
                     kv = kv["bins_osx"];
 
-                    CommandHandler.ReplyToCommand(command, "You're on your own:{0} {1}{2} {3}({4} MB)", Colors.DARK_BLUE, CDN, kv["file"].AsString(), Colors.DARK_GRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                    CommandHandler.ReplyToCommand(command, "You're on your own:{0} {1}{2} {3}({4} MB)", Colors.DARKBLUE, CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
                 };
 
                 webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_publicbeta_osx?_={1}", CDN, DateTime.UtcNow.Ticks)));

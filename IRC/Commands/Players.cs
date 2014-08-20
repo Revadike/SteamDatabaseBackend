@@ -29,34 +29,31 @@ namespace SteamDatabaseBackend
 
             uint appID;
 
-            if (uint.TryParse(command.Message, out appID))
+            if (!uint.TryParse(command.Message, out appID))
             {
-                JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT REGEXP '.* (Demo|Dedicated Server)' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", command.Message)))
                 {
-                    Target = appID,
-                    Command = command
-                });
-
-                return;
-            }
-
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT REGEXP '.* (Demo|Dedicated Server)' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", command.Message)))
-            {
-                if (Reader.Read())
-                {
-                    appID = Reader.GetUInt32("AppID");
-
-                    JobManager.AddJob(() => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID), new JobManager.IRCRequest
+                    if (Reader.Read())
                     {
-                        Target = appID,
-                        Command = command
-                    });
+                        appID = Reader.GetUInt32("AppID");
+                    }
+                    else
+                    {
+                        CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
 
-                    return;
+                        return;
+                    }
                 }
             }
 
-            CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
+            JobManager.AddJob(
+                () => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID),
+                new JobManager.IRCRequest
+                {
+                    Target = appID,
+                    Command = command
+                }
+            );
         }
 
         private static void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
@@ -76,14 +73,22 @@ namespace SteamDatabaseBackend
             }
             else if (request.Target == 0)
             {
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}", Colors.OLIVE, callback.NumPlayers, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(753, "graph"));
+                CommandHandler.ReplyToCommand(
+                    request.Command,
+                    "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}",
+                    Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetAppURL(753, "graph")
+                );
             }
             else
             {
-                CommandHandler.ReplyToCommand(request.Command, "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
+                CommandHandler.ReplyToCommand(
+                    request.Command,
+                    "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
                     Colors.OLIVE, Steam.GetAppName(request.Target), Colors.NORMAL,
                     Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARK_BLUE, SteamDB.GetAppURL(request.Target));
+                    Colors.DARKBLUE, SteamDB.GetAppURL(request.Target)
+                );
             }
         }
     }

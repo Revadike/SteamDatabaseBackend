@@ -46,7 +46,7 @@ namespace SteamDatabaseBackend
                                 break;
                             }
 
-                            switch(s[1])
+                            switch (s[1])
                             {
                                 case "app":
                                     {
@@ -65,6 +65,7 @@ namespace SteamDatabaseBackend
 
                                         return;
                                     }
+
                                 case "sub":
                                     {
                                         if (Steam.Instance.ImportantSubs.ContainsKey(id))
@@ -101,7 +102,7 @@ namespace SteamDatabaseBackend
                                 break;
                             }
 
-                            switch(s[1])
+                            switch (s[1])
                             {
                                 case "app":
                                     {
@@ -120,6 +121,7 @@ namespace SteamDatabaseBackend
 
                                         return;
                                     }
+
                                 case "sub":
                                     {
                                         if (!Steam.Instance.ImportantSubs.ContainsKey(id))

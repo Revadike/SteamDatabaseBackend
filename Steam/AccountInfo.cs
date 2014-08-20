@@ -8,7 +8,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class AccountInfo : SteamHandler
+    class AccountInfo : SteamHandler
     {
         public AccountInfo()
         {

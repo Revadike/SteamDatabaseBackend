@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var package in packageIDs)
                     {
-                        IRC.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package));
+                        IRC.SendMain("New free license granted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package));
                     }
                 }
             }

@@ -84,7 +84,6 @@
     <Compile Include="IRC\Commands\Relogin.cs" />
     <Compile Include="IRC\Commands\Important.cs" />
     <Compile Include="IRC\Commands\Enum.cs" />
-    <Compile Include="Steam\SteamHandler.cs" />
     <Compile Include="Steam\AccountInfo.cs" />
     <Compile Include="Steam\MarketingMessage.cs" />
     <Compile Include="Steam\ClanState.cs" />
@@ -93,6 +92,7 @@
     <Compile Include="Steam\FreeLicense.cs" />
     <Compile Include="Steam\ProductInfo.cs" />
     <Compile Include="Steam\PICSTokens.cs" />
+    <Compile Include="Util\SteamHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

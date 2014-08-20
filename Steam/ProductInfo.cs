@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class ProductInfo
+    class ProductInfo : SteamHandler
     {
         public ProductInfo()
         {
@@ -161,7 +161,7 @@ namespace SteamDatabaseBackend
 
                 CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
                     Colors.OLIVE, name, Colors.NORMAL,
-                    Colors.DARK_BLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                     Steam.Instance.OwnedPackages.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
@@ -196,7 +196,7 @@ namespace SteamDatabaseBackend
 
                 CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
                     Colors.OLIVE, name, Colors.NORMAL,
-                    Colors.DARK_BLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                     Steam.Instance.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );

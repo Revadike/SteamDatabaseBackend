@@ -35,12 +35,15 @@ namespace SteamDatabaseBackend
 
                 apps.Add(appID);
 
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
-                {
-                    Target = appID,
-                    Type = JobManager.IRCRequestType.TYPE_APP,
-                    Command = command
-                });
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), 
+                    new JobManager.IRCRequest
+                    {
+                        Target = appID,
+                        Type = JobManager.IRCRequestType.TYPE_APP,
+                        Command = command
+                    }
+                );
 
                 return;
             }
@@ -57,12 +60,15 @@ namespace SteamDatabaseBackend
 
                     apps.Add(appID);
 
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), new JobManager.IRCRequest
-                    {
-                        Target = appID,
-                        Type = JobManager.IRCRequestType.TYPE_APP,
-                        Command = command
-                    });
+                    JobManager.AddJob(
+                        () => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()),
+                        new JobManager.IRCRequest
+                        {
+                            Target = appID,
+                            Type = JobManager.IRCRequestType.TYPE_APP,
+                            Command = command
+                        }
+                    );
 
                     return;
                 }

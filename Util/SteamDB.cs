@@ -10,7 +10,7 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    public static class SteamDB
+    static class SteamDB
     {
         private static bool ALLOW_FREE_LICENSES = false;
         public const string UNKNOWN_APP  = "SteamDB Unknown App";

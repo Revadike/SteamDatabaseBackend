@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class DepotProcessor
+    static class DepotProcessor
     {
         private sealed class DepotFile
         {
@@ -297,7 +297,7 @@ namespace SteamDatabaseBackend
 
             if (Steam.Instance.ImportantApps.ContainsKey(request.ParentAppID))
             {
-                IRC.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                IRC.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
 
             var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
@@ -337,16 +337,15 @@ namespace SteamDatabaseBackend
                     {
                         shouldHistorize = true;
 
-                        var _filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files);
-
-                        filesOld = _filesOld.ToDictionary(x => x.Name);
+                        filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files).ToDictionary(x => x.Name);
                     }
                 }
             }
 
-            DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Files` = @Files WHERE `DepotID` = @DepotID",
-                                     new MySqlParameter("@DepotID", request.DepotID),
-                                     new MySqlParameter("@Files", JsonConvert.SerializeObject(filesNew, new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore }))
+            DbWorker.ExecuteNonQuery(
+                "UPDATE `Depots` SET `Files` = @Files WHERE `DepotID` = @DepotID",
+                new MySqlParameter("@DepotID", request.DepotID),
+                new MySqlParameter("@Files", JsonConvert.SerializeObject(filesNew, new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore }))
             );
 
             if (shouldHistorize)
@@ -391,13 +390,14 @@ namespace SteamDatabaseBackend
 
         private static void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)",
-                                     new MySqlParameter("@DepotID", request.DepotID),
-                                     new MySqlParameter("@ChangeID", request.ChangeNumber),
-                                     new MySqlParameter("@File", file),
-                                     new MySqlParameter("@Action", action),
-                                     new MySqlParameter("@OldValue", oldValue),
-                                     new MySqlParameter("@NewValue", newValue)
+            DbWorker.ExecuteNonQuery(
+                "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)",
+                new MySqlParameter("@DepotID", request.DepotID),
+                new MySqlParameter("@ChangeID", request.ChangeNumber),
+                new MySqlParameter("@File", file),
+                new MySqlParameter("@Action", action),
+                new MySqlParameter("@OldValue", oldValue),
+                new MySqlParameter("@NewValue", newValue)
             );
         }
 

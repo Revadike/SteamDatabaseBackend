@@ -15,7 +15,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class Steam
+    class Steam
     {
         private static Steam _instance = new Steam();
         public static Steam Instance { get { return _instance; } }
@@ -40,11 +40,10 @@ namespace SteamDatabaseBackend
         public Dictionary<uint, byte> ImportantApps { get; set; }
         public Dictionary<uint, byte> ImportantSubs { get; set; }
 
-        private PICSChanges PICSChangesHandler;
-
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
+        private PICSChanges PICSChangesHandler;
         private string AuthCode;
 
         public void GetPICSChanges()
@@ -169,7 +168,7 @@ namespace SteamDatabaseBackend
 
                         if (!string.IsNullOrEmpty(nameStore))
                         {
-                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameStore, Colors.NORMAL);
+                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameStore, Colors.NORMAL);
                         }
                     }
 
@@ -191,7 +190,7 @@ namespace SteamDatabaseBackend
 
                     if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
                     {
-                        return string.Format("{0} {1}({2}){3}", name, Colors.DARK_GRAY, nameLast, Colors.NORMAL);
+                        return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
                     }
 
                     return name;
@@ -251,7 +250,7 @@ namespace SteamDatabaseBackend
 
             if (Timer.Enabled)
             {
-                IRC.SendMain("Disconnected from Steam. See{0} http://steamstat.us", Colors.DARK_BLUE);
+                IRC.SendMain("Disconnected from Steam. See{0} http://steamstat.us", Colors.DARKBLUE);
             }
 
             Timer.Stop();
@@ -297,7 +296,7 @@ namespace SteamDatabaseBackend
                 
             Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
 
-            IRC.SendMain("Logged in to Steam. Valve time: {0}{1}", Colors.DARK_GRAY, callback.ServerTime.ToString("R"));
+            IRC.SendMain("Logged in to Steam. Valve time: {0}{1}", Colors.DARKGRAY, callback.ServerTime.ToString("R"));
             IRC.SendEmoteAnnounce("logged in.");
 
             if (Settings.IsFullRun)
@@ -321,7 +320,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
-            IRC.SendMain("Logged out of Steam: {0}{1}{2}. See{3} http://steamstat.us", Colors.OLIVE, callback.Result, Colors.NORMAL, Colors.DARK_BLUE);
+            IRC.SendMain("Logged out of Steam: {0}{1}{2}. See{3} http://steamstat.us", Colors.OLIVE, callback.Result, Colors.NORMAL, Colors.DARKBLUE);
             IRC.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
 
             GameCoordinator.UpdateStatus(0, callback.Result.ToString());

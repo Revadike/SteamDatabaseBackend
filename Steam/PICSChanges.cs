@@ -4,14 +4,14 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using MySql.Data.MySqlClient;
 using SteamKit2;
-using System.Collections.Generic;
 
 namespace SteamDatabaseBackend
 {
-    public class PICSChanges
+    class PICSChanges : SteamHandler
     {
         public uint PreviousChangeNumber { get; private set; }
 
@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
 
             if (appChangesCount == 0 && packageChangesCount == 0)
             {
-                IRC.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChangeNumber, Colors.DARK_GRAY);
+                IRC.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChangeNumber, Colors.DARKGRAY);
 
                 return;
             }
@@ -159,13 +159,13 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
+                IRC.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {
                 foreach (var app in important)
                 {
-                    IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(app, "history"));
+                    IRC.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
                 }
             }
 
@@ -174,13 +174,13 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
+                IRC.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {
                 foreach (var package in important)
                 {
-                    IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetPackageURL(package, "history"));
+                    IRC.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
                 }
             }
 
@@ -207,8 +207,8 @@ namespace SteamDatabaseBackend
 
                 string Message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
                                      Colors.OLIVE, changeList.ChangeNumber, Colors.NORMAL,
-                                     Colors.DARK_GRAY, appCount, packageCount, Colors.NORMAL,
-                                     Colors.DARK_BLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
+                                     Colors.DARKGRAY, appCount, packageCount, Colors.NORMAL,
+                                     Colors.DARKBLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
                                  );
 
                 var changesCount = appCount + packageCount;
@@ -221,9 +221,9 @@ namespace SteamDatabaseBackend
                 IRC.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, Message);
 
                 // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
-                if (changesCount > 500)
+                if (changesCount > 300)
                 {
-                    IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it on our website", Colors.RED);
+                    IRC.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it online", Colors.RED);
 
                     continue;
                 }
@@ -242,7 +242,7 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, app.ID, Colors.NORMAL, name);
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, app.ID, Colors.NORMAL, name);
                         }
 
                         IRC.SendAnnounce("  App: {0}{1}{2}",
@@ -265,7 +265,7 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHT_GRAY, package.ID, Colors.NORMAL, name);
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, package.ID, Colors.NORMAL, name);
                         }
 
                         IRC.SendAnnounce("  Package: {0}{1}{2}",

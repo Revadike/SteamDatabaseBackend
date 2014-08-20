@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class CommandHandler
+    static class CommandHandler
     {
         public static List<Command> RegisteredCommands { get; private set; }
 
@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
         public static void Init()
         {
-
+            // TODO: Make CommandHandler not static
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
@@ -108,10 +108,10 @@ namespace SteamDatabaseBackend
 
         private static void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
         {
-            if (callback.ChatMsgType != EChatEntryType.ChatMsg          // Is chat message
-                ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
-                ||  callback.Message[0] != '!'                          // Starts with !
-                ||  callback.Message.Contains('\n')                     // Does not contain new lines
+            if (callback.ChatMsgType != EChatEntryType.ChatMsg      // Is chat message
+            ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
+            ||  callback.Message[0] != '!'                          // Starts with !
+            ||  callback.Message.Contains('\n')                     // Does not contain new lines
             )
             {
                 return;

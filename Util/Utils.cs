@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class Utils
+    static class Utils
     {
         // Adapted from http://stackoverflow.com/a/13503860/139147
         // Mono doesn't really like method extensions

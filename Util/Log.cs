@@ -7,7 +7,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class Log
+    static class Log
     {
         private const string LOG_DIRECTORY = "logs";
 
@@ -78,6 +78,12 @@ namespace SteamDatabaseBackend
                 if (category == Category.ERROR)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write(logLine);
+                    Console.ResetColor();
+                }
+                else if (category == Category.DEBUG)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
                     Console.Write(logLine);
                     Console.ResetColor();
                 }

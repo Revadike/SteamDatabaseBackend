@@ -3,8 +3,6 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using System;
-using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -12,7 +10,7 @@ namespace SteamDatabaseBackend
     {
         protected SteamHandler()
         {
-            //
+            // This is just an empty class, steamkit callbacks extend this
         }
     }
 }

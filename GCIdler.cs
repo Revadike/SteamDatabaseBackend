@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class GCIdler
+    class GCIdler
     {
         public bool IsRunning { get; set; }
 

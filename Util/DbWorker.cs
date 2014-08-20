@@ -13,7 +13,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public static class DbWorker
+    static class DbWorker
     {
         public static MySqlDataReader ExecuteReader(string text)
         {

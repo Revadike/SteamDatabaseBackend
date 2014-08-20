@@ -43,10 +43,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string enumType = args[ 0 ];
-            string inputEnum = args[ 1 ];
-
-            var matchingEnumType = SteamKitEnums.FirstOrDefault(x => x.Name.Equals(enumType, StringComparison.InvariantCultureIgnoreCase));
+            var matchingEnumType = SteamKitEnums.FirstOrDefault(x => x.Name.Equals(args[0], StringComparison.InvariantCultureIgnoreCase));
 
             if (matchingEnumType == null)
             {
@@ -59,7 +56,7 @@ namespace SteamDatabaseBackend
 
             GetType().GetMethod("RunForEnum", BindingFlags.Instance | BindingFlags.NonPublic)
                 .MakeGenericMethod(matchingEnumType)
-                .Invoke(this, new object[] { inputEnum, command, includeDeprecated });
+                .Invoke(this, new object[] { args[1], command, includeDeprecated });
         }
 
         void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
@@ -67,21 +64,21 @@ namespace SteamDatabaseBackend
         {
             TEnum enumValue;
 
-            if ( Enum.TryParse( inputValue, out enumValue ) )
+            if (Enum.TryParse(inputValue, out enumValue))
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.LIGHT_GRAY, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.NORMAL, enumValue);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.LIGHTGRAY, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.NORMAL, enumValue);
 
                 return;
             }
                 
-            var enumValues = Enum.GetValues( typeof( TEnum ) ).Cast<TEnum>();
+            var enumValues = Enum.GetValues(typeof(TEnum)).Cast<TEnum>();
 
-            if ( !includeDeprecated )
+            if (!includeDeprecated)
             {
-                enumValues = enumValues.Except( enumValues.Where( x => typeof( TEnum ).GetMember( x.ToString() )[ 0 ].GetCustomAttributes( typeof( ObsoleteAttribute ), inherit: false ).Any() ) );
+                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), inherit: false).Any()));
             }
 
-            var enumValuesWithMatchingName = enumValues.Where( x => x.ToString().IndexOf( inputValue, StringComparison.InvariantCultureIgnoreCase ) >= 0 );
+            var enumValuesWithMatchingName = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.InvariantCultureIgnoreCase) >= 0);
             var count = enumValuesWithMatchingName.Count();
 
             if (count == 0)

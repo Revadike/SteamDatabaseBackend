@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public abstract class Command
+    abstract class Command
     {
         public string Trigger { get; protected set; }
         public string Usage { get; protected set; }
@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
         public abstract void OnCommand(CommandArguments command);
     }
 
-    public class CommandArguments
+    class CommandArguments
     {
         public string Message { get; set; }
         public IrcMessageData MessageData { get; set; }

@@ -10,7 +10,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class JobAction
+    class JobAction
     {
         public Func<JobID> Action;
         public JobManager.IRCRequest CommandRequest;
@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
         }
     }
 
-    public static class JobManager
+    static class JobManager
     {
         public class IRCRequest
         {
@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
             TYPE_SUB
         }
 
-        private static Dictionary<JobID, JobAction> Jobs = new Dictionary<JobID, JobAction>();
+        private static readonly Dictionary<JobID, JobAction> Jobs = new Dictionary<JobID, JobAction>();
 
         public static void AddJob(Func<JobID> action)
         {

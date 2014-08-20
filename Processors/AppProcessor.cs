@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class AppProcessor
+    class AppProcessor
     {
         private const uint DATABASE_APPTYPE   = 9;
         private const uint DATABASE_NAME_TYPE = 10;
@@ -235,7 +235,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (!appName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    IRC.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARK_BLUE, SteamDB.GetAppURL(AppID, "history"));
+                    IRC.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
 
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),

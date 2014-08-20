@@ -9,7 +9,7 @@ using Meebey.SmartIrc4net;
 
 namespace SteamDatabaseBackend
 {
-    public class IRC
+    class IRC
     {
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
             catch { }
         }
 
-        private static void OnConnected(object sender, EventArgs e)
+        private void OnConnected(object sender, EventArgs e)
         {
             Log.WriteInfo("IRC Proxy", "Connected to IRC successfully");
         }

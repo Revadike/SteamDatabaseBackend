@@ -8,7 +8,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class ChatMemberInfo
+    class ChatMemberInfo : SteamHandler
     {
         public ChatMemberInfo()
         {

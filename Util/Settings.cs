@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
-    public static class Settings
+    static class Settings
     {
         private static SettingsJson _current = new SettingsJson();
 

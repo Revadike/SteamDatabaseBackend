@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class PICSTokens
+    class PICSTokens : SteamHandler
     {
         public PICSTokens()
         {

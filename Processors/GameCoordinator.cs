@@ -12,7 +12,7 @@ using SteamKit2.GC.Internal;
 
 namespace SteamDatabaseBackend
 {
-    public class GameCoordinator
+    class GameCoordinator
     {
         private readonly uint AppID;
         private readonly SteamClient SteamClient;
@@ -119,11 +119,11 @@ namespace SteamDatabaseBackend
 
             if (LastVersion == -1 || LastVersion == version)
             {
-                message += string.Format(" {0}(version {1})", Colors.DARK_GRAY, version);
+                message += string.Format(" {0}(version {1})", Colors.DARKGRAY, version);
             }
             else
             {
-                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARK_GRAY, LastVersion, version);
+                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, LastVersion, version);
             }
 
             if (LastVersion != -1 && (LastVersion != version || LastStatus != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION))
@@ -147,7 +147,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo(Name, "Schema change from {0} to {1}", LastSchemaVersion, msg.item_schema_version);
 
-                IRC.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARK_GRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARK_BLUE, msg.items_game_url);
+                IRC.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
             }
 
             LastSchemaVersion = msg.item_schema_version;
@@ -163,7 +163,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(Name, "GC version changed ({0} -> {1})", LastVersion, msg.server_version);
 
-            IRC.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARK_GRAY, LastVersion);
+            IRC.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.server_version, Colors.DARKGRAY, LastVersion);
 
             LastVersion = (int)msg.server_version;
         }
@@ -224,9 +224,10 @@ namespace SteamDatabaseBackend
 
         public static void UpdateStatus(uint appID, string status)
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
-                                     new MySqlParameter("@AppID", appID),
-                                     new MySqlParameter("@Status", status)
+            DbWorker.ExecuteNonQuery(
+                "INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
+                new MySqlParameter("@AppID", appID),
+                new MySqlParameter("@Status", status)
             );
         }
     }
