@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Steam Database")]
 [assembly: AssemblyProduct("Steam Database")]
-[assembly: AssemblyCopyright("Copyright © Steam Database, 2013")]
+[assembly: AssemblyCopyright("Copyright © Steam Database, 2013-2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyVersion("1.0.*")]
