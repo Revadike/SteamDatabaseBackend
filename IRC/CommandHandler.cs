@@ -13,13 +13,12 @@ namespace SteamDatabaseBackend
 {
     class CommandHandler
     {
-        public List<Command> RegisteredCommands { get; private set; }
+        private List<Command> RegisteredCommands;
 
         public CommandHandler()
         {
             RegisteredCommands = new List<Command>();
 
-            RegisteredCommands.Add(new HelpCommand());
             RegisteredCommands.Add(new BlogCommand());
             RegisteredCommands.Add(new PlayersCommand());
             RegisteredCommands.Add(new AppCommand());
@@ -29,7 +28,8 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new ImportantCommand());
             RegisteredCommands.Add(new ReloginCommand());
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(OnSteamChatMessage));
+            // Register help command last so we can pass the list of the commands
+            RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
@@ -39,6 +39,10 @@ namespace SteamDatabaseBackend
             if (command.IsChatRoomCommand)
             {
                 Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
+            }
+            else if (command.IsSteamCommand)
+            {
+                Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
             }
             else
             {
@@ -101,7 +105,23 @@ namespace SteamDatabaseBackend
             TryCommand(command, commandData);
         }
 
-        private void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
+        public void OnSteamFriendMessage(SteamFriends.FriendMsgCallback callback)
+        {
+            if (callback.EntryType != EChatEntryType.ChatMsg        // Is chat message
+            ||  callback.Sender == Steam.Instance.Client.SteamID    // Is not sent by the bot
+            ||  callback.Message[0] != '!'                          // Starts with !
+            ||  callback.Message.Contains('\n')                     // Does not contain new lines
+            )
+            {
+                return;
+            }
+
+            HandleSteamMessage(callback.Sender, callback.Message);
+
+            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1}", callback.Message, callback.Sender);
+        }
+
+        public void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg      // Is chat message
             ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
@@ -112,8 +132,15 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var i = callback.Message.IndexOf(' ');
-            var inputCommand = i == -1 ? callback.Message : callback.Message.Substring(0, i);
+            HandleSteamMessage(callback.ChatterID, callback.Message, callback.ChatRoomID);
+
+            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
+        }
+
+        private void HandleSteamMessage(SteamID sender, string message, SteamID chatRoom = null)
+        {
+            var i = message.IndexOf(' ');
+            var inputCommand = i == -1 ? message : message.Substring(0, i);
 
             var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(inputCommand));
 
@@ -122,12 +149,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var input = i == -1 ? string.Empty : callback.Message.Substring(i).Trim();
+            var input = i == -1 ? string.Empty : message.Substring(i).Trim();
 
             var commandData = new CommandArguments
             {
-                SenderID = callback.ChatterID,
-                ChatRoomID = callback.ChatRoomID,
+                SenderID = sender,
+                ChatRoomID = chatRoom,
                 Message = input
             };
 
@@ -143,8 +170,6 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-
-            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
 
             TryCommand(command, commandData);
         }

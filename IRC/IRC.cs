@@ -20,8 +20,6 @@ namespace SteamDatabaseBackend
         {
             Client = new IrcClient();
 
-            Client.OnChannelMessage += Application.Instance.CommandHandler.OnIRCMessage;
-            Client.OnQueryMessage += Application.Instance.CommandHandler.OnIRCMessage;
             Client.OnConnected += OnConnected;
             Client.OnDisconnected += OnDisconnected;
 
@@ -61,6 +59,12 @@ namespace SteamDatabaseBackend
                 Client.Disconnect();
             }
             catch { }
+        }
+
+        public void RegisterCommandHandlers(CommandHandler handler)
+        {
+            Client.OnChannelMessage += handler.OnIRCMessage;
+            Client.OnQueryMessage += handler.OnIRCMessage;
         }
 
         private void OnConnected(object sender, EventArgs e)

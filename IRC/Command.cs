@@ -31,7 +31,15 @@ namespace SteamDatabaseBackend
         {
             get
             {
-                return this.ChatRoomID != null;
+                return ChatRoomID != null;
+            }
+        }
+
+        public bool IsSteamCommand
+        {
+            get
+            {
+                return SenderID != null;
             }
         }
     }

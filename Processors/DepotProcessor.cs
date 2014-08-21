@@ -254,9 +254,9 @@ namespace SteamDatabaseBackend
                 Log.WriteError("Depot Processor", "Caught exception while processing depot {0}: {1}\n{2}", request.DepotID, e.Message, e.StackTrace);
             }
 
-            Log.WriteDebug("Depot Processor", "Processed depot {0}", request.DepotID);
-
             RemoveLock(request.DepotID);
+
+            Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
         }
 
         private void DownloadManifest(ManifestJob request)

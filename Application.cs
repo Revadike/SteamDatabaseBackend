@@ -33,8 +33,6 @@ namespace SteamDatabaseBackend
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
         public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
-        public CommandHandler CommandHandler { get; private set; }
-
         public Application()
         {
             ProcessorPool = new SmartThreadPool(new STPStartInfo { WorkItemPriority = WorkItemPriority.Highest, MaxWorkerThreads = 50 });
@@ -72,16 +70,17 @@ namespace SteamDatabaseBackend
 
             ReloadImportant();
 
-            if (Settings.Current.IRC.Enabled || Settings.Current.ChatRooms.Count > 0)
-            {
-                CommandHandler = new CommandHandler();
-            }
+            var commandHandler = new CommandHandler();
+
+            Steam.Instance.RegisterCommandHandlers(commandHandler);
 
             if (Settings.Current.IRC.Enabled)
             {
                 thread = new Thread(new ThreadStart(IRC.Instance.Init));
                 thread.Name = "IRC";
                 thread.Start();
+
+                IRC.Instance.RegisterCommandHandlers(commandHandler);
             }
 
             foreach (var appID in Settings.Current.GameCoordinatorIdlers)

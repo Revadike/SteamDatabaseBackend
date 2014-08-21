@@ -67,6 +67,16 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public void RegisterCommandHandlers(CommandHandler handler)
+        {
+            if (Settings.Current.ChatRooms.Count > 0)
+            {
+                CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(handler.OnSteamChatMessage));
+            }
+
+            CallbackManager.Register(new Callback<SteamFriends.FriendMsgCallback>(handler.OnSteamFriendMessage));
+        }
+
         public static string GetPackageName(uint subID, bool returnEmptyOnFailure = false)
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))

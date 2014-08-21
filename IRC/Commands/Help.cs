@@ -4,15 +4,20 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace SteamDatabaseBackend
 {
     class HelpCommand : Command
     {
-        public HelpCommand()
+        private readonly string Commands;
+
+        public HelpCommand(List<Command> commands)
         {
             Trigger = "!help";
+
+            Commands = string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), commands.Select(cmd => cmd.Trigger));
         }
 
         public override void OnCommand(CommandArguments command)
@@ -22,12 +27,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            CommandHandler.ReplyToCommand(
-                command,
-                "Available commands: {0}{1}",
-                Colors.OLIVE,
-                string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Application.Instance.CommandHandler.RegisteredCommands.Select(cmd => cmd.Trigger))
-            );
+            CommandHandler.ReplyToCommand(command, "Available commands: {0}{1}", Colors.OLIVE, Commands);
         }
     }
 }
