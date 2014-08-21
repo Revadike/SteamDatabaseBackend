@@ -6,12 +6,16 @@
 using System;
 using SteamKit2;
 using System.IO;
-using System.Threading;
+using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
     class Connection : SteamHandler
     {
+        private const uint RETRY_DELAY = 15;
+
+        public readonly Timer ReconnectionTimer;
+
         private readonly string SentryFile;
         private string AuthCode;
 
@@ -20,11 +24,30 @@ namespace SteamDatabaseBackend
         {
             SentryFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sentry.bin");
 
+            ReconnectionTimer = new Timer();
+            ReconnectionTimer.AutoReset = false;
+            ReconnectionTimer.Elapsed += Reconnect;
+            ReconnectionTimer.Interval = TimeSpan.FromSeconds(RETRY_DELAY).TotalMilliseconds;
+
             manager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
             manager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
             manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
             manager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
             manager.Register(new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
+        }
+
+        private static void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (Steam.Instance.Client.IsConnected)
+            {
+                Log.WriteDebug("Steam", "Reconnect timer fired, but it's connected already.");
+
+                return;
+            }
+
+            Log.WriteDebug("Steam", "Reconnecting...");
+
+            Steam.Instance.Client.Connect();
         }
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
@@ -83,15 +106,11 @@ namespace SteamDatabaseBackend
 
             JobManager.CancelChatJobsIfAny();
 
-            const uint RETRY_DELAY = 15;
-
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
             IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
-            Thread.Sleep(TimeSpan.FromSeconds(RETRY_DELAY));
-
-            Steam.Instance.Client.Connect();
+            ReconnectionTimer.Start();
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
@@ -112,8 +131,6 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo("Steam", "Failed to login: {0}", callback.Result);
 
                 IRC.Instance.SendEmoteAnnounce("failed to log in: {0}", callback.Result);
-
-                Thread.Sleep(TimeSpan.FromSeconds(2));
 
                 return;
             }
