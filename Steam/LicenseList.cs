@@ -29,11 +29,11 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "{0} licenses received", licenseList.LicenseList.Count);
 
-            Application.Instance.OwnedPackages = licenseList.LicenseList.ToDictionary(lic => lic.PackageID, lic => (byte)1);
+            Application.Instance.OwnedSubs = licenseList.LicenseList.ToDictionary(lic => lic.PackageID, lic => (byte)1);
 
             Application.Instance.OwnedApps.Clear();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", Application.Instance.OwnedPackages.Keys))))
+            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", Application.Instance.OwnedSubs.Keys))))
             {
                 while (Reader.Read())
                 {

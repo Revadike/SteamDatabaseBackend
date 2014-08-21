@@ -272,7 +272,7 @@ namespace SteamDatabaseBackend
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2}",
                             name,
                             package.NeedsToken ? SteamDB.StringNeedToken : string.Empty,
-                            Application.Instance.OwnedPackages.ContainsKey(package.ID) ? SteamDB.StringCheckmark : string.Empty
+                            Application.Instance.OwnedSubs.ContainsKey(package.ID) ? SteamDB.StringCheckmark : string.Empty
                         );
                     }
                 }

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
+using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
@@ -19,13 +20,13 @@ namespace SteamDatabaseBackend
 
         public readonly List<GCIdler> GCIdlers;
 
-        public System.Timers.Timer Timer { get; private set; }
+        public Timer Timer { get; private set; }
 
         public SmartThreadPool ProcessorPool { get; private set; }
         public SmartThreadPool SecondaryPool { get; private set; }
 
-        public Dictionary<uint, byte> OwnedPackages { get; set; }
         public Dictionary<uint, byte> OwnedApps { get; set; }
+        public Dictionary<uint, byte> OwnedSubs { get; set; }
 
         public Dictionary<uint, byte> ImportantApps { get; set; }
         public Dictionary<uint, byte> ImportantSubs { get; set; }
@@ -41,8 +42,8 @@ namespace SteamDatabaseBackend
             ProcessorPool.Name = "Processor Pool";
             SecondaryPool.Name = "Secondary Pool";
 
-            OwnedPackages = new Dictionary<uint, byte>();
             OwnedApps = new Dictionary<uint, byte>();
+            OwnedSubs = new Dictionary<uint, byte>();
 
             ImportantApps = new Dictionary<uint, byte>();
             ImportantSubs = new Dictionary<uint, byte>();
@@ -52,7 +53,7 @@ namespace SteamDatabaseBackend
 
             GCIdlers = new List<GCIdler>();
 
-            Timer = new System.Timers.Timer();
+            Timer = new Timer();
             Timer.Elapsed += Tick;
             Timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
         }

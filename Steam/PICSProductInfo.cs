@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
                     Colors.OLIVE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Application.Instance.OwnedPackages.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    Application.Instance.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else if (request.Type == JobManager.IRCRequestType.TYPE_APP)

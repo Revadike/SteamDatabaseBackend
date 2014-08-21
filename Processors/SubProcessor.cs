@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
                     }
 
                     // TODO: Probably should check if apps are owned
-                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Application.Instance.OwnedPackages.ContainsKey(SubID)) // 12 == free on demand
+                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Application.Instance.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
                     {
                         Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
