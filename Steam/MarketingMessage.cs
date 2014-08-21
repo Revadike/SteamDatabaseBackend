@@ -4,16 +4,17 @@
  * found in the LICENSE file.
  */
 using System;
-using SteamKit2;
 using MySql.Data.MySqlClient;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class MarketingMessage : SteamHandler
     {
-        public MarketingMessage()
+        public MarketingMessage(CallbackManager manager)
+            : base(manager)
         {
-            Steam.Instance.CallbackManager.Register(new Callback<SteamUser.MarketingMessageCallback>(OnMarketingMessage));
+            manager.Register(new Callback<SteamUser.MarketingMessageCallback>(OnMarketingMessage));
         }
 
         private static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
@@ -38,7 +39,8 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendMain("New marketing message:{0} {1} {2}({3})", Colors.DARKBLUE, message.URL, Colors.DARKGRAY, message.Flags.ToString().Replace("Platform", string.Empty));
                 }
 
-                DbWorker.ExecuteNonQuery("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)",
+                DbWorker.ExecuteNonQuery(
+                    "INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)",
                     new MySqlParameter("@ID", message.ID),
                     new MySqlParameter("@Flags", message.Flags)
                 );

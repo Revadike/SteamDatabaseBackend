@@ -88,19 +88,19 @@ namespace SteamDatabaseBackend
 
             Client.AddHandler(new FreeLicense());
 
-            new PICSProductInfo();
-            new PICSTokens();
+            new PICSProductInfo(CallbackManager);
+            new PICSTokens(CallbackManager);
 
-            PICSChangesHandler = new PICSChanges();
+            PICSChangesHandler = new PICSChanges(CallbackManager);
 
             if (!Settings.IsFullRun)
             {
-                new AccountInfo();
-                new MarketingMessage();
-                new ClanState();
-                new ChatMemberInfo();
+                new AccountInfo(CallbackManager);
+                new MarketingMessage(CallbackManager);
+                new ClanState(CallbackManager);
+                new ChatMemberInfo(CallbackManager);
 
-                Steam.Instance.ReloadImportant();
+                ReloadImportant();
 
                 if (Settings.Current.IRC.Enabled || Settings.Current.ChatRooms.Count > 0)
                 {

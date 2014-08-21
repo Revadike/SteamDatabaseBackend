@@ -12,9 +12,10 @@ namespace SteamDatabaseBackend
     {
         private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
 
-        public ClanState()
+        public ClanState(CallbackManager manager)
+            : base(manager)
         {
-            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ClanStateCallback>(OnClanState));
+            manager.Register(new Callback<SteamFriends.ClanStateCallback>(OnClanState));
         }
 
         private static void OnClanState(SteamFriends.ClanStateCallback callback)

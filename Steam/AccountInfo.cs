@@ -10,9 +10,10 @@ namespace SteamDatabaseBackend
 {
     class AccountInfo : SteamHandler
     {
-        public AccountInfo()
+        public AccountInfo(CallbackManager manager)
+            : base(manager)
         {
-            Steam.Instance.CallbackManager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
+            manager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
         }
 
         private static void OnAccountInfo(SteamUser.AccountInfoCallback callback)

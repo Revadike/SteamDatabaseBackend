@@ -10,9 +10,10 @@ namespace SteamDatabaseBackend
 {
     class ChatMemberInfo : SteamHandler
     {
-        public ChatMemberInfo()
+        public ChatMemberInfo(CallbackManager manager)
+            : base(manager)
         {
-            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo));
+            manager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo));
         }
 
         private static void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)

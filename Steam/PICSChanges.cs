@@ -15,18 +15,19 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
-        public PICSChanges()
+        public PICSChanges(CallbackManager manager)
+            : base(manager)
         {
             if (Settings.IsFullRun)
             {
                 PreviousChangeNumber = 1; // Request everything
 
-                Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
+                manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
 
                 return;
             }
                 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
+            manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
 
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
             {

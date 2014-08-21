@@ -13,9 +13,10 @@ namespace SteamDatabaseBackend
 {
     class PICSProductInfo : SteamHandler
     {
-        public PICSProductInfo()
+        public PICSProductInfo(CallbackManager manager)
+            : base(manager)
         {
-            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
+            manager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
         }
 
         private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
@@ -24,11 +25,7 @@ namespace SteamDatabaseBackend
 
             if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
             {
-                // TODO: We don't really need to thread this?
-                //Steam.Instance.SecondaryPool.QueueWorkItem(OnProductInfoForIRC, job.CommandRequest, callback);
                 OnProductInfoForIRC(job.CommandRequest, callback);
-
-                return;
             }
 
             foreach (var app in callback.Apps)
