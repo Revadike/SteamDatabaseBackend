@@ -63,13 +63,13 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (Steam.Instance.ProcessorPool.IsIdle)
+            if (Application.Instance.ProcessorPool.IsIdle)
             {
-                Log.WriteDebug("Steam", "Cleaning processed {0} apps and {1} subs", Steam.Instance.ProcessedApps.Count, Steam.Instance.ProcessedSubs.Count);
+                Log.WriteDebug("Steam", "Cleaning processed {0} apps and {1} subs", Application.Instance.ProcessedApps.Count, Application.Instance.ProcessedSubs.Count);
 
                 // TODO: Do we really need to clear? Find a better solution for this
-                Steam.Instance.ProcessedApps.Clear();
-                Steam.Instance.ProcessedSubs.Clear();
+                Application.Instance.ProcessedApps.Clear();
+                Application.Instance.ProcessedSubs.Clear();
             }
 
             var packageChangesCount = callback.PackageChanges.Count;
@@ -88,20 +88,20 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Steam.Instance.SecondaryPool.QueueWorkItem(SendChangelistsToIRC, callback);
+            Application.Instance.SecondaryPool.QueueWorkItem(SendChangelistsToIRC, callback);
 
             if (appChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                Steam.Instance.SecondaryPool.QueueWorkItem(HandleApps, callback);
+                Application.Instance.SecondaryPool.QueueWorkItem(HandleApps, callback);
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
-                Steam.Instance.SecondaryPool.QueueWorkItem(HandlePackages, callback);
+                Application.Instance.SecondaryPool.QueueWorkItem(HandlePackages, callback);
             }
         }
 
@@ -156,7 +156,7 @@ namespace SteamDatabaseBackend
         private static void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
         {
             // Print any apps importants first
-            var important = callback.AppChanges.Keys.Intersect(Steam.Instance.ImportantApps.Keys);
+            var important = callback.AppChanges.Keys.Intersect(Application.Instance.ImportantApps.Keys);
 
             if (important.Count() > 5)
             {
@@ -171,7 +171,7 @@ namespace SteamDatabaseBackend
             }
 
             // And then important packages
-            important = callback.PackageChanges.Keys.Intersect(Steam.Instance.ImportantSubs.Keys);
+            important = callback.PackageChanges.Keys.Intersect(Application.Instance.ImportantSubs.Keys);
 
             if (important.Count() > 5)
             {
@@ -249,7 +249,7 @@ namespace SteamDatabaseBackend
                         IRC.Instance.SendAnnounce("  App: {0}{1}{2}",
                             name,
                             app.NeedsToken ? SteamDB.StringNeedToken : string.Empty,
-                            Steam.Instance.OwnedApps.ContainsKey(app.ID) ? SteamDB.StringCheckmark : string.Empty
+                            Application.Instance.OwnedApps.ContainsKey(app.ID) ? SteamDB.StringCheckmark : string.Empty
                         );
                     }
                 }
@@ -272,7 +272,7 @@ namespace SteamDatabaseBackend
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2}",
                             name,
                             package.NeedsToken ? SteamDB.StringNeedToken : string.Empty,
-                            Steam.Instance.OwnedPackages.ContainsKey(package.ID) ? SteamDB.StringCheckmark : string.Empty
+                            Application.Instance.OwnedPackages.ContainsKey(package.ID) ? SteamDB.StringCheckmark : string.Empty
                         );
                     }
                 }

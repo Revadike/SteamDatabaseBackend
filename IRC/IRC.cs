@@ -20,9 +20,10 @@ namespace SteamDatabaseBackend
         {
             Client = new IrcClient();
 
-            Client.OnChannelMessage += Steam.Instance.CommandHandler.OnIRCMessage;
-            Client.OnQueryMessage += Steam.Instance.CommandHandler.OnIRCMessage;
+            Client.OnChannelMessage += Application.Instance.CommandHandler.OnIRCMessage;
+            Client.OnQueryMessage += Application.Instance.CommandHandler.OnIRCMessage;
             Client.OnConnected += OnConnected;
+            Client.OnDisconnected += OnDisconnected;
 
             Client.Encoding = Encoding.UTF8;
             Client.SendDelay = (int)Settings.Current.IRC.SendDelay;
@@ -65,6 +66,11 @@ namespace SteamDatabaseBackend
         private void OnConnected(object sender, EventArgs e)
         {
             Log.WriteInfo("IRC", "Connected to IRC successfully");
+        }
+
+        private void OnDisconnected(object sender, EventArgs e)
+        {
+            Log.WriteInfo("IRC", "Disconnected from IRC");
         }
 
         public void SendReply(IrcMessageData data, string message, Priority priority)

@@ -58,7 +58,6 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Steam.cs" />
     <Compile Include="IRC\Color.cs" />
     <Compile Include="IRC\CommandHandler.cs" />
     <Compile Include="IRC\IRC.cs" />
@@ -93,6 +92,10 @@
     <Compile Include="Steam\PICSTokens.cs" />
     <Compile Include="Util\SteamHandler.cs" />
     <Compile Include="Steam\PICSProductInfo.cs" />
+    <Compile Include="Application.cs" />
+    <Compile Include="Steam\Steam.cs" />
+    <Compile Include="Steam\Connection.cs" />
+    <Compile Include="Steam\LicenseList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -35,9 +35,9 @@ namespace SteamDatabaseBackend
                 var workaround = app;
 
                 IWorkItemResult mostRecentItem;
-                Steam.Instance.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
+                Application.Instance.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Steam.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                Steam.Instance.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+                Application.Instance.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
             }
 
             foreach (var package in callback.Packages)
@@ -59,9 +59,9 @@ namespace SteamDatabaseBackend
                 var workaround = package;
 
                 IWorkItemResult mostRecentItem;
-                Steam.Instance.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
+                Application.Instance.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Steam.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -73,7 +73,7 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                Steam.Instance.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                Application.Instance.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
             }
 
             foreach (uint app in callback.UnknownApps)
@@ -83,9 +83,9 @@ namespace SteamDatabaseBackend
                 uint workaround = app;
 
                 IWorkItemResult mostRecentItem;
-                Steam.Instance.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
+                Application.Instance.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Steam.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -97,7 +97,7 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround).ProcessUnknown();
                 });
 
-                Steam.Instance.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                Application.Instance.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
             }
 
             foreach (uint package in callback.UnknownPackages)
@@ -107,9 +107,9 @@ namespace SteamDatabaseBackend
                 uint workaround = package;
 
                 IWorkItemResult mostRecentItem;
-                Steam.Instance.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
+                Application.Instance.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Steam.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -121,7 +121,7 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround).ProcessUnknown();
                 });
 
-                Steam.Instance.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
+                Application.Instance.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
             }
         }
 
@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
                     Colors.OLIVE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Steam.Instance.OwnedPackages.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    Application.Instance.OwnedPackages.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else if (request.Type == JobManager.IRCRequestType.TYPE_APP)
@@ -195,7 +195,7 @@ namespace SteamDatabaseBackend
                     Colors.OLIVE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Steam.Instance.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    Application.Instance.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else

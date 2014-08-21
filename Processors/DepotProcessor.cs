@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class DepotProcessor
+    class DepotProcessor
     {
         private sealed class DepotFile
         {
@@ -38,18 +38,15 @@ namespace SteamDatabaseBackend
             public byte[] DepotKey;
         }
 
-        private static CDNClient CDNClient;
-        private static List<string> CDNServers;
-        private static ConcurrentDictionary<uint, byte> DepotLocks;
+        private readonly CDNClient CDNClient;
+        private readonly List<string> CDNServers;
+        private readonly ConcurrentDictionary<uint, byte> DepotLocks;
 
-        public static void Init()
+        public DepotProcessor(SteamClient client, CallbackManager manager)
         {
             DepotLocks = new ConcurrentDictionary<uint, byte>();
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
-            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
-
-            CDNClient = new CDNClient(Steam.Instance.Client);
+            CDNClient = new CDNClient(client);
 
             CDNServers = new List<string>
             {
@@ -62,9 +59,12 @@ namespace SteamDatabaseBackend
                 "content7.steampowered.com", // Akamai
                 "content8.steampowered.com" // Akamai
             };
+
+            manager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
+            manager.Register(new Callback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
         }
 
-        public static void Process(uint appID, uint changeNumber, KeyValue depots)
+        public void Process(uint appID, uint changeNumber, KeyValue depots)
         {
             var buildID = depots["branches"]["public"]["buildid"].AsInteger();
 
@@ -182,7 +182,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
+        private void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
         {
             JobAction job;
 
@@ -205,7 +205,7 @@ namespace SteamDatabaseBackend
             JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
         }
 
-        private static void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
+        private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
         {
             JobAction job;
 
@@ -235,15 +235,15 @@ namespace SteamDatabaseBackend
             // In full run, process depots after everything else
             if (Settings.IsFullRun)
             {
-                Steam.Instance.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
+                Application.Instance.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
             }
             else
             {
-                Steam.Instance.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
+                Application.Instance.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
             }
         }
 
-        private static void TryDownloadManifest(ManifestJob request)
+        private void TryDownloadManifest(ManifestJob request)
         {
             try
             {
@@ -259,7 +259,7 @@ namespace SteamDatabaseBackend
             RemoveLock(request.DepotID);
         }
 
-        private static void DownloadManifest(ManifestJob request)
+        private void DownloadManifest(ManifestJob request)
         {
             DepotManifest depotManifest = null;
             string lastError = string.Empty;
@@ -283,7 +283,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
 
-                if (Steam.Instance.ImportantApps.ContainsKey(request.ParentAppID))
+                if (Application.Instance.ImportantApps.ContainsKey(request.ParentAppID))
                 {
                     IRC.Instance.SendMain("Important depot update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
                 }
@@ -291,7 +291,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (Steam.Instance.ImportantApps.ContainsKey(request.ParentAppID))
+            if (Application.Instance.ImportantApps.ContainsKey(request.ParentAppID))
             {
                 IRC.Instance.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        private void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
             DbWorker.ExecuteNonQuery(
                 "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)",
@@ -397,7 +397,7 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private static void RemoveLock(uint depotID)
+        private void RemoveLock(uint depotID)
         {
             byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
 

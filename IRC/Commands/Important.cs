@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
                 {
                     case "reload":
                         {
-                            Steam.Instance.ReloadImportant(command);
+                            Application.Instance.ReloadImportant(command);
 
                             return;
                         }
@@ -50,13 +50,13 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        if (Steam.Instance.ImportantApps.ContainsKey(id))
+                                        if (Application.Instance.ImportantApps.ContainsKey(id))
                                         {
                                             CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
                                         else
                                         {
-                                            Steam.Instance.ImportantApps.Add(id, 1);
+                                            Application.Instance.ImportantApps.Add(id, 1);
 
                                             DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
 
@@ -68,13 +68,13 @@ namespace SteamDatabaseBackend
 
                                 case "sub":
                                     {
-                                        if (Steam.Instance.ImportantSubs.ContainsKey(id))
+                                        if (Application.Instance.ImportantSubs.ContainsKey(id))
                                         {
                                             CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
                                         else
                                         {
-                                            Steam.Instance.ImportantSubs.Add(id, 1);
+                                            Application.Instance.ImportantSubs.Add(id, 1);
 
                                             DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
 
@@ -106,13 +106,13 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        if (!Steam.Instance.ImportantApps.ContainsKey(id))
+                                        if (!Application.Instance.ImportantApps.ContainsKey(id))
                                         {
                                             CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.",  Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
                                         else
                                         {
-                                            Steam.Instance.ImportantApps.Remove(id);
+                                            Application.Instance.ImportantApps.Remove(id);
 
                                             DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
 
@@ -124,13 +124,13 @@ namespace SteamDatabaseBackend
 
                                 case "sub":
                                     {
-                                        if (!Steam.Instance.ImportantSubs.ContainsKey(id))
+                                        if (!Application.Instance.ImportantSubs.ContainsKey(id))
                                         {
                                             CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is not important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
                                         else
                                         {
-                                            Steam.Instance.ImportantSubs.Remove(id);
+                                            Application.Instance.ImportantSubs.Remove(id);
 
                                             DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
 

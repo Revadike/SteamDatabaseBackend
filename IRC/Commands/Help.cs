@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
                 command,
                 "Available commands: {0}{1}",
                 Colors.OLIVE,
-                string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Steam.Instance.CommandHandler.RegisteredCommands.Select(cmd => cmd.Trigger))
+                string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), Application.Instance.CommandHandler.RegisteredCommands.Select(cmd => cmd.Trigger))
             );
         }
     }

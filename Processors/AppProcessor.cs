@@ -248,7 +248,7 @@ namespace SteamDatabaseBackend
 
             if (depotsSectionModified || (Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0))
             {
-                DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
+                Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
 
                 if (depotsSectionModified)
                 {

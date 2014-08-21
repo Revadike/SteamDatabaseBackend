@@ -18,17 +18,11 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
-            if (Steam.Instance.Client.IsConnected)
-            {
-                Steam.Instance.Client.Connect();
-            }
+            Steam.Instance.Client.Connect();
 
-            foreach (var idler in Program.GCIdlers)
+            foreach (var idler in Application.Instance.GCIdlers)
             {
-                if (idler.Client.IsConnected)
-                {
-                    idler.Client.Connect();
-                }
+                idler.Client.Connect();
             }
 
             CommandHandler.ReplyToCommand(command, "Reconnect forced.");
