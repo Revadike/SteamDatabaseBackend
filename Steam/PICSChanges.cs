@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -88,21 +89,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Application.Instance.SecondaryPool.QueueWorkItem(SendChangelistsToIRC, callback);
-
             if (appChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                Application.Instance.SecondaryPool.QueueWorkItem(HandleApps, callback);
+                Application.Instance.SecondaryPool.QueueWorkItem(HandleApps, callback, WorkItemPriority.AboveNormal);
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
-                Application.Instance.SecondaryPool.QueueWorkItem(HandlePackages, callback);
+                Application.Instance.SecondaryPool.QueueWorkItem(HandlePackages, callback, WorkItemPriority.AboveNormal);
             }
+
+            Application.Instance.SecondaryPool.QueueWorkItem(SendChangelistsToIRC, callback);
+
+            PrintImportants(callback);
         }
 
         private static void HandleApps(SteamApps.PICSChangesCallback callback)
@@ -153,9 +156,9 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
+        private static void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
-            // Print any apps importants first
+            // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.Instance.ImportantApps.Keys);
 
             if (important.Count() > 5)
@@ -170,7 +173,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            // And then important packages
+            // Packages
             important = callback.PackageChanges.Keys.Intersect(Application.Instance.ImportantSubs.Keys);
 
             if (important.Count() > 5)
@@ -184,7 +187,10 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
                 }
             }
+        }
 
+        private static void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
+        {
             // Group apps and package changes by changelist, this will seperate into individual changelists
             var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
             var packageGrouping = callback.PackageChanges.Values.GroupBy(p => p.ChangeNumber);
