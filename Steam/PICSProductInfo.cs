@@ -49,7 +49,10 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                Application.Instance.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+                if (!Settings.IsFullRun)
+                {
+                    Application.Instance.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+                }
             }
 
             foreach (var package in callback.Packages)
@@ -73,7 +76,10 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                Application.Instance.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                if (!Settings.IsFullRun)
+                {
+                    Application.Instance.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                }
             }
 
             foreach (uint app in callback.UnknownApps)
@@ -97,7 +103,10 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround).ProcessUnknown();
                 });
 
-                Application.Instance.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                if (!Settings.IsFullRun)
+                {
+                    Application.Instance.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                }
             }
 
             foreach (uint package in callback.UnknownPackages)
@@ -121,7 +130,10 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround).ProcessUnknown();
                 });
 
-                Application.Instance.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
+                if (!Settings.IsFullRun)
+                {
+                    Application.Instance.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
+                }
             }
         }
 

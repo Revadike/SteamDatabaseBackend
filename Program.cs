@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
 
         private static void Cleanup()
         {
-            Log.WriteInfo("Main", "Exiting... ({0} processor, {1} secondary)", Application.Instance.ProcessorPool.ActiveThreads, Application.Instance.SecondaryPool.ActiveThreads);
+            Log.WriteInfo("Main", "Exiting... ({0} processor, {1} secondary)", Application.Instance.ProcessorPool.InUseThreads, Application.Instance.SecondaryPool.InUseThreads);
 
             foreach (var idler in Application.Instance.GCIdlers)
             {

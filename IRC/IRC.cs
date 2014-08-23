@@ -18,6 +18,11 @@ namespace SteamDatabaseBackend
 
         public IRC()
         {
+            if (!Settings.Current.IRC.Enabled)
+            {
+                return;
+            }
+
             Client = new IrcClient();
 
             Client.OnConnected += OnConnected;

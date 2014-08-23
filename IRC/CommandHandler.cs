@@ -30,6 +30,8 @@ namespace SteamDatabaseBackend
 
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
+
+            Log.WriteInfo("CommandHandler", "Registered {0} commands", RegisteredCommands.Count);
         }
 
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
