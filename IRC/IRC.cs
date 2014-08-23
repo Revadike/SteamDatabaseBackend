@@ -14,9 +14,9 @@ namespace SteamDatabaseBackend
         private static IRC _instance = new IRC();
         public static IRC Instance { get { return _instance; } }
 
-        private IrcClient Client;
+        private readonly IrcClient Client;
 
-        public void Init()
+        public IRC()
         {
             Client = new IrcClient();
 
@@ -33,7 +33,10 @@ namespace SteamDatabaseBackend
             Client.AutoReconnect = true;
             Client.AutoRejoinOnKick = true;
             Client.ActiveChannelSyncing = true;
+        }
 
+        public void Init()
+        {
             try
             {
                 Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
