@@ -3,12 +3,22 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+using System;
+using System.Net;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class SteamIDCommand : Command
     {
+        private enum EVanityURLType
+        {
+            Default,
+            Individual,
+            Group,
+            OfficialGameGroup
+        };
+
         public SteamIDCommand()
         {
             Trigger = "!steamid";
@@ -21,18 +31,54 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !steamid <steamid>", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} !steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
 
                 return;
             }
 
+            var args = command.Message.Split(' ');
+            var urlType = EVanityURLType.Default;
+
+            if (args.Length > 1)
+            {
+                switch (args[1])
+                {
+                    case "individual":
+                        urlType = EVanityURLType.Individual;
+                        break;
+
+                    case "group":
+                        urlType = EVanityURLType.Group;
+                        break;
+
+                    case "game":
+                    case "gamegroup":
+                        urlType = EVanityURLType.OfficialGameGroup;
+                        break;
+
+                    default:
+                        CommandHandler.ReplyToCommand(command, "Invalid vanity url type.");
+                        return;
+                }
+            }
+
             SteamID steamID;
 
-            if (!TrySetSteamID(command.Message, out steamID))
+            if (urlType != EVanityURLType.Default || !TrySetSteamID(args[0], out steamID))
             {
-                CommandHandler.ReplyToCommand(command, "Invalid SteamID.");
+                if (urlType == EVanityURLType.Default)
+                {
+                    urlType = EVanityURLType.Individual;
+                }
 
-                return;
+                var eResult = ResolveVanityURL(args[0], urlType, out steamID);
+
+                if (eResult != EResult.OK)
+                {
+                    CommandHandler.ReplyToCommand(command, "Failed to resolve vanity url: {0}{1}", Colors.OLIVE, eResult.ToString());
+
+                    return;
+                }
             }
 
             CommandHandler.ReplyToCommand(command, ExpandSteamID(steamID));
@@ -71,8 +117,10 @@ namespace SteamDatabaseBackend
 
             if (callback.FriendID.IsClanAccount)
             {
-                CommandHandler.ReplyToCommand(command, "{0} - https://steamcommunity.com/gid/{1}/ (Clan tag: {2})",
-                    callback.Name, callback.FriendID.ConvertToUInt64(), callback.ClanTag);
+                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format("(Clan tag: {0})", callback.ClanTag);
+
+                CommandHandler.ReplyToCommand(command, "{0} - https://steamcommunity.com/gid/{1}/{2}",
+                    callback.Name, callback.FriendID.ConvertToUInt64(), clantag);
             }
             else if (callback.FriendID.IsIndividualAccount)
             {
@@ -105,6 +153,36 @@ namespace SteamDatabaseBackend
             }
 
             return false;
+        }
+
+        private static EResult ResolveVanityURL(string input, EVanityURLType urlType, out SteamID steamID)
+        {
+            steamID = new SteamID();
+
+            using (dynamic steamUser = WebAPI.GetInterface("ISteamUser", Settings.Current.Steam.WebAPIKey))
+            {
+                steamUser.Timeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
+
+                KeyValue response;
+
+                try
+                {
+                    response = steamUser.ResolveVanityURL( vanityurl: input, url_type: (int)urlType );
+                }
+                catch (WebException)
+                {
+                    return EResult.Timeout;
+                }
+
+                var eResult = (EResult)response["success"].AsInteger();
+
+                if (eResult == EResult.OK)
+                {
+                    steamID.SetFromUInt64((ulong)response["steamid"].AsLong());
+                }
+
+                return eResult;
+            }
         }
 
         /*

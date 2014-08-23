@@ -18,6 +18,9 @@ namespace SteamDatabaseBackend
 
             [JsonProperty(Required = Required.Always)]
             public string Password;
+
+            [JsonProperty(Required = Required.Always)]
+            public string WebAPIKey;
         }
 
         public sealed class IrcJson

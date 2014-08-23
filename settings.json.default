@@ -11,7 +11,8 @@
 	"Steam":
 	{
 		"Username": "steam-username",
-		"Password": "steam-password"
+		"Password": "steam-password",
+		"WebAPIKey: ""
 	},
 	
 	"GameCoordinatorIdlers":
