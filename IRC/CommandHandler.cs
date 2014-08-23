@@ -23,6 +23,7 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new PlayersCommand());
             RegisteredCommands.Add(new AppCommand());
             RegisteredCommands.Add(new PackageCommand());
+            RegisteredCommands.Add(new SteamIDCommand());
             RegisteredCommands.Add(new EnumCommand());
             RegisteredCommands.Add(new BinariesCommand());
             RegisteredCommands.Add(new ImportantCommand());

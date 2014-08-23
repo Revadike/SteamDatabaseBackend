@@ -96,6 +96,7 @@
     <Compile Include="Steam\Steam.cs" />
     <Compile Include="Steam\Connection.cs" />
     <Compile Include="Steam\LicenseList.cs" />
+    <Compile Include="IRC\Commands\SteamID.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
