@@ -42,6 +42,7 @@ namespace SteamDatabaseBackend
             new Connection(CallbackManager);
             new PICSProductInfo(CallbackManager);
             new PICSTokens(CallbackManager);
+            new LicenseList(CallbackManager);
 
             if (!Settings.IsFullRun)
             {
