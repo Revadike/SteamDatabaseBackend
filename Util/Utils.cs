@@ -42,6 +42,29 @@ namespace SteamDatabaseBackend
         {
             return new SteamApps.PICSRequest(id, accessToken, false);
         }
+
+        public static string ConvertUserInputToSQLSearch(string output)
+        {
+            if (output[0] == '^')
+            {
+                output = output.Substring(1);
+            }
+            else
+            {
+                output = "%" + output;
+            }
+
+            if (output[output.Length - 1] == '$')
+            {
+                output = output.Substring(0, output.Length - 1);
+            }
+            else
+            {
+                output += "%";
+            }
+
+            return output;
+        }
     }
 
     public class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>

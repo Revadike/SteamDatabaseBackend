@@ -30,9 +30,9 @@ namespace SteamDatabaseBackend
 
             if (!uint.TryParse(command.Message, out appID))
             {
-                string name = string.Format("%{0}%", command.Message);
+                string name = Utils.ConvertUserInputToSQLSearch(command.Message);
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) AND `Apps`.`Name` NOT REGEXP '.* (Demo|Dedicated Server)' ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {
                     if (Reader.Read())
                     {
