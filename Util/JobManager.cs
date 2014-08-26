@@ -130,7 +130,7 @@ namespace SteamDatabaseBackend
 
         public static void CancelChatJobsIfAny()
         {
-            var jobs = Jobs.Where(job => job.Value.IsCommand);
+            var jobs = Jobs.Where(job => job.Value.IsCommand).ToList();
 
             foreach (var job in jobs)
             {
