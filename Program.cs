@@ -15,8 +15,10 @@ namespace SteamDatabaseBackend
     {
         public static void Main()
         {
+            Console.Title = "Steam Database";
+
             var version = Assembly.GetExecutingAssembly().GetName().Version;
-            string date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
+            var date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
 
             Log.WriteInfo("Main", "Steam Database backend application. Built on {0} UTC", date);
             Log.WriteInfo("Main", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
