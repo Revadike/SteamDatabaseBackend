@@ -30,7 +30,14 @@ namespace SteamDatabaseBackend
 
             if (!uint.TryParse(command.Message, out appID))
             {
-                string name = Utils.ConvertUserInputToSQLSearch(command.Message);
+                string name = command.Message;
+
+                if (!Utils.ConvertUserInputToSQLSearch(ref name))
+                {
+                    CommandHandler.ReplyToCommand(command, "Your request is too short.");
+
+                    return;
+                }
 
                 using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
                 {

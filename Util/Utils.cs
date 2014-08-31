@@ -43,8 +43,13 @@ namespace SteamDatabaseBackend
             return new SteamApps.PICSRequest(id, accessToken, false);
         }
 
-        public static string ConvertUserInputToSQLSearch(string output)
+        public static bool ConvertUserInputToSQLSearch(ref string output)
         {
+            if (output.Length < 2 || !output.Distinct().Skip(1).Any()) // TODO: Probably would be better to only search for % and _ repetitions
+            {
+                return false;
+            }
+
             if (output[0] == '^')
             {
                 output = output.Substring(1);
@@ -63,7 +68,7 @@ namespace SteamDatabaseBackend
                 output += "%";
             }
 
-            return output;
+            return true;
         }
     }
 
