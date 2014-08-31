@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    internal static class Program
+    static class Program
     {
         public static void Main()
         {
@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
                 Cleanup();
             };
 
-            Application.Instance.Init();
+            Application.Init();
         }
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
@@ -66,9 +66,9 @@ namespace SteamDatabaseBackend
 
         private static void Cleanup()
         {
-            Log.WriteInfo("Main", "Exiting... ({0} processor, {1} secondary)", Application.Instance.ProcessorPool.InUseThreads, Application.Instance.SecondaryPool.InUseThreads);
+            Log.WriteInfo("Main", "Exiting... ({0} processor, {1} secondary)", Application.ProcessorPool.InUseThreads, Application.SecondaryPool.InUseThreads);
 
-            foreach (var idler in Application.Instance.GCIdlers)
+            foreach (var idler in Application.GCIdlers)
             {
                 try
                 {
@@ -80,10 +80,10 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.IsRunning = false;
 
-            try { Application.Instance.Timer.Stop();                       } catch { }
-            try { Application.Instance.SecondaryPool.Shutdown(true, 1000); } catch { }
-            try { Application.Instance.ProcessorPool.Shutdown(true, 1000); } catch { }
-            try { Steam.Instance.Client.Disconnect();                } catch { }
+            try { Application.ChangelistTimer.Stop();                       } catch { }
+            try { Application.SecondaryPool.Shutdown(true, 1000); } catch { }
+            try { Application.ProcessorPool.Shutdown(true, 1000); } catch { }
+            try { Steam.Instance.Client.Disconnect();             } catch { }
 
             if (Settings.Current.IRC.Enabled)
             {

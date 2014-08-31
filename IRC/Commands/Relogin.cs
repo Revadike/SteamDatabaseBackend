@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
         {
             Steam.Instance.Client.Connect();
 
-            foreach (var idler in Application.Instance.GCIdlers)
+            foreach (var idler in Application.GCIdlers)
             {
                 idler.Client.Connect();
             }

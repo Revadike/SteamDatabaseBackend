@@ -30,18 +30,18 @@ namespace SteamDatabaseBackend
 
             foreach (var app in callback.Apps)
             {
-                Log.WriteInfo("Steam", "AppID: {0}", app.Key);
+                Log.WriteInfo("PICSProductInfo", "AppID: {0}", app.Key);
 
                 var workaround = app;
 
                 IWorkItemResult mostRecentItem;
-                Application.Instance.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
+                Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing", workaround.Key);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", workaround.Key);
 
                         SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                     }
@@ -51,24 +51,24 @@ namespace SteamDatabaseBackend
 
                 if (!Settings.IsFullRun)
                 {
-                    Application.Instance.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+                    Application.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
                 }
             }
 
             foreach (var package in callback.Packages)
             {
-                Log.WriteInfo("Steam", "SubID: {0}", package.Key);
+                Log.WriteInfo("PICSProductInfo", "SubID: {0}", package.Key);
 
                 var workaround = package;
 
                 IWorkItemResult mostRecentItem;
-                Application.Instance.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
+                Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing", workaround.Key);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", workaround.Key);
 
                         SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                     }
@@ -78,24 +78,24 @@ namespace SteamDatabaseBackend
 
                 if (!Settings.IsFullRun)
                 {
-                    Application.Instance.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                    Application.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
                 }
             }
 
             foreach (uint app in callback.UnknownApps)
             {
-                Log.WriteInfo("Steam", "Unknown AppID: {0}", app);
+                Log.WriteInfo("PICSProductInfo", "Unknown AppID: {0}", app);
 
                 uint workaround = app;
 
                 IWorkItemResult mostRecentItem;
-                Application.Instance.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
+                Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("Steam", "Waiting for app {0} to finish processing (unknown)", workaround);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing (unknown)", workaround);
 
                         SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                     }
@@ -105,24 +105,24 @@ namespace SteamDatabaseBackend
 
                 if (!Settings.IsFullRun)
                 {
-                    Application.Instance.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                    Application.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
                 }
             }
 
             foreach (uint package in callback.UnknownPackages)
             {
-                Log.WriteInfo("Steam", "Unknown SubID: {0}", package);
+                Log.WriteInfo("PICSProductInfo", "Unknown SubID: {0}", package);
 
                 uint workaround = package;
 
                 IWorkItemResult mostRecentItem;
-                Application.Instance.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
+                Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Application.Instance.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("Steam", "Waiting for package {0} to finish processing (unknown)", workaround);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing (unknown)", workaround);
 
                         SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                     }
@@ -132,7 +132,7 @@ namespace SteamDatabaseBackend
 
                 if (!Settings.IsFullRun)
                 {
-                    Application.Instance.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
+                    Application.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
                 }
             }
         }
@@ -172,7 +172,7 @@ namespace SteamDatabaseBackend
                     Colors.OLIVE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Application.Instance.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    Application.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else if (request.Type == JobManager.IRCRequestType.TYPE_APP)
@@ -207,7 +207,7 @@ namespace SteamDatabaseBackend
                     Colors.OLIVE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Application.Instance.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    Application.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else

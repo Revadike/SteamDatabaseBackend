@@ -44,7 +44,7 @@ namespace SteamDatabaseBackend
             var packageIDs = resp.Body.granted_packageids;
             var appIDs = resp.Body.granted_appids;
 
-            Log.WriteDebug("Free License", "Received free license: {0} ({1} apps, {2} packages)", (EResult)resp.Body.eresult, appIDs.Count, packageIDs.Count);
+            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps, {2} packages)", (EResult)resp.Body.eresult, appIDs.Count, packageIDs.Count);
 
             if (packageIDs.Count > 0)
             {

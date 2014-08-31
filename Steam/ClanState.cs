@@ -35,8 +35,6 @@ namespace SteamDatabaseBackend
                 if (string.IsNullOrEmpty(groupName))
                 {
                     groupName = "Group";
-
-                    Log.WriteError("ClanState", "ClanID: {0} - no group name", callback.ClanID);
                 }
             }
 

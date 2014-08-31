@@ -88,19 +88,19 @@ namespace SteamDatabaseBackend
         {
             if (!Steam.Instance.IsRunning)
             {
-                Application.Instance.Timer.Stop();
+                Application.ChangelistTimer.Stop();
 
                 Log.WriteInfo("Steam", "Disconnected from Steam");
 
                 return;
             }
 
-            if (Application.Instance.Timer.Enabled)
+            if (Application.ChangelistTimer.Enabled)
             {
                 IRC.Instance.SendMain("Disconnected from Steam. See{0} http://steamstat.us", Colors.DARKBLUE);
             }
 
-            Application.Instance.Timer.Stop();
+            Application.ChangelistTimer.Stop();
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
@@ -151,13 +151,13 @@ namespace SteamDatabaseBackend
             {
                 JobManager.RestartJobsIfAny();
 
-                Application.Instance.Timer.Start();
+                Application.ChangelistTimer.Start();
             }
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Application.Instance.Timer.Stop();
+            Application.ChangelistTimer.Stop();
 
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 

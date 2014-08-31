@@ -235,11 +235,11 @@ namespace SteamDatabaseBackend
             // In full run, process depots after everything else
             if (Settings.IsFullRun)
             {
-                Application.Instance.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
+                Application.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
             }
             else
             {
-                Application.Instance.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
+                Application.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
             }
         }
 
@@ -283,7 +283,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
 
-                if (Application.Instance.ImportantApps.ContainsKey(request.ParentAppID))
+                if (Application.ImportantApps.ContainsKey(request.ParentAppID))
                 {
                     IRC.Instance.SendMain("Important depot update: {0}{1}{2} -{3} failed to download depot manifest", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.RED);
                 }
@@ -291,7 +291,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (Application.Instance.ImportantApps.ContainsKey(request.ParentAppID))
+            if (Application.ImportantApps.ContainsKey(request.ParentAppID))
             {
                 IRC.Instance.SendMain("Important depot update: {0}{1}{2} -{3} {4}", Colors.OLIVE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }

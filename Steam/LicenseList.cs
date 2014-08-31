@@ -31,8 +31,8 @@ namespace SteamDatabaseBackend
 
             if (!licenseList.LicenseList.Any())
             {
-                Application.Instance.OwnedSubs.Clear();
-                Application.Instance.OwnedApps.Clear();
+                Application.OwnedSubs.Clear();
+                Application.OwnedApps.Clear();
 
                 return;
             }
@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
             foreach (var license in licenseList.LicenseList)
             {
                 // For some obscure reason license list can contain duplicates
-                if (Application.Instance.OwnedSubs.ContainsKey(license.PackageID))
+                if (ownedSubs.ContainsKey(license.PackageID))
                 {
                     Log.WriteError("LicenseList", "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
 
@@ -61,8 +61,8 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            Application.Instance.OwnedSubs = ownedSubs;
-            Application.Instance.OwnedApps = ownedApps;
+            Application.OwnedSubs = ownedSubs;
+            Application.OwnedApps = ownedApps;
         }
     }
 }

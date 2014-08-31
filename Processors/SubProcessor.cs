@@ -150,7 +150,7 @@ namespace SteamDatabaseBackend
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
                             AppProcessor.MakeHistory(appID, ChangeNumber, "added_to_sub", typeID, string.Empty, SubID.ToString());
 
-                            if (Application.Instance.ImportantApps.ContainsKey(appID))
+                            if (Application.ImportantApps.ContainsKey(appID))
                             {
                                 IRC.Instance.SendMain("Important app {0}{1}{2} was added to package {3}{4}{5} -{6} {7}",
                                              Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
                     }
 
                     // TODO: Probably should check if apps are owned
-                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Application.Instance.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
+                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Application.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
                     {
                         Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
@@ -227,7 +227,7 @@ namespace SteamDatabaseBackend
                 MakeHistory("removed_from_sub", typeID, app.Key.ToString());
                 AppProcessor.MakeHistory(app.Key, ChangeNumber, "removed_from_sub", typeID, SubID.ToString());
 
-                if (Application.Instance.ImportantApps.ContainsKey(app.Key))
+                if (Application.ImportantApps.ContainsKey(app.Key))
                 {
                     IRC.Instance.SendMain("Important app {0}{1}{2} was removed from package {3}{4}{5} -{6} {7}",
                         Colors.OLIVE, Steam.GetAppName(app.Key), Colors.NORMAL,

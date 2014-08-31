@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
 
         public static bool IsBusy()
         {
-            return Application.Instance.ProcessorPool.InUseThreads > 15 || Application.Instance.SecondaryPool.InUseThreads > 10;
+            return Application.ProcessorPool.InUseThreads > 15 || Application.SecondaryPool.InUseThreads > 10;
         }
 
         public static string GetBlogURL(string postID)

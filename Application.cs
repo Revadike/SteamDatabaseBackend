@@ -13,28 +13,25 @@ using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
-    class Application
+    static class Application
     {
-        private static Application _instance = new Application();
-        public static Application Instance { get { return _instance; } }
+        public static readonly List<GCIdler> GCIdlers;
 
-        public readonly List<GCIdler> GCIdlers;
+        public static Timer ChangelistTimer { get; private set; }
 
-        public Timer Timer { get; private set; }
+        public static SmartThreadPool ProcessorPool { get; private set; }
+        public static SmartThreadPool SecondaryPool { get; private set; }
 
-        public SmartThreadPool ProcessorPool { get; private set; }
-        public SmartThreadPool SecondaryPool { get; private set; }
+        public static Dictionary<uint, byte> OwnedApps { get; set; }
+        public static Dictionary<uint, byte> OwnedSubs { get; set; }
 
-        public Dictionary<uint, byte> OwnedApps { get; set; }
-        public Dictionary<uint, byte> OwnedSubs { get; set; }
+        public static Dictionary<uint, byte> ImportantApps { get; private set; }
+        public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
-        public Dictionary<uint, byte> ImportantApps { get; set; }
-        public Dictionary<uint, byte> ImportantSubs { get; set; }
+        public static ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
+        public static ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
 
-        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
-        public ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
-
-        public Application()
+        static Application()
         {
             ProcessorPool = new SmartThreadPool(new STPStartInfo { WorkItemPriority = WorkItemPriority.Highest, MaxWorkerThreads = 50 });
             SecondaryPool = new SmartThreadPool();
@@ -53,12 +50,12 @@ namespace SteamDatabaseBackend
 
             GCIdlers = new List<GCIdler>();
 
-            Timer = new Timer();
-            Timer.Elapsed += Tick;
-            Timer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
+            ChangelistTimer = new Timer();
+            ChangelistTimer.Elapsed += Tick;
+            ChangelistTimer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
         }
 
-        public void Init()
+        public static void Init()
         {
             var thread = new Thread(new ThreadStart(Steam.Instance.Tick));
             thread.Name = "Steam";
@@ -101,7 +98,14 @@ namespace SteamDatabaseBackend
             Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
         }
 
-        public void ReloadImportant(CommandArguments command = null)
+        public static void ReloadImportant(CommandArguments command)
+        {
+            ReloadImportant();
+
+            CommandHandler.ReplyToCommand(command, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+        }
+
+        private static void ReloadImportant()
         {
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
             {
@@ -123,14 +127,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (command == null)
-            {
-                Log.WriteInfo("Main", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
-            }
-            else
-            {
-                CommandHandler.ReplyToCommand(command, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
-            }
+            Log.WriteInfo("Application", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
         }
     }
 }
