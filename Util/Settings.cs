@@ -5,7 +5,6 @@
  */
 using System;
 using System.IO;
-using Meebey.SmartIrc4net;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
@@ -74,7 +73,7 @@ namespace SteamDatabaseBackend
                 return false;
             }
 
-            if (Current.IRC.Servers.Length == 0 || Current.IRC.Port <= 0)
+            if (string.IsNullOrEmpty(Current.IRC.Server) || Current.IRC.Port <= 0)
             {
                 Log.WriteWarn("Settings", "Missing IRC details in settings file, not connecting");
                 return false;
@@ -86,10 +85,9 @@ namespace SteamDatabaseBackend
                 return false;
             }
 
-            if (!Rfc2812.IsValidNickname(Current.IRC.Nickname))
+            if (string.IsNullOrWhiteSpace(Current.IRC.Password))
             {
-                Log.WriteError("Settings", "Invalid IRC nickname");
-                return false;
+                Current.IRC.Password = null;
             }
 
             return true;

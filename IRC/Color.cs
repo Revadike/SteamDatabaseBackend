@@ -4,14 +4,18 @@
  * found in the LICENSE file.
  */
 using System.Text.RegularExpressions;
-using Meebey.SmartIrc4net;
 
 namespace SteamDatabaseBackend
 {
     static class Colors
     {
+        private static class IrcConstants
+        {
+            public const char IrcColor = '\x3';
+        }
+
         // To keep our colors somewhat consistent, only used colors are uncommented
-        public const char NORMAL = IrcConstants.IrcNormal;
+        public const char NORMAL = '\xf';
         //public static readonly string WHITE = IrcConstants.IrcColor + "00"; // white is evil
         //public static readonly string BLACK = IrcConstants.IrcColor + "01"; // black is evi, too
         public static readonly string DARKBLUE = IrcConstants.IrcColor + "02";

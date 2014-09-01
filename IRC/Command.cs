@@ -3,11 +3,18 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using Meebey.SmartIrc4net;
+using NetIrc2;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
+    enum ECommandType
+    {
+        IRC,
+        SteamChatRoom,
+        SteamIndividual
+    };
+
     abstract class Command
     {
         public string Trigger { get; protected set; }
@@ -22,7 +29,9 @@ namespace SteamDatabaseBackend
     class CommandArguments
     {
         public string Message { get; set; }
-        public IrcMessageData MessageData { get; set; }
+        public string Recipient { get; set; }
+        public IrcIdentity SenderIdentity { get; set; }
+        public ECommandType CommandType { get; set; }
         public SteamID ChatRoomID { get; set; }
         public SteamID SenderID { get; set; }
 

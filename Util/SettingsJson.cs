@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
             public bool Enabled;
 
             [JsonProperty(Required = Required.Always)]
-            public string[] Servers;
+            public string Server;
 
             [JsonProperty(Required = Required.Always)]
             public List<string> Admins;

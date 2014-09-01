@@ -4,8 +4,8 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Text;
-using Meebey.SmartIrc4net;
+using System.Linq;
+using NetIrc2;
 
 namespace SteamDatabaseBackend
 {
@@ -15,6 +15,7 @@ namespace SteamDatabaseBackend
         public static IRC Instance { get { return _instance; } }
 
         private readonly IrcClient Client;
+        private bool Disconnecting;
 
         public IRC()
         {
@@ -25,31 +26,16 @@ namespace SteamDatabaseBackend
 
             Client = new IrcClient();
 
-            Client.OnConnected += OnConnected;
-            Client.OnDisconnected += OnDisconnected;
-
-            Client.Encoding = Encoding.UTF8;
-            Client.SendDelay = (int)Settings.Current.IRC.SendDelay;
-            Client.AutoRetry = true;
-            Client.AutoRetryDelay = 15;
-            Client.AutoRetryLimit = 0;
-            Client.AutoRejoin = true;
-            Client.AutoRelogin = true;
-            Client.AutoReconnect = true;
-            Client.AutoRejoinOnKick = true;
-            Client.ActiveChannelSyncing = true;
+            Client.Connected += OnConnected;
+            Client.Closed += OnDisconnected;
+            Client.GotIrcError += OnError;
         }
 
         public void Init()
         {
             try
             {
-                Client.Connect(Settings.Current.IRC.Servers, Settings.Current.IRC.Port);
-                Client.Login(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, 4, Settings.Current.IRC.Nickname, Settings.Current.IRC.Password);
-                Client.RfcJoin(new string[] { Settings.Current.IRC.Channel.Main, Settings.Current.IRC.Channel.Announce });
-                Client.Listen();
-
-                Kill();
+                Client.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port);
             }
             catch (Exception e)
             {
@@ -59,42 +45,52 @@ namespace SteamDatabaseBackend
 
         public void Kill()
         {
-            try
-            {
-                Client.AutoReconnect = false;
-                Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Main, "is exiting... send help", Priority.Critical);
-                Client.RfcQuit("Exit", Priority.Critical);
-                Client.Disconnect();
-            }
-            catch { }
+            Disconnecting = true;
+
+            Client.Message(Settings.Current.IRC.Channel.Main, "is exiting... send help");
+            Client.LogOut();
+            Client.Close();
         }
 
         public void RegisterCommandHandlers(CommandHandler handler)
         {
-            Client.OnChannelMessage += handler.OnIRCMessage;
-            Client.OnQueryMessage += handler.OnIRCMessage;
+            Client.GotMessage += handler.OnIRCMessage;
         }
 
         private void OnConnected(object sender, EventArgs e)
         {
             Log.WriteInfo("IRC", "Connected to IRC successfully");
+
+            Client.LogIn(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, Settings.Current.IRC.Nickname, "4", null, Settings.Current.IRC.Password);
+            Client.Join(Settings.Current.IRC.Channel.Main);
+            Client.Join(Settings.Current.IRC.Channel.Announce);
         }
 
         private void OnDisconnected(object sender, EventArgs e)
         {
             Log.WriteInfo("IRC", "Disconnected from IRC");
+
+            if (!Disconnecting)
+            {
+                Init();
+            }
         }
 
-        public void SendReply(IrcMessageData data, string message, Priority priority)
+        private void OnError(object sender, NetIrc2.Events.IrcErrorEventArgs e)
         {
-            Client.SendReply(data, message, priority);
+            Log.WriteError("IRC", "Error: {0} ({1})", e.Error.ToString(), string.Join(", ", e.Data.Parameters));
+        }
+
+        public void SendReply(string recipient, string message)
+        {
+            Client.Message(recipient, message); //, Priority.AboveMedium);
         }
 
         public void SendAnnounce(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+                Client.Message(Settings.Current.IRC.Channel.Announce, string.Format(format, args));
             }
         }
 
@@ -102,7 +98,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.SendMessage(SendType.Message, Settings.Current.IRC.Channel.Main, string.Format(format, args), Priority.AboveMedium);
+                Client.Message(Settings.Current.IRC.Channel.Main, string.Format(format, args)); //, Priority.AboveMedium);
             }
         }
 
@@ -111,7 +107,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.SendMessage(SendType.Message, "#steamlug", message, Priority.AboveMedium);
+                Client.Message("#steamlug", message); //, Priority.AboveMedium);
             }
         }
 
@@ -119,15 +115,15 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.SendMessage(SendType.Action, Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+                Client.ChatAction(Settings.Current.IRC.Channel.Announce, string.Format(format, args));
             }
         }
 
-        public bool IsSenderOp(IrcMessageData message)
-        {
-            ChannelUser user = Client.GetChannelUser(message.Channel, message.Nick);
+        private static readonly char[] ChannelCharacters = { '#', '!', '+', '&' };
 
-            return user != null && user.IsOp;
+        public static bool IsRecipientChannel(string recipient)
+        {
+            return ChannelCharacters.Contains(recipient[0]);
         }
     }
 }

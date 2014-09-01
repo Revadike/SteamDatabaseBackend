@@ -23,11 +23,7 @@
 	"IRC":
 	{
 		"Enabled": false,
-		"Servers":
-		[
-			"1.example.com",
-			"2.example.com"
-		],
+		"Server": "example.com",
 		"Port": 0,
 		"Nickname": "SteamDB",
 		"Password": "",

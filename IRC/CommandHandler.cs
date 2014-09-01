@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Meebey.SmartIrc4net;
+using NetIrc2.Events;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -39,44 +39,64 @@ namespace SteamDatabaseBackend
         {
             message = string.Format(message, args);
 
-            if (command.IsChatRoomCommand)
+            switch (command.CommandType)
             {
-                Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
-            }
-            else if (command.IsSteamCommand)
-            {
-                Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
-            }
-            else
-            {
-                if (command.MessageData.Type == ReceiveType.ChannelMessage)
+                case ECommandType.IRC:
                 {
-                    message = string.Format("{0}{1}{2}: {3}", Colors.OLIVE, command.MessageData.Nick, Colors.NORMAL, message);
+                    var isChannelMessage = IRC.IsRecipientChannel(command.Recipient);
+
+                    if (isChannelMessage)
+                    {
+                        message = string.Format("{0}{1}{2}: {3}", Colors.OLIVE, command.SenderIdentity.Nickname, Colors.NORMAL, message);
+                    }
+
+                    IRC.Instance.SendReply(isChannelMessage ? command.Recipient : command.SenderIdentity.Nickname.ToString(), message);
+
+                    break;
                 }
 
-                IRC.Instance.SendReply(command.MessageData, message, Priority.High);
+                case ECommandType.SteamIndividual:
+                {
+                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
+                    
+                    break;
+                }
+
+                case ECommandType.SteamChatRoom:
+                {
+                    Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
+                    
+                    break;
+                }
             }
         }
 
-        public void OnIRCMessage(object sender, IrcEventArgs e)
+        public void OnIRCMessage(object sender, ChatMessageEventArgs e)
         {
-            if (e.Data.Message[0] != '!')
+            Log.WriteDebug("IrcMessage", "Sender: {0} - Receiver: {1} - Message: {2}", e.Sender, e.Recipient, e.Message);
+
+            if (e.Sender == null || e.Message[0] != '!')
             {
                 return;
             }
 
-            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(e.Data.MessageArray[0]));
+            var message = (string)e.Message;
+            var messageArray = message.Split(' ');
+
+            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(messageArray[0]));
 
             if (command == null)
             {
                 return;
             }
 
-            var input = e.Data.Message.Substring(e.Data.MessageArray[0].Length).Trim();
+            var input = message.Substring(messageArray[0].Length).Trim();
 
             var commandData = new CommandArguments
             {
-                MessageData = e.Data,
+                CommandType = ECommandType.IRC,
+                SenderIdentity = e.Sender,
+                Recipient = e.Recipient,
                 Message = input
             };
 
@@ -88,8 +108,9 @@ namespace SteamDatabaseBackend
             }
             else if (command.IsAdminCommand)
             {
-                // Check if user is in admin list or op in a channel
-                if (!Settings.Current.IRC.Admins.Contains(string.Format("{0}@{1}", e.Data.Ident, e.Data.Host)) && (e.Data.Type != ReceiveType.ChannelMessage || !IRC.Instance.IsSenderOp(e.Data)))
+                var ident = string.Format("{0}@{1}", e.Sender.Username, e.Sender.Hostname);
+
+                if (!Settings.Current.IRC.Admins.Contains(ident))
                 {
                     ReplyToCommand(commandData, "You're not an admin!");
 
@@ -103,7 +124,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("CommandHandler", "Handling IRC command {0} for user {1} ({2}@{3}) in channel {4}", e.Data.MessageArray[0], e.Data.Nick, e.Data.Ident, e.Data.Host, e.Data.Channel);
+            Log.WriteInfo("CommandHandler", "Handling IRC command {0} for user {1} in channel {2}", message, e.Sender, e.Recipient);
 
             TryCommand(command, commandData);
         }
@@ -119,7 +140,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            HandleSteamMessage(callback.Sender, callback.Message);
+            HandleSteamMessage(callback.Sender, callback.Message, ECommandType.SteamIndividual);
 
             Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1}", callback.Message, callback.Sender);
         }
@@ -135,12 +156,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            HandleSteamMessage(callback.ChatterID, callback.Message, callback.ChatRoomID);
+            HandleSteamMessage(callback.ChatterID, callback.Message, ECommandType.SteamChatRoom, callback.ChatRoomID);
 
             Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
         }
 
-        private void HandleSteamMessage(SteamID sender, string message, SteamID chatRoom = null)
+        private void HandleSteamMessage(SteamID sender, string message, ECommandType commandType, SteamID chatRoom = null)
         {
             var i = message.IndexOf(' ');
             var inputCommand = i == -1 ? message : message.Substring(0, i);
@@ -156,6 +177,7 @@ namespace SteamDatabaseBackend
 
             var commandData = new CommandArguments
             {
+                CommandType = commandType,
                 SenderID = sender,
                 ChatRoomID = chatRoom,
                 Message = input

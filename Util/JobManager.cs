@@ -85,7 +85,7 @@ namespace SteamDatabaseBackend
             };
 
             // Chat rooms don't have full message saved
-            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, request.Command.IsSteamCommand ? request.Command.Message : request.Command.MessageData.Message);
+            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, request.Command.Message);
 
             Jobs.TryAdd(jobID, job);
         }
