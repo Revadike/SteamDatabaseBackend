@@ -34,21 +34,5 @@ namespace SteamDatabaseBackend
         public ECommandType CommandType { get; set; }
         public SteamID ChatRoomID { get; set; }
         public SteamID SenderID { get; set; }
-
-        public bool IsChatRoomCommand
-        {
-            get
-            {
-                return ChatRoomID != null;
-            }
-        }
-
-        public bool IsSteamCommand
-        {
-            get
-            {
-                return SenderID != null;
-            }
-        }
     }
 }

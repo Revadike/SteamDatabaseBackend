@@ -73,8 +73,6 @@ namespace SteamDatabaseBackend
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
         {
-            Log.WriteDebug("IrcMessage", "Sender: {0} - Receiver: {1} - Message: {2}", e.Sender, e.Recipient, e.Message);
-
             if (e.Sender == null || e.Message[0] != '!')
             {
                 return;

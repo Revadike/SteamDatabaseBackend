@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             Client.GotIrcError += OnError;
         }
 
-        public void Init()
+        public void Connect()
         {
             try
             {
@@ -39,7 +39,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("IRC", "Exception: {0}\n{1}", e.Message, e.StackTrace);
+                Log.WriteError("IRC", "Failed to connect: {0}\n{1}", e.Message, e.StackTrace);
             }
         }
 
@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
 
             if (!Disconnecting)
             {
-                Init();
+                Connect();
             }
         }
 

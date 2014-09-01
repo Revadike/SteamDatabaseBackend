@@ -74,7 +74,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.Current.IRC.Enabled)
             {
-                thread = new Thread(new ThreadStart(IRC.Instance.Init));
+                thread = new Thread(new ThreadStart(IRC.Instance.Connect));
                 thread.Name = "IRC";
                 thread.Start();
 
