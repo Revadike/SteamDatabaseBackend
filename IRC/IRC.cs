@@ -78,6 +78,12 @@ namespace SteamDatabaseBackend
 
         private void OnError(object sender, NetIrc2.Events.IrcErrorEventArgs e)
         {
+            switch (e.Error)
+            {
+                case IrcReplyCode.MissingMOTD:
+                    return;
+            }
+
             Log.WriteError("IRC", "Error: {0} ({1})", e.Error.ToString(), string.Join(", ", e.Data.Parameters));
         }
 
