@@ -7,12 +7,15 @@
  */
 using System;
 using System.Reflection;
+using System.Threading;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     static class Program
     {
+        private static bool CleaningUp;
+
         public static void Main()
         {
             Console.Title = "Steam Database";
@@ -42,12 +45,27 @@ namespace SteamDatabaseBackend
 
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
 
-            Console.CancelKeyPress += delegate
-            {
-                Cleanup();
-            };
+            Console.CancelKeyPress += OnCancelKey;
 
             Application.Init();
+        }
+
+        private static void OnCancelKey(object sender, ConsoleCancelEventArgs e)
+        {
+            if (CleaningUp)
+            {
+                Log.WriteInfo("Application", "Forcing exit");
+
+                Environment.Exit(0);
+
+                return;
+            }
+
+            e.Cancel = true;
+
+            CleaningUp = true;
+
+            Cleanup();
         }
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
@@ -78,16 +96,39 @@ namespace SteamDatabaseBackend
                 catch { }
             }
 
+            Application.ChangelistTimer.Stop();
+
             Steam.Instance.IsRunning = false;
 
-            try { Application.ChangelistTimer.Stop();                       } catch { }
+            Log.WriteInfo("Application", "Waiting for processor pool to idle");
+
+            Application.ProcessorPool.WaitForIdle();
+
+            Log.WriteInfo("Application", "Waiting for secondary pool to idle");
+
+            Application.SecondaryPool.WaitForIdle();
+
+            Log.WriteInfo("Application", "Shutting down pools");
+
             try { Application.SecondaryPool.Shutdown(true, 1000); } catch { }
             try { Application.ProcessorPool.Shutdown(true, 1000); } catch { }
             try { Steam.Instance.Client.Disconnect();             } catch { }
 
             if (Settings.Current.IRC.Enabled)
             {
-                IRC.Instance.Kill();
+                Log.WriteInfo("Application", "Closing IRC connection");
+
+                IRC.Instance.Close();
+            }
+
+            foreach (var thread in Application.Threads)
+            {
+                Log.WriteInfo("Application", "Joining thread {0} ({1})", thread.Name, thread.ThreadState.ToString());
+
+                if (thread.ThreadState == ThreadState.Running)
+                {
+                    thread.Join();
+                }
             }
 
             DbWorker.ExecuteNonQuery("DELETE FROM `GC`");

@@ -15,6 +15,7 @@ namespace SteamDatabaseBackend
 {
     static class Application
     {
+        public static readonly List<Thread> Threads;
         public static readonly List<GCIdler> GCIdlers;
 
         public static Timer ChangelistTimer { get; private set; }
@@ -48,6 +49,7 @@ namespace SteamDatabaseBackend
             ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
             ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
 
+            Threads = new List<Thread>();
             GCIdlers = new List<GCIdler>();
 
             ChangelistTimer = new Timer();
@@ -60,6 +62,8 @@ namespace SteamDatabaseBackend
             var thread = new Thread(new ThreadStart(Steam.Instance.Tick));
             thread.Name = "Steam";
             thread.Start();
+
+            Threads.Add(thread);
 
             if (Settings.IsFullRun)
             {
@@ -78,6 +82,8 @@ namespace SteamDatabaseBackend
                 thread.Name = "IRC";
                 thread.Start();
 
+                Threads.Add(thread);
+
                 IRC.Instance.RegisterCommandHandlers(commandHandler);
             }
 
@@ -86,10 +92,12 @@ namespace SteamDatabaseBackend
                 var instance = new GCIdler(appID);
 
                 thread = new Thread(new ThreadStart(instance.Run));
+                thread.IsBackground = true;
                 thread.Name = string.Format("GC Idler {0}", appID);
                 thread.Start();
 
                 GCIdlers.Add(instance);
+                Threads.Add(thread);
             }
         }
 

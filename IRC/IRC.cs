@@ -43,9 +43,14 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Kill()
+        public void Close()
         {
             Disconnecting = true;
+
+            if (!Client.IsConnected)
+            {
+                return;
+            }
 
             Client.Message(Settings.Current.IRC.Channel.Main, "is exiting... send help");
             Client.LogOut();

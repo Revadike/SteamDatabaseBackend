@@ -55,14 +55,14 @@ namespace SteamDatabaseBackend
                     break;
                 }
 
-                case ECommandType.SteamIndividual:
+                case ECommandType.SteamChatRoom:
                 {
                     Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format(":dsham: {0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
                     
                     break;
                 }
 
-                case ECommandType.SteamChatRoom:
+                case ECommandType.SteamIndividual:
                 {
                     Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
                     
