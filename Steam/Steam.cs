@@ -78,17 +78,17 @@ namespace SteamDatabaseBackend
             CallbackManager.Register(new Callback<SteamFriends.FriendMsgCallback>(handler.OnSteamFriendMessage));
         }
 
-        public static string GetPackageName(uint subID, bool returnEmptyOnFailure = false)
+        public static string GetPackageName(uint subID)
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    string name = DbWorker.GetString("Name", Reader);
+                    string name = DbWorker.GetString("Name", reader);
 
                     if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                     {
-                        string nameStore = DbWorker.GetString("StoreName", Reader);
+                        string nameStore = DbWorker.GetString("StoreName", reader);
 
                         if (!string.IsNullOrEmpty(nameStore))
                         {
@@ -100,12 +100,12 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            return returnEmptyOnFailure ? string.Empty : string.Format("SubID {0}", subID);
+            return string.Format("SubID {0}", subID);
         }
 
-        public static string GetAppName(uint appID, bool returnEmptyOnFailure = false)
+        public static string GetAppName(uint appID)
         {
-            using (MySqlDataReader reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
             {
                 if (reader.Read())
                 {
@@ -121,7 +121,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            return returnEmptyOnFailure ? string.Empty : string.Format("AppID {0}", appID);
+            return string.Format("AppID {0}", appID);
         }
     }
 }

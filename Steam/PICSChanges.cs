@@ -236,20 +236,35 @@ namespace SteamDatabaseBackend
                 }
 
                 string name;
+                var names = new Dictionary<uint, string>();
 
                 if (appCount > 0)
                 {
+                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN ({0})", string.Join(", ", changeList.Apps.Select(x => x.ID)))))
+                    {
+                        while (reader.Read())
+                        {
+                            name = DbWorker.GetString("Name", reader);
+                            string nameLast = DbWorker.GetString("LastKnownName", reader);
+
+                            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+                            {
+                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+                            }
+
+                            names.Add(reader.GetUInt32("AppID"), name);
+                        }
+                    }
+
                     foreach (var app in changeList.Apps)
                     {
-                        name = Steam.GetAppName(app.ID, true);
-
-                        if (string.IsNullOrEmpty(name))
+                        if (names.TryGetValue(app.ID, out name))
                         {
-                            name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, app.ID, Colors.NORMAL, name);
                         }
                         else
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, app.ID, Colors.NORMAL, name);
+                            name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
                         }
 
                         IRC.Instance.SendAnnounce("  App: {0}{1}{2}",
@@ -262,17 +277,37 @@ namespace SteamDatabaseBackend
 
                 if (packageCount > 0)
                 {
+                    names.Clear();
+
+                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `Name`, `StoreName` FROM `Subs` WHERE `SubID` IN ({0})", string.Join(", ", changeList.Packages.Select(x => x.ID)))))
+                    {
+                        while (reader.Read())
+                        {
+                            name = DbWorker.GetString("Name", reader);
+
+                            if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
+                            {
+                                string nameStore = DbWorker.GetString("StoreName", reader);
+
+                                if (!string.IsNullOrEmpty(nameStore))
+                                {
+                                    name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameStore, Colors.NORMAL);
+                                }
+                            }
+
+                            names.Add(reader.GetUInt32("SubID"), name);
+                        }
+                    }
+
                     foreach (var package in changeList.Packages)
                     {
-                        name = Steam.GetPackageName(package.ID, true);
-
-                        if (string.IsNullOrEmpty(name))
+                        if (names.TryGetValue(package.ID, out name))
                         {
-                            name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
+                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, package.ID, Colors.NORMAL, name);
                         }
                         else
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, package.ID, Colors.NORMAL, name);
+                            name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
                         }
 
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2}",
