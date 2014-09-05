@@ -76,6 +76,8 @@ namespace SteamDatabaseBackend
 
             if (args.IsTerminating)
             {
+                AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;
+
                 IRC.Instance.SendMain("Hey, xPaw and Alram, I'm crashing over here!!");
 
                 Cleanup();

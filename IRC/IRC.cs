@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Client.Message(Settings.Current.IRC.Channel.Main, "is exiting... send help");
+            SendEmoteAnnounce("is exiting…");
             Client.LogOut();
             Client.Close();
         }
