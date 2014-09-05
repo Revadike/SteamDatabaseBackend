@@ -117,7 +117,7 @@ namespace SteamDatabaseBackend
 
             if (callback.FriendID.IsClanAccount)
             {
-                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format("(Clan tag: {0})", callback.ClanTag);
+                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format(" (Clan tag: {0})", callback.ClanTag);
 
                 CommandHandler.ReplyToCommand(command, "{0} - https://steamcommunity.com/gid/{1}/{2}",
                     callback.Name, callback.FriendID.ConvertToUInt64(), clantag);
