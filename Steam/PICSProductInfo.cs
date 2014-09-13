@@ -168,8 +168,9 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                     Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                     Application.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
@@ -203,8 +204,9 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                CommandHandler.ReplyToCommand(request.Command, "Dump for {0}{1}{2} -{3} {4}{5}{6}{7}",
+                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                     Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                     Application.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
