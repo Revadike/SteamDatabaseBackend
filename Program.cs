@@ -86,10 +86,16 @@ namespace SteamDatabaseBackend
 
         private static void Cleanup()
         {
-            Log.WriteInfo("Main", "Exiting... ({0} processor, {1} secondary)", Application.ProcessorPool.InUseThreads, Application.SecondaryPool.InUseThreads);
+            Log.WriteInfo("Application", "Exiting... ({0} processor, {1} secondary)", Application.ProcessorPool.InUseThreads, Application.SecondaryPool.InUseThreads);
+
+            Application.ChangelistTimer.Stop();
+
+            Steam.Instance.IsRunning = false;
 
             foreach (var idler in Application.GCIdlers)
             {
+                Log.WriteInfo("Application", "Disconnecting idler {0}", idler.AppID);
+
                 try
                 {
                     idler.IsRunning = false;
@@ -97,10 +103,6 @@ namespace SteamDatabaseBackend
                 }
                 catch { }
             }
-
-            Application.ChangelistTimer.Stop();
-
-            Steam.Instance.IsRunning = false;
 
             Log.WriteInfo("Application", "Waiting for processor pool to idle");
 
@@ -114,13 +116,16 @@ namespace SteamDatabaseBackend
 
             try { Application.SecondaryPool.Shutdown(true, 1000); } catch { }
             try { Application.ProcessorPool.Shutdown(true, 1000); } catch { }
+
+            Log.WriteInfo("Application", "Disconnecting from Steam");
+
             try { Steam.Instance.Client.Disconnect();             } catch { }
 
             if (Settings.Current.IRC.Enabled)
             {
                 Log.WriteInfo("Application", "Closing IRC connection");
 
-                IRC.Instance.Close();
+                IRC.Instance.Close(CleaningUp);
             }
 
             foreach (var thread in Application.Threads)

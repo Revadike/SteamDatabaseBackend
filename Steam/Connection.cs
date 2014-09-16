@@ -108,7 +108,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
-            IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
+            IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);
 
             ReconnectionTimer.Start();
         }

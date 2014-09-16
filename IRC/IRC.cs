@@ -43,13 +43,18 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Close()
+        public void Close(bool isCancelKeyExit)
         {
             Disconnecting = true;
 
             if (!Client.IsConnected)
             {
                 return;
+            }
+
+            if (!isCancelKeyExit)
+            {
+                SendMain("is exiting…");
             }
 
             SendEmoteAnnounce("is exiting…");

@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
         private CallbackManager CallbackManager;
         private GameCoordinator GameCoordinator;
 
-        private uint AppID;
+        public uint AppID { get; private set; }
 
         public GCIdler(uint appID)
         {
