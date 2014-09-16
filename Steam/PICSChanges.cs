@@ -84,7 +84,7 @@ namespace SteamDatabaseBackend
 
             if (appChangesCount == 0 && packageChangesCount == 0)
             {
-                IRC.Instance.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.OLIVE, PreviousChangeNumber, Colors.DARKGRAY);
+                IRC.Instance.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.BLUE, PreviousChangeNumber, Colors.DARKGRAY);
 
                 return;
             }
@@ -163,13 +163,13 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.Instance.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
+                IRC.Instance.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.BLUE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {
                 foreach (var app in important)
                 {
-                    IRC.Instance.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
+                    IRC.Instance.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
                 }
             }
 
@@ -178,13 +178,13 @@ namespace SteamDatabaseBackend
 
             if (important.Count() > 5)
             {
-                IRC.Instance.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.OLIVE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
+                IRC.Instance.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.BLUE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
             }
             else
             {
                 foreach (var package in important)
                 {
-                    IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.OLIVE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
+                    IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
                 }
             }
         }
@@ -213,7 +213,7 @@ namespace SteamDatabaseBackend
                 var packageCount = changeList.Packages.Count;
 
                 string Message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
-                                     Colors.OLIVE, changeList.ChangeNumber, Colors.NORMAL,
+                                     Colors.BLUE, changeList.ChangeNumber, Colors.NORMAL,
                                      Colors.DARKGRAY, appCount, packageCount, Colors.NORMAL,
                                      Colors.DARKBLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
                                  );
@@ -258,19 +258,15 @@ namespace SteamDatabaseBackend
 
                     foreach (var app in changeList.Apps)
                     {
-                        if (names.TryGetValue(app.ID, out name))
+                        if (!names.TryGetValue(app.ID, out name))
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, app.ID, Colors.NORMAL, name);
-                        }
-                        else
-                        {
-                            name = string.Format("{0}{1}{2}", Colors.GREEN, app.ID, Colors.NORMAL);
+                            name = string.Format("{0}{1}", Colors.RED, SteamDB.UNKNOWN_APP);
                         }
 
-                        IRC.Instance.SendAnnounce("  App: {0}{1}{2}",
+                        IRC.Instance.SendAnnounce("  App: {0}{1}{2} - {3}{4}",
+                            Colors.BLUE, app.ID, Colors.NORMAL,
                             name,
-                            app.NeedsToken ? SteamDB.StringNeedToken : string.Empty,
-                            Application.OwnedApps.ContainsKey(app.ID) ? SteamDB.StringCheckmark : string.Empty
+                            app.NeedsToken ? SteamDB.StringNeedToken : string.Empty
                         );
                     }
                 }
@@ -301,19 +297,15 @@ namespace SteamDatabaseBackend
 
                     foreach (var package in changeList.Packages)
                     {
-                        if (names.TryGetValue(package.ID, out name))
+                        if (!names.TryGetValue(package.ID, out name))
                         {
-                            name = string.Format("{0}{1}{2} - {3}", Colors.LIGHTGRAY, package.ID, Colors.NORMAL, name);
-                        }
-                        else
-                        {
-                            name = string.Format("{0}{1}{2}", Colors.GREEN, package.ID, Colors.NORMAL);
+                            name = string.Format("{0}SteamDB Unknown Package", Colors.RED);
                         }
 
-                        IRC.Instance.SendAnnounce("  Package: {0}{1}{2}",
+                        IRC.Instance.SendAnnounce("  Package: {0}{1}{2} - {3}{4}",
+                            Colors.BLUE, package.ID, Colors.NORMAL,
                             name,
-                            package.NeedsToken ? SteamDB.StringNeedToken : string.Empty,
-                            Application.OwnedSubs.ContainsKey(package.ID) ? SteamDB.StringCheckmark : string.Empty
+                            package.NeedsToken ? SteamDB.StringNeedToken : string.Empty
                         );
                     }
                 }

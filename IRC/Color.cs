@@ -28,7 +28,7 @@ namespace SteamDatabaseBackend
         public static readonly string GREEN = IrcConstants.IrcColor + "09";
         //public static readonly string TEAL = IrcConstants.IrcColor + "10";
         //public static readonly string CYAN = IrcConstants.IrcColor + "11";
-        //public static readonly string BLUE = IrcConstants.IrcColor + "12";
+        public static readonly string BLUE = IrcConstants.IrcColor + "12";
         //public static readonly string MAGENTA = IrcConstants.IrcColor + "13";
         public static readonly string DARKGRAY = IrcConstants.IrcColor + "14";
         public static readonly string LIGHTGRAY = IrcConstants.IrcColor + "15";

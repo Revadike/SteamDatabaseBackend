@@ -153,8 +153,8 @@ namespace SteamDatabaseBackend
                             if (Application.ImportantApps.ContainsKey(appID))
                             {
                                 IRC.Instance.SendMain("Important app {0}{1}{2} was added to package {3}{4}{5} -{6} {7}",
-                                             Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
-                                             Colors.OLIVE, packageName, Colors.NORMAL,
+                                             Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
+                                             Colors.BLUE, packageName, Colors.NORMAL,
                                              Colors.DARKBLUE, SteamDB.GetPackageURL(SubID, "history")
                                 );
                             }
@@ -230,8 +230,8 @@ namespace SteamDatabaseBackend
                 if (Application.ImportantApps.ContainsKey(app.Key))
                 {
                     IRC.Instance.SendMain("Important app {0}{1}{2} was removed from package {3}{4}{5} -{6} {7}",
-                        Colors.OLIVE, Steam.GetAppName(app.Key), Colors.NORMAL,
-                        Colors.OLIVE, packageName, Colors.NORMAL,
+                        Colors.BLUE, Steam.GetAppName(app.Key), Colors.NORMAL,
+                        Colors.BLUE, packageName, Colors.NORMAL,
                         Colors.DARKBLUE, SteamDB.GetPackageURL(SubID, "history")
                     );
                 }
