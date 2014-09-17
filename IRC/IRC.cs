@@ -26,6 +26,8 @@ namespace SteamDatabaseBackend
 
             Client = new IrcClient();
 
+            Client.ClientVersion = "Steam Database -- https://github.com/SteamDatabase/SteamDatabaseBackend";
+
             Client.Connected += OnConnected;
             Client.Closed += OnDisconnected;
             Client.GotIrcError += OnError;
@@ -54,7 +56,7 @@ namespace SteamDatabaseBackend
 
             if (!isCancelKeyExit)
             {
-                SendMain("is exiting…");
+                Client.ChatAction(Settings.Current.IRC.Channel.Main, "is exiting…");
             }
 
             SendEmoteAnnounce("is exiting…");
