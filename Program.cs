@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
 
                 if (thread.ThreadState == ThreadState.Running)
                 {
-                    thread.Join();
+                    thread.Join(TimeSpan.FromSeconds(30));
                 }
             }
 
