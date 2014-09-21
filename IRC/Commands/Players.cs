@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
-                    CommandHandler.ReplyToCommand(command, "Your request is too short.");
+                    CommandHandler.ReplyToCommand(command, "Your request is invalid or too short.");
 
                     return;
                 }
@@ -77,7 +77,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to request player count: {0}", callback.Result);
+                CommandHandler.ReplyToCommand(request.Command, "Unable to request player count: {0}{1}", Colors.RED, callback.Result);
             }
             else if (request.Target == 0)
             {
@@ -93,8 +93,8 @@ namespace SteamDatabaseBackend
                 CommandHandler.ReplyToCommand(
                     request.Command,
                     "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
-                    Colors.OLIVE, Steam.GetAppName(request.Target), Colors.NORMAL,
-                    Colors.GREEN, callback.NumPlayers, Colors.NORMAL,
+                    Colors.BLUE, Steam.GetAppName(request.Target), Colors.NORMAL,
+                    Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetAppURL(request.Target)
                 );
             }

@@ -65,7 +65,7 @@ namespace SteamDatabaseBackend
 
             if (Enum.TryParse(inputValue, out enumValue))
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.LIGHTGRAY, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.NORMAL, enumValue);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.BLUE, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.NORMAL, enumValue);
 
                 return;
             }
@@ -90,7 +90,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                var formatted = string.Join(", ", enumValuesWithMatchingName.Select(@enum => string.Format("{0} ({1})", @enum.ToString(), Enum.Format(typeof(TEnum), @enum, "D"))));
+                var formatted = string.Join(", ", enumValuesWithMatchingName.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(typeof(TEnum), @enum, "D"))));
                 CommandHandler.ReplyToCommand(command, formatted);
             }
         }

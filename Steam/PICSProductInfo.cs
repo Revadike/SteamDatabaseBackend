@@ -143,7 +143,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}", Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}", Colors.BLUE, request.Target);
 
                     return;
                 }
@@ -169,7 +169,7 @@ namespace SteamDatabaseBackend
                 }
 
                 CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                    Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.BLUE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
@@ -180,7 +180,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}", Colors.OLIVE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}", Colors.BLUE, request.Target);
 
                     return;
                 }
@@ -205,7 +205,7 @@ namespace SteamDatabaseBackend
                 }
 
                 CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                    Colors.OLIVE, name, Colors.NORMAL,
+                    Colors.BLUE, name, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,

@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
                     CommandHandler.ReplyToCommand(
                         command,
                         "Latest blog post:{0} {1}{2} -{3} {4}",
-                        Colors.GREEN, Reader.GetString("Title"), Colors.NORMAL,
+                        Colors.BLUE, Reader.GetString("Title"), Colors.NORMAL,
                         Colors.DARKBLUE, SteamDB.GetBlogURL(slug)
                     );
                 }

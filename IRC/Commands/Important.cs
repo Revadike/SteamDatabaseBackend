@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
                                     {
                                         if (Application.ImportantApps.ContainsKey(id))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
                                         else
                                         {
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
 
                                             DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
 
-                                            CommandHandler.ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
 
                                         return;
@@ -70,7 +70,7 @@ namespace SteamDatabaseBackend
                                     {
                                         if (Application.ImportantSubs.ContainsKey(id))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is already important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                            CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is already important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
                                         else
                                         {
@@ -78,7 +78,7 @@ namespace SteamDatabaseBackend
 
                                             DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
 
-                                            CommandHandler.ReplyToCommand(command, "Marked package {0}{1}{2} ({3}) as important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                            CommandHandler.ReplyToCommand(command, "Marked package {0}{1}{2} ({3}) as important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
 
                                         return;
@@ -108,7 +108,7 @@ namespace SteamDatabaseBackend
                                     {
                                         if (!Application.ImportantApps.ContainsKey(id))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.",  Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
                                         else
                                         {
@@ -116,7 +116,7 @@ namespace SteamDatabaseBackend
 
                                             DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
 
-                                            CommandHandler.ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
                                         }
 
                                         return;
@@ -126,7 +126,7 @@ namespace SteamDatabaseBackend
                                     {
                                         if (!Application.ImportantSubs.ContainsKey(id))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is not important.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                            CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) is not important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
                                         else
                                         {
@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
 
                                             DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
 
-                                            CommandHandler.ReplyToCommand(command, "Removed package {0}{1}{2} ({3}) from the important list.", Colors.GREEN, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                            CommandHandler.ReplyToCommand(command, "Removed package {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
 
                                         return;

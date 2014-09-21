@@ -75,7 +75,7 @@ namespace SteamDatabaseBackend
 
                 if (eResult != EResult.OK)
                 {
-                    CommandHandler.ReplyToCommand(command, "Failed to resolve vanity url: {0}{1}", Colors.OLIVE, eResult.ToString());
+                    CommandHandler.ReplyToCommand(command, "Failed to resolve vanity url: {0}{1}", Colors.RED, eResult.ToString());
 
                     return;
                 }
@@ -117,15 +117,21 @@ namespace SteamDatabaseBackend
 
             if (callback.FriendID.IsClanAccount)
             {
-                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format(" (Clan tag: {0})", callback.ClanTag);
+                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format(" {0}(Clan tag: {1}{2}{3})",
+                    Colors.NORMAL, Colors.LIGHTGRAY, callback.ClanTag, Colors.NORMAL);
 
-                CommandHandler.ReplyToCommand(command, "{0} - https://steamcommunity.com/gid/{1}/{2}",
-                    callback.Name, callback.FriendID.ConvertToUInt64(), clantag);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} https://steamcommunity.com/gid/{4}/{5}",
+                    Colors.BLUE, callback.Name, Colors.NORMAL,
+                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(), clantag
+                );
             }
             else if (callback.FriendID.IsIndividualAccount)
             {
-                CommandHandler.ReplyToCommand(command, "{0} - https://steamcommunity.com/profiles/{1}/ (Last login: {2}, Last logoff: {3})",
-                    callback.Name, callback.FriendID.ConvertToUInt64(), callback.LastLogOn, callback.LastLogOff);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/ {5}(Last login: {6}, Last logoff: {7})",
+                    Colors.BLUE, callback.Name, Colors.NORMAL,
+                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(),
+                    Colors.DARKGRAY, callback.LastLogOn, callback.LastLogOff
+                );
             }
             else
             {
@@ -223,8 +229,8 @@ namespace SteamDatabaseBackend
                     break;
             }
 
-            return string.Format("{0} / {1} (UInt64: {2}, AccountID: {3}, IsValid: {4}, Universe: {5}, Instance: {6}, Type: {7})",
-                input.Render(), input.Render(true), input.ConvertToUInt64(), input.AccountID, input.IsValid, input.AccountUniverse, displayInstance, input.AccountType);
+            return string.Format("{0} / {1} {2}(UInt64: {3}, AccountID: {4}, IsValid: {5}, Universe: {6}, Instance: {7}, Type: {8})",
+                input.Render(), input.Render(true), Colors.DARKGRAY, input.ConvertToUInt64(), input.AccountID, input.IsValid, input.AccountUniverse, displayInstance, input.AccountType);
         }
 
         /*

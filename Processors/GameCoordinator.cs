@@ -115,7 +115,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(Name, "New GC session ({0} -> {1})", LastVersion, version);
 
-            string message = string.Format("New {0}{1}{2} GC session", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL);
+            string message = string.Format("New {0}{1}{2} GC session", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL);
 
             if (LastVersion == -1 || LastVersion == version)
             {
@@ -185,7 +185,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(Name, "Status: {0}", LastStatus);
 
-            string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.OLIVE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, LastStatus);
+            string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, LastStatus);
 
             IRC.Instance.SendAnnounce(message);
 

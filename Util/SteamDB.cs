@@ -16,7 +16,7 @@ namespace SteamDatabaseBackend
         public const string UNKNOWN_APP = "SteamDB Unknown App";
 
         public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);
-        public static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.GREEN, Colors.NORMAL);
+        public static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.DARKGRAY, Colors.NORMAL);
 
         public static bool IsBusy()
         {

@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
 
                     if (isChannelMessage)
                     {
-                        message = string.Format("{0}{1}{2}: {3}", Colors.OLIVE, command.SenderIdentity.Nickname, Colors.NORMAL, message);
+                        message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, command.SenderIdentity.Nickname, Colors.NORMAL, message);
                     }
 
                     IRC.Instance.SendReply(isChannelMessage ? command.Recipient : command.SenderIdentity.Nickname.ToString(), message);

@@ -67,8 +67,8 @@ namespace SteamDatabaseBackend
 
                 message = string.Format(
                     "{0}{1}{2} event: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/events/{8} {9}({10})",
-                    Colors.OLIVE, groupName, Colors.NORMAL,
-                    Colors.GREEN, groupEvent.Headline, Colors.NORMAL,
+                    Colors.BLUE, groupName, Colors.NORMAL,
+                    Colors.OLIVE, groupEvent.Headline, Colors.NORMAL,
                     Colors.DARKBLUE, callback.ClanID, groupEvent.ID,
                     Colors.DARKGRAY, groupEvent.EventTime.ToString()
                 );

@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
-                    CommandHandler.ReplyToCommand(command, "Your request is too short.");
+                    CommandHandler.ReplyToCommand(command, "Your request is invalid or too short.");
 
                     return;
                 }
