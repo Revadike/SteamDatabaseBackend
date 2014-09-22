@@ -119,8 +119,6 @@ namespace SteamDatabaseBackend
                     DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
                 }
 
-                DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-
                 changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
             }
 
@@ -129,6 +127,11 @@ namespace SteamDatabaseBackend
                 changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
 
                 DbWorker.ExecuteNonQuery(changes);
+            }
+
+            foreach (var app in callback.AppChanges.Values)
+            {
+                DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
             }
         }
 
@@ -143,8 +146,6 @@ namespace SteamDatabaseBackend
                     DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
                 }
 
-                DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-
                 changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
             }
 
@@ -153,6 +154,11 @@ namespace SteamDatabaseBackend
                 changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
 
                 DbWorker.ExecuteNonQuery(changes);
+            }
+
+            foreach (var package in callback.PackageChanges.Values)
+            {
+                DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
             }
         }
 
