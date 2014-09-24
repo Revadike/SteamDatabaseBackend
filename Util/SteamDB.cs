@@ -12,7 +12,6 @@ namespace SteamDatabaseBackend
 {
     static class SteamDB
     {
-        private static bool ALLOW_FREE_LICENSES = false;
         public const string UNKNOWN_APP = "SteamDB Unknown App";
 
         public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);
@@ -70,11 +69,6 @@ namespace SteamDatabaseBackend
 
         public static JobID RequestFreeLicense(List<uint> appids)
         {
-            if (!ALLOW_FREE_LICENSES)
-            {
-                return null;
-            }
-
             var clientMsg = new ClientMsgProtobuf<CMsgClientRequestFreeLicense>(EMsg.ClientRequestFreeLicense);
             clientMsg.SourceJobID = Steam.Instance.Client.GetNextJobID();
 
