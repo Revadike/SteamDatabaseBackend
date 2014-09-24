@@ -48,6 +48,9 @@ namespace SteamDatabaseBackend
 
         private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
+            bool depotsSectionModified = false;
+            bool appCreated = false;
+
             using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
                 while (Reader.Read())
@@ -96,6 +99,8 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@Type", newAppType),
                                              new MySqlParameter("@AppName", productInfo.KeyValues["common"]["name"].Value)
                     );
+
+                    appCreated = true;
 
                     MakeHistory("created_app");
                     MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
@@ -148,8 +153,6 @@ namespace SteamDatabaseBackend
                     MakeHistory("modified_info", DATABASE_APPTYPE, appType, newAppType);
                 }
             }
-
-            bool depotsSectionModified = false;
 
             foreach (KeyValue section in productInfo.KeyValues.Children)
             {
@@ -255,6 +258,25 @@ namespace SteamDatabaseBackend
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID",
                         new MySqlParameter("@AppID", AppID)
                     );
+                }
+            }
+
+            // Request package info for all packages this app is in to try and catch name changes (from Steam Sub xxx to a real one)
+            if (appCreated)
+            {
+                var packages = new List<SteamApps.PICSRequest>();
+
+                using (var reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `SubsApps` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID)))
+                {
+                    while (reader.Read())
+                    {
+                        packages.Add(Utils.NewPICSRequest(reader.GetUInt32("SubID")));
+                    }
+                }
+
+                if (packages.Any())
+                {
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages));
                 }
             }
         }
