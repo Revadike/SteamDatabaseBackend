@@ -154,7 +154,7 @@ namespace SteamDatabaseBackend
 
                 if (kv["name"].Value != null)
                 {
-                    name = kv["name"].AsString();
+                    name = Utils.RemoveControlCharacters(kv["name"].AsString());
                 }
 
                 try
@@ -190,7 +190,7 @@ namespace SteamDatabaseBackend
 
                 if (info.KeyValues["common"]["name"].Value != null)
                 {
-                    name = info.KeyValues["common"]["name"].AsString();
+                    name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString());
                 }
 
                 try

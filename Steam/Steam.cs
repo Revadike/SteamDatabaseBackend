@@ -84,11 +84,11 @@ namespace SteamDatabaseBackend
             {
                 if (reader.Read())
                 {
-                    string name = DbWorker.GetString("Name", reader);
+                    string name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
 
                     if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                     {
-                        string nameStore = DbWorker.GetString("StoreName", reader);
+                        string nameStore = Utils.RemoveControlCharacters(DbWorker.GetString("StoreName", reader));
 
                         if (!string.IsNullOrEmpty(nameStore))
                         {
@@ -109,8 +109,8 @@ namespace SteamDatabaseBackend
             {
                 if (reader.Read())
                 {
-                    string name = DbWorker.GetString("Name", reader);
-                    string nameLast = DbWorker.GetString("LastKnownName", reader);
+                    string name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
+                    string nameLast = Utils.RemoveControlCharacters(DbWorker.GetString("LastKnownName", reader));
 
                     if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
                     {

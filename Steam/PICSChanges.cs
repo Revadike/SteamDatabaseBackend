@@ -242,6 +242,7 @@ namespace SteamDatabaseBackend
                 }
 
                 string name;
+                string nameOther;
                 var names = new Dictionary<uint, string>();
 
                 if (appCount > 0)
@@ -250,12 +251,12 @@ namespace SteamDatabaseBackend
                     {
                         while (reader.Read())
                         {
-                            name = DbWorker.GetString("Name", reader);
-                            string nameLast = DbWorker.GetString("LastKnownName", reader);
+                            name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
+                            nameOther = Utils.RemoveControlCharacters(DbWorker.GetString("LastKnownName", reader));
 
-                            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+                            if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))
                             {
-                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
                             }
 
                             names.Add(reader.GetUInt32("AppID"), name);
@@ -285,15 +286,15 @@ namespace SteamDatabaseBackend
                     {
                         while (reader.Read())
                         {
-                            name = DbWorker.GetString("Name", reader);
+                            name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
 
                             if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                             {
-                                string nameStore = DbWorker.GetString("StoreName", reader);
+                                nameOther = Utils.RemoveControlCharacters(DbWorker.GetString("StoreName", reader));
 
-                                if (!string.IsNullOrEmpty(nameStore))
+                                if (!string.IsNullOrEmpty(nameOther))
                                 {
-                                    name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameStore, Colors.NORMAL);
+                                    name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
                                 }
                             }
 

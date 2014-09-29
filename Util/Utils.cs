@@ -70,6 +70,11 @@ namespace SteamDatabaseBackend
 
             return true;
         }
+
+        public static string RemoveControlCharacters(string input)
+        {
+            return new string(input.Where(c => !char.IsControl(c)).ToArray());
+        }
     }
 
     public class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
