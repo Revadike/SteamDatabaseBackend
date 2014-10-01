@@ -134,16 +134,13 @@ namespace SteamDatabaseBackend
                                 case "app":
                                     {
                                         List<string> channels;
-                                        var exists = Application.ImportantApps.TryGetValue(id, out channels);
 
-                                        if (!exists || !channels.Contains(channel))
+                                        if (!Application.ImportantApps.TryGetValue(id, out channels) || !channels.Contains(channel))
                                         {
                                             CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
                                         else
                                         {
-                                            channels.Remove(channel);
-
                                             if (channels.Count > 1)
                                             {
                                                 Application.ImportantApps[id].Remove(channel);
