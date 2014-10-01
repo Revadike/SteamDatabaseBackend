@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         public static Dictionary<uint, byte> OwnedApps { get; set; }
         public static Dictionary<uint, byte> OwnedSubs { get; set; }
 
-        public static Dictionary<uint, byte> ImportantApps { get; private set; }
+        public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
         public static ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
             OwnedApps = new Dictionary<uint, byte>();
             OwnedSubs = new Dictionary<uint, byte>();
 
-            ImportantApps = new Dictionary<uint, byte>();
+            ImportantApps = new Dictionary<uint, List<string>>();
             ImportantSubs = new Dictionary<uint, byte>();
 
             ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
@@ -115,23 +115,33 @@ namespace SteamDatabaseBackend
 
         private static void ReloadImportant()
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `ImportantApps` WHERE `Announce` = 1"))
+            using (var reader = DbWorker.ExecuteReader("SELECT `AppID`, `Channel` FROM `ImportantApps`"))
             {
                 ImportantApps.Clear();
 
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    ImportantApps.Add(Reader.GetUInt32("AppID"), 1);
+                    var appID = reader.GetUInt32("AppID");
+                    var channel = reader.GetString("Channel");
+
+                    if (ImportantApps.ContainsKey(appID))
+                    {
+                        ImportantApps[appID].Add(channel);
+                    }
+                    else
+                    {
+                        ImportantApps.Add(appID, new List<string>{ channel });
+                    }
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
+            using (var reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
             {
                 ImportantSubs.Clear();
 
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    ImportantSubs.Add(Reader.GetUInt32("SubID"), 1);
+                    ImportantSubs.Add(reader.GetUInt32("SubID"), 1);
                 }
             }
 

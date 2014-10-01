@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
@@ -18,6 +19,22 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
+            if (!IRC.IsRecipientChannel(command.Recipient))
+            {
+                CommandHandler.ReplyToCommand(command, "This command is only available in channels.");
+
+                return;
+            }
+
+            var channel = command.Recipient;
+
+            if (channel == Settings.Current.IRC.Channel.Announce)
+            {
+                CommandHandler.ReplyToCommand(command, "This command is not available in announcement channel.");
+
+                return;
+            }
+
             var s = command.Message.Split(' ');
             var count = s.Length;
 
@@ -50,17 +67,27 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        if (Application.ImportantApps.ContainsKey(id))
+                                        List<string> channels;
+                                        var exists = Application.ImportantApps.TryGetValue(id, out channels);
+
+                                        if (exists && channels.Contains(channel))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is already important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
                                         else
                                         {
-                                            Application.ImportantApps.Add(id, 1);
+                                            if (exists)
+                                            {
+                                                Application.ImportantApps[id].Add(channel);
+                                            }
+                                            else
+                                            {
+                                                Application.ImportantApps.Add(id, new List<string>{ channel });
+                                            }
 
-                                            DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Announce`) VALUES (@AppID, 1) ON DUPLICATE KEY UPDATE `Announce` = 1", new MySqlParameter("AppID", id));
+                                            DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new MySqlParameter("AppID", id), new MySqlParameter("Channel", channel));
 
-                                            CommandHandler.ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
 
                                         return;
@@ -106,17 +133,29 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        if (!Application.ImportantApps.ContainsKey(id))
+                                        List<string> channels;
+                                        var exists = Application.ImportantApps.TryGetValue(id, out channels);
+
+                                        if (!exists || !channels.Contains(channel))
                                         {
-                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) is not important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
                                         else
                                         {
-                                            Application.ImportantApps.Remove(id);
+                                            channels.Remove(channel);
 
-                                            DbWorker.ExecuteNonQuery("UPDATE `ImportantApps` SET `Announce` = 0 WHERE `AppID` = @AppID", new MySqlParameter("AppID", id));
+                                            if (channels.Count > 1)
+                                            {
+                                                Application.ImportantApps[id].Remove(channel);
+                                            }
+                                            else
+                                            {
+                                                Application.ImportantApps.Remove(id);
+                                            }
 
-                                            CommandHandler.ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+                                            DbWorker.ExecuteNonQuery("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new MySqlParameter("AppID", id), new MySqlParameter("Channel", channel));
+
+                                            CommandHandler.ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
 
                                         return;

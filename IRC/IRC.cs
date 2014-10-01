@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NetIrc2;
 
@@ -134,6 +135,26 @@ namespace SteamDatabaseBackend
             if (Settings.Current.IRC.Enabled)
             {
                 Client.ChatAction(Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+            }
+        }
+
+        public void AnnounceImportantAppUpdate(uint appID, string format, params object[] args)
+        {
+            if (!Settings.Current.IRC.Enabled)
+            {
+                return;
+            }
+
+            List<string> channels;
+
+            if (Application.ImportantApps.TryGetValue(appID, out channels))
+            {
+                format = string.Format(format, args);
+
+                foreach (var channel in channels)
+                {
+                    Client.Message(channel, format); //, Priority.AboveMedium);
+                }
             }
         }
 

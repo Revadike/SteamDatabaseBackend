@@ -167,31 +167,17 @@ namespace SteamDatabaseBackend
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
 
-            if (important.Count() > 5)
+            foreach (var app in important)
             {
-                IRC.Instance.SendMain("{0}{1}{2} important apps updated -{3} {4}", Colors.BLUE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
-            }
-            else
-            {
-                foreach (var app in important)
-                {
-                    IRC.Instance.SendMain("Important app update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
-                }
+                IRC.Instance.AnnounceImportantAppUpdate(app, "Important app update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
             }
 
             // Packages
             important = callback.PackageChanges.Keys.Intersect(Application.ImportantSubs.Keys);
 
-            if (important.Count() > 5)
+            foreach (var package in important)
             {
-                IRC.Instance.SendMain("{0}{1}{2} important packages updated -{3} {4}", Colors.BLUE, important.Count(), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetChangelistURL(callback.CurrentChangeNumber));
-            }
-            else
-            {
-                foreach (var package in important)
-                {
-                    IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
-                }
+                IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
             }
         }
 
