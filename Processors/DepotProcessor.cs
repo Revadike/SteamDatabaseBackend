@@ -18,11 +18,10 @@ namespace SteamDatabaseBackend
     {
         private sealed class DepotFile
         {
-            public string Hash;
+            public string Hash = "0000000000000000000000000000000000000000";
             public string Name;
             public ulong Size;
-            public int Chunks;
-            public int Flags;
+            public uint Flags;
         }
 
         public class ManifestJob
@@ -98,18 +97,14 @@ namespace SteamDatabaseBackend
 
                 if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out manifestID))
                 {
-#if false
-                    Log.WriteDebug("Depot Processor", "Failed to public branch for depot {0} (parent {1}) - {2}", DepotID, AppID);
-
                     // If there is no public manifest for this depot, it still could have some sort of open beta
 
                     var branch = depot["manifests"].Children.SingleOrDefault(x => x.Name != "local");
 
-                    if (branch == null || !ulong.TryParse(branch.Value, out ManifestID))
+                    if (branch != null /*&& ulong.TryParse(branch.Value, out manifestID)*/)
                     {
-                        continue;
+                        Log.WriteDebug("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2}", depotID, appID, branch.AsString());
                     }
-#endif
 
                     DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name",
                         new MySqlParameter("@DepotID", depotID),
@@ -129,20 +124,22 @@ namespace SteamDatabaseBackend
                 };
 
                 int currentBuildID = 0;
+                string currentDepotName = string.Empty;
 
                 // Check if manifestid in our database is equal
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
                 {
-                    if (Reader.Read())
+                    if (reader.Read())
                     {
-                        currentBuildID = Reader.GetInt32("buildID");
+                        currentBuildID = reader.GetInt32("buildID");
+                        currentDepotName = reader.GetString("Name");
 
-                        request.PreviousManifestID = Reader.GetUInt64("ManifestID");
+                        request.PreviousManifestID = reader.GetUInt64("ManifestID");
 
                         if (request.PreviousManifestID == manifestID && Settings.Current.FullRun < 2)
                         {
                             // Update depot name if changed
-                            if(!depotName.Equals(Reader.GetString("Name")))
+                            if(!depotName.Equals(currentDepotName))
                             {
                                 DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Name` = @Name WHERE `DepotID` = @DepotID",
                                     new MySqlParameter("@DepotID", request.DepotID),
@@ -164,7 +161,7 @@ namespace SteamDatabaseBackend
                 DepotLocks.TryAdd(depotID, 1);
 
                 // Update/insert depot information straight away
-                if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID)
+                if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID || !depotName.Equals(currentDepotName))
                 {
                     DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @Name, @BuildID, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
                         new MySqlParameter("@DepotID", request.DepotID),
@@ -173,7 +170,10 @@ namespace SteamDatabaseBackend
                         new MySqlParameter("@Name", request.DepotName)
                     );
 
-                    MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
+                    if (request.PreviousManifestID != request.ManifestID)
+                    {
+                        MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
+                    }
                 }
 
                 request.Server = CDNServers[new Random().Next(CDNServers.Count)];
@@ -296,26 +296,42 @@ namespace SteamDatabaseBackend
                 IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
             }
 
-            var sortedFiles = depotManifest.Files.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase);
-
-            bool shouldHistorize = false;
             var filesNew = new List<DepotFile>();
             var filesOld = new Dictionary<string, DepotFile>();
 
-            foreach (var file in sortedFiles)
+            using (var reader = DbWorker.ExecuteReader("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new MySqlParameter("DepotID", request.DepotID)))
             {
-                System.Text.Encoding.UTF8.GetString(file.FileHash);
+                while (reader.Read())
+                {
+                    var fileName = reader.GetString("File");
 
+                    if (filesOld.ContainsKey(fileName))
+                    {
+                        Log.WriteError("Depot Processor", "Skipping file {0} in depot {1} (from parent {2}) because we already got one", fileName, request.DepotID, request.ParentAppID);
+
+                        continue;
+                    }
+
+                    filesOld.Add(fileName, new DepotFile
+                    {
+                        Name = fileName,
+                        Hash = reader.GetString("Hash"),
+                        Size = reader.GetUInt64("Size"),
+                        Flags = reader.GetUInt32("Flags")
+                    });
+                }
+            }
+
+            foreach (var file in depotManifest.Files)
+            {
                 var depotFile = new DepotFile
                 {
                     Name = file.FileName.Replace('\\', '/'),
                     Size = file.TotalSize,
-                    Chunks = file.Chunks.Count,
-                    Flags = (int)file.Flags
+                    Flags = (uint)file.Flags
                 };
 
-                // TODO: Ideally we would check if filehash is not empty
-                if (!file.Flags.HasFlag(EDepotFileFlag.Directory))
+                if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
                 {
                     depotFile.Hash = string.Concat(Array.ConvertAll(file.FileHash, x => x.ToString("X2")));
                 }
@@ -323,68 +339,78 @@ namespace SteamDatabaseBackend
                 filesNew.Add(depotFile);
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Files` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", request.DepotID)))
+            bool shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
+            var filesAdded = new List<DepotFile>();
+
+            foreach (var file in filesNew)
             {
-                if (Reader.Read())
+                if (filesOld.ContainsKey(file.Name))
                 {
-                    string files = Reader.GetString("Files");
+                    var oldFile = filesOld[file.Name];
+                    var updateFile = false;
 
-                    if (!string.IsNullOrEmpty(files))
+                    if (oldFile.Size != file.Size || !file.Hash.Equals(oldFile.Hash))
                     {
-                        shouldHistorize = true;
+                        MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
 
-                        filesOld = JsonConvert.DeserializeObject<List<DepotFile>>(files).ToDictionary(x => x.Name);
+                        updateFile = true;
                     }
+
+                    if (oldFile.Flags != file.Flags)
+                    {
+                        MakeHistory(request, file.Name, "modified_flags", oldFile.Flags, file.Flags);
+
+                        updateFile = true;
+                    }
+
+                    if (updateFile)
+                    {
+                        DbWorker.ExecuteNonQuery("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `File` = @File",
+                            new MySqlParameter("@DepotID", request.DepotID),
+                            new MySqlParameter("@File", file.Name),
+                            new MySqlParameter("@Hash", file.Hash),
+                            new MySqlParameter("@Size", file.Size),
+                            new MySqlParameter("@Flags", file.Flags)
+                        );
+                    }
+
+                    filesOld.Remove(file.Name);
+                }
+                else
+                {
+                    // We want to historize modifications first, and only then deletions and additions
+                    filesAdded.Add(file);
                 }
             }
 
-            DbWorker.ExecuteNonQuery(
-                "UPDATE `Depots` SET `Files` = @Files WHERE `DepotID` = @DepotID",
-                new MySqlParameter("@DepotID", request.DepotID),
-                new MySqlParameter("@Files", JsonConvert.SerializeObject(filesNew, new JsonSerializerSettings { DefaultValueHandling = DefaultValueHandling.Ignore }))
-            );
-
-            if (shouldHistorize)
+            foreach (var file in filesOld)
             {
-                var filesAdded = new List<string>();
+                MakeHistory(request, file.Value.Name, "removed");
 
-                foreach (var file in filesNew)
+                DbWorker.ExecuteNonQuery("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` = @File",
+                    new MySqlParameter("@DepotID", request.DepotID),
+                    new MySqlParameter("@File", file.Value.Name)
+                );
+            }
+
+            foreach (var file in filesAdded)
+            {
+                if (shouldHistorize)
                 {
-                    if (filesOld.ContainsKey(file.Name))
-                    {
-                        var oldFile = filesOld[file.Name];
-
-                        if (oldFile.Size != file.Size)
-                        {
-                            MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
-                        }
-                        else if (file.Hash != null && oldFile.Hash != null && !file.Hash.Equals(oldFile.Hash))
-                        {
-                            MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
-                        }
-
-                        filesOld.Remove(file.Name);
-                    }
-                    else
-                    {
-                        // We want to historize modifications first, and only then deletions and additions
-                        filesAdded.Add(file.Name);
-                    }
+                    MakeHistory(request, file.Name, "added");
                 }
 
-                foreach (var file in filesOld)
-                {
-                    MakeHistory(request, file.Value.Name, "removed");
-                }
-
-                foreach (string file in filesAdded)
-                {
-                    MakeHistory(request, file, "added");
-                }
+                DbWorker.ExecuteNonQuery("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)",
+                    new MySqlParameter("@DepotID", request.DepotID),
+                    new MySqlParameter("@File", file.Name),
+                    new MySqlParameter("@Hash", file.Hash),
+                    new MySqlParameter("@Size", file.Size),
+                    new MySqlParameter("@Flags", file.Flags)
+                );
             }
         }
 
-        private void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        private static void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
             DbWorker.ExecuteNonQuery(
                 "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)",
