@@ -101,17 +101,17 @@ namespace SteamDatabaseBackend
 
                     var branch = depot["manifests"].Children.SingleOrDefault(x => x.Name != "local");
 
-                    if (branch != null /*&& ulong.TryParse(branch.Value, out manifestID)*/)
+                    if (branch == null || !ulong.TryParse(branch.Value, out manifestID))
                     {
-                        Log.WriteDebug("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2}", depotID, appID, branch.AsString());
+                        DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name",
+                            new MySqlParameter("@DepotID", depotID),
+                            new MySqlParameter("@Name", depotName)
+                        );
+
+                        continue;
                     }
 
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name",
-                        new MySqlParameter("@DepotID", depotID),
-                        new MySqlParameter("@Name", depotName)
-                    );
-
-                    continue;
+                    Log.WriteInfo("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2} (manifest: {3})", depotID, appID, branch.Name, branch.AsString());
                 }
                     
                 var request = new ManifestJob
