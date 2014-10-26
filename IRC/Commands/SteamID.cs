@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
 
             CommandHandler.ReplyToCommand(command, ExpandSteamID(steamID));
 
-            if (!steamID.IsIndividualAccount && !steamID.IsClanAccount)
+            if (!steamID.IsValid || (!steamID.IsIndividualAccount && !steamID.IsClanAccount))
             {
                 return;
             }
