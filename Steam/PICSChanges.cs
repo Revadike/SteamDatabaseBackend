@@ -30,11 +30,11 @@ namespace SteamDatabaseBackend
                 
             manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
+            using (var reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    PreviousChangeNumber = Reader.GetUInt32("ChangeID");
+                    PreviousChangeNumber = reader.GetUInt32("ChangeID");
 
                     Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
                 }
@@ -237,8 +237,8 @@ namespace SteamDatabaseBackend
                     {
                         while (reader.Read())
                         {
-                            name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
-                            nameOther = Utils.RemoveControlCharacters(DbWorker.GetString("LastKnownName", reader));
+                            name = Utils.RemoveControlCharacters(reader.GetString("Name"));
+                            nameOther = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
 
                             if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))
                             {
@@ -272,11 +272,11 @@ namespace SteamDatabaseBackend
                     {
                         while (reader.Read())
                         {
-                            name = Utils.RemoveControlCharacters(DbWorker.GetString("Name", reader));
+                            name = Utils.RemoveControlCharacters(reader.GetString("Name"));
 
                             if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
                             {
-                                nameOther = Utils.RemoveControlCharacters(DbWorker.GetString("StoreName", reader));
+                                nameOther = Utils.RemoveControlCharacters(reader.GetString("StoreName"));
 
                                 if (!string.IsNullOrEmpty(nameOther))
                                 {

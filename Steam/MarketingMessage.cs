@@ -21,9 +21,9 @@ namespace SteamDatabaseBackend
             foreach (var message in callback.Messages)
             {
                 // TODO: Move this query outside this loop
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `MarketingMessages` WHERE `ID` = @ID", new MySqlParameter("ID", message.ID)))
+                using (var reader = DbWorker.ExecuteReader("SELECT `ID` FROM `MarketingMessages` WHERE `ID` = @ID", new MySqlParameter("ID", message.ID)))
                 {
-                    if (Reader.Read())
+                    if (reader.Read())
                     {
                         continue;
                     }

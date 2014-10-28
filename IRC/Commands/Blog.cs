@@ -17,21 +17,21 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1"))
+            using (var reader = DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1"))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    var slug = Reader.GetString("Slug");
+                    var slug = reader.GetString("Slug");
 
                     if (slug.Length == 0)
                     {
-                        slug = Reader.GetString("ID");
+                        slug = reader.GetString("ID");
                     }
 
                     CommandHandler.ReplyToCommand(
                         command,
                         "Latest blog post:{0} {1}{2} -{3} {4}",
-                        Colors.BLUE, Reader.GetString("Title"), Colors.NORMAL,
+                        Colors.BLUE, reader.GetString("Title"), Colors.NORMAL,
                         Colors.DARKBLUE, SteamDB.GetBlogURL(slug)
                     );
                 }

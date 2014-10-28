@@ -51,27 +51,27 @@ namespace SteamDatabaseBackend
             string packageNameCurrent = string.Empty;
             var apps = new Dictionary<uint, string>();
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    CurrentData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    CurrentData.Add(reader.GetString("Name"), reader.GetString("Value"));
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("@SubID", SubID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("@SubID", SubID)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    packageNameCurrent = DbWorker.GetString("Name", Reader);
+                    packageNameCurrent = reader.GetString("Name");
                 }
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    apps.Add(Reader.GetUInt32("AppID"), Reader.GetString("Type"));
+                    apps.Add(reader.GetUInt32("AppID"), reader.GetString("Type"));
                 }
             }
 
@@ -255,23 +255,23 @@ namespace SteamDatabaseBackend
         {
             string name;
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("SubID", SubID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("SubID", SubID)))
             {
-                if (!MainReader.Read())
+                if (!reader.Read())
                 {
                     return;
                 }
 
-                name = DbWorker.GetString("Name", MainReader);
+                name = reader.GetString("Name");
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
+                    if (!reader.GetString("Name").StartsWith("website", StringComparison.Ordinal))
                     {
-                        MakeHistory("removed_key", Reader.GetUInt32("Key"), DbWorker.GetString("Value", Reader));
+                        MakeHistory("removed_key", reader.GetUInt32("Key"), reader.GetString("Value"));
                     }
                 }
             }
@@ -372,11 +372,11 @@ namespace SteamDatabaseBackend
 
         private static uint GetKeyNameID(string keyName)
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    return Reader.GetUInt32("ID");
+                    return reader.GetUInt32("ID");
                 }
             }
 

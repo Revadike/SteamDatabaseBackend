@@ -51,36 +51,36 @@ namespace SteamDatabaseBackend
             bool depotsSectionModified = false;
             bool appCreated = false;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    CurrentData.Add(DbWorker.GetString("Name", Reader), DbWorker.GetString("Value", Reader));
+                    CurrentData.Add(reader.GetString("Name"), reader.GetString("Value"));
                 }
             }
 
             string appName = string.Empty;
-            string appType = "0";
+            uint appType = 0;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    appName = DbWorker.GetString("Name", Reader);
-                    appType = DbWorker.GetString("AppType", Reader);
+                    appName = reader.GetString("Name");
+                    appType = reader.GetUInt32("AppType");
                 }
             }
 
             if (productInfo.KeyValues["common"]["name"].Value != null)
             {
-                string newAppType = "0";
+                uint newAppType = 0;
                 string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
 
-                using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new MySqlParameter("Type", currentType)))
+                using (var reader = DbWorker.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new MySqlParameter("Type", currentType)))
                 {
-                    if (Reader.Read())
+                    if (reader.Read())
                     {
-                        newAppType = DbWorker.GetString("AppType", Reader);
+                        newAppType = reader.GetUInt32("AppType");
                     }
                     else
                     {
@@ -134,23 +134,23 @@ namespace SteamDatabaseBackend
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
                 }
 
-                if (appType.Equals("0"))
+                if (appType == 0)
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType)
                     );
 
-                    MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType);
+                    MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType.ToString());
                 }
-                else if (!appType.Equals(newAppType))
+                else if (appType != newAppType)
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType)
                     );
 
-                    MakeHistory("modified_info", DATABASE_APPTYPE, appType, newAppType);
+                    MakeHistory("modified_info", DATABASE_APPTYPE, appType.ToString(), newAppType.ToString());
                 }
             }
 
@@ -299,25 +299,25 @@ namespace SteamDatabaseBackend
         {
             string AppName;
 
-            using (MySqlDataReader MainReader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
             {
-                if (!MainReader.Read())
+                if (!reader.Read())
                 {
                     return;
                 }
 
-                AppName = DbWorker.GetString("Name", MainReader);
+                AppName = reader.GetString("Name");
             }
 
             bool historyChanged = false;
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    if (!DbWorker.GetString("Name", Reader).StartsWith("website", StringComparison.Ordinal))
+                    if (!reader.GetString("Name").StartsWith("website", StringComparison.Ordinal))
                     {
-                        MakeHistory("removed_key", Reader.GetUInt32("Key"), DbWorker.GetString("Value", Reader));
+                        MakeHistory("removed_key", reader.GetUInt32("Key"), reader.GetString("Value"));
 
                         historyChanged = true;
                     }
@@ -440,11 +440,11 @@ namespace SteamDatabaseBackend
 
         private static uint GetKeyNameID(string keyName)
         {
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNames` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
             {
-                if (Reader.Read())
+                if (reader.Read())
                 {
-                    return Reader.GetUInt32("ID");
+                    return reader.GetUInt32("ID");
                 }
             }
 

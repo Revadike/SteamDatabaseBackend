@@ -53,11 +53,11 @@ namespace SteamDatabaseBackend
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);
             }
 
-            using (MySqlDataReader Reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", ownedSubs.Keys))))
+            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", ownedSubs.Keys))))
             {
-                while (Reader.Read())
+                while (reader.Read())
                 {
-                    ownedApps.Add(Reader.GetUInt32("AppID"), 1);
+                    ownedApps.Add(reader.GetUInt32("AppID"), 1);
                 }
             }
 
