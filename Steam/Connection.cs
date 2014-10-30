@@ -121,7 +121,12 @@ namespace SteamDatabaseBackend
             {
                 Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
 
-                AuthCode = Console.ReadLine().Trim();
+                AuthCode = Console.ReadLine();
+
+                if (AuthCode != null)
+                {
+                    AuthCode = AuthCode.Trim();
+                }
 
                 return;
             }
