@@ -38,6 +38,7 @@ namespace SteamDatabaseBackend
                 574,
                 new List<string>
                 {
+                    "bin/engine.dylib",
                     //"dota/bin/client.dylib",
                     "dota/bin/server.dylib"
                 }
@@ -64,8 +65,10 @@ namespace SteamDatabaseBackend
                 733,
                 new List<string>
                 {
+                    "bin/engine.dylib",
                     //"csgo/bin/client.dylib",
-                    "csgo/bin/server.dylib"
+                    "csgo/bin/server.dylib",
+                    "csgo/bin/matchmaking.dylib"
                 }
             },
             {
