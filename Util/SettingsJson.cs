@@ -53,6 +53,9 @@ namespace SteamDatabaseBackend
         public sealed class IrcChannelsJson
         {
             [JsonProperty(Required = Required.Always)]
+            public string Ops;
+
+            [JsonProperty(Required = Required.Always)]
             public string Main;
 
             [JsonProperty(Required = Required.Always)]

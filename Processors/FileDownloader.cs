@@ -92,10 +92,10 @@ namespace SteamDatabaseBackend
 
         public static void DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
-            Log.WriteDebug("FileDownloader", "Will download files from {0}", job.DepotID);
-
-            var files = depotManifest.Files.Where(x => ImportantDepots[job.DepotID].Contains(x.FileName.Replace('\\', '/')));
+            var files = depotManifest.Files.Where(x => ImportantDepots[job.DepotID].Contains(x.FileName.Replace('\\', '/'))).ToList();
             var filesUpdated = false;
+
+            Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count(), job.DepotID);
 
             foreach (var file in files)
             {
@@ -157,6 +157,8 @@ namespace SteamDatabaseBackend
 
                 if (count == file.Chunks.Count)
                 {
+                    IRC.Instance.SendOps("{0}[{1}]{2} Downloaded {3}{4}", Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, Colors.OLIVE, file.FileName);
+
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
 
                     // TODO: Verify hash
@@ -174,6 +176,8 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
+                    IRC.Instance.SendOps("{0}[ERROR]{1} Failed to download:{2} {3} ({4} of {5} chunks)", Colors.RED, Colors.NORMAL, Colors.OLIVE, file.FileName, count, file.Chunks.Count);
+
                     Log.WriteError("FileDownloader", "Failed to download {0}: Only {0} out of {1} chunks downloaded", downloadPath, count, file.Chunks.Count);
 
                     File.Delete(downloadPath);

@@ -30,6 +30,7 @@
 		"SendDelay": 1000,
 		"Channel":
 		{
+			"Ops": "#steamdb-test",
 			"Main": "#steamdb-test",
 			"Announce": "#steamdb-test"
 		},

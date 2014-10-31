@@ -75,6 +75,7 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("IRC", "Connected to IRC successfully");
 
             Client.LogIn(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, Settings.Current.IRC.Nickname, "4", null, Settings.Current.IRC.Password);
+            Client.Join(Settings.Current.IRC.Channel.Ops);
             Client.Join(Settings.Current.IRC.Channel.Main);
             Client.Join(Settings.Current.IRC.Channel.Announce);
         }
@@ -118,6 +119,14 @@ namespace SteamDatabaseBackend
             if (Settings.Current.IRC.Enabled)
             {
                 Client.Message(Settings.Current.IRC.Channel.Main, string.Format(format, args)); //, Priority.AboveMedium);
+            }
+        }
+
+        public void SendOps(string format, params object[] args)
+        {
+            if (Settings.Current.IRC.Enabled)
+            {
+                Client.Message(Settings.Current.IRC.Channel.Ops, string.Format(format, args)); //, Priority.Highest);
             }
         }
 
