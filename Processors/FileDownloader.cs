@@ -67,8 +67,7 @@ namespace SteamDatabaseBackend
                 {
                     "bin/engine.dylib",
                     //"csgo/bin/client.dylib",
-                    "csgo/bin/server.dylib",
-                    "csgo/bin/matchmaking.dylib"
+                    "csgo/bin/server.dylib"
                 }
             },
             {
@@ -116,7 +115,7 @@ namespace SteamDatabaseBackend
                     File.Delete(downloadPath);
                 }
 
-                Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", Path.GetFileName(file.FileName), file.TotalSize, file.Chunks.Count);
+                Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
 
                 uint count = 0;
 
