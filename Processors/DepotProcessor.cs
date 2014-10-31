@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
-using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -46,6 +45,8 @@ namespace SteamDatabaseBackend
             DepotLocks = new ConcurrentDictionary<uint, byte>();
 
             CDNClient = new CDNClient(client);
+
+            FileDownloader.SetCDNClient(CDNClient);
 
             CDNServers = new List<string>
             {
@@ -294,6 +295,11 @@ namespace SteamDatabaseBackend
             if (Application.ImportantApps.ContainsKey(request.ParentAppID))
             {
                 IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+
+                if (FileDownloader.IsImportantDepot(request.DepotID))
+                {
+                    Application.SecondaryPool.QueueWorkItem(FileDownloader.DownloadFilesFromDepot, request, depotManifest, WorkItemPriority.BelowNormal);
+                }
             }
 
             var filesNew = new List<DepotFile>();

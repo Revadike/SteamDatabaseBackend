@@ -98,6 +98,7 @@
     <Compile Include="Steam\Connection.cs" />
     <Compile Include="Steam\LicenseList.cs" />
     <Compile Include="IRC\Commands\SteamID.cs" />
+    <Compile Include="Processors\FileDownloader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
