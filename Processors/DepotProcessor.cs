@@ -295,11 +295,11 @@ namespace SteamDatabaseBackend
             if (Application.ImportantApps.ContainsKey(request.ParentAppID))
             {
                 IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+            }
 
-                if (FileDownloader.IsImportantDepot(request.DepotID))
-                {
-                    Application.SecondaryPool.QueueWorkItem(FileDownloader.DownloadFilesFromDepot, request, depotManifest, WorkItemPriority.BelowNormal);
-                }
+            if (FileDownloader.IsImportantDepot(request.DepotID))
+            {
+                Application.SecondaryPool.QueueWorkItem(FileDownloader.DownloadFilesFromDepot, request, depotManifest, WorkItemPriority.BelowNormal);
             }
 
             var filesNew = new List<DepotFile>();

@@ -29,9 +29,53 @@ namespace SteamDatabaseBackend
                 441,
                 new List<string>
                 {
+                    "tf/steam.inf",
                     "tf/resource/tf_english.txt"
                 }
-            }
+            },
+            // Dota 2
+            {
+                574,
+                new List<string>
+                {
+                    //"dota/bin/client.dylib",
+                    "dota/bin/server.dylib"
+                }
+            },
+            {
+                571,
+                new List<string>
+                {
+                    "dota/steam.inf",
+                    "dota/resource/dota_english.txt"
+                }
+            },
+            // Dota 2 Workshop
+            {
+                313250,
+                new List<string>
+                {
+                    "dota_ugc/game/dota/bin/win64/server.dll",
+                    "dota_ugc/game/bin/win64/engine2.dll"
+                }
+            },
+            // Counter-Strike: Global Offensive
+            {
+                733,
+                new List<string>
+                {
+                    //"csgo/bin/client.dylib",
+                    "csgo/bin/server.dylib"
+                }
+            },
+            {
+                731,
+                new List<string>
+                {
+                    "csgo/steam.inf",
+                    "csgo/resource/csgo_english.txt"
+                }
+            },
         };
 
         private static CDNClient CDNClient;
