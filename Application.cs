@@ -59,6 +59,8 @@ namespace SteamDatabaseBackend
 
         public static void Init()
         {
+            ReloadImportant();
+
             var thread = new Thread(new ThreadStart(Steam.Instance.Tick));
             thread.Name = "Steam";
             thread.Start();
@@ -69,8 +71,6 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-
-            ReloadImportant();
 
             var commandHandler = new CommandHandler();
 

@@ -6,6 +6,7 @@
 using System;
 using SteamKit2;
 using System.IO;
+using System.Linq;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
@@ -147,7 +148,12 @@ namespace SteamDatabaseBackend
 
             if (Settings.IsFullRun)
             {
-                if (Steam.Instance.PICSChanges.PreviousChangeNumber == 1)
+                if (Settings.Current.FullRun == 3)
+                {
+                    Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Enumerable.Empty<uint>());
+                    Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), Application.ImportantSubs.Keys.Select(package => Utils.NewPICSRequest(package)));
+                }
+                else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 1)
                 {
                     Steam.Instance.Apps.PICSGetChangesSince(1, true, true);
                 }
