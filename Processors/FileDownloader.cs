@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -18,11 +19,11 @@ namespace SteamDatabaseBackend
         {
             // Team Fortress 2
             {
-                232251,
+                232252,
                 new List<string>
                 {
-                    //"tf/bin/client.dll",
-                    "tf/bin/server.dll"
+                    //"tf/bin/client.dylib",
+                    "tf/bin/server.dylib"
                 }
             },
             {
@@ -35,12 +36,12 @@ namespace SteamDatabaseBackend
             },
             // Dota 2
             {
-                573,
+                574,
                 new List<string>
                 {
-                    "bin/engine.dll",
-                    //"dota/bin/client.dll",
-                    "dota/bin/server.dll"
+                    "bin/engine.dylib",
+                    //"dota/bin/client.dylib",
+                    "dota/bin/server.dylib"
                 }
             },
             {
@@ -62,12 +63,12 @@ namespace SteamDatabaseBackend
             },
             // Dota 2 Test
             {
-                205793,
+                205794,
                 new List<string>
                 {
-                    "bin/engine.dll",
-                    //"dota/bin/client.dll",
-                    "dota/bin/server.dll"
+                    "bin/engine.dylib",
+                    //"dota/bin/client.dylib",
+                    "dota/bin/server.dylib"
                 }
             },
             {
@@ -80,12 +81,12 @@ namespace SteamDatabaseBackend
             },
             // Counter-Strike: Global Offensive
             {
-                732,
+                733,
                 new List<string>
                 {
-                    "bin/engine.dll",
-                    //"csgo/bin/client.dll",
-                    "csgo/bin/server.dll"
+                    "bin/engine.dylib",
+                    //"csgo/bin/client.dylib",
+                    "csgo/bin/server.dylib"
                 }
             },
             {
@@ -141,22 +142,26 @@ namespace SteamDatabaseBackend
                 {
                     fs.SetLength((long)file.TotalSize);
 
+                    var lockObject = new object();
+
                     // TODO: We *could* verify each chunk and only download needed ones
-                    foreach (var chunk in file.Chunks)
+                    Parallel.ForEach(file.Chunks, (chunk, state) =>
                     {
                         var downloaded = false;
 
-                        // Who needs paralleled tasks anyway
                         for (var i = 0; i <= 5; i++)
                         {
                             try
                             {
                                 var chunkData = CDNClient.DownloadDepotChunk(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey);
 
-                                fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                                fs.Write(chunkData.Data, 0, chunkData.Data.Length);
+                                lock (lockObject)
+                                {
+                                    fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                                    fs.Write(chunkData.Data, 0, chunkData.Data.Length);
 
-                                Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, file.Chunks.Count);
+                                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, file.Chunks.Count);
+                                }
 
                                 downloaded = true;
 
@@ -164,15 +169,15 @@ namespace SteamDatabaseBackend
                             }
                             catch (Exception e)
                             {
-                                Log.WriteError("FileDownloader", "Error downloading {0}: {1}", file.FileName, e.Message);
+                                Log.WriteError("FileDownloader", "Error downloading {0} ({1}): {2}", file.FileName, job.DepotID, e.Message);
                             }
                         }
 
                         if (!downloaded)
                         {
-                            break;
+                            state.Stop();
                         }
-                    }
+                    });
                 }
 
                 if (count == file.Chunks.Count)
