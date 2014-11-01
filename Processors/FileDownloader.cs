@@ -18,11 +18,11 @@ namespace SteamDatabaseBackend
         {
             // Team Fortress 2
             {
-                232252,
+                232251,
                 new List<string>
                 {
-                    //"tf/bin/client.dylib",
-                    "tf/bin/server.dylib"
+                    //"tf/bin/client.dll",
+                    "tf/bin/server.dll"
                 }
             },
             {
@@ -35,12 +35,12 @@ namespace SteamDatabaseBackend
             },
             // Dota 2
             {
-                574,
+                573,
                 new List<string>
                 {
-                    "bin/engine.dylib",
-                    //"dota/bin/client.dylib",
-                    "dota/bin/server.dylib"
+                    "bin/engine.dll",
+                    //"dota/bin/client.dll",
+                    "dota/bin/server.dll"
                 }
             },
             {
@@ -60,14 +60,32 @@ namespace SteamDatabaseBackend
                     "dota_ugc/game/bin/win64/engine2.dll"
                 }
             },
-            // Counter-Strike: Global Offensive
+            // Dota 2 Test
             {
-                733,
+                205793,
                 new List<string>
                 {
-                    "bin/engine.dylib",
-                    //"csgo/bin/client.dylib",
-                    "csgo/bin/server.dylib"
+                    "bin/engine.dll",
+                    //"dota/bin/client.dll",
+                    "dota/bin/server.dll"
+                }
+            },
+            {
+                205791,
+                new List<string>
+                {
+                    "dota/steam.inf",
+                    "dota/resource/dota_english.txt"
+                }
+            },
+            // Counter-Strike: Global Offensive
+            {
+                732,
+                new List<string>
+                {
+                    "bin/engine.dll",
+                    //"csgo/bin/client.dll",
+                    "csgo/bin/server.dll"
                 }
             },
             {
