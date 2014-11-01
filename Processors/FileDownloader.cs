@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SteamKit2;
 
@@ -121,6 +122,24 @@ namespace SteamDatabaseBackend
             foreach (var file in files)
             {
                 string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files", job.DepotID.ToString());
+                string finalPath = Path.Combine(directory, Path.GetFileName(file.FileName));
+
+                if (File.Exists(finalPath))
+                {
+                    using (var fs = File.Open(finalPath, FileMode.OpenOrCreate))
+                    {
+                        using (var sha = new SHA1Managed())
+                        {
+                            if (file.FileHash.SequenceEqual(sha.ComputeHash(fs)))
+                            {
+                                Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
+
+                                continue;
+                            }
+                        }
+                    }
+                }
+
                 string downloadPath = Path.Combine(directory, string.Concat("staged_", Path.GetFileName(file.FileName)));
 
                 if (!Directory.Exists(directory))
@@ -137,6 +156,7 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
 
                 uint count = 0;
+                byte[] checksum;
 
                 using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate))
                 {
@@ -169,7 +189,7 @@ namespace SteamDatabaseBackend
                             }
                             catch (Exception e)
                             {
-                                Log.WriteError("FileDownloader", "Error downloading {0} ({1}): {2}", file.FileName, job.DepotID, e.Message);
+                                Log.WriteError("FileDownloader", "Error downloading {0} ({1}): {2} (#{3})", file.FileName, job.DepotID, e.Message, i);
                             }
                         }
 
@@ -178,17 +198,20 @@ namespace SteamDatabaseBackend
                             state.Stop();
                         }
                     });
+
+                    fs.Seek(0, SeekOrigin.Begin);
+
+                    using (var sha = new SHA1Managed())
+                    {
+                        checksum = sha.ComputeHash(fs);
+                    }
                 }
 
-                if (count == file.Chunks.Count)
+                if (file.FileHash.SequenceEqual(checksum))
                 {
                     IRC.Instance.SendOps("{0}[{1}]{2} Downloaded {3}{4}", Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, Colors.OLIVE, file.FileName);
 
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
-
-                    // TODO: Verify hash
-
-                    var finalPath = Path.Combine(directory, Path.GetFileName(file.FileName));
 
                     if (File.Exists(finalPath))
                     {
@@ -203,7 +226,7 @@ namespace SteamDatabaseBackend
                 {
                     IRC.Instance.SendOps("{0}[ERROR]{1} Failed to download:{2} {3} ({4} of {5} chunks)", Colors.RED, Colors.NORMAL, Colors.OLIVE, file.FileName, count, file.Chunks.Count);
 
-                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {0} out of {1} chunks downloaded", downloadPath, count, file.Chunks.Count);
+                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded (or checksum failed)", downloadPath, count, file.Chunks.Count);
 
                     File.Delete(downloadPath);
                 }
