@@ -87,8 +87,7 @@ namespace SteamDatabaseBackend
                         // TODO: Create it?
                         Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, currentType);
 
-                        // TODO: This is debuggy just so we are aware of new app types
-                        IRC.Instance.SendAnnounce("Unknown app type \"{0}\" for appid {1}, cc Alram and xPaw", currentType, AppID);
+                        IRC.Instance.SendOps("New app type: {0}{1}{2} for app {3}{4}{5}", Colors.BLUE, currentType, Colors.NORMAL, Colors.BLUE, AppID, Colors.NORMAL);
                     }
                 }
 
@@ -372,6 +371,8 @@ namespace SteamDatabaseBackend
                     }
 
                     ID = GetKeyNameID(keyName);
+
+                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, ID);
 
                     if (ID == 0)
                     {

@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
                 // For some obscure reason license list can contain duplicates
                 if (ownedSubs.ContainsKey(license.PackageID))
                 {
-                    Log.WriteError("LicenseList", "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
+                    Log.WriteWarn("LicenseList", "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
 
                     continue;
                 }

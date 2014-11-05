@@ -196,6 +196,11 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
+                if (FileDownloader.IsImportantDepot(request.DepotID))
+                {
+                    Log.WriteError("Depot Processor", "Failed to get CDN auth token for depot {0} (parent {1}) - {2}", request.DepotID, request.ParentAppID, callback.Result);
+                }
+
                 RemoveLock(request.DepotID);
 
                 return;
@@ -219,6 +224,11 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
+                if (FileDownloader.IsImportantDepot(request.DepotID))
+                {
+                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
+                }
+
                 if (callback.Result != EResult.Blocked)
                 {
                     Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);

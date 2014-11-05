@@ -126,7 +126,7 @@ namespace SteamDatabaseBackend
 
                 if (File.Exists(finalPath))
                 {
-                    using (var fs = File.Open(finalPath, FileMode.OpenOrCreate))
+                    using (var fs = File.Open(finalPath, FileMode.Open))
                     {
                         using (var sha = new SHA1Managed())
                         {
@@ -148,7 +148,7 @@ namespace SteamDatabaseBackend
                 }
                 else if(File.Exists(downloadPath))
                 {
-                    Log.WriteDebug("FileDownloader", "Removing stale {0}", file.FileName);
+                    Log.WriteWarn("FileDownloader", "Removing stale {0}", file.FileName);
 
                     File.Delete(downloadPath);
                 }
@@ -224,9 +224,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    IRC.Instance.SendOps("{0}[ERROR]{1} Failed to download:{2} {3} ({4} of {5} chunks)", Colors.RED, Colors.NORMAL, Colors.OLIVE, file.FileName, count, file.Chunks.Count);
-
-                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded (or checksum failed)", downloadPath, count, file.Chunks.Count);
+                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded (or checksum failed)", file.FileName, count, file.Chunks.Count);
 
                     File.Delete(downloadPath);
                 }

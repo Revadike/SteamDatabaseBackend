@@ -31,6 +31,11 @@ namespace SteamDatabaseBackend
 
         static Log()
         {
+            if (!Settings.Current.LogToFile)
+            {
+                return;
+            }
+
             try
             {
                 string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY);
@@ -38,6 +43,8 @@ namespace SteamDatabaseBackend
             }
             catch (Exception ex)
             {
+                Settings.Current.LogToFile = false;
+
                 Console.WriteLine("ERROR: Unable to create logs directory: {0}", ex.Message);
             }
         }
@@ -60,6 +67,8 @@ namespace SteamDatabaseBackend
         public static void WriteError(string component, string format, params object[] args)
         {
             WriteLine(Category.ERROR, component, format, args);
+
+            IRC.Instance.SendOps("{0}ERROR in {1}:{2} {3}", Colors.RED, component, Colors.NORMAL, string.Format(format.Replace("\n", " "), args));
         }
 
         private static void WriteLine(Category category, string component, string format, params object[] args)

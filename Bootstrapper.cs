@@ -12,7 +12,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class Program
+    static class Bootstrapper
     {
         private static bool CleaningUp;
 
@@ -23,8 +23,8 @@ namespace SteamDatabaseBackend
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             var date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
 
-            Log.WriteInfo("Main", "Steam Database backend application. Built on {0} UTC", date);
-            Log.WriteInfo("Main", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
+            Log.WriteInfo("Bootstrapper", "Steam Database backend application. Built on {0} UTC", date);
+            Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             try
             {
@@ -54,7 +54,7 @@ namespace SteamDatabaseBackend
         {
             if (CleaningUp)
             {
-                Log.WriteInfo("Application", "Forcing exit");
+                Log.WriteInfo("Bootstrapper", "Forcing exit");
 
                 Environment.Exit(0);
 
@@ -72,13 +72,13 @@ namespace SteamDatabaseBackend
         {
             var e = (Exception)args.ExceptionObject;
 
-            Log.WriteError("Unhandled Exception", "{0} (is terminating: {1})\n{2}", e.Message, args.IsTerminating, e.StackTrace);
+            Log.WriteError("Unhandled Exception", "{0}\n{1}", e.Message, e.StackTrace);
 
             if (args.IsTerminating)
             {
                 AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;
 
-                IRC.Instance.SendMain("Hey, xPaw and Alram, I'm crashing over here!!");
+                IRC.Instance.SendOps("I am literally about to crash, send help.");
 
                 Cleanup();
             }
@@ -86,7 +86,7 @@ namespace SteamDatabaseBackend
 
         private static void Cleanup()
         {
-            Log.WriteInfo("Application", "Exiting... ({0} processor, {1} secondary)", Application.ProcessorPool.InUseThreads, Application.SecondaryPool.InUseThreads);
+            Log.WriteInfo("Bootstrapper", "Exiting...");
 
             Application.ChangelistTimer.Stop();
 
@@ -104,36 +104,36 @@ namespace SteamDatabaseBackend
                 catch { }
             }
 
-            Log.WriteInfo("Application", "Waiting for processor pool to idle");
+            Log.WriteInfo("Bootstrapper", "Waiting for processor pool to idle ({0} threads in use)", Application.ProcessorPool.InUseThreads);
 
             Application.ProcessorPool.WaitForIdle();
 
-            Log.WriteInfo("Application", "Waiting for secondary pool to idle");
+            Log.WriteInfo("Bootstrapper", "Waiting for secondary pool to idle ({0} threads in use)", Application.SecondaryPool.InUseThreads);
 
             Application.SecondaryPool.WaitForIdle();
 
-            Log.WriteInfo("Application", "Shutting down pools");
+            Log.WriteInfo("Bootstrapper", "Shutting down pools");
 
             try { Application.SecondaryPool.Shutdown(true, 1000); } catch { }
             try { Application.ProcessorPool.Shutdown(true, 1000); } catch { }
 
-            Log.WriteInfo("Application", "Disconnecting from Steam");
+            Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
 
             try { Steam.Instance.Client.Disconnect();             } catch { }
 
             if (Settings.Current.IRC.Enabled)
             {
-                Log.WriteInfo("Application", "Closing IRC connection");
+                Log.WriteInfo("Bootstrapper", "Closing IRC connection");
 
                 IRC.Instance.Close(CleaningUp);
             }
 
             foreach (var thread in Application.Threads)
             {
-                Log.WriteInfo("Application", "Joining thread {0} ({1})", thread.Name, thread.ThreadState.ToString());
-
                 if (thread.ThreadState == ThreadState.Running)
                 {
+                    Log.WriteInfo("Bootstrapper", "Joining thread {0}", thread.Name);
+
                     thread.Join(TimeSpan.FromSeconds(30));
                 }
             }
