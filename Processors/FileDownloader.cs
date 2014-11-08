@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "bin/engine.dylib",
-                    //"dota/bin/client.dylib",
+                    "dota/bin/client.dylib",
                     "dota/bin/server.dylib"
                 }
             },
@@ -60,8 +60,9 @@ namespace SteamDatabaseBackend
                 313250,
                 new List<string>
                 {
-                    "dota_ugc/game/dota/bin/win64/server.dll",
-                    "dota_ugc/game/bin/win64/engine2.dll"
+                    "dota_ugc/game/bin/win64/engine2.dll",
+                    "dota_ugc/game/dota/bin/win64/client.dll",
+                    "dota_ugc/game/dota/bin/win64/server.dll"
                 }
             },
             // Dota 2 Test
@@ -70,7 +71,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "bin/engine.dylib",
-                    //"dota/bin/client.dylib",
+                    "dota/bin/client.dylib",
                     "dota/bin/server.dylib"
                 }
             },
@@ -88,7 +89,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "bin/engine.dylib",
-                    //"csgo/bin/client.dylib",
+                    "csgo/bin/client.dylib",
                     "csgo/bin/server.dylib"
                 }
             },
