@@ -34,6 +34,7 @@ namespace SteamDatabaseBackend
             public string CDNToken;
             public string Server;
             public byte[] DepotKey;
+            public int Tries;
         }
 
         private readonly CDNClient CDNClient;
@@ -56,7 +57,7 @@ namespace SteamDatabaseBackend
                 //"content4.steampowered.com", // EdgeCast, seems to be missing content
                 "content5.steampowered.com", // CloudFront
                 //"content6.steampowered.com", // Comcast, non optimal
-                "content7.steampowered.com", // Akamai
+                //"content7.steampowered.com", //
                 "content8.steampowered.com" // Akamai
             };
 
@@ -100,7 +101,7 @@ namespace SteamDatabaseBackend
                 {
                     // If there is no public manifest for this depot, it still could have some sort of open beta
 
-                    var branch = depot["manifests"].Children.SingleOrDefault(x => x.Name != "local");
+                    var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
 
                     if (branch == null || !ulong.TryParse(branch.Value, out manifestID))
                     {
@@ -177,9 +178,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                request.Server = CDNServers[new Random().Next(CDNServers.Count)];
-
-                JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(depotID, request.Server), request);
+                JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
             }
         }
 
@@ -198,7 +197,17 @@ namespace SteamDatabaseBackend
             {
                 if (FileDownloader.IsImportantDepot(request.DepotID))
                 {
-                    Log.WriteError("Depot Processor", "Failed to get CDN auth token for depot {0} (parent {1}) - {2}", request.DepotID, request.ParentAppID, callback.Result);
+                    Log.WriteError("Depot Processor", "Failed to get CDN auth token for depot {0} (parent {1} - server {2}) - {3} (#{4})",
+                        request.DepotID, request.ParentAppID, request.Server, callback.Result, request.Tries);
+                }
+
+                if (--request.Tries > 0)
+                {
+                    request.Server = GetContentServer(request.Tries);
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
+
+                    return;
                 }
 
                 RemoveLock(request.DepotID);
@@ -208,7 +217,15 @@ namespace SteamDatabaseBackend
 
             request.CDNToken = callback.Token;
 
-            JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+            // In full run, process depots after everything else
+            if (Settings.IsFullRun)
+            {
+                Application.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
+            }
+            else
+            {
+                Application.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
+            }
         }
 
         private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
@@ -224,12 +241,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                if (FileDownloader.IsImportantDepot(request.DepotID))
-                {
-                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
-                }
-
-                if (callback.Result != EResult.Blocked)
+                if (callback.Result != EResult.AccessDenied || FileDownloader.IsImportantDepot(request.DepotID))
                 {
                     Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
                 }
@@ -239,23 +251,17 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
-
             request.DepotKey = callback.DepotKey;
+            request.Tries = CDNServers.Count;
+            request.Server = GetContentServer();
 
-            // In full run, process depots after everything else
-            if (Settings.IsFullRun)
-            {
-                Application.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
-            }
-            else
-            {
-                Application.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
-            }
+            JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
         }
 
         private void TryDownloadManifest(ManifestJob request)
         {
+            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
+
             try
             {
                 DownloadManifest(request);
@@ -444,6 +450,20 @@ namespace SteamDatabaseBackend
             byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
 
             DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam);
+        }
+
+        private string GetContentServer()
+        {
+            var i = new Random().Next(CDNServers.Count);
+
+            return CDNServers[i];
+        }
+
+        private string GetContentServer(int i)
+        {
+            i %= CDNServers.Count;
+
+            return CDNServers[i];
         }
     }
 }
