@@ -68,7 +68,10 @@ namespace SteamDatabaseBackend
         {
             WriteLine(Category.ERROR, component, format, args);
 
-            IRC.Instance.SendOps("{0}ERROR in {1}:{2} {3}", Colors.RED, component, Colors.NORMAL, string.Format(format.Replace("\n", " "), args));
+            if (!component.Equals("IRC"))
+            {
+                IRC.Instance.SendOps("{0}ERROR in {1}:{2} {3}", Colors.RED, component, Colors.NORMAL, string.Format(format.Replace("\n", " "), args));
+            }
         }
 
         private static void WriteLine(Category category, string component, string format, params object[] args)
