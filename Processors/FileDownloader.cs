@@ -16,6 +16,8 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
+        private const string FILES_DIRECTORY = "files";
+
         private static readonly Dictionary<uint, List<string>> ImportantDepots = new Dictionary<uint, List<string>>
         {
             // Team Fortress 2
@@ -105,6 +107,16 @@ namespace SteamDatabaseBackend
         public static void SetCDNClient(CDNClient cdnClient)
         {
             CDNClient = cdnClient;
+
+            try
+            {
+                string filesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILES_DIRECTORY);
+                Directory.CreateDirectory(filesDir);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError("FileDownloader", "Unable to create files directory: {0}", ex.Message);
+            }
         }
 
         public static bool IsImportantDepot(uint depotID)
@@ -121,7 +133,7 @@ namespace SteamDatabaseBackend
 
             foreach (var file in files)
             {
-                string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files", job.DepotID.ToString());
+                string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILES_DIRECTORY, job.DepotID.ToString());
                 string finalPath = Path.Combine(directory, Path.GetFileName(file.FileName));
 
                 if (File.Exists(finalPath))
