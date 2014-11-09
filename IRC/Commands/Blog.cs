@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1"))
+            using (var reader = GetBlogQuery(command.Message))
             {
                 if (reader.Read())
                 {
@@ -30,12 +30,32 @@ namespace SteamDatabaseBackend
 
                     CommandHandler.ReplyToCommand(
                         command,
-                        "Latest blog post:{0} {1}{2} -{3} {4}",
+
+                        command.Message.Length > 0 ?
+                            "Blog post:{0} {1}{2} -{3} {4}" :
+                            "Latest blog post:{0} {1}{2} -{3} {4}",
+
                         Colors.BLUE, reader.GetString("Title"), Colors.NORMAL,
                         Colors.DARKBLUE, SteamDB.GetBlogURL(slug)
                     );
                 }
+                else
+                {
+                    CommandHandler.ReplyToCommand(command, "No blog post found.");
+                }
             }
+        }
+
+        private static MySqlDataReader GetBlogQuery(string input)
+        {
+            if (input.Length > 0)
+            {
+                return DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND `Slug` = @Slug OR `ID` = @Slug LIMIT 1",
+                    new MySqlParameter("@Slug", input)
+                );
+            }
+
+            return DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1");
         }
     }
 }
