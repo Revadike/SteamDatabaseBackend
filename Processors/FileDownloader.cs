@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
                 232252,
                 new List<string>
                 {
-                    //"tf/bin/client.dylib",
+                    "tf/bin/client.dylib",
                     "tf/bin/server.dylib"
                 }
             },
@@ -61,6 +61,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "dota_ugc/game/bin/win64/engine2.dll",
+                    "dota_ugc/game/bin/win64/vphysics2.dll",
                     "dota_ugc/game/dota/bin/win64/client.dll",
                     "dota_ugc/game/dota/bin/win64/server.dll"
                 }
