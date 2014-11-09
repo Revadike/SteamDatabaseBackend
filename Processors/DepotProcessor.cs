@@ -138,7 +138,7 @@ namespace SteamDatabaseBackend
 
                         request.PreviousManifestID = reader.GetUInt64("ManifestID");
 
-                        if (request.PreviousManifestID == manifestID && Settings.Current.FullRun < 2)
+                        if (request.PreviousManifestID == manifestID)
                         {
                             // Update depot name if changed
                             if(!depotName.Equals(currentDepotName))
@@ -149,10 +149,12 @@ namespace SteamDatabaseBackend
                                 );
                             }
 
-                            continue;
+                            if (Settings.Current.FullRun < 2)
+                            {
+                                continue;
+                            }
                         }
-
-                        if (currentBuildID > buildID)
+                        else if (currentBuildID > buildID)
                         {
                             Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", depotID, currentBuildID, buildID);
                             continue;
