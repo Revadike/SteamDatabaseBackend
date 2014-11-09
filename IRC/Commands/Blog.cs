@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
         {
             if (input.Length > 0)
             {
-                return DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND `Slug` = @Slug OR `ID` = @Slug LIMIT 1",
+                return DbWorker.ExecuteReader("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND (`Slug` = @Slug OR `ID` = @Slug) LIMIT 1",
                     new MySqlParameter("@Slug", input)
                 );
             }
