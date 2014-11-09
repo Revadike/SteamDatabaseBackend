@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
@@ -129,10 +130,10 @@ namespace SteamDatabaseBackend
                 DbWorker.ExecuteNonQuery(changes);
             }
 
-            foreach (var app in callback.AppChanges.Values)
+            Parallel.ForEach(callback.AppChanges.Values, app =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-            }
+            });
         }
 
         private static void HandlePackages(SteamApps.PICSChangesCallback callback)
@@ -156,10 +157,10 @@ namespace SteamDatabaseBackend
                 DbWorker.ExecuteNonQuery(changes);
             }
 
-            foreach (var package in callback.PackageChanges.Values)
+            Parallel.ForEach(callback.PackageChanges.Values, package =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-            }
+            });
         }
 
         private static void PrintImportants(SteamApps.PICSChangesCallback callback)
