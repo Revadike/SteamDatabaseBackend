@@ -135,6 +135,8 @@ namespace SteamDatabaseBackend
                                 );
 
                                 MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
+
+                                // TODO: Log relevant add/remove history for depot/app?
                             }
 
                             apps.Remove(appID);
@@ -148,7 +150,19 @@ namespace SteamDatabaseBackend
                             );
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
-                            AppProcessor.MakeHistory(appID, ChangeNumber, "added_to_sub", typeID, string.Empty, SubID.ToString());
+
+                            if (typeID == 0)
+                            {
+                                AppProcessor.MakeHistory(appID, ChangeNumber, "added_to_sub", 0, string.Empty, SubID.ToString());
+                            }
+                            else
+                            {
+                                DepotProcessor.MakeHistory(new DepotProcessor.ManifestJob
+                                {
+                                    DepotID = appID,
+                                    ChangeNumber = ChangeNumber
+                                }, string.Empty, "added_to_sub", 0, SubID);
+                            }
                         }
                     }
 
@@ -216,7 +230,19 @@ namespace SteamDatabaseBackend
                 uint typeID = (uint)(app.Value.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
 
                 MakeHistory("removed_from_sub", typeID, app.Key.ToString());
-                AppProcessor.MakeHistory(app.Key, ChangeNumber, "removed_from_sub", typeID, SubID.ToString());
+
+                if (typeID == 0)
+                {
+                    AppProcessor.MakeHistory(app.Key, ChangeNumber, "removed_from_sub", 0, SubID.ToString());
+                }
+                else
+                {
+                    DepotProcessor.MakeHistory(new DepotProcessor.ManifestJob
+                    {
+                        DepotID = app.Key,
+                        ChangeNumber = ChangeNumber
+                    }, string.Empty, "removed_from_sub", SubID);
+                }
             }
 
 #if DEBUG
