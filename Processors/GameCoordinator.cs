@@ -10,12 +10,13 @@ using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
 
+using CMsgServerWelcome = SteamKit2.GC.TF2.Internal.CMsgServerWelcome;
+
 namespace SteamDatabaseBackend
 {
     class GameCoordinator
     {
         private readonly uint AppID;
-        private readonly SteamClient SteamClient;
         private readonly SteamGameCoordinator SteamGameCoordinator;
         private readonly Dictionary<uint, Action<IPacketGCMsg>> GCMessageMap;
         private readonly System.Timers.Timer Timer;
@@ -29,7 +30,6 @@ namespace SteamDatabaseBackend
             // Map gc messages to our callback functions
             GCMessageMap = new Dictionary<uint, Action<IPacketGCMsg>>
             {
-                { (uint)4008 /* TF2's k_EMsgGCClientGoodbye */, OnConnectionStatus },
                 { (uint)EGCBaseClientMsg.k_EMsgGCServerConnectionStatus, OnConnectionStatus },
                 { (uint)EGCBaseClientMsg.k_EMsgGCServerWelcome, OnWelcome },
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
@@ -37,10 +37,15 @@ namespace SteamDatabaseBackend
                 { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage }
             };
 
-            this.AppID = appID;
-            this.SteamClient = steamClient;
-            this.SteamGameCoordinator = SteamClient.GetHandler<SteamGameCoordinator>();
-            this.Name = string.Format("GC {0}", appID);
+            // Extra handler for TF2
+            if (appID == 440)
+            {
+                GCMessageMap.Add((uint)4008, OnConnectionStatus);
+            }
+
+            AppID = appID;
+            Name = string.Format("GC {0}", appID);
+            SteamGameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
 
             Timer = new System.Timers.Timer();
             Timer.Elapsed += OnTimer;
@@ -102,7 +107,7 @@ namespace SteamDatabaseBackend
             // TF2 GC is not in sync
             if (AppID == 440)
             {
-                var msg = new ClientGCMsgProtobuf<SteamKit2.GC.TF2.Internal.CMsgServerWelcome>(packetMsg).Body;
+                var msg = new ClientGCMsgProtobuf<CMsgServerWelcome>(packetMsg).Body;
 
                 version = (int)msg.active_version;
             }
