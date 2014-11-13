@@ -133,7 +133,8 @@ namespace SteamDatabaseBackend
             Parallel.ForEach(callback.AppChanges.Values, app =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-                DbWorker.ExecuteNonQuery("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@AppID, 'app') ON DUPLICATE KEY UPDATE `ID` = `ID`", new MySqlParameter("@AppID", app.ID));
+
+                StoreQueue.AddAppToQueue(app.ID);
             });
         }
 
@@ -161,14 +162,15 @@ namespace SteamDatabaseBackend
             Parallel.ForEach(callback.PackageChanges.Values, package =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-                DbWorker.ExecuteNonQuery("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@SubID, 'sub') ON DUPLICATE KEY UPDATE `ID` = `ID`", new MySqlParameter("@SubID", package.ID));
+
+                StoreQueue.AddPackageToQueue(package.ID);
 
                 // Queue all the apps in the package as well
                 using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = @SubID AND `Type` = 'app'", new MySqlParameter("@SubID", package.ID)))
                 {
                     while (reader.Read())
                     {
-                        DbWorker.ExecuteNonQuery("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@AppID, 'app') ON DUPLICATE KEY UPDATE `ID` = `ID`", new MySqlParameter("@AppID", reader.GetUInt32("AppID")));
+                        StoreQueue.AddAppToQueue(reader.GetUInt32("AppID"));
                     }
                 }
             });

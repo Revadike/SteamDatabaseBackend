@@ -179,6 +179,64 @@ namespace SteamDatabaseBackend
 
                             break;
                         }
+
+                    case "queue":
+                        {
+                            if (count < 3)
+                            {
+                                break;
+                            }
+
+                            uint id;
+
+                            if (!uint.TryParse(s[2], out id))
+                            {
+                                break;
+                            }
+
+                            switch (s[1])
+                            {
+                                case "app":
+                                    {
+                                        using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
+                                        {
+                                            if (reader.Read())
+                                            {
+                                                StoreQueue.AddAppToQueue(id);
+
+                                                CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+
+                                                return;
+                                            }
+                                        }
+
+                                        CommandHandler.ReplyToCommand(command, "This app is not in the database.");
+
+                                        return;
+                                    }
+
+                                case "sub":
+                                    {
+                                        using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
+                                        {
+                                            if (reader.Read())
+                                            {
+                                                StoreQueue.AddPackageToQueue(id);
+
+                                                CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+
+                                                return;
+                                            }
+                                        }
+
+                                        CommandHandler.ReplyToCommand(command, "This package is not in the database.");
+
+                                        return;
+                                    }
+                            }
+
+                            break;
+                        }
                 }
             }
 

@@ -99,6 +99,7 @@
     <Compile Include="IRC\Commands\SteamID.cs" />
     <Compile Include="Processors\FileDownloader.cs" />
     <Compile Include="Bootstrapper.cs" />
+    <Compile Include="Managers\StoreQueue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -134,5 +135,6 @@
     <Folder Include="Util\" />
     <Folder Include="IRC\Commands\" />
     <Folder Include="Steam\" />
+    <Folder Include="Managers\" />
   </ItemGroup>
 </Project>
