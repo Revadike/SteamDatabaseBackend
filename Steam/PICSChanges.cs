@@ -133,6 +133,7 @@ namespace SteamDatabaseBackend
             Parallel.ForEach(callback.AppChanges.Values, app =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
+                DbWorker.ExecuteNonQuery("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@AppID, 'app') ON DUPLICATE KEY UPDATE `ID` = `ID`", new MySqlParameter("@AppID", app.ID));
             });
         }
 
@@ -160,6 +161,7 @@ namespace SteamDatabaseBackend
             Parallel.ForEach(callback.PackageChanges.Values, package =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
+                DbWorker.ExecuteNonQuery("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@SubID, 'sub') ON DUPLICATE KEY UPDATE `ID` = `ID`", new MySqlParameter("@SubID", package.ID));
             });
         }
 
