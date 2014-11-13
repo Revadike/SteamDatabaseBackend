@@ -68,7 +68,14 @@ namespace SteamDatabaseBackend
                 output += "%";
             }
 
-            if (output.Length == 0 || output.Distinct().First() == '%')
+            if (output.Length == 0)
+            {
+                return false;
+            }
+
+            var distinct = output.Distinct().ToList();
+
+            if (distinct.Count() == 1 && distinct.First() == '%')
             {
                 return false;
             }
