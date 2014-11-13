@@ -323,7 +323,7 @@ namespace SteamDatabaseBackend
             var filesNew = new List<DepotFile>();
             var filesOld = new Dictionary<string, DepotFile>();
 
-            using (var reader = DbWorker.ExecuteReader("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new MySqlParameter("DepotID", request.DepotID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new MySqlParameter("DepotID", request.DepotID)))
             {
                 while (reader.Read())
                 {
@@ -331,7 +331,12 @@ namespace SteamDatabaseBackend
 
                     if (filesOld.ContainsKey(fileName))
                     {
-                        Log.WriteError("Depot Processor", "Skipping file {0} in depot {1} (from parent {2}) because we already got one", fileName, request.DepotID, request.ParentAppID);
+                        Log.WriteWarn("Depot Processor", "Deleting duplicate file {0} in depot {1} (from parent {2})", fileName, request.DepotID, request.ParentAppID);
+
+                        DbWorker.ExecuteNonQuery("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` = @ID",
+                            new MySqlParameter("@DepotID", request.DepotID),
+                            new MySqlParameter("@ID", reader.GetUInt32("ID"))
+                        );
 
                         continue;
                     }
