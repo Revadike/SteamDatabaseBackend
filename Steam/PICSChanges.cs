@@ -17,6 +17,24 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
+        private static readonly string IgnorableBillingTypes;
+
+        static PICSChanges()
+        {
+            var ignorableBillingTypes = new List<EBillingType>()
+            {
+                EBillingType.ProofOfPrepurchaseOnly, // CDKey
+                EBillingType.GuestPass,
+                EBillingType.HardwarePromo,
+                EBillingType.Gift,
+                EBillingType.AutoGrant,
+                EBillingType.OEMTicket,
+                EBillingType.RecurringOption, // Not sure if should be ignored
+            };
+
+            IgnorableBillingTypes = string.Join(",", ignorableBillingTypes.Select(@enum => (int)@enum));
+        }
+
         public PICSChanges(CallbackManager manager)
             : base(manager)
         {
@@ -159,9 +177,28 @@ namespace SteamDatabaseBackend
                 DbWorker.ExecuteNonQuery(changes);
             }
 
+            var ignoredPackages = new Dictionary<uint, byte>();
+
+            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN({0}) AND `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype') AND `Value` IN ({1})",
+                string.Join(",", callback.PackageChanges.Values.Select(x => x.ID)),
+                IgnorableBillingTypes)))
+            {
+                while (reader.Read())
+                {
+                    ignoredPackages.Add(reader.GetUInt32("SubID"), (byte)1);
+                }
+            }
+
             Parallel.ForEach(callback.PackageChanges.Values, package =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
+
+                if(ignoredPackages.ContainsKey(package.ID))
+                {
+                    Log.WriteDebug("PICSChanges Store Queue", "Ignoring sub {0}", package.ID);
+
+                    return;
+                }
 
                 StoreQueue.AddPackageToQueue(package.ID);
 
