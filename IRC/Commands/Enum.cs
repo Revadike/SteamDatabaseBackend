@@ -35,9 +35,9 @@ namespace SteamDatabaseBackend
 
             var args = command.Message.Split(' ');
 
-            if (args.Length < 2)
+            if (args.Length < 1)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !enum <enumname> <value or substring> [deprecated]", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} !enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
 
                 return;
             }
@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
 
             GetType().GetMethod("RunForEnum", BindingFlags.Instance | BindingFlags.NonPublic)
                 .MakeGenericMethod(matchingEnumType)
-                .Invoke(this, new object[] { args[1], command, includeDeprecated });
+                .Invoke(this, new object[] { args.Length > 1 ? args[1] : string.Empty, command, includeDeprecated });
         }
 
         void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
@@ -77,22 +77,39 @@ namespace SteamDatabaseBackend
                 enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), inherit: false).Any()));
             }
 
-            var enumValuesWithMatchingName = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.InvariantCultureIgnoreCase) >= 0);
-            var count = enumValuesWithMatchingName.Count();
+            if (!string.IsNullOrEmpty(inputValue))
+            {
+                enumValues = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.InvariantCultureIgnoreCase) >= 0);
+            }
+
+            var count = enumValues.Count();
 
             if (count == 0)
             {
                 CommandHandler.ReplyToCommand(command, "No matches found.");
+
+                return;
             }
             else if (count > 10)
             {
-                CommandHandler.ReplyToCommand(command, "More than 10 results found.");
+                if (!string.IsNullOrEmpty(inputValue))
+                {
+                    CommandHandler.ReplyToCommand(command, "More than 10 results found.");
+
+                    return;
+                }
+
+                enumValues = enumValues.Take(10);
             }
-            else
+
+            var formatted = string.Join(", ", enumValues.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(typeof(TEnum), @enum, "D"))));
+
+            if (count > 10)
             {
-                var formatted = string.Join(", ", enumValuesWithMatchingName.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(typeof(TEnum), @enum, "D"))));
-                CommandHandler.ReplyToCommand(command, formatted);
+                formatted = string.Format("{0}, and {1} more...", formatted, count - 10);
             }
+
+            CommandHandler.ReplyToCommand(command, formatted);
         }
     }
 }
