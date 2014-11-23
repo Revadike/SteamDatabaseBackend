@@ -198,13 +198,13 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
+                                        using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
                                         {
                                             if (reader.Read())
                                             {
                                                 StoreQueue.AddAppToQueue(id);
 
-                                                CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id));
+                                                CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(reader.GetString("Name")));
 
                                                 return;
                                             }
@@ -217,13 +217,13 @@ namespace SteamDatabaseBackend
 
                                 case "sub":
                                     {
-                                        using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
+                                        using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id)))
                                         {
                                             if (reader.Read())
                                             {
                                                 StoreQueue.AddPackageToQueue(id);
 
-                                                CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                                CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(reader.GetString("Name")));
 
                                                 return;
                                             }
