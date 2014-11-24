@@ -217,6 +217,13 @@ namespace SteamDatabaseBackend
 
                                 case "sub":
                                     {
+                                        if (id == 0)
+                                        {
+                                            CommandHandler.ReplyToCommand(command, "Sub 0 can not be queued.");
+
+                                            return;
+                                        }
+
                                         using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id)))
                                         {
                                             if (reader.Read())
