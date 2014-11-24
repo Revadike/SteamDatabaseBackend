@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
 
             CDNServers = new List<string>
             {
-                "content1.steampowered.com", // Limelight
+                //"content1.steampowered.com", // Used to be Limelight
                 "content2.steampowered.com", // Level3
                 "content3.steampowered.com", // Highwinds
                 //"content4.steampowered.com", // EdgeCast, seems to be missing content
