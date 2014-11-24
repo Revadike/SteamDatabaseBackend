@@ -112,7 +112,7 @@ namespace SteamDatabaseBackend
                     {
                         Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
                             string.Format(
-                                ":retreat: New {0} was published: {1}\nSteamDB: {2}\nSteam: http://store.steampowered.com/app/{3}/",
+                                "New {0} was published: {1}\nSteamDB: {2}\nSteam: http://store.steampowered.com/app/{3}/",
                                 currentType,
                                 productInfo.KeyValues["common"]["name"].AsString(),
                                 SteamDB.GetAppURL(AppID),
