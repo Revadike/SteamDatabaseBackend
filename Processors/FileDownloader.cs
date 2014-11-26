@@ -34,7 +34,11 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "tf/steam.inf",
-                    "tf/resource/tf_english.txt"
+                    "tf/resource/tf_english.txt",
+                    "tf/tf2_misc_dir.vpk",
+                    "tf/tf2_sound_misc_dir.vpk",
+                    "tf/tf2_sound_vo_english_dir.vpk",
+                    "tf/tf2_textures_dir.vpk"
                 }
             },
             // Dota 2
@@ -52,7 +56,8 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "dota/steam.inf",
-                    "dota/resource/dota_english.txt"
+                    "dota/resource/dota_english.txt",
+                    "dota/pak01_dir.vpk"
                 }
             },
             // Dota 2 Workshop
@@ -81,7 +86,8 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "dota/steam.inf",
-                    "dota/resource/dota_english.txt"
+                    "dota/resource/dota_english.txt",
+                    "dota/pak01_dir.vpk"
                 }
             },
             // Counter-Strike: Global Offensive
@@ -99,7 +105,8 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "csgo/steam.inf",
-                    "csgo/resource/csgo_english.txt"
+                    "csgo/resource/csgo_english.txt",
+                    "csgo/pak01_dir.vpk"
                 }
             },
         };
