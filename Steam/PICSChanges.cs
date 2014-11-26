@@ -324,7 +324,7 @@ namespace SteamDatabaseBackend
                         while (reader.Read())
                         {
                             name = Utils.RemoveControlCharacters(reader.GetString("Name"));
-                            nameOther = Utils.RemoveControlCharacters(reader.GetString("StoreName"));
+                            nameOther = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
 
                             if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))  // TODO: Only do it for 'Steam Sub' names?
                             {
