@@ -319,20 +319,16 @@ namespace SteamDatabaseBackend
                 {
                     names.Clear();
 
-                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `Name`, `StoreName` FROM `Subs` WHERE `SubID` IN ({0})", string.Join(", ", changeList.Packages.Select(x => x.ID)))))
+                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN ({0})", string.Join(", ", changeList.Packages.Select(x => x.ID)))))
                     {
                         while (reader.Read())
                         {
                             name = Utils.RemoveControlCharacters(reader.GetString("Name"));
+                            nameOther = Utils.RemoveControlCharacters(reader.GetString("StoreName"));
 
-                            if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
+                            if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))  // TODO: Only do it for 'Steam Sub' names?
                             {
-                                nameOther = Utils.RemoveControlCharacters(reader.GetString("StoreName"));
-
-                                if (!string.IsNullOrEmpty(nameOther))
-                                {
-                                    name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
-                                }
+                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
                             }
 
                             names.Add(reader.GetUInt32("SubID"), name);

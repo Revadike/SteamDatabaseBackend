@@ -80,20 +80,16 @@ namespace SteamDatabaseBackend
 
         public static string GetPackageName(uint subID)
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `StoreName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
+            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
             {
                 if (reader.Read())
                 {
                     string name = Utils.RemoveControlCharacters(reader.GetString("Name"));
+                    string nameLast = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
 
-                    if (name.StartsWith("Steam Sub", StringComparison.Ordinal))
+                    if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
                     {
-                        string nameStore = Utils.RemoveControlCharacters(reader.GetString("StoreName"));
-
-                        if (!string.IsNullOrEmpty(nameStore))
-                        {
-                            name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameStore, Colors.NORMAL);
-                        }
+                        return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
                     }
 
                     return name;
