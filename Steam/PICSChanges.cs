@@ -148,11 +148,11 @@ namespace SteamDatabaseBackend
                 DbWorker.ExecuteNonQuery(changes);
             }
 
+            StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
+
             Parallel.ForEach(callback.AppChanges.Values, app =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-
-                StoreQueue.AddAppToQueue(app.ID);
             });
         }
 
@@ -189,6 +189,9 @@ namespace SteamDatabaseBackend
                 }
             }
 
+            var subids = new List<uint>();
+            var appids = new List<uint>();
+
             Parallel.ForEach(callback.PackageChanges.Values, package =>
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
@@ -200,17 +203,41 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                StoreQueue.AddPackageToQueue(package.ID);
+                subids.Add(package.ID);
+
+                if(subids.Count() > 500)
+                {
+                    StoreQueue.AddPackageToQueue(subids);
+
+                    subids = new List<uint>();
+                }
 
                 // Queue all the apps in the package as well
                 using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = @SubID AND `Type` = 'app'", new MySqlParameter("@SubID", package.ID)))
                 {
                     while (reader.Read())
                     {
-                        StoreQueue.AddAppToQueue(reader.GetUInt32("AppID"));
+                        appids.Add(reader.GetUInt32("AppID"));
                     }
                 }
+
+                if(appids.Count() > 500)
+                {
+                    StoreQueue.AddAppToQueue(appids);
+
+                    appids = new List<uint>();
+                }
             });
+
+            if (appids.Any())
+            {
+                StoreQueue.AddAppToQueue(appids);
+            }
+
+            if (subids.Any())
+            {
+                StoreQueue.AddPackageToQueue(subids);
+            }
         }
 
         private static void PrintImportants(SteamApps.PICSChangesCallback callback)
