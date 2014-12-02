@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
             // Maintenance hell
             var values = string.Join(string.Format(", '{0}'), (", type), ids);
 
-            values = string.Format("({0}, '{1}')", values.Remove(values.Length - 2), type);
+            values = string.Format("({0}, '{1}')", values, type);
 
             DbWorker.ExecuteNonQuery(string.Format("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES {0} ON DUPLICATE KEY UPDATE `ID` = `ID`", values));
         }
