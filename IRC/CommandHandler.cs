@@ -57,6 +57,11 @@ namespace SteamDatabaseBackend
 
                 case ECommandType.SteamChatRoom:
                 {
+                    if (!Steam.Instance.Client.IsConnected)
+                    {
+                        break;
+                    }
+
                     Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("{0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
                     
                     break;
@@ -64,6 +69,11 @@ namespace SteamDatabaseBackend
 
                 case ECommandType.SteamIndividual:
                 {
+                    if (!Steam.Instance.Client.IsConnected)
+                    {
+                        break;
+                    }
+
                     Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
                     
                     break;
