@@ -109,6 +109,128 @@ namespace SteamDatabaseBackend
                     "csgo/pak01_dir.vpk"
                 }
             },
+            // Half-Life 2
+            {
+                221,
+                new List<string>
+                {
+                    "hl2/steam.inf",
+                    "hl2/resource/hl2_english.txt",
+                    "hl2/hl2_misc_dir.vpk",
+                    "hl2/hl2_pak_dir.vpk",
+                    "hl2/hl2_sound_misc_dir.vpk",
+                    "hl2/hl2_sound_vo_english_dir.vpk",
+                    "hl2/hl2_textures_dir.vpk"
+                }
+            },
+            // Half-Life 2: Episode One
+            {
+                389,
+                new List<string>
+                {
+                    "episodic/ep1_pak_dir.vpk"
+                }
+            },
+            // Half-Life 2: Episode Two
+            {
+                420,
+                new List<string>
+                {
+                    "ep2/ep2_pak_dir.vpk"
+                }
+            },
+            // Half-Life 2: Deathmatch
+            {
+                321,
+                new List<string>
+                {
+                    "hl2mp/steam.inf",
+                    "hl2mp/hl2mp_pak_dir.vpk"
+                }
+            },
+            {
+                232372,
+                new List<string>
+                {
+                    "hl2mp/bin/client.dylib",
+                    "hl2mp/bin/server.dylib"
+                }
+            },
+            // Portal
+            {
+                401,
+                new List<string>
+                {
+                    "portal/steam.inf",
+                    "portal/resource/portal_english.txt",
+                    "portal/portal_pak_dir.vpk"
+                }
+            },
+            // Portal 2
+            {
+                621,
+                new List<string>
+                {
+                    "portal2/steam.inf",
+                    "portal2/pak01_dir.vpk",
+                    "portal2/resource/portal2_english.txt"
+                }
+            },
+            {
+                624,
+                new List<string>
+                {
+                    "portal2/bin/client.dylib",
+                    "portal2/bin/server.dylib"
+                }
+            },
+            // Alien Swarm
+            {
+                631,
+                new List<string>
+                {
+                    "swarm/bin/client.dll",
+                    "swarm/bin/server.dll",
+
+                    "swarm/steam.inf",
+                    "swarm/pak01_dir.vpk",
+                    "swarm/resource/swarm_english.txt"
+                }
+            },
+            // Left 4 Dead
+            {
+                502,
+                new List<string>
+                {
+                    "left4dead/steam.inf",
+                    "left4dead/pak01_dir.vpk"
+                }
+            },
+            {
+                515,
+                new List<string>
+                {
+                    "left4dead/bin/client.dylib",
+                    "left4dead/bin/server.dylib"
+                }
+            },
+            // Left 4 Dead 2
+            {
+                551,
+                new List<string>
+                {
+                    "left4dead2/steam.inf",
+                    "left4dead2/pak01_dir.vpk"
+                }
+            },
+            {
+                553,
+                new List<string>
+                {
+                    "left4dead2/bin/client.dylib",
+                    "left4dead2/bin/server.dylib"
+                }
+            },
         };
 
         private static CDNClient CDNClient;
