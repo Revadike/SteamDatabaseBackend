@@ -8,6 +8,7 @@
 using System;
 using System.Reflection;
 using System.Threading;
+using Bugsnag.Library;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -82,6 +83,13 @@ namespace SteamDatabaseBackend
 
                 Cleanup();
             }
+
+            var bugsnag = new BugSnag();
+            bugsnag.Notify(e, new
+            {
+                SteamIsConnected = Steam.Instance.Client.IsConnected,
+                PreviousChangeNumber = Steam.Instance.PICSChanges.PreviousChangeNumber
+            });
         }
 
         private static void Cleanup()

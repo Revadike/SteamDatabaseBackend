@@ -55,6 +55,12 @@
     <Reference Include="SteamKit2">
       <HintPath>packages\SteamKit2.1.6.1\lib\net40\SteamKit2.dll</HintPath>
     </Reference>
+    <Reference Include="ServiceStack.Text">
+      <HintPath>packages\ServiceStack.Text.3.9.33\lib\net35\ServiceStack.Text.dll</HintPath>
+    </Reference>
+    <Reference Include="Bugsnag.Library">
+      <HintPath>packages\Bugsnag.Library.1.0.16.0\lib\net40\Bugsnag.Library.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
