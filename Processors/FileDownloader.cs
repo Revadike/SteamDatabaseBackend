@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Bugsnag.Library;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -358,6 +359,13 @@ namespace SteamDatabaseBackend
                             catch (Exception e)
                             {
                                 Log.WriteError("FileDownloader", "Error downloading {0} ({1}): {2} (#{3})", file.FileName, job.DepotID, e.Message, i);
+
+                                var bugsnag = new BugSnag();
+                                bugsnag.Notify(e, new
+                                {
+                                    DepotID = job.DepotID,
+                                    FileName = file.FileName
+                                });
                             }
                         }
 
