@@ -166,6 +166,14 @@ namespace SteamDatabaseBackend
                     "portal/portal_pak_dir.vpk"
                 }
             },
+            {
+                403,
+                new List<string>
+                {
+                    "portal/bin/client.dylib",
+                    "portal/bin/server.dylib"
+                }
+            },
             // Portal 2
             {
                 621,
