@@ -123,6 +123,14 @@ namespace SteamDatabaseBackend
                     "hl2/hl2_textures_dir.vpk"
                 }
             },
+            {
+                223,
+                new List<string>
+                {
+                    "hl2/bin/client.dylib",
+                    "hl2/bin/server.dylib"
+                }
+            },
             // Half-Life 2: Episode One
             {
                 389,
@@ -237,6 +245,15 @@ namespace SteamDatabaseBackend
                 {
                     "left4dead2/bin/client.dylib",
                     "left4dead2/bin/server.dylib"
+                }
+            },
+            // OpenVR
+            {
+                250822,
+                new List<string>
+                {
+                    "bin/openvr.dylib",
+                    "bin/vrclient.dylib"
                 }
             },
         };
