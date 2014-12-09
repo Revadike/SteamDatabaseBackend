@@ -7,7 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-using Amib.Threading;
+using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using Timer = System.Timers.Timer;
 
@@ -20,34 +20,25 @@ namespace SteamDatabaseBackend
 
         public static Timer ChangelistTimer { get; private set; }
 
-        public static SmartThreadPool ProcessorPool { get; private set; }
-        public static SmartThreadPool SecondaryPool { get; private set; }
-
         public static Dictionary<uint, byte> OwnedApps { get; set; }
         public static Dictionary<uint, byte> OwnedSubs { get; set; }
 
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
-        public static ConcurrentDictionary<uint, IWorkItemResult> ProcessedApps { get; private set; }
-        public static ConcurrentDictionary<uint, IWorkItemResult> ProcessedSubs { get; private set; }
+        public static ConcurrentDictionary<uint, Task> ProcessedApps { get; private set; }
+        public static ConcurrentDictionary<uint, Task> ProcessedSubs { get; private set; }
 
         static Application()
         {
-            ProcessorPool = new SmartThreadPool(new STPStartInfo { WorkItemPriority = WorkItemPriority.Highest, MaxWorkerThreads = 50 });
-            SecondaryPool = new SmartThreadPool();
-
-            ProcessorPool.Name = "Processor Pool";
-            SecondaryPool.Name = "Secondary Pool";
-
             OwnedApps = new Dictionary<uint, byte>();
             OwnedSubs = new Dictionary<uint, byte>();
 
             ImportantApps = new Dictionary<uint, List<string>>();
             ImportantSubs = new Dictionary<uint, byte>();
 
-            ProcessedApps = new ConcurrentDictionary<uint, IWorkItemResult>();
-            ProcessedSubs = new ConcurrentDictionary<uint, IWorkItemResult>();
+            ProcessedApps = new ConcurrentDictionary<uint, Task>();
+            ProcessedSubs = new ConcurrentDictionary<uint, Task>();
 
             Threads = new List<Thread>();
             GCIdlers = new List<GCIdler>();

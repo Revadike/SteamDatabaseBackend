@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Bugsnag.Library;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -42,6 +43,12 @@ namespace SteamDatabaseBackend
             catch (Exception e)
             {
                 Log.WriteError("Sub Processor", "Caught exception while processing sub {0}: {1}\n{2}", SubID, e.Message, e.StackTrace);
+
+                var bugsnag = new BugSnag();
+                bugsnag.Notify(e, new
+                {
+                    SubID = SubID
+                });
             }
         }
 

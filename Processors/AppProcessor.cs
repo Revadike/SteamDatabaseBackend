@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Bugsnag.Library;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -43,6 +45,12 @@ namespace SteamDatabaseBackend
             catch (Exception e)
             {
                 Log.WriteError("App Processor", "Caught exception while processing app {0}: {1}\n{2}", AppID, e.Message, e.StackTrace);
+
+                var bugsnag = new BugSnag();
+                bugsnag.Notify(e, new
+                {
+                    AppID = AppID
+                });
             }
         }
 
@@ -250,14 +258,14 @@ namespace SteamDatabaseBackend
 
             if (depotsSectionModified || (Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0))
             {
-                Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
-
                 if (depotsSectionModified)
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID",
                         new MySqlParameter("@AppID", AppID)
                     );
                 }
+
+                Task.Run(() => Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]));
             }
 
             // Request package info for all packages this app is in to try and catch name changes (from Steam Sub xxx to a real one)

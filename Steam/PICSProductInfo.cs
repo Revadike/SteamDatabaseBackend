@@ -6,7 +6,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Amib.Threading;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -34,19 +34,24 @@ namespace SteamDatabaseBackend
 
                 var workaround = app;
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
                 Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Task.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
                         Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", workaround.Key);
 
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                        mostRecentItem.Wait();
                     }
 
                     new AppProcessor(workaround.Key).Process(workaround.Value);
+
+                    if (Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    {
+                        Application.ProcessedApps.TryRemove(workaround.Key, out mostRecentItem);
+                    }
                 });
 
                 if (!Settings.IsFullRun)
@@ -61,19 +66,24 @@ namespace SteamDatabaseBackend
 
                 var workaround = package;
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
                 Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Task.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
                         Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", workaround.Key);
 
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                        mostRecentItem.Wait();
                     }
 
                     new SubProcessor(workaround.Key).Process(workaround.Value);
+
+                    if (Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    {
+                        Application.ProcessedSubs.TryRemove(workaround.Key, out mostRecentItem);
+                    }
                 });
 
                 if (!Settings.IsFullRun)
@@ -88,19 +98,24 @@ namespace SteamDatabaseBackend
 
                 uint workaround = app;
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
                 Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Task.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
                         Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing (unknown)", workaround);
 
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                        mostRecentItem.Wait();
                     }
 
                     new AppProcessor(workaround).ProcessUnknown();
+
+                    if (Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    {
+                        Application.ProcessedApps.TryRemove(workaround, out mostRecentItem);
+                    }
                 });
 
                 if (!Settings.IsFullRun)
@@ -115,19 +130,24 @@ namespace SteamDatabaseBackend
 
                 uint workaround = package;
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
                 Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Application.ProcessorPool.QueueWorkItem(delegate
+                var workerItem = Task.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
                         Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing (unknown)", workaround);
 
-                        SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                        mostRecentItem.Wait();
                     }
 
                     new SubProcessor(workaround).ProcessUnknown();
+
+                    if (Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    {
+                        Application.ProcessedSubs.TryRemove(workaround, out mostRecentItem);
+                    }
                 });
 
                 if (!Settings.IsFullRun)

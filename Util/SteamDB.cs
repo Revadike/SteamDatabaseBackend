@@ -17,11 +17,6 @@ namespace SteamDatabaseBackend
         public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);
         public static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.DARKGRAY, Colors.NORMAL);
 
-        public static bool IsBusy()
-        {
-            return Application.ProcessorPool.InUseThreads > 15 || Application.SecondaryPool.InUseThreads > 10;
-        }
-
         public static string GetBlogURL(string postID)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/blog/{0}/", postID)).AbsoluteUri;

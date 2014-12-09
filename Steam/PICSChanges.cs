@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Amib.Threading;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -83,15 +82,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (Application.ProcessorPool.IsIdle)
-            {
-                Log.WriteDebug("PICSChanges", "Cleaning processed {0} apps and {1} subs", Application.ProcessedApps.Count, Application.ProcessedSubs.Count);
-
-                // TODO: Do we really need to clear? Find a better solution for this
-                Application.ProcessedApps.Clear();
-                Application.ProcessedSubs.Clear();
-            }
-
             var packageChangesCount = callback.PackageChanges.Count;
             var appChangesCount = callback.AppChanges.Count;
 
@@ -112,17 +102,17 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                Application.SecondaryPool.QueueWorkItem(HandleApps, callback, WorkItemPriority.AboveNormal);
+                Task.Run(() => HandleApps(callback));
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
-                Application.SecondaryPool.QueueWorkItem(HandlePackages, callback, WorkItemPriority.AboveNormal);
+                Task.Run(() => HandlePackages(callback));
             }
 
-            Application.SecondaryPool.QueueWorkItem(SendChangelistsToIRC, callback);
+            Task.Run(() => SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }
@@ -159,6 +149,7 @@ namespace SteamDatabaseBackend
         private static void HandlePackages(SteamApps.PICSChangesCallback callback)
         {
             string changes = string.Empty;
+            uint count = 0;
 
             foreach (var package in callback.PackageChanges.Values)
             {
@@ -168,13 +159,19 @@ namespace SteamDatabaseBackend
                 }
 
                 changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
+
+                if (++count > 500)
+                {
+                    InsertPackagesToChangelist(changes);
+
+                    changes = string.Empty;
+                    count = 0;
+                }
             }
 
             if (!changes.Equals(string.Empty))
             {
-                changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
-
-                DbWorker.ExecuteNonQuery(changes);
+                InsertPackagesToChangelist(changes);
             }
 
             var ignoredPackages = new Dictionary<uint, byte>();
@@ -377,6 +374,13 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
+        }
+
+        private static void InsertPackagesToChangelist(string changes)
+        {
+            changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
+
+            DbWorker.ExecuteNonQuery(changes);
         }
     }
 }

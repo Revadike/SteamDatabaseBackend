@@ -7,7 +7,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Amib.Threading;
+using System.Threading.Tasks;
+using Bugsnag.Library;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -219,15 +220,7 @@ namespace SteamDatabaseBackend
 
             request.CDNToken = callback.Token;
 
-            // In full run, process depots after everything else
-            if (Settings.IsFullRun)
-            {
-                Application.ProcessorPool.QueueWorkItem(TryDownloadManifest, request, WorkItemPriority.Lowest);
-            }
-            else
-            {
-                Application.SecondaryPool.QueueWorkItem(TryDownloadManifest, request);
-            }
+            Task.Run(() => TryDownloadManifest(request));
         }
 
         private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
@@ -271,6 +264,12 @@ namespace SteamDatabaseBackend
             catch (Exception e)
             {
                 Log.WriteError("Depot Processor", "Caught exception while processing depot {0}: {1}\n{2}", request.DepotID, e.Message, e.StackTrace);
+
+                var bugsnag = new BugSnag();
+                bugsnag.Notify(e, new
+                {
+                    DepotID = request.DepotID
+                });
             }
 
             RemoveLock(request.DepotID);
@@ -309,7 +308,7 @@ namespace SteamDatabaseBackend
             {
                 IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
 
-                Application.SecondaryPool.QueueWorkItem(FileDownloader.DownloadFilesFromDepot, request, depotManifest, WorkItemPriority.BelowNormal);
+                Task.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
 
             var filesNew = new List<DepotFile>();

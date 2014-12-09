@@ -3,6 +3,7 @@
  */
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -70,7 +71,7 @@ namespace SteamDatabaseBackend
 
             if (!component.Equals("IRC"))
             {
-                IRC.Instance.SendOps("{0}ERROR in {1}:{2} {3}", Colors.RED, component, Colors.NORMAL, string.Format(format.Replace("\r", "").Replace("\n", " "), args));
+                IRC.Instance.SendOps("{0}ERROR in {1}:{2} {3}", Colors.RED, component, Colors.NORMAL, string.Format(Regex.Replace(format, @"\r\n?|\n", " "), args));
             }
         }
 

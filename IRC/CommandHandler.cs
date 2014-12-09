@@ -125,12 +125,6 @@ namespace SteamDatabaseBackend
                     return;
                 }
             }
-            else if (SteamDB.IsBusy())
-            {
-                ReplyToCommand(commandData, "The bot is currently busy.");
-
-                return;
-            }
 
             Log.WriteInfo("CommandHandler", "Handling IRC command {0} for user {1} in channel {2}", message, e.Sender, e.Recipient);
 
@@ -194,12 +188,6 @@ namespace SteamDatabaseBackend
             if (command.IsAdminCommand)
             {
                 CommandHandler.ReplyToCommand(commandData, "This command can only be used in IRC.");
-
-                return;
-            }
-            else if (SteamDB.IsBusy())
-            {
-                CommandHandler.ReplyToCommand(commandData, "The bot is currently busy.");
 
                 return;
             }
