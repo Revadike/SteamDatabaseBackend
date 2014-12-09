@@ -36,24 +36,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
-            try
-            {
-                TryProcess(productInfo);
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("Sub Processor", "Caught exception while processing sub {0}: {1}\n{2}", SubID, e.Message, e.StackTrace);
-
-                var bugsnag = new BugSnag();
-                bugsnag.Notify(e, new
-                {
-                    SubID = SubID
-                });
-            }
-        }
-
-        private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
-        {
             string packageName = string.Empty;
             string packageNameCurrent = string.Empty;
             var apps = new Dictionary<uint, string>();

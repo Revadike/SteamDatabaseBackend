@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
                 Task mostRecentItem;
                 Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Task.Run(delegate
+                var workerItem = TaskManager.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -69,7 +69,7 @@ namespace SteamDatabaseBackend
                 Task mostRecentItem;
                 Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
 
-                var workerItem = Task.Run(delegate
+                var workerItem = TaskManager.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
                 Task mostRecentItem;
                 Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Task.Run(delegate
+                var workerItem = TaskManager.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
@@ -133,7 +133,7 @@ namespace SteamDatabaseBackend
                 Task mostRecentItem;
                 Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
 
-                var workerItem = Task.Run(delegate
+                var workerItem = TaskManager.Run(delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {

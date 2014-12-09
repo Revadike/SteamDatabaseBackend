@@ -13,20 +13,31 @@ namespace SteamDatabaseBackend
     {
         public static Task Run(Action action)
         {
-            return Task.Run(() =>
+            var t = new Task(action);
+                
+            t.ContinueWith(task =>
             {
-                try
+                if (!task.IsFaulted)
                 {
-                    action();
+                    Log.WriteError("Task Manager", "Task got cancelled? ({0})", action.ToString());
+
+                    return;
                 }
-                catch (Exception e)
+
+                task.Exception.Handle(e =>
                 {
-                    Log.WriteError("TaskManager", "Exception: {1}\n{2}", e.Message, e.StackTrace);
+                    Log.WriteError("Task Manager", "Exception: {0}\n{1}", e.Message, e.StackTrace);
 
                     var bugsnag = new BugSnag();
                     bugsnag.Notify(e);
-                }
-            });
+
+                    return false;
+                });
+            }, TaskContinuationOptions.NotOnRanToCompletion);
+
+            t.Start();
+
+            return t;
         }
     }
 }

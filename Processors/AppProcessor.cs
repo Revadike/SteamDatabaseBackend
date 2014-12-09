@@ -38,24 +38,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
             }
 
-            try
-            {
-                TryProcess(productInfo);
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("App Processor", "Caught exception while processing app {0}: {1}\n{2}", AppID, e.Message, e.StackTrace);
-
-                var bugsnag = new BugSnag();
-                bugsnag.Notify(e, new
-                {
-                    AppID = AppID
-                });
-            }
-        }
-
-        private void TryProcess(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
-        {
             bool depotsSectionModified = false;
             bool appCreated = false;
 
@@ -265,7 +247,7 @@ namespace SteamDatabaseBackend
                     );
                 }
 
-                Task.Run(() => Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]));
+                TaskManager.Run(() => Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]));
             }
 
             // Request package info for all packages this app is in to try and catch name changes (from Steam Sub xxx to a real one)

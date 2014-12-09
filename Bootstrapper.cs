@@ -46,7 +46,6 @@ namespace SteamDatabaseBackend
             }
 
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
-            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
             Console.CancelKeyPress += OnCancelKey;
 
@@ -71,21 +70,18 @@ namespace SteamDatabaseBackend
             Cleanup();
         }
 
-        private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
-        {
-            var e = args.Exception;
-
-            Log.WriteError("Unhandled Task Exception", "{0}\n{1}", e.Message, e.StackTrace);
-
-            var bugsnag = new BugSnag();
-            bugsnag.Notify(e);
-        }
-
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
         {
             var e = args.ExceptionObject as Exception;
 
             Log.WriteError("Unhandled Exception", "{0}\n{1}", e.Message, e.StackTrace);
+
+            var bugsnag = new BugSnag();
+            bugsnag.Notify(e, new
+            {
+                SteamIsConnected = Steam.Instance.Client.IsConnected,
+                PreviousChangeNumber = Steam.Instance.PICSChanges.PreviousChangeNumber
+            });
 
             if (args.IsTerminating)
             {
@@ -95,13 +91,6 @@ namespace SteamDatabaseBackend
 
                 Cleanup();
             }
-
-            var bugsnag = new BugSnag();
-            bugsnag.Notify(e, new
-            {
-                SteamIsConnected = Steam.Instance.Client.IsConnected,
-                PreviousChangeNumber = Steam.Instance.PICSChanges.PreviousChangeNumber
-            });
         }
 
         private static void Cleanup()
@@ -124,9 +113,23 @@ namespace SteamDatabaseBackend
                 catch { }
             }
 
+            var count = Application.ProcessedApps.Count;
+
+            if (count > 0)
+            {
+                Log.WriteInfo("Bootstrapper", "{0} app tasks left", count);
+            }
+
+            count = Application.ProcessedSubs.Count;
+
+            if (count > 0)
+            {
+                Log.WriteInfo("Bootstrapper", "{0} package tasks left", count);
+            }
+
             Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
 
-            try { Steam.Instance.Client.Disconnect();             } catch { }
+            try { Steam.Instance.Client.Disconnect(); } catch { }
 
             if (Settings.Current.IRC.Enabled)
             {

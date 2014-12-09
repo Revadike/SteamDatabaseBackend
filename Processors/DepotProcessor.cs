@@ -220,7 +220,7 @@ namespace SteamDatabaseBackend
 
             request.CDNToken = callback.Token;
 
-            Task.Run(() => TryDownloadManifest(request));
+            TaskManager.Run(() => TryDownloadManifest(request));
         }
 
         private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
@@ -308,7 +308,7 @@ namespace SteamDatabaseBackend
             {
                 IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
 
-                Task.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
+                TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
 
             var filesNew = new List<DepotFile>();

@@ -102,17 +102,17 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                Task.Run(() => HandleApps(callback));
+                TaskManager.Run(() => HandleApps(callback));
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
-                Task.Run(() => HandlePackages(callback));
+                TaskManager.Run(() => HandlePackages(callback));
             }
 
-            Task.Run(() => SendChangelistsToIRC(callback));
+            TaskManager.Run(() => SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }
