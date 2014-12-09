@@ -247,7 +247,7 @@ namespace SteamDatabaseBackend
                     );
                 }
 
-                TaskManager.Run(() => Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]));
+                Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
             }
 
             // Request package info for all packages this app is in to try and catch name changes (from Steam Sub xxx to a real one)

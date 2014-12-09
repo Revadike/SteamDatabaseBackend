@@ -6,6 +6,7 @@
  * Future non-SteamKit stuff should go in this file.
  */
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -117,14 +118,18 @@ namespace SteamDatabaseBackend
 
             if (count > 0)
             {
-                Log.WriteInfo("Bootstrapper", "{0} app tasks left", count);
+                Log.WriteInfo("Bootstrapper", "{0} app tasks left, waiting", count);
+
+                Task.WaitAll(Application.ProcessedApps.Values.ToArray());
             }
 
             count = Application.ProcessedSubs.Count;
 
             if (count > 0)
             {
-                Log.WriteInfo("Bootstrapper", "{0} package tasks left", count);
+                Log.WriteInfo("Bootstrapper", "{0} package tasks left, waiting", count);
+
+                Task.WaitAll(Application.ProcessedSubs.Values.ToArray());
             }
 
             Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
