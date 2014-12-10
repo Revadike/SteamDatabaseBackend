@@ -1,5 +1,7 @@
 language: csharp
 solution: SteamDatabaseBackend.sln
+before_install:
+  - cp ./settings.json.default ./settings.json
 notifications:
   email: false
   irc:
