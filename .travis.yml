@@ -1,0 +1,13 @@
+language: csharp
+solution: SteamDatabaseBackend.sln
+notifications:
+  email: false
+  irc:
+    skip_join: false
+    on_success: never
+    on_failure: always
+    channels:
+      - "chat.freenode.net#steamdb"
+    template:
+      - "%{repository}#%{build_number} (%{commit} by %{author}): %{message}"
+      - "Build details: %{build_url}"
