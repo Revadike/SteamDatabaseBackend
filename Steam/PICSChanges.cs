@@ -193,7 +193,7 @@ namespace SteamDatabaseBackend
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
 
-                if(package.ID == 0 || ignoredPackages.ContainsKey(package.ID))
+                if (package.ID == 0 || ignoredPackages.ContainsKey(package.ID))
                 {
                     Log.WriteDebug("PICSChanges Store Queue", "Ignoring sub {0}", package.ID);
 
@@ -202,7 +202,7 @@ namespace SteamDatabaseBackend
 
                 subids.Add(package.ID);
 
-                if(subids.Count() > 500)
+                if (subids.Count() > 500)
                 {
                     StoreQueue.AddPackageToQueue(subids);
 
@@ -218,7 +218,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if(appids.Count() > 500)
+                if (appids.Count() > 500)
                 {
                     StoreQueue.AddAppToQueue(appids);
 

@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
         IRC,
         SteamChatRoom,
         SteamIndividual
-    };
+    }
 
     abstract class Command
     {

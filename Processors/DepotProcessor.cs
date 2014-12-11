@@ -7,7 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Bugsnag.Library;
 using MySql.Data.MySqlClient;
 using SteamKit2;
@@ -142,7 +141,7 @@ namespace SteamDatabaseBackend
                         if (request.PreviousManifestID == manifestID)
                         {
                             // Update depot name if changed
-                            if(!depotName.Equals(currentDepotName))
+                            if (!depotName.Equals(currentDepotName))
                             {
                                 DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Name` = @Name WHERE `DepotID` = @DepotID",
                                     new MySqlParameter("@DepotID", request.DepotID),

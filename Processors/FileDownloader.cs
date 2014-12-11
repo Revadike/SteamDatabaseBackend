@@ -315,7 +315,7 @@ namespace SteamDatabaseBackend
                 {
                     Directory.CreateDirectory(directory);
                 }
-                else if(File.Exists(downloadPath))
+                else if (File.Exists(downloadPath))
                 {
                     Log.WriteWarn("FileDownloader", "Removing stale {0}", file.FileName);
 

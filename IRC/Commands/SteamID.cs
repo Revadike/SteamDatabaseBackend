@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
             Individual,
             Group,
             OfficialGameGroup
-        };
+        }
 
         public SteamIDCommand()
         {
@@ -173,7 +173,7 @@ namespace SteamDatabaseBackend
 
                 try
                 {
-                    response = steamUser.ResolveVanityURL( vanityurl: input, url_type: (int)urlType );
+                    response = steamUser.ResolveVanityURL(vanityurl: input, url_type: (int)urlType);
                 }
                 catch (WebException)
                 {
