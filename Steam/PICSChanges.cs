@@ -193,7 +193,7 @@ namespace SteamDatabaseBackend
             {
                 DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
 
-                if (package.ID == 0 || ignoredPackages.ContainsKey(package.ID))
+                if (package.ID == 0 || package.ID == 17906 || ignoredPackages.ContainsKey(package.ID))
                 {
                     Log.WriteDebug("PICSChanges Store Queue", "Ignoring sub {0}", package.ID);
 
