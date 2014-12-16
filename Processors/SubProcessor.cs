@@ -71,7 +71,7 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(packageNameCurrent))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @LastKnownName) ON DUPLICATE KEY UPDATE `Name` = @Name",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
                                              new MySqlParameter("@Name", packageName)
                     );
