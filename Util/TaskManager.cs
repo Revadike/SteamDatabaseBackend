@@ -17,23 +17,17 @@ namespace SteamDatabaseBackend
                 
             t.ContinueWith(task =>
             {
-                if (!task.IsFaulted)
-                {
-                    Log.WriteError("Task Manager", "Task got cancelled? ({0})", action.ToString());
+                var bugsnag = new BugSnag();
 
-                    return;
-                }
-
-                task.Exception.Handle(e =>
+                task.Exception.Flatten().Handle(e =>
                 {
                     Log.WriteError("Task Manager", "Exception: {0}\n{1}", e.Message, e.StackTrace);
 
-                    var bugsnag = new BugSnag();
                     bugsnag.Notify(e);
 
                     return false;
                 });
-            }, TaskContinuationOptions.NotOnRanToCompletion);
+            }, TaskContinuationOptions.OnlyOnFaulted);
 
             t.Start();
 
