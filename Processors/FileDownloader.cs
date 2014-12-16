@@ -326,6 +326,7 @@ namespace SteamDatabaseBackend
 
                 uint count = 0;
                 byte[] checksum;
+                string lastError = "or checksum failed";
 
                 using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate))
                 {
@@ -356,9 +357,9 @@ namespace SteamDatabaseBackend
 
                                 break;
                             }
-                            catch (WebException)
+                            catch (WebException e)
                             {
-                                //
+                                lastError = e.Message;
                             }
                         }
 
@@ -393,7 +394,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded (or checksum failed)", file.FileName, count, file.Chunks.Count);
+                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded ({3})", file.FileName, count, file.Chunks.Count, lastError);
 
                     File.Delete(downloadPath);
                 }
