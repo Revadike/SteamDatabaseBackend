@@ -71,7 +71,7 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(packageNameCurrent))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`) VALUES (@SubID, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
+                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @LastKnownName) ON DUPLICATE KEY UPDATE `Name` = @Name",
                                              new MySqlParameter("@SubID", SubID),
                                              new MySqlParameter("@Name", packageName)
                     );
@@ -81,10 +81,20 @@ namespace SteamDatabaseBackend
                 }
                 else if (!packageNameCurrent.Equals(packageName))
                 {
-                    DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID",
-                                             new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@Name", packageName)
-                    );
+                    if (packageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
+                    {
+                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID",
+                            new MySqlParameter("@SubID", SubID),
+                            new MySqlParameter("@Name", packageName)
+                        );
+                    }
+                    else
+                    {
+                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID",
+                            new MySqlParameter("@SubID", SubID),
+                            new MySqlParameter("@Name", packageName)
+                        );
+                    }
 
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, packageNameCurrent, packageName);
                 }
