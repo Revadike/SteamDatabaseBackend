@@ -49,10 +49,12 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                if (!Settings.IsFullRun)
+                if (Settings.IsFullRun)
                 {
-                    Application.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+                    continue;
                 }
+
+                Application.ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
 
                 workerItem.ContinueWith(task =>
                 {
@@ -84,10 +86,12 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround.Key).Process(workaround.Value);
                 });
 
-                if (!Settings.IsFullRun)
+                if (Settings.IsFullRun)
                 {
-                    Application.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                    continue;
                 }
+
+                Application.ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
 
                 workerItem.ContinueWith(task =>
                 {
@@ -119,10 +123,12 @@ namespace SteamDatabaseBackend
                     new AppProcessor(workaround).ProcessUnknown();
                 });
 
-                if (!Settings.IsFullRun)
+                if (Settings.IsFullRun)
                 {
-                    Application.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
+                    continue;
                 }
+
+                Application.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
 
                 workerItem.ContinueWith(task =>
                 {
@@ -154,10 +160,12 @@ namespace SteamDatabaseBackend
                     new SubProcessor(workaround).ProcessUnknown();
                 });
 
-                if (!Settings.IsFullRun)
+                if (Settings.IsFullRun)
                 {
-                    Application.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
+                    continue;
                 }
+
+                Application.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
 
                 workerItem.ContinueWith(task =>
                 {
