@@ -35,6 +35,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "tf/steam.inf",
+                    "tf/scripts/items/items_game.txt",
                     "tf/resource/tf_english.txt",
                     "tf/tf2_misc_dir.vpk",
                     "tf/tf2_sound_misc_dir.vpk",
@@ -57,6 +58,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "dota/steam.inf",
+                    "dota/resource/items_english.txt",
                     "dota/resource/dota_english.txt",
                     "dota/pak01_dir.vpk"
                 }
@@ -87,6 +89,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "dota/steam.inf",
+                    "dota/resource/items_english.txt",
                     "dota/resource/dota_english.txt",
                     "dota/pak01_dir.vpk"
                 }
@@ -106,6 +109,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "csgo/steam.inf",
+                    "csgo/scripts/items/items_game.txt",
                     "csgo/resource/csgo_english.txt",
                     "csgo/pak01_dir.vpk"
                 }
