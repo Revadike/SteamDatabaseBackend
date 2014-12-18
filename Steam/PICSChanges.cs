@@ -110,6 +110,7 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
                 TaskManager.Run(() => HandlePackages(callback));
+                TaskManager.Run(() => HandlePackagesChangelists(callback));
             }
 
             TaskManager.Run(() => SendChangelistsToIRC(callback));
@@ -146,7 +147,7 @@ namespace SteamDatabaseBackend
             });
         }
 
-        private static void HandlePackages(SteamApps.PICSChangesCallback callback)
+        private static void HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
         {
             string changes = string.Empty;
             uint count = 0;
@@ -174,6 +175,14 @@ namespace SteamDatabaseBackend
                 InsertPackagesToChangelist(changes);
             }
 
+            Parallel.ForEach(callback.PackageChanges.Values, package =>
+            {
+                DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
+            });
+        }
+
+        private static void HandlePackages(SteamApps.PICSChangesCallback callback)
+        {
             var ignoredPackages = new Dictionary<uint, byte>();
 
             using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN({0}) AND `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype') AND `Value` IN ({1})",
@@ -186,55 +195,32 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var subids = new List<uint>();
+            // Steam comp
+            if (!ignoredPackages.ContainsKey(0))
+            {
+                ignoredPackages.Add(0, (byte)1);
+            }
+
+            // Anon dedi comp
+            if (!ignoredPackages.ContainsKey(17906))
+            {
+                ignoredPackages.Add(17906, (byte)1);
+            }
+
+            var subids = callback.PackageChanges.Values.Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x));
             var appids = new List<uint>();
 
-            Parallel.ForEach(callback.PackageChanges.Values, package =>
+            // Queue all the apps in the package as well
+            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN({0}) AND `Type` = 'app'", string.Join(",", subids))))
             {
-                DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-
-                if (package.ID == 0 || package.ID == 17906 || ignoredPackages.ContainsKey(package.ID))
+                while (reader.Read())
                 {
-                    Log.WriteDebug("PICSChanges Store Queue", "Ignoring sub {0}", package.ID);
-
-                    return;
+                    appids.Add(reader.GetUInt32("AppID"));
                 }
-
-                subids.Add(package.ID);
-
-                if (subids.Count() > 500)
-                {
-                    StoreQueue.AddPackageToQueue(subids);
-
-                    subids = new List<uint>();
-                }
-
-                // Queue all the apps in the package as well
-                using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = @SubID AND `Type` = 'app'", new MySqlParameter("@SubID", package.ID)))
-                {
-                    while (reader.Read())
-                    {
-                        appids.Add(reader.GetUInt32("AppID"));
-                    }
-                }
-
-                if (appids.Count() > 500)
-                {
-                    StoreQueue.AddAppToQueue(appids);
-
-                    appids = new List<uint>();
-                }
-            });
-
-            if (appids.Any())
-            {
-                StoreQueue.AddAppToQueue(appids);
             }
 
-            if (subids.Any())
-            {
-                StoreQueue.AddPackageToQueue(subids);
-            }
+            StoreQueue.AddAppToQueue(appids);
+            StoreQueue.AddPackageToQueue(subids);
         }
 
         private static void PrintImportants(SteamApps.PICSChangesCallback callback)
