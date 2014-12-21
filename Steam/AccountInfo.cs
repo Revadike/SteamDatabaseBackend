@@ -5,6 +5,8 @@
  */
 using System;
 using SteamKit2;
+using SteamKit2.Internal;
+using System.Linq;
 
 namespace SteamDatabaseBackend
 {
@@ -18,12 +20,28 @@ namespace SteamDatabaseBackend
 
         private static void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
+            Sync();
+        }
+
+        public static void Sync()
+        {
             Steam.Instance.Friends.SetPersonaState(EPersonaState.Busy);
 
             foreach (var chatRoom in Settings.Current.ChatRooms)
             {
                 Steam.Instance.Friends.JoinChat(chatRoom);
             }
+
+            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayedNoDataBlob);
+
+            clientMsg.Body.games_played.AddRange(
+                Settings.Current.GameCoordinatorIdlers.Select(appID => new CMsgClientGamesPlayed.GamePlayed
+                {
+                    game_id = appID
+                })
+            );
+
+            Steam.Instance.Client.Send( clientMsg );
         }
     }
 }

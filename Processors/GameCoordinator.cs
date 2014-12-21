@@ -9,219 +9,172 @@ using MySql.Data.MySqlClient;
 using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
-
-using CMsgServerWelcome = SteamKit2.GC.TF2.Internal.CMsgServerWelcome;
+using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
     class GameCoordinator
     {
-        private readonly uint AppID;
-        private readonly SteamGameCoordinator SteamGameCoordinator;
-        private readonly Dictionary<uint, Action<IPacketGCMsg>> GCMessageMap;
-        private readonly System.Timers.Timer Timer;
-        private readonly string Name;
-        private int LastVersion = -1;
-        private uint LastSchemaVersion;
-        private GCConnectionStatus LastStatus = GCConnectionStatus.GCConnectionStatus_NO_STEAM;
-
-        public GameCoordinator(uint appID, SteamClient steamClient, CallbackManager callbackManager)
+        class SessionInfo
         {
+            public uint Version { get; set; }
+            public uint SchemaVersion { get; set; }
+            public GCConnectionStatus Status { get; set; }
+        }
+
+        private readonly SteamGameCoordinator SteamGameCoordinator;
+        private readonly Dictionary<uint, SessionInfo> SessionMap;
+        private readonly Dictionary<uint, Action<uint, IPacketGCMsg>> MessageMap;
+        private readonly Timer SessionTimer;
+
+        public GameCoordinator(SteamClient steamClient, CallbackManager callbackManager)
+        {
+            SessionMap = new Dictionary<uint, SessionInfo>();
+
             // Map gc messages to our callback functions
-            GCMessageMap = new Dictionary<uint, Action<IPacketGCMsg>>
+            MessageMap = new Dictionary<uint, Action<uint, IPacketGCMsg>>
             {
-                { (uint)EGCBaseClientMsg.k_EMsgGCServerConnectionStatus, OnConnectionStatus },
-                { (uint)EGCBaseClientMsg.k_EMsgGCServerWelcome, OnWelcome },
+                { (uint)4008, OnConnectionStatus },
+                { (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus, OnConnectionStatus },
+                { (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome, OnWelcome },
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
-                { (uint)EGCItemMsg.k_EMsgGCServerVersionUpdated, OnVersionUpdate },
+                { (uint)EGCItemMsg.k_EMsgGCClientVersionUpdated, OnVersionUpdate },
                 { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage }
             };
 
-            // Extra handler for TF2
-            if (appID == 440)
-            {
-                GCMessageMap.Add((uint)4008, OnConnectionStatus);
-            }
-
-            AppID = appID;
-            Name = string.Format("GC {0}", appID);
             SteamGameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
 
-            Timer = new System.Timers.Timer();
-            Timer.Elapsed += OnTimer;
+            SessionTimer = new Timer();
+            SessionTimer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
+            SessionTimer.Elapsed += OnSessionTick;
+            SessionTimer.Start();
 
             callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
         }
 
-        public void Login()
+        private void OnSessionTick(object sender, System.Timers.ElapsedEventArgs e)
         {
-            // TF2 GC should greet us on its own
-            if (AppID != 440)
+            if (!Steam.Instance.Client.IsConnected)
             {
-                Hello();
+                return;
             }
 
-            Timer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
-            Timer.Start();
-        }
+            foreach (var appID in Settings.Current.GameCoordinatorIdlers)
+            {
+                var info = GetSessionInfo(appID);
 
-        private void OnTimer(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            Hello();
-        }
-
-        private void Hello()
-        {
-            var serverHello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCServerHello);
-
-            SteamGameCoordinator.Send(serverHello, AppID);
+                if (info.Status == GCConnectionStatus.GCConnectionStatus_NO_SESSION
+                ||  info.Status == GCConnectionStatus.GCConnectionStatus_GC_GOING_DOWN)
+                {
+                    var hello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
+                    SteamGameCoordinator.Send(hello, appID);
+                }
+            }
         }
 
         private void OnGameCoordinatorMessage(SteamGameCoordinator.MessageCallback callback)
         {
-            Action<IPacketGCMsg> callbackFunction;
+            Action<uint, IPacketGCMsg> callbackFunction;
 
-            if (GCMessageMap.TryGetValue(callback.EMsg, out callbackFunction))
+            if (MessageMap.TryGetValue(callback.EMsg, out callbackFunction))
             {
-                callbackFunction(callback.Message);
-            }
-            else
-            {
-                Log.WriteDebug(Name, "Unhandled GC message - EMsg: {0} ({1})", callback.EMsg, GetEMsgDisplayString((int)callback.EMsg));
-            }
-
-            // If we hear from GC, but it's not hello, keep bugging it
-            if (!Timer.Enabled && LastStatus == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
-            {
-                Timer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
-                Timer.Start();
+                callbackFunction(callback.AppID, callback.Message);
             }
         }
 
-        private void OnWelcome(IPacketGCMsg packetMsg)
+        private void OnWelcome(uint appID, IPacketGCMsg packetMsg)
         {
-            Timer.Stop();
+            var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body;
 
-            int version = -1;
+            var info = GetSessionInfo(appID);
 
-            // TF2 GC is not in sync
-            if (AppID == 440)
+            string message = string.Format("{0}{1}{2} new GC session", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL);
+
+            if (info.Version == 0 || info.Version == msg.version)
             {
-                var msg = new ClientGCMsgProtobuf<CMsgServerWelcome>(packetMsg).Body;
-
-                version = (int)msg.active_version;
+                message += string.Format(" {0}(version {1})", Colors.DARKGRAY, msg.version);
             }
             else
             {
-                var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body;
-
-                version = (int)msg.version;
-            }
-
-            Log.WriteInfo(Name, "New GC session ({0} -> {1})", LastVersion, version);
-
-            string message = string.Format("{0}{1}{2} new GC session", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL);
-
-            if (LastVersion == -1 || LastVersion == version)
-            {
-                message += string.Format(" {0}(version {1})", Colors.DARKGRAY, version);
-            }
-            else
-            {
-                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, LastVersion, version);
+                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, info.Version, msg.version);
 
                 IRC.Instance.SendMain(message);
             }
 
             IRC.Instance.SendAnnounce(message);
 
-            LastVersion = version;
-            LastStatus = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
+            info.Version = msg.version;
+            info.Status = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
 
-            UpdateStatus(AppID, LastStatus.ToString());
+            UpdateStatus(appID, info.Status.ToString());
         }
 
-        private void OnItemSchemaUpdate(IPacketGCMsg packetMsg)
+        private void OnItemSchemaUpdate(uint appID, IPacketGCMsg packetMsg)
         {
             var msg = new ClientGCMsgProtobuf<CMsgUpdateItemSchema>(packetMsg).Body;
 
-            if (LastSchemaVersion != 0 && LastSchemaVersion != msg.item_schema_version)
-            {
-                Log.WriteInfo(Name, "Schema change from {0} to {1}", LastSchemaVersion, msg.item_schema_version);
+            var info = GetSessionInfo(appID);
 
-                IRC.Instance.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
+            if (info.SchemaVersion != 0 && info.SchemaVersion != msg.item_schema_version)
+            {
+                IRC.Instance.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
             }
 
-            LastSchemaVersion = msg.item_schema_version;
+            info.SchemaVersion = msg.item_schema_version;
 
 #if DEBUG
-            Log.WriteDebug(Name, msg.items_game_url);
+            Log.WriteDebug(string.Format("GC {0}", appID), msg.items_game_url);
 #endif
         }
 
-        private void OnVersionUpdate(IPacketGCMsg packetMsg)
+        private void OnVersionUpdate(uint appID, IPacketGCMsg packetMsg)
         {
-            var msg = new ClientGCMsgProtobuf<CMsgGCServerVersionUpdated>(packetMsg).Body;
+            var msg = new ClientGCMsgProtobuf<CMsgGCClientVersionUpdated>(packetMsg).Body;
 
-            Log.WriteInfo(Name, "GC version changed ({0} -> {1})", LastVersion, msg.server_version);
+            var info = GetSessionInfo(appID);
 
-            IRC.Instance.SendMain("{0}{1}{2} server version changed:{3} {4} {5}(from {6})", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.BLUE, msg.server_version, Colors.DARKGRAY, LastVersion);
+            IRC.Instance.SendMain("{0}{1}{2} client version changed:{3} {4} {5}(from {6})", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, msg.client_version, Colors.DARKGRAY, info.Version);
 
-            LastVersion = (int)msg.server_version;
+            info.Version = msg.client_version;
         }
 
-        private void OnSystemMessage(IPacketGCMsg packetMsg)
+        private void OnSystemMessage(uint appID, IPacketGCMsg packetMsg)
         {
             var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(packetMsg).Body;
 
-            Log.WriteInfo(Name, "Message: {0}", msg.message);
-
-            IRC.Instance.SendMain("{0}{1}{2} system message:{3} {4}", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, msg.message);
+            IRC.Instance.SendMain("{0}{1}{2} system message:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.message);
         }
 
-        private void OnConnectionStatus(IPacketGCMsg packetMsg)
+        private void OnConnectionStatus(uint appID, IPacketGCMsg packetMsg)
         {
             var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(packetMsg).Body;
 
-            LastStatus = msg.status;
+            var info = GetSessionInfo(appID);
 
-            Log.WriteInfo(Name, "Status: {0}", LastStatus);
+            info.Status = msg.status;
 
-            string message = string.Format("{0}{1}{2} GC status:{3} {4}", Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL, Colors.OLIVE, LastStatus);
+            IRC.Instance.SendAnnounce("{0}{1}{2} GC status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, info.Status);
 
-            IRC.Instance.SendAnnounce(message);
-
-            if (LastStatus == GCConnectionStatus.GCConnectionStatus_NO_SESSION)
-            {
-                Timer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
-                Timer.Start();
-            }
-
-            UpdateStatus(AppID, LastStatus.ToString());
+            UpdateStatus(appID, info.Status.ToString());
         }
 
-        private static string GetEMsgDisplayString(int eMsg)
+        private SessionInfo GetSessionInfo(uint appID)
         {
-            Type[] eMsgEnums =
-            {
-                typeof(EGCBaseClientMsg),
-                typeof(EGCBaseMsg),
-                typeof(EGCItemMsg),
-                typeof(ESOMsg),
-                typeof(EGCSystemMsg),
-                typeof(SteamKit2.GC.Dota.Internal.EDOTAGCMsg),
-                typeof(SteamKit2.GC.CSGO.Internal.ECsgoGCMsg)
-            };
+            SessionInfo info;
 
-            foreach (var enumType in eMsgEnums)
+            if (SessionMap.TryGetValue(appID, out info))
             {
-                if (Enum.IsDefined(enumType, eMsg))
-                {
-                    return Enum.GetName(enumType, eMsg);
-                }
+                return info;
             }
 
-            return eMsg.ToString();
+            info = new SessionInfo
+            {
+                Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION
+            };
+
+            SessionMap.Add(appID, info);
+
+            return info;
         }
 
         public static void UpdateStatus(uint appID, string status)

@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
             {
                 AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;
 
-                IRC.Instance.SendOps("I am literally about to crash, send help.");
+                IRC.Instance.SendOps("I am literally about to crash, send help. ({0})", e.Message);
 
                 Cleanup();
             }
@@ -101,18 +101,6 @@ namespace SteamDatabaseBackend
             Application.ChangelistTimer.Stop();
 
             Steam.Instance.IsRunning = false;
-
-            foreach (var idler in Application.GCIdlers)
-            {
-                Log.WriteInfo("Application", "Disconnecting idler {0}", idler.AppID);
-
-                try
-                {
-                    idler.IsRunning = false;
-                    idler.Client.Disconnect();
-                }
-                catch { }
-            }
 
             var count = Application.ProcessedApps.Count;
 

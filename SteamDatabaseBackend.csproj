@@ -74,7 +74,6 @@
     <Compile Include="Util\Settings.cs" />
     <Compile Include="Processors\DepotProcessor.cs" />
     <Compile Include="Processors\GameCoordinator.cs" />
-    <Compile Include="GCIdler.cs" />
     <Compile Include="Util\Utils.cs" />
     <Compile Include="Util\SettingsJson.cs" />
     <Compile Include="Util\JobManager.cs" />

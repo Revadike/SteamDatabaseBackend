@@ -50,6 +50,8 @@ namespace SteamDatabaseBackend
                 new MarketingMessage(CallbackManager);
                 new ClanState(CallbackManager);
                 new ChatMemberInfo(CallbackManager);
+
+                new GameCoordinator(Client, CallbackManager);
             }
 
             PICSChanges = new PICSChanges(CallbackManager);
