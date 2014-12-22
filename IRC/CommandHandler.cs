@@ -185,9 +185,9 @@ namespace SteamDatabaseBackend
                 Message = input
             };
 
-            if (command.IsAdminCommand)
+            if (command.IsAdminCommand && !Settings.Current.SteamAdmins.Contains(sender.ConvertToUInt64()))
             {
-                CommandHandler.ReplyToCommand(commandData, "This command can only be used in IRC.");
+                ReplyToCommand(commandData, "You're not an admin!");
 
                 return;
             }

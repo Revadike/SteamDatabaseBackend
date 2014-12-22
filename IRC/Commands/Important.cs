@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
-            if (!IRC.IsRecipientChannel(command.Recipient))
+            if (command.CommandType != ECommandType.IRC || !IRC.IsRecipientChannel(command.Recipient))
             {
                 CommandHandler.ReplyToCommand(command, "This command is only available in channels.");
 
@@ -27,13 +27,6 @@ namespace SteamDatabaseBackend
             }
 
             var channel = command.Recipient;
-
-            if (channel == Settings.Current.IRC.Channel.Announce)
-            {
-                CommandHandler.ReplyToCommand(command, "This command is not available in announcement channel.");
-
-                return;
-            }
 
             var s = command.Message.Split(' ');
             var count = s.Length;

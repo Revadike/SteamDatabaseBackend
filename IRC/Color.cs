@@ -9,9 +9,10 @@ namespace SteamDatabaseBackend
 {
     static class Colors
     {
-        private static class IrcConstants
+        public static class IrcConstants
         {
             public const char IrcColor = '\x3';
+            public const char IrcItalic = '\x1D';
         }
 
         // To keep our colors somewhat consistent, only used colors are uncommented

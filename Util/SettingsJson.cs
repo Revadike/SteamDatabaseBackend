@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -61,6 +62,9 @@ namespace SteamDatabaseBackend
             [JsonProperty(Required = Required.Always)]
             public string Announce;
         }
+
+        [JsonProperty(Required = Required.Always)]
+        public List<ulong> SteamAdmins;
 
         [JsonProperty(Required = Required.Always)]
         public List<ulong> ChatRooms;

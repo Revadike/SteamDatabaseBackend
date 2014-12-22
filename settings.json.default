@@ -1,8 +1,8 @@
 {
 	"ConnectionString": "server=127.0.0.1;port=3306;userid=test;password=test;database=test;charset=utf8;pooling=true",
 	
-	"RawBaseURL": "http://raw.steamdb.info",
-	"BaseURL": "http://steamdb.info",
+	"RawBaseURL": "http://example.com/raw/",
+	"BaseURL": "http://example.com",
 	
 	"FullRun": 0,
 	"SteamKitDebug": false,
@@ -25,7 +25,7 @@
 		"Enabled": false,
 		"Server": "example.com",
 		"Port": 0,
-		"Nickname": "SteamDB",
+		"Nickname": "SteamDB-Fork",
 		"Password": "",
 		"SendDelay": 1000,
 		"Channel":
@@ -43,5 +43,10 @@
 	"ChatRooms":
 	[
 		
+	],
+
+	"SteamAdmins":
+	[
+		76561197960287930
 	]
 }
