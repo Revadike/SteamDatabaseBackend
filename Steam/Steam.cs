@@ -52,14 +52,14 @@ namespace SteamDatabaseBackend
                 new ChatMemberInfo(CallbackManager);
 
                 new GameCoordinator(Client, CallbackManager);
+
+                new Watchdog();
             }
 
             PICSChanges = new PICSChanges(CallbackManager);
             DepotProcessor = new DepotProcessor(Client, CallbackManager);
 
             IsRunning = true;
-
-            new Watchdog();
         }
 
         public void Tick()
