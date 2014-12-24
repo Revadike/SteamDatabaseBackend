@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        private const string FILES_DIRECTORY = "files";
+        public const string FILES_DIRECTORY = "files";
 
         private static readonly Dictionary<uint, List<string>> ImportantDepots = new Dictionary<uint, List<string>>
         {

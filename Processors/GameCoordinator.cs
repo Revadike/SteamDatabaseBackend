@@ -5,11 +5,17 @@
  */
 using System;
 using System.Collections.Generic;
+using System.IO;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
+
 using Timer = System.Timers.Timer;
+
+// TF2
+using CMsgGCTFSpecificItemBroadcast = SteamKit2.GC.TF2.Internal.CMsgGCTFSpecificItemBroadcast;
+using CMsgTFGoldenWrenchBroadcast   = SteamKit2.GC.TF2.Internal.CMsgTFGoldenWrenchBroadcast;
 
 namespace SteamDatabaseBackend
 {
@@ -21,6 +27,9 @@ namespace SteamDatabaseBackend
             public uint SchemaVersion { get; set; }
             public GCConnectionStatus Status { get; set; }
         }
+
+        const uint k_EMsgGCClientGoodbye = 4008;
+        const uint k_EMsgGCTFSpecificItemBroadcast = 1096;
 
         private readonly SteamGameCoordinator SteamGameCoordinator;
         private readonly Dictionary<uint, SessionInfo> SessionMap;
@@ -34,12 +43,16 @@ namespace SteamDatabaseBackend
             // Map gc messages to our callback functions
             MessageMap = new Dictionary<uint, Action<uint, IPacketGCMsg>>
             {
-                { (uint)4008, OnConnectionStatus },
                 { (uint)EGCBaseClientMsg.k_EMsgGCClientConnectionStatus, OnConnectionStatus },
                 { (uint)EGCBaseClientMsg.k_EMsgGCClientWelcome, OnWelcome },
                 { (uint)EGCItemMsg.k_EMsgGCUpdateItemSchema, OnItemSchemaUpdate },
                 { (uint)EGCItemMsg.k_EMsgGCClientVersionUpdated, OnVersionUpdate },
-                { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage }
+                { (uint)EGCBaseMsg.k_EMsgGCSystemMessage, OnSystemMessage },
+
+                // TF2 specific messages
+                { k_EMsgGCClientGoodbye, OnConnectionStatus },
+                { (uint)EGCItemMsg.k_EMsgGCGoldenWrenchBroadcast, OnWrenchBroadcast },
+                { k_EMsgGCTFSpecificItemBroadcast, OnItemBroadcast },
             };
 
             SteamGameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
@@ -153,9 +166,47 @@ namespace SteamDatabaseBackend
 
             info.Status = msg.status;
 
-            IRC.Instance.SendAnnounce("{0}{1}{2} GC status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, info.Status);
+            IRC.Instance.SendAnnounce("{0}{1}{2} status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, info.Status);
 
             UpdateStatus(appID, info.Status.ToString());
+        }
+
+        private void OnWrenchBroadcast(uint appID, IPacketGCMsg packetMsg)
+        {
+            if (appID != 440)
+            {
+                // This message should be TF2 specific, but just in case
+                return;
+            }
+
+            var msg = new ClientGCMsgProtobuf<CMsgTFGoldenWrenchBroadcast>(packetMsg).Body;
+
+            IRC.Instance.SendMain("{0}{1}{2} item notification: {3}{4}{5} has {6} Golden Wrench no. {7}{8}{9}!",
+                Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
+                Colors.BLUE, msg.user_name, Colors.NORMAL,
+                msg.deleted ? "destroyed" : "found",
+                Colors.OLIVE, msg.wrench_number, Colors.NORMAL
+            );
+        }
+
+        private void OnItemBroadcast(uint appID, IPacketGCMsg packetMsg)
+        {
+            if (appID != 440)
+            {
+                // This message should be TF2 specific, but just in case
+                return;
+            }
+
+            var msg = new ClientGCMsgProtobuf<CMsgGCTFSpecificItemBroadcast>(packetMsg).Body;
+
+            var itemName = GetItemName(441, msg.item_def_index);
+
+            IRC.Instance.SendMain("{0}{1}{2} item notification: {3}{4}{5} {6} {7}{8}{9}!",
+                Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
+                Colors.BLUE, msg.user_name, Colors.NORMAL,
+                msg.was_destruction ? "has destroyed their" : "just received a",
+                Colors.OLIVE, itemName, Colors.NORMAL
+            );
         }
 
         private SessionInfo GetSessionInfo(uint appID)
@@ -175,6 +226,26 @@ namespace SteamDatabaseBackend
             SessionMap.Add(appID, info);
 
             return info;
+        }
+
+        private static string GetItemName(uint depotID, uint itemDefIndex)
+        {
+            var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FileDownloader.FILES_DIRECTORY, depotID.ToString(), "items_game.txt");
+
+            var schema = KeyValue.LoadAsText(file);
+
+            string itemName = null;
+
+            if (schema == null)
+            {
+                Log.WriteWarn("Game Coordinator", "Unable to load item schema from depot {0}", depotID);
+            }
+            else
+            {
+                itemName = schema["items"][itemDefIndex.ToString()]["name"].AsString();
+            }
+
+            return itemName ?? string.Format("Item #{0}", itemDefIndex);
         }
 
         public static void UpdateStatus(uint appID, string status)
