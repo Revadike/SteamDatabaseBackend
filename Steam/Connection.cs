@@ -15,6 +15,8 @@ namespace SteamDatabaseBackend
     {
         private const uint RETRY_DELAY = 15;
 
+        public static DateTime LastSuccessfulLogin;
+
         public readonly Timer ReconnectionTimer;
 
         private readonly string SentryFile;
@@ -37,7 +39,7 @@ namespace SteamDatabaseBackend
             manager.Register(new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
         }
 
-        private static void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
+        public static void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (Steam.Instance.Client.IsConnected)
             {
@@ -140,6 +142,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+
+            LastSuccessfulLogin = DateTime.Now;
 
             Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
 

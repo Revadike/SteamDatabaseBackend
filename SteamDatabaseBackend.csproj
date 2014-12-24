@@ -105,6 +105,7 @@
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="Managers\StoreQueue.cs" />
     <Compile Include="Util\TaskManager.cs" />
+    <Compile Include="Managers\Watchdog.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -58,6 +58,8 @@ namespace SteamDatabaseBackend
             DepotProcessor = new DepotProcessor(Client, CallbackManager);
 
             IsRunning = true;
+
+            new Watchdog();
         }
 
         public void Tick()
