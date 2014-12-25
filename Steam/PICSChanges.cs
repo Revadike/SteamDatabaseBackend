@@ -208,6 +208,12 @@ namespace SteamDatabaseBackend
             }
 
             var subids = callback.PackageChanges.Values.Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x));
+
+            if (!subids.Any())
+            {
+                return;
+            }
+
             var appids = new List<uint>();
 
             // Queue all the apps in the package as well
