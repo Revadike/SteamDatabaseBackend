@@ -219,7 +219,11 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            StoreQueue.AddAppToQueue(appids);
+            if (appids.Any())
+            {
+                StoreQueue.AddAppToQueue(appids);
+            }
+
             StoreQueue.AddPackageToQueue(subids);
         }
 
