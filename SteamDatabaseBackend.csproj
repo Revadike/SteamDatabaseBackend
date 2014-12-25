@@ -45,20 +45,17 @@
     <Reference Include="protobuf-net">
       <HintPath>packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Text">
-      <HintPath>packages\ServiceStack.Text.3.9.33\lib\net35\ServiceStack.Text.dll</HintPath>
-    </Reference>
-    <Reference Include="Bugsnag.Library">
-      <HintPath>packages\Bugsnag.Library.1.0.16.0\lib\net40\Bugsnag.Library.dll</HintPath>
-    </Reference>
     <Reference Include="MySql.Data">
       <HintPath>packages\MySql.Data.6.9.5\lib\net45\MySql.Data.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>packages\Newtonsoft.Json.6.0.6\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="SteamKit2">
       <HintPath>packages\SteamKit2.1.6.2\lib\net40\SteamKit2.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>packages\Newtonsoft.Json.6.0.7\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Bugsnag">
+      <HintPath>packages\Bugsnag.1.0.0.0\lib\net45\Bugsnag.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -76,7 +73,6 @@
     <Compile Include="Processors\GameCoordinator.cs" />
     <Compile Include="Util\Utils.cs" />
     <Compile Include="Util\SettingsJson.cs" />
-    <Compile Include="Util\JobManager.cs" />
     <Compile Include="IRC\Commands\Help.cs" />
     <Compile Include="IRC\Command.cs" />
     <Compile Include="IRC\Commands\Blog.cs" />
@@ -104,8 +100,10 @@
     <Compile Include="Processors\FileDownloader.cs" />
     <Compile Include="Bootstrapper.cs" />
     <Compile Include="Managers\StoreQueue.cs" />
-    <Compile Include="Util\TaskManager.cs" />
     <Compile Include="Managers\Watchdog.cs" />
+    <Compile Include="Managers\ErrorReporter.cs" />
+    <Compile Include="Managers\TaskManager.cs" />
+    <Compile Include="Managers\JobManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

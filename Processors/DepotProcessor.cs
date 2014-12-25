@@ -7,7 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Bugsnag.Library;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -260,20 +259,12 @@ namespace SteamDatabaseBackend
             {
                 DownloadManifest(request);
             }
-            catch (Exception e)
+            finally
             {
-                Log.WriteError("Depot Processor", "Caught exception while processing depot {0}: {1}\n{2}", request.DepotID, e.Message, e.StackTrace);
+                RemoveLock(request.DepotID);
 
-                var bugsnag = new BugSnag();
-                bugsnag.Notify(e, new
-                {
-                    DepotID = request.DepotID
-                });
+                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
             }
-
-            RemoveLock(request.DepotID);
-
-            Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
         }
 
         private void DownloadManifest(ManifestJob request)

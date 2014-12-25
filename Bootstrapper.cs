@@ -10,7 +10,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Bugsnag.Library;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -39,6 +38,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+
+            ErrorReporter.Init(Settings.Current.BugsnagApiKey);
 
             if (Settings.Current.SteamKitDebug)
             {
@@ -76,13 +77,6 @@ namespace SteamDatabaseBackend
             var e = args.ExceptionObject as Exception;
 
             Log.WriteError("Unhandled Exception", "{0}\n{1}", e.Message, e.StackTrace);
-
-            var bugsnag = new BugSnag();
-            bugsnag.Notify(e, new
-            {
-                SteamIsConnected = Steam.Instance.Client.IsConnected,
-                PreviousChangeNumber = Steam.Instance.PICSChanges.PreviousChangeNumber
-            });
 
             if (args.IsTerminating)
             {

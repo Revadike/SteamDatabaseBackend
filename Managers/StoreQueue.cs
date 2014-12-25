@@ -8,7 +8,7 @@ using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
 {
-    public static class StoreQueue
+    static class StoreQueue
     {
         public static void AddAppToQueue(uint appID)
         {

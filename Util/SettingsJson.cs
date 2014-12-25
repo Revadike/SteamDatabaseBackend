@@ -87,6 +87,9 @@ namespace SteamDatabaseBackend
         [JsonProperty(Required = Required.Always)]
         public string ConnectionString;
 
+        [JsonProperty(Required = Required.AllowNull)]
+        public string BugsnagApiKey;
+
         [JsonProperty(Required = Required.Always)]
         public uint FullRun;
 
