@@ -86,7 +86,7 @@ namespace SteamDatabaseBackend
                     request.Command,
                     "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}",
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(753, "graph")
+                    Colors.DARKBLUE, SteamDB.GetAppURL(753, "graphs")
                 );
             }
             else
@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
                     "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
                     Colors.BLUE, Steam.GetAppName(request.Target), Colors.NORMAL,
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(request.Target)
+                    Colors.DARKBLUE, SteamDB.GetAppURL(request.Target, "graphs")
                 );
             }
         }
