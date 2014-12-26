@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace SteamDatabaseBackend
 {
-    public class Watchdog
+    class Watchdog
     {
         public Watchdog()
         {
@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
 
         private void OnTimer(object state)
         {
-            if (Steam.Instance.Client.IsConnected)
+            if (Steam.Instance.Client.IsConnected && Application.ChangelistTimer.Enabled)
             {
                 AccountInfo.Sync();
             }
