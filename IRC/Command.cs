@@ -34,5 +34,6 @@ namespace SteamDatabaseBackend
         public ECommandType CommandType { get; set; }
         public SteamID ChatRoomID { get; set; }
         public SteamID SenderID { get; set; }
+        public bool ReplyAsNotice { get; set; }
     }
 }

@@ -57,28 +57,27 @@ namespace SteamDatabaseBackend
                 {
                     var isChannelMessage = IRC.IsRecipientChannel(command.Recipient);
                     bool shouldReplyAsNotice = false;
+                    string recipient = command.Recipient;
 
                     if (isChannelMessage)
                     {
-                        message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, command.SenderIdentity.Nickname, Colors.NORMAL, message);
+                        shouldReplyAsNotice = notice || command.ReplyAsNotice;
 
-                        if (notice)
+                        if (!shouldReplyAsNotice)
                         {
-                            shouldReplyAsNotice = true;
-                        }
-                        else if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
-                        {
-                            shouldReplyAsNotice = ++LastCommandUseCount > 3;
+                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, command.SenderIdentity.Nickname, Colors.NORMAL, message);
                         }
                         else
                         {
-                            LastCommandUseCount = 1;
+                            recipient = command.SenderIdentity.Nickname.ToString();
                         }
-
-                        LastCommandUseTime = DateTime.Now;
+                    }
+                    else
+                    {
+                        recipient = command.SenderIdentity.Nickname.ToString();
                     }
 
-                    IRC.Instance.SendReply(isChannelMessage ? command.Recipient : command.SenderIdentity.Nickname.ToString(), message, shouldReplyAsNotice);
+                    IRC.Instance.SendReply(recipient, message, shouldReplyAsNotice);
 
                     break;
                 }
@@ -225,6 +224,20 @@ namespace SteamDatabaseBackend
 
         private static void TryCommand(Command command, CommandArguments commandData)
         {
+            if (commandData.CommandType == ECommandType.IRC)
+            {
+                if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
+                {
+                    commandData.ReplyAsNotice = ++LastCommandUseCount > 3;
+                }
+                else
+                {
+                    LastCommandUseCount = 1;
+                }
+
+                LastCommandUseTime = DateTime.Now;
+            }
+
             try
             {
                 command.OnCommand(commandData);
@@ -234,6 +247,8 @@ namespace SteamDatabaseBackend
                 Log.WriteError("CommandHandler", "Exception while executing a command: {0}\n{1}", e.Message, e.StackTrace);
 
                 ReplyToCommand(commandData, "Exception: {0}", e.Message);
+
+                ErrorReporter.Notify(e);
             }
         }
     }
