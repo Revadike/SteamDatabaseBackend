@@ -101,9 +101,17 @@ namespace SteamDatabaseBackend
             Log.WriteError("IRC", "Error: {0} ({1})", e.Error.ToString(), string.Join(", ", e.Data.Parameters));
         }
 
-        public void SendReply(string recipient, string message)
+        public void SendReply(string recipient, string message, bool notice)
         {
-            Client.Message(recipient, message); //, Priority.AboveMedium);
+            if (notice)
+            {
+                Client.Notice(recipient, message); //, Priority.AboveMedium);
+            }
+            else
+            {
+                Client.Message(recipient, message); //, Priority.AboveMedium);
+            }
+
         }
 
         public void SendAnnounce(string format, params object[] args)

@@ -148,7 +148,7 @@ namespace SteamDatabaseBackend
 
             foreach (var job in jobs)
             {
-                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, "Your request failed.");
+                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, true, "Your request failed.");
 
                 Jobs.TryRemove(job.Key, out dummy);
             }
@@ -164,7 +164,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteDebug("Job Manager", "Timed out job: {0} ({1} jobs left)", job.Key, Jobs.Count);
 
-                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, "Your request timed out.");
+                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, true, "Your request timed out.");
 
                 Jobs.TryRemove(job.Key, out dummy);
             }

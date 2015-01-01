@@ -92,7 +92,7 @@ namespace SteamDatabaseBackend
 
             if (JobManager.TryRemoveJob(new JobID(steamID), out job) && job.IsCommand)
             {
-                CommandHandler.ReplyToCommand(job.CommandRequest.Command, "Your request was lost in space.");
+                CommandHandler.ReplyToCommand(job.CommandRequest.Command, true, "Your !steamid request was lost in space.");
             }
 
             JobManager.AddJob(

@@ -15,6 +15,9 @@ namespace SteamDatabaseBackend
     {
         private List<Command> RegisteredCommands;
 
+        private static DateTime LastCommandUseTime = DateTime.Now;
+        private static uint LastCommandUseCount = 0;
+
         public CommandHandler()
         {
             RegisteredCommands = new List<Command>();
@@ -28,6 +31,7 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new BinariesCommand());
             RegisteredCommands.Add(new ImportantCommand());
             RegisteredCommands.Add(new ReloginCommand());
+            RegisteredCommands.Add(new DucksCommand());
 
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
@@ -35,22 +39,46 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("CommandHandler", "Registered {0} commands", RegisteredCommands.Count);
         }
 
+        public static void ReplyToCommand(CommandArguments command, bool notice, string message, params object[] args)
+        {
+            ReplyToCommand(command, string.Format(message, args), notice);
+        }
+
         public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
         {
-            message = string.Format(message, args);
+            ReplyToCommand(command, string.Format(message, args), false);
+        }
 
+        private static void ReplyToCommand(CommandArguments command, string message, bool notice)
+        {
             switch (command.CommandType)
             {
                 case ECommandType.IRC:
                 {
                     var isChannelMessage = IRC.IsRecipientChannel(command.Recipient);
+                    bool shouldReplyAsNotice = false;
 
                     if (isChannelMessage)
                     {
                         message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, command.SenderIdentity.Nickname, Colors.NORMAL, message);
+
+                        if (notice)
+                        {
+                            shouldReplyAsNotice = true;
+                        }
+                        else if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
+                        {
+                            shouldReplyAsNotice = ++LastCommandUseCount > 3;
+                        }
+                        else
+                        {
+                            LastCommandUseCount = 1;
+                        }
+
+                        LastCommandUseTime = DateTime.Now;
                     }
 
-                    IRC.Instance.SendReply(isChannelMessage ? command.Recipient : command.SenderIdentity.Nickname.ToString(), message);
+                    IRC.Instance.SendReply(isChannelMessage ? command.Recipient : command.SenderIdentity.Nickname.ToString(), message, shouldReplyAsNotice);
 
                     break;
                 }
