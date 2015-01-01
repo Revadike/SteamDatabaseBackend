@@ -10,13 +10,13 @@ namespace SteamDatabaseBackend
 {
     class HelpCommand : Command
     {
-        private readonly string Commands;
+        private readonly List<Command> Commands;
 
         public HelpCommand(List<Command> commands)
         {
             Trigger = "!help";
 
-            Commands = string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), commands.Select(cmd => cmd.Trigger));
+            Commands = commands;
         }
 
         public override void OnCommand(CommandArguments command)
@@ -26,7 +26,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            CommandHandler.ReplyToCommand(command, "Available commands: {0}{1}", Colors.OLIVE, Commands);
+            // TODO: Correctly include commands for admins if an admin uses the command
+            var commands = Commands
+                            .Where(cmd => !cmd.IsAdminCommand && cmd != this)
+                            .Select(cmd => cmd.Trigger);
+
+            CommandHandler.ReplyToCommand(command, true, "Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), commands));
         }
     }
 }
