@@ -89,7 +89,7 @@ namespace SteamDatabaseBackend
 
             PreviousChangeNumber = callback.CurrentChangeNumber;
 
-            DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = CURRENT_TIMESTAMP()", new MySqlParameter("@ChangeID", callback.CurrentChangeNumber));
+            HandleChangeNumbers(callback);
 
             if (appChangesCount == 0 && packageChangesCount == 0)
             {
@@ -124,11 +124,6 @@ namespace SteamDatabaseBackend
 
             foreach (var app in callback.AppChanges.Values)
             {
-                if (callback.CurrentChangeNumber != app.ChangeNumber)
-                {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", app.ChangeNumber));
-                }
-
                 changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
             }
 
@@ -154,11 +149,6 @@ namespace SteamDatabaseBackend
 
             foreach (var package in callback.PackageChanges.Values)
             {
-                if (callback.CurrentChangeNumber != package.ChangeNumber)
-                {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", package.ChangeNumber));
-                }
-
                 changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
 
                 if (++count > 500)
@@ -231,6 +221,23 @@ namespace SteamDatabaseBackend
             }
 
             StoreQueue.AddPackageToQueue(subids);
+        }
+
+        private static void HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
+        {
+            var changeNumbers = callback.AppChanges.Values
+                .Select(x => x.ChangeNumber)
+                .Union(callback.PackageChanges.Values.Select(x => x.ChangeNumber))
+                .Distinct()
+                .Where(x => x != callback.CurrentChangeNumber)
+                .ToList();
+
+            changeNumbers.Add(callback.CurrentChangeNumber);
+
+            foreach (var changeNumber in changeNumbers)
+            {
+                DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", changeNumber));
+            }
         }
 
         private static void PrintImportants(SteamApps.PICSChangesCallback callback)

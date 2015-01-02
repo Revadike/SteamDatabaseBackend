@@ -31,7 +31,6 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new BinariesCommand());
             RegisteredCommands.Add(new ImportantCommand());
             RegisteredCommands.Add(new ReloginCommand());
-            RegisteredCommands.Add(new DucksCommand());
 
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
