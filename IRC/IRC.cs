@@ -105,6 +105,8 @@ namespace SteamDatabaseBackend
         {
             if (notice)
             {
+                message = string.Format("{0}{1}", Colors.NORMAL, message); // Reset formatting since some clients might put notices in a different color
+
                 Client.Notice(recipient, message); //, Priority.AboveMedium);
             }
             else
