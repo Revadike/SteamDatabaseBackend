@@ -51,11 +51,14 @@
     <Reference Include="SteamKit2">
       <HintPath>packages\SteamKit2.1.6.2\lib\net40\SteamKit2.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>packages\Newtonsoft.Json.6.0.7\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="Bugsnag">
       <HintPath>packages\Bugsnag.1.0.0.0\lib\net45\Bugsnag.dll</HintPath>
+    </Reference>
+    <Reference Include="Dapper">
+      <HintPath>packages\Dapper.1.38\lib\net45\Dapper.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -104,6 +107,10 @@
     <Compile Include="Managers\ErrorReporter.cs" />
     <Compile Include="Managers\TaskManager.cs" />
     <Compile Include="Managers\JobManager.cs" />
+    <Compile Include="Database\Database.cs" />
+    <Compile Include="Database\App.cs" />
+    <Compile Include="Database\Package.cs" />
+    <Compile Include="Database\Changelist.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -140,5 +147,6 @@
     <Folder Include="IRC\Commands\" />
     <Folder Include="Steam\" />
     <Folder Include="Managers\" />
+    <Folder Include="Database\" />
   </ItemGroup>
 </Project>

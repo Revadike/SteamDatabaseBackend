@@ -6,8 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -16,11 +15,13 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
-        private static readonly string IgnorableBillingTypes;
+        private readonly uint BillingTypeKey;
+
+        private static readonly List<EBillingType> IgnorableBillingTypes;
 
         static PICSChanges()
         {
-            var ignorableBillingTypes = new List<EBillingType>()
+            IgnorableBillingTypes = new List<EBillingType>()
             {
                 EBillingType.ProofOfPrepurchaseOnly, // CDKey
                 EBillingType.GuestPass,
@@ -30,8 +31,6 @@ namespace SteamDatabaseBackend
                 EBillingType.OEMTicket,
                 EBillingType.RecurringOption, // Not sure if should be ignored
             };
-
-            IgnorableBillingTypes = string.Join(",", ignorableBillingTypes.Select(@enum => (int)@enum));
         }
 
         public PICSChanges(CallbackManager manager)
@@ -48,14 +47,13 @@ namespace SteamDatabaseBackend
                 
             manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
 
-            using (var reader = DbWorker.ExecuteReader("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1"))
-            {
-                if (reader.Read())
-                {
-                    PreviousChangeNumber = reader.GetUInt32("ChangeID");
+            BillingTypeKey = SubProcessor.GetKeyNameID("root_billingtype");
 
-                    Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
-                }
+            using (var db = Database.GetConnection())
+            {
+                PreviousChangeNumber = db.ExecuteScalar<uint>("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1");
+
+                Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
             }
 
             if (PreviousChangeNumber == 0)
@@ -118,71 +116,48 @@ namespace SteamDatabaseBackend
             PrintImportants(callback);
         }
 
-        private static void HandleApps(SteamApps.PICSChangesCallback callback)
+        private void HandleApps(SteamApps.PICSChangesCallback callback)
         {
-            string changes = string.Empty;
-
-            foreach (var app in callback.AppChanges.Values)
-            {
-                changes += string.Format("({0}, {1}),", app.ChangeNumber, app.ID);
-            }
-
-            if (!changes.Equals(string.Empty))
-            {
-                changes = string.Format("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES {0} ON DUPLICATE KEY UPDATE `AppID` = `AppID`", changes.Remove(changes.Length - 1));
-
-                DbWorker.ExecuteNonQuery(changes);
-            }
-
             StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
 
-            Parallel.ForEach(callback.AppChanges.Values, app =>
+            using (var db = Database.GetConnection())
             {
-                DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new MySqlParameter("@AppID", app.ID));
-            });
-        }
+                db.Execute("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
 
-        private static void HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
-        {
-            string changes = string.Empty;
-            uint count = 0;
-
-            foreach (var package in callback.PackageChanges.Values)
-            {
-                changes += string.Format("({0}, {1}),", package.ChangeNumber, package.ID);
-
-                if (++count > 500)
+                foreach (var app in callback.AppChanges.Values)
                 {
-                    InsertPackagesToChangelist(changes);
-
-                    changes = string.Empty;
-                    count = 0;
+                    db.Execute("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @ID", app);
                 }
             }
-
-            if (!changes.Equals(string.Empty))
-            {
-                InsertPackagesToChangelist(changes);
-            }
-
-            Parallel.ForEach(callback.PackageChanges.Values, package =>
-            {
-                DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @SubID", new MySqlParameter("@SubID", package.ID));
-            });
         }
 
-        private static void HandlePackages(SteamApps.PICSChangesCallback callback)
+        private void HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
+        {
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
+
+                foreach (var package in callback.PackageChanges.Values)
+                {
+                    db.Execute("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @ID", package);
+                }
+            }
+        }
+
+        private void HandlePackages(SteamApps.PICSChangesCallback callback)
         {
             var ignoredPackages = new Dictionary<uint, byte>();
 
-            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN({0}) AND `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype') AND `Value` IN ({1})",
-                string.Join(",", callback.PackageChanges.Values.Select(x => x.ID)),
-                IgnorableBillingTypes)))
+            using (var db = Database.GetConnection())
             {
-                while (reader.Read())
-                {
-                    ignoredPackages.Add(reader.GetUInt32("SubID"), (byte)1);
-                }
+                ignoredPackages = db.Query("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN @Subs AND `Key` = @Key AND `Value` IN @Types",
+                    new
+                    {
+                        Key = BillingTypeKey,
+                        Subs = callback.PackageChanges.Values.Select(x => x.ID),
+                        Types = IgnorableBillingTypes
+                    }
+                ).ToDictionary(x => (uint)x.SubID, x => (byte)1);
             }
 
             // Steam comp
@@ -204,15 +179,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var appids = new List<uint>();
+            List<uint> appids;
 
             // Queue all the apps in the package as well
-            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN({0}) AND `Type` = 'app'", string.Join(",", subids))))
+            using (var db = Database.GetConnection())
             {
-                while (reader.Read())
-                {
-                    appids.Add(reader.GetUInt32("AppID"));
-                }
+                appids = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids AND `Type` = 'app'", new { Ids = subids }).ToList();
             }
 
             if (appids.Any())
@@ -223,7 +195,7 @@ namespace SteamDatabaseBackend
             StoreQueue.AddPackageToQueue(subids);
         }
 
-        private static void HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
+        private void HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
         {
             var changeNumbers = callback.AppChanges.Values
                 .Select(x => x.ChangeNumber)
@@ -234,13 +206,16 @@ namespace SteamDatabaseBackend
 
             changeNumbers.Add(callback.CurrentChangeNumber);
 
-            foreach (var changeNumber in changeNumbers)
+            // Silly thing
+            var changeLists = changeNumbers.Select(x => new Changelist { ChangeID = x });
+
+            using (var db = Database.GetConnection())
             {
-                DbWorker.ExecuteNonQuery("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", new MySqlParameter("@ChangeID", changeNumber));
+                db.Execute("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
             }
         }
 
-        private static void PrintImportants(SteamApps.PICSChangesCallback callback)
+        private void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
@@ -259,7 +234,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
+        private void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
         {
             // Group apps and package changes by changelist, this will seperate into individual changelists
             var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
@@ -306,32 +281,30 @@ namespace SteamDatabaseBackend
                 }
 
                 string name;
-                string nameOther;
-                var names = new Dictionary<uint, string>();
 
                 if (appCount > 0)
                 {
-                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN ({0})", string.Join(", ", changeList.Apps.Select(x => x.ID)))))
+                    Dictionary<uint, App> apps;
+                    App data;
+
+                    using (var db = Database.GetConnection())
                     {
-                        while (reader.Read())
-                        {
-                            name = Utils.RemoveControlCharacters(reader.GetString("Name"));
-                            nameOther = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
-
-                            if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))
-                            {
-                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
-                            }
-
-                            names.Add(reader.GetUInt32("AppID"), name);
-                        }
+                        apps = db.Query<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps.Select(x => x.ID) }).ToDictionary(x => x.AppID, x => x);
                     }
 
                     foreach (var app in changeList.Apps)
                     {
-                        if (!names.TryGetValue(app.ID, out name))
+                        if (!apps.TryGetValue(app.ID, out data))
                         {
                             name = string.Format("{0}{1}", Colors.RED, SteamDB.UNKNOWN_APP);
+                        }
+                        else if (!string.IsNullOrEmpty(data.LastKnownName) && !data.Name.Equals(data.LastKnownName))
+                        {
+                            name = string.Format("{0} {1}({2}){3}", data.Name, Colors.DARKGRAY, data.LastKnownName, Colors.NORMAL);
+                        }
+                        else
+                        {
+                            name = data.Name;
                         }
 
                         IRC.Instance.SendAnnounce("  App: {0}{1}{2} - {3}{4}",
@@ -344,29 +317,27 @@ namespace SteamDatabaseBackend
 
                 if (packageCount > 0)
                 {
-                    names.Clear();
+                    Dictionary<uint, Package> packages;
+                    Package data;
 
-                    using (var reader = DbWorker.ExecuteReader(string.Format("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN ({0})", string.Join(", ", changeList.Packages.Select(x => x.ID)))))
+                    using (var db = Database.GetConnection())
                     {
-                        while (reader.Read())
-                        {
-                            name = Utils.RemoveControlCharacters(reader.GetString("Name"));
-                            nameOther = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
-
-                            if (!string.IsNullOrEmpty(nameOther) && !name.Equals(nameOther))  // TODO: Only do it for 'Steam Sub' names?
-                            {
-                                name = string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameOther, Colors.NORMAL);
-                            }
-
-                            names.Add(reader.GetUInt32("SubID"), name);
-                        }
+                        packages = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Apps` WHERE `Subs` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) }).ToDictionary(x => x.SubID, x => x);
                     }
 
                     foreach (var package in changeList.Packages)
                     {
-                        if (!names.TryGetValue(package.ID, out name))
+                        if (!packages.TryGetValue(package.ID, out data))
                         {
                             name = string.Format("{0}SteamDB Unknown Package", Colors.RED);
+                        }
+                        else if (!string.IsNullOrEmpty(data.LastKnownName) && !data.Name.Equals(data.LastKnownName)) // TODO: Only do it for 'Steam Sub' names?
+                        {
+                            name = string.Format("{0} {1}({2}){3}", data.Name, Colors.DARKGRAY, data.LastKnownName, Colors.NORMAL);
+                        }
+                        else
+                        {
+                            name = data.Name;
                         }
 
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2} - {3}{4}",
@@ -377,13 +348,6 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
-        }
-
-        private static void InsertPackagesToChangelist(string changes)
-        {
-            changes = string.Format("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES {0} ON DUPLICATE KEY UPDATE `SubID` = `SubID`", changes.Remove(changes.Length - 1));
-
-            DbWorker.ExecuteNonQuery(changes);
         }
     }
 }

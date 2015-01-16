@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Dapper;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -396,17 +397,12 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private static uint GetKeyNameID(string keyName)
+        public static uint GetKeyNameID(string keyName)
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @KeyName LIMIT 1", new MySqlParameter("KeyName", keyName)))
+            using (var db = Database.GetConnection())
             {
-                if (reader.Read())
-                {
-                    return reader.GetUInt32("ID");
-                }
+                return db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
             }
-
-            return 0;
         }
     }
 }
