@@ -36,7 +36,7 @@ namespace SteamDatabaseBackend
         private readonly Dictionary<uint, Action<uint, IPacketGCMsg>> MessageMap;
         private readonly Timer SessionTimer;
 
-        public GameCoordinator(SteamClient steamClient, CallbackManager callbackManager)
+        public GameCoordinator(SteamClient steamClient, CallbackManager manager)
         {
             SessionMap = new Dictionary<uint, SessionInfo>();
 
@@ -62,7 +62,8 @@ namespace SteamDatabaseBackend
             SessionTimer.Elapsed += OnSessionTick;
             SessionTimer.Start();
 
-            callbackManager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
+            manager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
+            manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
         }
 
         private void OnSessionTick(object sender, System.Timers.ElapsedEventArgs e)
@@ -82,6 +83,21 @@ namespace SteamDatabaseBackend
                     var hello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
                     SteamGameCoordinator.Send(hello, appID);
                 }
+            }
+        }
+
+        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
+        {
+            if (callback.Result != EResult.OK)
+            {
+                return;
+            }
+
+            foreach (var appID in Settings.Current.GameCoordinatorIdlers)
+            {
+                var info = GetSessionInfo(appID);
+
+                info.Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION;
             }
         }
 
