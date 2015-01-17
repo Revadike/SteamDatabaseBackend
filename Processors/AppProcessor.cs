@@ -38,7 +38,6 @@ namespace SteamDatabaseBackend
             }
 
             bool depotsSectionModified = false;
-            bool appCreated = false;
 
             using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
             {
@@ -88,8 +87,6 @@ namespace SteamDatabaseBackend
                                              new MySqlParameter("@AppName", productInfo.KeyValues["common"]["name"].Value)
                     );
 
-                    appCreated = true;
-
                     MakeHistory("created_app");
                     MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
 
@@ -122,23 +119,21 @@ namespace SteamDatabaseBackend
                     MakeHistory("modified_info", DATABASE_NAME_TYPE, appName, newAppName);
                 }
 
-                if (appType == 0)
+                if (appType == 0 || appType != newAppType)
                 {
                     DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
                                              new MySqlParameter("@AppID", AppID),
                                              new MySqlParameter("@Type", newAppType)
                     );
 
-                    MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType.ToString());
-                }
-                else if (appType != newAppType)
-                {
-                    DbWorker.ExecuteNonQuery("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID",
-                                             new MySqlParameter("@AppID", AppID),
-                                             new MySqlParameter("@Type", newAppType)
-                    );
-
-                    MakeHistory("modified_info", DATABASE_APPTYPE, appType.ToString(), newAppType.ToString());
+                    if (appType == 0)
+                    {
+                        MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType.ToString());
+                    }
+                    else
+                    {
+                        MakeHistory("modified_info", DATABASE_APPTYPE, appType.ToString(), newAppType.ToString());
+                    }
                 }
             }
 
@@ -247,25 +242,6 @@ namespace SteamDatabaseBackend
                 }
 
                 Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
-            }
-
-            // Request package info for all packages this app is in to try and catch name changes (from Steam Sub xxx to a real one)
-            if (appCreated)
-            {
-                var packages = new List<SteamApps.PICSRequest>();
-
-                using (var reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `SubsApps` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID)))
-                {
-                    while (reader.Read())
-                    {
-                        packages.Add(Utils.NewPICSRequest(reader.GetUInt32("SubID")));
-                    }
-                }
-
-                if (packages.Any())
-                {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages));
-                }
             }
         }
 
