@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -135,7 +136,10 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            DbWorker.ExecuteNonQuery("DELETE FROM `GC`");
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("DELETE FROM `GC`");
+            }
         }
     }
 }

@@ -3,8 +3,10 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using MySql.Data.MySqlClient;
+using System.Linq;
+using Dapper;
 using SteamKit2;
+using System.Collections.Generic;
 
 namespace SteamDatabaseBackend
 {
@@ -18,15 +20,18 @@ namespace SteamDatabaseBackend
 
         private static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {
+            List<GlobalID> ids;
+
+            using (var db = Database.GetConnection())
+            {
+                ids = db.Query<GlobalID>("SELECT `ID` FROM `MarketingMessages` WHERE `ID` IN @Ids", new { Ids = callback.Messages.Select(x => x.ID) }).ToList();
+            }
+
             foreach (var message in callback.Messages)
             {
-                // TODO: Move this query outside this loop
-                using (var reader = DbWorker.ExecuteReader("SELECT `ID` FROM `MarketingMessages` WHERE `ID` = @ID", new MySqlParameter("ID", message.ID)))
+                if (ids.Contains(message.ID))
                 {
-                    if (reader.Read())
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 if (message.Flags == EMarketingMessageFlags.None)
@@ -38,11 +43,10 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendMain("New marketing message:{0} {1} {2}({3})", Colors.DARKBLUE, message.URL, Colors.DARKGRAY, message.Flags.ToString().Replace("Platform", string.Empty));
                 }
 
-                DbWorker.ExecuteNonQuery(
-                    "INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)",
-                    new MySqlParameter("@ID", message.ID),
-                    new MySqlParameter("@Flags", message.Flags)
-                );
+                using (var db = Database.GetConnection())
+                {
+                    db.Execute("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)", message);
+                }
             }
         }
     }

@@ -5,7 +5,7 @@
  */
 using System.Collections.Generic;
 using System.Linq;
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -53,12 +53,9 @@ namespace SteamDatabaseBackend
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);
             }
 
-            using (var reader = DbWorker.ExecuteReader(string.Format("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN ({0})", string.Join(", ", ownedSubs.Keys))))
+            using (var db = Database.GetConnection())
             {
-                while (reader.Read())
-                {
-                    ownedApps.Add(reader.GetUInt32("AppID"), 1);
-                }
+                ownedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = ownedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
             }
 
             Application.OwnedSubs = ownedSubs;

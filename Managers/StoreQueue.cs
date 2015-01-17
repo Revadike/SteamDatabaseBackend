@@ -4,6 +4,8 @@
  * found in the LICENSE file.
  */
 using System.Collections.Generic;
+using System.Linq;
+using Dapper;
 
 namespace SteamDatabaseBackend
 {
@@ -31,12 +33,12 @@ namespace SteamDatabaseBackend
 
         private static void InsertQuery(IEnumerable<uint> ids, string type)
         {
-            // Maintenance hell
-            var values = string.Join(string.Format(", '{0}'), (", type), ids);
+            var items = ids.Select(x => new StoreUpdateQueue { ID = x, Type = type });
 
-            values = string.Format("({0}, '{1}')", values, type);
-
-            DbWorker.ExecuteNonQuery(string.Format("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES {0} ON DUPLICATE KEY UPDATE `ID` = `ID`", values));
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@ID, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`", items);
+            }
         }
     }
 }

@@ -4,7 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -84,44 +84,52 @@ namespace SteamDatabaseBackend
 
         public static string GetPackageName(uint subID)
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", subID)))
+            Package? data;
+
+            using (var db = Database.GetConnection())
             {
-                if (reader.Read())
-                {
-                    string name = Utils.RemoveControlCharacters(reader.GetString("Name"));
-                    string nameLast = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
-
-                    if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
-                    {
-                        return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
-                    }
-
-                    return name;
-                }
+                data = db.ExecuteScalar<Package?>("SELECT `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subID });
             }
 
-            return string.Format("SubID {0}", subID);
+            if (!data.HasValue)
+            {
+                return string.Format("SubID {0}", subID);
+            }
+
+            string name     = Utils.RemoveControlCharacters(data.Value.Name);
+            string nameLast = Utils.RemoveControlCharacters(data.Value.LastKnownName);
+
+            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
+            {
+                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+            }
+
+            return name;
         }
 
         public static string GetAppName(uint appID)
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", appID)))
+            App? data;
+
+            using (var db = Database.GetConnection())
             {
-                if (reader.Read())
-                {
-                    string name = Utils.RemoveControlCharacters(reader.GetString("Name"));
-                    string nameLast = Utils.RemoveControlCharacters(reader.GetString("LastKnownName"));
-
-                    if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
-                    {
-                        return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
-                    }
-
-                    return name;
-                }
+                data = db.ExecuteScalar<App?>("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = appID });
             }
 
-            return string.Format("AppID {0}", appID);
+            if (!data.HasValue)
+            {
+                return string.Format("AppID {0}", appID);
+            }
+
+            string name     = Utils.RemoveControlCharacters(data.Value.Name);
+            string nameLast = Utils.RemoveControlCharacters(data.Value.LastKnownName);
+
+            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+            {
+                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+            }
+
+            return name;
         }
     }
 }

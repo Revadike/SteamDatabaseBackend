@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
@@ -266,11 +266,10 @@ namespace SteamDatabaseBackend
 
         public static void UpdateStatus(uint appID, string status)
         {
-            DbWorker.ExecuteNonQuery(
-                "INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status",
-                new MySqlParameter("@AppID", appID),
-                new MySqlParameter("@Status", status)
-            );
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status", new { AppID = appID, Status = status });
+            }
         }
     }
 }

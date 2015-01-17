@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -40,11 +40,13 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                using (var db = Database.GetConnection())
                 {
-                    if (reader.Read())
+                    var app = db.ExecuteScalar<App?>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppsTypes`.`Name` IN ('game', 'application') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+
+                    if (app.HasValue)
                     {
-                        appID = reader.GetUInt32("AppID");
+                        appID = app.Value.AppID;
                     }
                     else
                     {

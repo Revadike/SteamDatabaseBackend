@@ -5,7 +5,7 @@
  */
 using System.Collections.Generic;
 using System.Linq;
-using MySql.Data.MySqlClient;
+using Dapper;
 
 namespace SteamDatabaseBackend
 {
@@ -39,11 +39,13 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                using (var reader = DbWorker.ExecuteReader("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new MySqlParameter("Name", name)))
+                using (var db = Database.GetConnection())
                 {
-                    if (reader.Read())
+                    var app = db.ExecuteScalar<App?>("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+
+                    if (app.HasValue)
                     {
-                        appID = reader.GetUInt32("AppID");
+                        appID = app.Value.AppID;
                     }
                     else
                     {
