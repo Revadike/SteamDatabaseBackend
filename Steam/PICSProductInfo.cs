@@ -58,9 +58,12 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    if (Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    lock (Application.ProcessedApps)
                     {
-                        Application.ProcessedApps.TryRemove(workaround.Key, out mostRecentItem);
+                        if (Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        {
+                            Application.ProcessedApps.TryRemove(workaround.Key, out mostRecentItem);
+                        }
                     }
                 });
             }
@@ -95,9 +98,12 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    if (Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    lock (Application.ProcessedApps)
                     {
-                        Application.ProcessedSubs.TryRemove(workaround.Key, out mostRecentItem);
+                        if (Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        {
+                            Application.ProcessedSubs.TryRemove(workaround.Key, out mostRecentItem);
+                        }
                     }
                 });
             }
@@ -132,9 +138,12 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    if (Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    lock (Application.ProcessedApps)
                     {
-                        Application.ProcessedApps.TryRemove(workaround, out mostRecentItem);
+                        if (Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        {
+                            Application.ProcessedApps.TryRemove(workaround, out mostRecentItem);
+                        }
                     }
                 });
             }
@@ -169,9 +178,12 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    if (Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                    lock (Application.ProcessedApps)
                     {
-                        Application.ProcessedSubs.TryRemove(workaround, out mostRecentItem);
+                        if (Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        {
+                            Application.ProcessedSubs.TryRemove(workaround, out mostRecentItem);
+                        }
                     }
                 });
             }
