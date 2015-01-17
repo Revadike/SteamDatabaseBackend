@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    lock (Application.ProcessedApps)
+                    lock (Application.ProcessedSubs)
                     {
                         if (Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
@@ -178,7 +178,7 @@ namespace SteamDatabaseBackend
 
                 workerItem.ContinueWith(task =>
                 {
-                    lock (Application.ProcessedApps)
+                    lock (Application.ProcessedSubs)
                     {
                         if (Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
