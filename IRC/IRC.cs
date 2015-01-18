@@ -105,15 +105,15 @@ namespace SteamDatabaseBackend
         {
             if (notice)
             {
-                message = string.Format("{0}{1}", Colors.NORMAL, message); // Reset formatting since some clients might put notices in a different color
+                // Reset formatting since some clients might put notices in a different color
+                message = string.Format("{0}{1}{2}", Settings.Current.IRC.PrioritySendPrefix, Colors.NORMAL, message);
 
-                Client.Notice(recipient, message); //, Priority.AboveMedium);
+                Client.Notice(recipient, message);
             }
             else
             {
-                Client.Message(recipient, message); //, Priority.AboveMedium);
+                Client.Message(recipient, string.Concat(Settings.Current.IRC.PrioritySendPrefix, message));
             }
-
         }
 
         public void SendAnnounce(string format, params object[] args)
@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.Message(Settings.Current.IRC.Channel.Main, string.Format(format, args)); //, Priority.AboveMedium);
+                Client.Message(Settings.Current.IRC.Channel.Main, string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args)));
             }
         }
 
@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.Message(Settings.Current.IRC.Channel.Ops, string.Format(format, args)); //, Priority.Highest);
+                Client.Message(Settings.Current.IRC.Channel.Ops, string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args)));
             }
         }
 
@@ -145,7 +145,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.Message("#steamlug", message); //, Priority.AboveMedium);
+                Client.Message("#steamlug", string.Concat(Settings.Current.IRC.PrioritySendPrefix, message));
             }
         }
 

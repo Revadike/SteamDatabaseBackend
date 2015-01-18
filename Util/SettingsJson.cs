@@ -6,7 +6,6 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -49,6 +48,9 @@ namespace SteamDatabaseBackend
 
             [JsonProperty(Required = Required.Always)]
             public IrcChannelsJson Channel;
+
+            [JsonProperty(Required = Required.Always)]
+            public string PrioritySendPrefix;
         }
 
         public sealed class IrcChannelsJson
