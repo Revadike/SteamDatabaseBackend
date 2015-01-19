@@ -113,6 +113,7 @@
     <Compile Include="Database\Changelist.cs" />
     <Compile Include="Database\BlogPost.cs" />
     <Compile Include="Database\StoreUpdateQueue.cs" />
+    <Compile Include="Database\Important.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

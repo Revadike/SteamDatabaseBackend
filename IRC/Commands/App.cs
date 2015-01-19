@@ -42,13 +42,13 @@ namespace SteamDatabaseBackend
                 using (var db = Database.GetConnection())
                 {
                     appID = db.ExecuteScalar<uint>("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+                }
 
-                    if (appID == 0)
-                    {
-                        CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
+                if (appID == 0)
+                {
+                    CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
 
-                        return;
-                    }
+                    return;
                 }
             }
 

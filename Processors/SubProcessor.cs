@@ -193,7 +193,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(sectionName, sectionName, DbWorker.JsonifyKeyValue(section), true);
+                    ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true);
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {

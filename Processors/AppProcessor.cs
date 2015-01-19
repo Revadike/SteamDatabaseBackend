@@ -175,7 +175,7 @@ namespace SteamDatabaseBackend
                             }
                             else
                             {
-                                ProcessKey(keyName, keyvalue.Name, DbWorker.JsonifyKeyValue(keyvalue), true);
+                                ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), true);
                             }
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
@@ -188,7 +188,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    if (ProcessKey(sectionName, sectionName, DbWorker.JsonifyKeyValue(section), true) && sectionName.Equals("root_depots"))
+                    if (ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true) && sectionName.Equals("root_depots"))
                     {
                         depotsSectionModified = true;
                     }

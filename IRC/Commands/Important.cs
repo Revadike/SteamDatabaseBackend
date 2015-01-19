@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using MySql.Data.MySqlClient;
+using Dapper;
 
 namespace SteamDatabaseBackend
 {
@@ -78,8 +79,11 @@ namespace SteamDatabaseBackend
                                                 Application.ImportantApps.Add(id, new List<string>{ channel });
                                             }
 
-                                            DbWorker.ExecuteNonQuery("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new MySqlParameter("AppID", id), new MySqlParameter("Channel", channel));
-
+                                            using (var db = Database.GetConnection())
+                                            {
+                                                db.Execute("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new { AppID = id, Channel = channel });
+                                            }
+                                                
                                             CommandHandler.ReplyToCommand(command, "Marked app {0}{1}{2} ({3}) as important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
 
@@ -96,7 +100,10 @@ namespace SteamDatabaseBackend
                                         {
                                             Application.ImportantSubs.Add(id, 1);
 
-                                            DbWorker.ExecuteNonQuery("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new MySqlParameter("SubID", id));
+                                            using (var db = Database.GetConnection())
+                                            {
+                                                db.Execute("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new { SubID = id });
+                                            }
 
                                             CommandHandler.ReplyToCommand(command, "Marked package {0}{1}{2} ({3}) as important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
@@ -143,7 +150,10 @@ namespace SteamDatabaseBackend
                                                 Application.ImportantApps.Remove(id);
                                             }
 
-                                            DbWorker.ExecuteNonQuery("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new MySqlParameter("AppID", id), new MySqlParameter("Channel", channel));
+                                            using (var db = Database.GetConnection())
+                                            {
+                                                db.Execute("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
+                                            }
 
                                             CommandHandler.ReplyToCommand(command, "Removed app {0}{1}{2} ({3}) from the important list in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                         }
@@ -161,8 +171,11 @@ namespace SteamDatabaseBackend
                                         {
                                             Application.ImportantSubs.Remove(id);
 
-                                            DbWorker.ExecuteNonQuery("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id));
-
+                                            using (var db = Database.GetConnection())
+                                            {
+                                                db.Execute("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new { SubID = id });
+                                            }
+                                                
                                             CommandHandler.ReplyToCommand(command, "Removed package {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                         }
 
@@ -191,16 +204,20 @@ namespace SteamDatabaseBackend
                             {
                                 case "app":
                                     {
-                                        using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("AppID", id)))
+                                        string name;
+
+                                        using (var db = Database.GetConnection())
                                         {
-                                            if (reader.Read())
-                                            {
-                                                StoreQueue.AddAppToQueue(id);
+                                            name = db.ExecuteScalar<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
+                                        }
+                                            
+                                        if (!string.IsNullOrEmpty(name))
+                                        {
+                                            StoreQueue.AddAppToQueue(id);
 
-                                                CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(reader.GetString("Name")));
+                                            CommandHandler.ReplyToCommand(command, "App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
 
-                                                return;
-                                            }
+                                            return;
                                         }
 
                                         CommandHandler.ReplyToCommand(command, "This app is not in the database.");
@@ -217,16 +234,20 @@ namespace SteamDatabaseBackend
                                             return;
                                         }
 
-                                        using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("SubID", id)))
+                                        string name;
+
+                                        using (var db = Database.GetConnection())
                                         {
-                                            if (reader.Read())
-                                            {
-                                                StoreQueue.AddPackageToQueue(id);
+                                            name = db.ExecuteScalar<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
+                                        }
+                                            
+                                        if (!string.IsNullOrEmpty(name))
+                                        {
+                                            StoreQueue.AddPackageToQueue(id);
 
-                                                CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(reader.GetString("Name")));
+                                            CommandHandler.ReplyToCommand(command, "Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
 
-                                                return;
-                                            }
+                                            return;
                                         }
 
                                         CommandHandler.ReplyToCommand(command, "This package is not in the database.");

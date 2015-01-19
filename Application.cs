@@ -6,8 +6,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
@@ -90,33 +92,29 @@ namespace SteamDatabaseBackend
 
         private static void ReloadImportant()
         {
-            using (var reader = DbWorker.ExecuteReader("SELECT `AppID`, `Channel` FROM `ImportantApps`"))
+            List<Important> importantApps;
+
+            using (var db = Database.GetConnection())
+            {
+                importantApps = db.Query<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`").ToList();
+
+                ImportantSubs = db.Query<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`").ToDictionary(x => x.ID, x => (byte)1);
+            }
+
+            lock (ImportantApps)
             {
                 ImportantApps.Clear();
 
-                while (reader.Read())
+                foreach (var app in importantApps)
                 {
-                    var appID = reader.GetUInt32("AppID");
-                    var channel = reader.GetString("Channel");
-
-                    if (ImportantApps.ContainsKey(appID))
+                    if (ImportantApps.ContainsKey(app.ID))
                     {
-                        ImportantApps[appID].Add(channel);
+                        ImportantApps[app.ID].Add(app.Channel);
                     }
                     else
                     {
-                        ImportantApps.Add(appID, new List<string>{ channel });
+                        ImportantApps.Add(app.ID, new List<string>{ app.Channel });
                     }
-                }
-            }
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `SubID` FROM `ImportantSubs`"))
-            {
-                ImportantSubs.Clear();
-
-                while (reader.Read())
-                {
-                    ImportantSubs.Add(reader.GetUInt32("SubID"), 1);
                 }
             }
 

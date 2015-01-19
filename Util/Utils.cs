@@ -6,7 +6,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
+using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -86,6 +89,44 @@ namespace SteamDatabaseBackend
         public static string RemoveControlCharacters(string input)
         {
             return new string(input.Where(c => !char.IsControl(c)).ToArray());
+        }
+
+        public static string JsonifyKeyValue(KeyValue keys)
+        {
+            string value;
+
+            using (var sw = new StringWriter(new StringBuilder()))
+            {
+                using (JsonWriter w = new JsonTextWriter(sw))
+                {
+                    JsonifyKeyValue(w, keys.Children);
+                }
+
+                value = sw.ToString();
+            }
+
+            return value;
+        }
+
+        private static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)
+        {
+            w.WriteStartObject();
+
+            foreach (KeyValue keyval in keys)
+            {
+                if (keyval.Children.Count > 0)
+                {
+                    w.WritePropertyName(keyval.Name);
+                    JsonifyKeyValue(w, keyval.Children);
+                }
+                else if (keyval.Value != null) // TODO: Should we be writing null keys anyway?
+                {
+                    w.WritePropertyName(keyval.Name);
+                    w.WriteValue(keyval.Value);
+                }
+            }
+
+            w.WriteEndObject();
         }
     }
 
