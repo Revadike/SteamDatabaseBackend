@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Linq;
 using Dapper;
 using SteamKit2;
 
@@ -84,20 +85,20 @@ namespace SteamDatabaseBackend
 
         public static string GetPackageName(uint subID)
         {
-            Package? data;
+            Package data;
 
             using (var db = Database.GetConnection())
             {
-                data = db.ExecuteScalar<Package?>("SELECT `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subID });
+                data = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subID }).FirstOrDefault();
             }
 
-            if (!data.HasValue)
+            if (data.SubID == 0)
             {
                 return string.Format("SubID {0}", subID);
             }
 
-            string name     = Utils.RemoveControlCharacters(data.Value.Name);
-            string nameLast = Utils.RemoveControlCharacters(data.Value.LastKnownName);
+            string name     = Utils.RemoveControlCharacters(data.Name);
+            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
             {
@@ -109,20 +110,20 @@ namespace SteamDatabaseBackend
 
         public static string GetAppName(uint appID)
         {
-            App? data;
+            App data;
 
             using (var db = Database.GetConnection())
             {
-                data = db.ExecuteScalar<App?>("SELECT `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = appID });
+                data = db.Query<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
             }
 
-            if (!data.HasValue)
+            if (data.AppID == 0)
             {
                 return string.Format("AppID {0}", appID);
             }
 
-            string name     = Utils.RemoveControlCharacters(data.Value.Name);
-            string nameLast = Utils.RemoveControlCharacters(data.Value.LastKnownName);
+            string name     = Utils.RemoveControlCharacters(data.Name);
+            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
             {

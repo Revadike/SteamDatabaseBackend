@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+using System.Linq;
 using Dapper;
 
 namespace SteamDatabaseBackend
@@ -22,12 +23,19 @@ namespace SteamDatabaseBackend
             {
                 if (command.Message.Length > 0)
                 {
-                    post = db.ExecuteScalar<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND (`Slug` = @Slug OR `ID` = @Slug) LIMIT 1", new { Slug = command.Message });
+                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND (`Slug` = @Slug OR `ID` = @Slug) LIMIT 1", new { Slug = command.Message }).SingleOrDefault();
                 }
                 else
                 {
-                    post = db.ExecuteScalar<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1");
+                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1").SingleOrDefault();
                 }
+            }
+
+            if (post.ID == 0)
+            {
+                CommandHandler.ReplyToCommand(command, "No blog post found.");
+
+                return;
             }
 
             CommandHandler.ReplyToCommand(

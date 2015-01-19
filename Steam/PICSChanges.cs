@@ -124,10 +124,7 @@ namespace SteamDatabaseBackend
             {
                 db.Execute("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
 
-                foreach (var app in callback.AppChanges.Values)
-                {
-                    db.Execute("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` = @ID", app);
-                }
+                db.Execute("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
             }
         }
 
@@ -137,10 +134,7 @@ namespace SteamDatabaseBackend
             {
                 db.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
 
-                foreach (var package in callback.PackageChanges.Values)
-                {
-                    db.Execute("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` = @ID", package);
-                }
+                db.Execute("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
             }
         }
 
@@ -322,7 +316,7 @@ namespace SteamDatabaseBackend
 
                     using (var db = Database.GetConnection())
                     {
-                        packages = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Apps` WHERE `Subs` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) }).ToDictionary(x => x.SubID, x => x);
+                        packages = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) }).ToDictionary(x => x.SubID, x => x);
                     }
 
                     foreach (var package in changeList.Packages)

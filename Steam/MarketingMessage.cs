@@ -20,20 +20,15 @@ namespace SteamDatabaseBackend
 
         private static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {
-            List<GlobalID> ids;
+            List<ulong> ids;
 
             using (var db = Database.GetConnection())
             {
-                ids = db.Query<GlobalID>("SELECT `ID` FROM `MarketingMessages` WHERE `ID` IN @Ids", new { Ids = callback.Messages.Select(x => x.ID) }).ToList();
+                ids = db.Query<ulong>("SELECT `ID` FROM `MarketingMessages` WHERE `ID` IN @Ids", new { Ids = callback.Messages.Select(x => (ulong)x.ID) }).ToList();
             }
 
-            foreach (var message in callback.Messages)
+            foreach (var message in callback.Messages.Where(x => !ids.Contains(x.ID)))
             {
-                if (ids.Contains(message.ID))
-                {
-                    continue;
-                }
-
                 if (message.Flags == EMarketingMessageFlags.None)
                 {
                     IRC.Instance.SendMain("New marketing message:{0} {1}", Colors.DARKBLUE, message.URL);
@@ -45,7 +40,7 @@ namespace SteamDatabaseBackend
 
                 using (var db = Database.GetConnection())
                 {
-                    db.Execute("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)", message);
+                    db.Execute("INSERT INTO `MarketingMessages` (`ID`, `Flags`) VALUES (@ID, @Flags)", new { ID = (ulong)message.ID, Flags = message.Flags });
                 }
             }
         }

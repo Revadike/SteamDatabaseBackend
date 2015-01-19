@@ -63,7 +63,8 @@ namespace SteamDatabaseBackend
             SessionTimer.Start();
 
             manager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
-            manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
+            //manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
+            manager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
         }
 
         private void OnSessionTick(object sender, System.Timers.ElapsedEventArgs e)
@@ -86,18 +87,20 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
+        private void OnLoggedOff(SteamUser.LoggedOnCallback callback)
         {
-            if (callback.Result != EResult.OK)
+            /*if (callback.Result != EResult.OK)
             {
                 return;
-            }
+            }*/
 
             foreach (var appID in Settings.Current.GameCoordinatorIdlers)
             {
                 var info = GetSessionInfo(appID);
 
                 info.Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION;
+
+                UpdateStatus(appID, info.Status.ToString());
             }
         }
 
