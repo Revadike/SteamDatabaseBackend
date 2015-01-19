@@ -87,7 +87,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnLoggedOff(SteamUser.LoggedOnCallback callback)
+        private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             /*if (callback.Result != EResult.OK)
             {
