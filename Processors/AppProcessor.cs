@@ -5,6 +5,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using Dapper;
 using MySql.Data.MySqlClient;
@@ -249,60 +250,35 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
-            try
+            using (var db = Database.GetConnection())
             {
-                TryProcessUnknown();
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("App Processor", "Caught exception while processing unknown app {0}: {1}\n{2}", AppID, e.Message, e.StackTrace);
-            }
-        }
+                var name = db.ExecuteScalar<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID });
 
-        private void TryProcessUnknown()
-        {
-            string AppName;
+                var data = db.Query<AppInfo>("SELECT `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID AND `Name` NOT LIKE 'website%'", new { AppID });
 
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new MySqlParameter("AppID", AppID)))
-            {
-                if (!reader.Read())
+                db.Execute(GetHistoryQuery(), data.Select(x => new AppHistory
                 {
-                    return;
-                }
+                    AppID    = AppID,
+                    ChangeID = ChangeNumber,
+                    Key      = x.Key,
+                    OldValue = x.Value,
+                    Action   = "removed_key"
+                }));
 
-                AppName = reader.GetString("Name");
-            }
+                db.Execute("DELETE FROM `Apps` WHERE `AppID` = @AppID", new { AppID });
+                db.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
+                db.Execute("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
 
-            bool historyChanged = false;
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new MySqlParameter("AppID", AppID)))
-            {
-                while (reader.Read())
+                if (!string.IsNullOrEmpty(name) && !name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
                 {
-                    if (!reader.GetString("Name").StartsWith("website", StringComparison.Ordinal))
+                    db.Execute(GetHistoryQuery(), new AppHistory
                     {
-                        MakeHistory("removed_key", reader.GetUInt32("Key"), reader.GetString("Value"));
-
-                        historyChanged = true;
-                    }
+                        AppID    = AppID,
+                        ChangeID = ChangeNumber,
+                        OldValue = name,
+                        Action   = "deleted_app"
+                    });
                 }
-            }
-
-            DbWorker.ExecuteNonQuery("DELETE FROM `Apps` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
-            DbWorker.ExecuteNonQuery("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
-            DbWorker.ExecuteNonQuery("DELETE FROM `Store` WHERE `AppID` = @AppID", new MySqlParameter("@AppID", AppID));
-
-            if (!AppName.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
-            {
-                MakeHistory("deleted_app", 0, AppName);
-
-                historyChanged = true;
-            }
-
-            // TODO: This is a dirty hack so we somehow track these app changes
-            if (!historyChanged && !Settings.IsFullRun)
-            {
-                MakeHistory("removed_key", GetKeyNameID("root_change_number"), "0", "0");
             }
         }
 
@@ -378,6 +354,11 @@ namespace SteamDatabaseBackend
                                      new MySqlParameter("@KeyNameID", id),
                                      new MySqlParameter("@Value", value)
             );
+        }
+
+        private static string GetHistoryQuery()
+        {
+            return "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @AppID, @Action, @Key, @OldValue, @NewValue)";
         }
 
         private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")

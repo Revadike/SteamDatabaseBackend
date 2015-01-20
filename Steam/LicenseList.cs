@@ -38,7 +38,6 @@ namespace SteamDatabaseBackend
             }
 
             var ownedSubs = new Dictionary<uint, byte>();
-            var ownedApps = new Dictionary<uint, byte>();
 
             foreach (var license in licenseList.LicenseList)
             {
@@ -53,13 +52,15 @@ namespace SteamDatabaseBackend
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);
             }
 
-            using (var db = Database.GetConnection())
+            if (ownedSubs.Any())
             {
-                ownedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = ownedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
+                using (var db = Database.GetConnection())
+                {
+                    Application.OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = ownedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
+                }
             }
 
             Application.OwnedSubs = ownedSubs;
-            Application.OwnedApps = ownedApps;
         }
     }
 }

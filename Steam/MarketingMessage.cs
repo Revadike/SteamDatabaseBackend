@@ -20,6 +20,11 @@ namespace SteamDatabaseBackend
 
         private static void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {
+            if (!callback.Messages.Any())
+            {
+                return;
+            }
+
             List<ulong> ids;
 
             using (var db = Database.GetConnection())
