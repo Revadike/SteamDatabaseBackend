@@ -202,11 +202,15 @@ namespace SteamDatabaseBackend
 
                 var info = callback.Packages[request.Target];
                 var kv = info.KeyValues.Children.FirstOrDefault();
-                string name = string.Format("SubID {0}", info.ID);
+                string name;
 
                 if (kv["name"].Value != null)
                 {
                     name = Utils.RemoveControlCharacters(kv["name"].AsString());
+                }
+                else
+                {
+                    name = Steam.GetPackageName(info.ID);
                 }
 
                 try
@@ -238,11 +242,15 @@ namespace SteamDatabaseBackend
                 }
 
                 var info = callback.Apps[request.Target];
-                string name = string.Format("AppID {0}", info.ID);
+                string name;
 
                 if (info.KeyValues["common"]["name"].Value != null)
                 {
                     name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString());
+                }
+                else
+                {
+                    name = Steam.GetAppName(info.ID);
                 }
 
                 try
