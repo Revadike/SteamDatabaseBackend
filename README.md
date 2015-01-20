@@ -5,6 +5,17 @@ The application that keeps SteamDB up to date with the latest changes, additiona
 ## Requirements
 You will need nuget to restore packages.
 
+## IRC
+
+We use [ZNC](http://znc.in) in front of our IRC bot to handle reconnections, staying in channels, flood protection and stuff like that.
+
+There are some modules that are particularly useful to have:
+
+* [keepnick](http://wiki.znc.in/Keepnick)
+* [kickrejoin](http://wiki.znc.in/Kickrejoin)
+* [stickychan](http://wiki.znc.in/Stickychan)
+* [prioritysend](https://github.com/xPaw/znc-prioritysend) *(custom module)*
+
 ## Reporting issues
 You can report issues in our main repository [over here](https://github.com/SteamDatabase/SteamDatabase).
 
