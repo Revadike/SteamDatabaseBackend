@@ -223,7 +223,7 @@ namespace SteamDatabaseBackend
 
         private static void TryCommand(Command command, CommandArguments commandData)
         {
-            if (commandData.CommandType == ECommandType.IRC)
+            if (commandData.CommandType == ECommandType.IRC && IRC.IsRecipientChannel(commandData.Recipient))
             {
                 if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
                 {
