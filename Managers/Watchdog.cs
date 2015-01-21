@@ -23,6 +23,8 @@ namespace SteamDatabaseBackend
             }
             else if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalMinutes >= 5.0)
             {
+                Log.WriteWarn("Watchdog", "Forcing a Steam reconnect.");
+
                 Connection.Reconnect(null, null);
             }
         }
