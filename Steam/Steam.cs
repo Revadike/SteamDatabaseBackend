@@ -126,7 +126,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.GetConnection())
             {
-                data = db.Query<App>("SELECT `AppID`, `Name`, `LastKnownName`, `AppType`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
+                data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `Apps`.`AppType`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
             }
 
             appType = data.AppID == 0 || data.AppType == 0 ? "App" : data.AppTypeString;

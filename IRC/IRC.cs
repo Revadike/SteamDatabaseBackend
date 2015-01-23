@@ -179,7 +179,7 @@ namespace SteamDatabaseBackend
 
         public void AnnounceImportantPackageUpdate(uint subID, string format, params object[] args)
         {
-            SendMain(format, args); // TODO
+            SendMain(string.Concat(Settings.Current.IRC.PrioritySendPrefix, format), args); // TODO
         }
 
         private static readonly char[] ChannelCharacters = { '#', '!', '+', '&' };
