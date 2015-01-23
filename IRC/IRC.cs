@@ -168,13 +168,18 @@ namespace SteamDatabaseBackend
 
             if (Application.ImportantApps.TryGetValue(appID, out channels))
             {
-                format = string.Format(format, args);
+                format = string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args));
 
                 foreach (var channel in channels)
                 {
                     Client.Message(channel, format); //, Priority.AboveMedium);
                 }
             }
+        }
+
+        public void AnnounceImportantPackageUpdate(uint subID, string format, params object[] args)
+        {
+            SendMain(format, args); // TODO
         }
 
         private static readonly char[] ChannelCharacters = { '#', '!', '+', '&' };

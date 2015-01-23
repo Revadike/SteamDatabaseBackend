@@ -213,10 +213,17 @@ namespace SteamDatabaseBackend
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
+            string appType;
+            string appName;
 
             foreach (var app in important)
             {
-                IRC.Instance.AnnounceImportantAppUpdate(app, "Important app update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetAppName(app), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
+                appName = Steam.GetAppName(app, out appType);
+
+                IRC.Instance.AnnounceImportantAppUpdate(app, "{0} update: {1}{2}{3} -{4} {5}",
+                    appType,
+                    Colors.BLUE, appName, Colors.NORMAL,
+                    Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
             }
 
             // Packages
@@ -224,7 +231,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.Instance.SendMain("Important package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
+                IRC.Instance.AnnounceImportantPackageUpdate(package, "Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
             }
         }
 

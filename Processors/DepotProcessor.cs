@@ -218,7 +218,16 @@ namespace SteamDatabaseBackend
 
             request.CDNToken = callback.Token;
 
-            TaskManager.Run(() => TryDownloadManifest(request));
+            // TODO: Using tasks makes every manifest download timeout
+            // TODO: which seems to be bug with mono's threadpool implementation
+            /*TaskManager.Run(() => DownloadManifest(request)).ContinueWith(task =>
+            {
+                RemoveLock(request.DepotID);
+
+                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
+            });*/
+
+            TryDownloadManifest(request);
         }
 
         private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
@@ -253,8 +262,6 @@ namespace SteamDatabaseBackend
 
         private void TryDownloadManifest(ManifestJob request)
         {
-            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
-
             try
             {
                 DownloadManifest(request);
@@ -269,6 +276,8 @@ namespace SteamDatabaseBackend
 
         private void DownloadManifest(ManifestJob request)
         {
+            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
+
             DepotManifest depotManifest = null;
             string lastError = string.Empty;
 
@@ -296,11 +305,16 @@ namespace SteamDatabaseBackend
 
             if (FileDownloader.IsImportantDepot(request.DepotID))
             {
-                IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Important depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
 
                 TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
 
+            TaskManager.Run(() => ProcessDepotAfterDownload(request, depotManifest));
+        }
+
+        private static void ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
+        {
             var filesNew = new List<DepotFile>();
             var filesOld = new Dictionary<string, DepotFile>();
 
@@ -349,7 +363,7 @@ namespace SteamDatabaseBackend
                 filesNew.Add(depotFile);
             }
 
-            bool shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
+            bool shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
             var filesAdded = new List<DepotFile>();
 
             foreach (var file in filesNew)

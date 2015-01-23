@@ -9,6 +9,7 @@ namespace SteamDatabaseBackend
     {
         public uint AppID { get; set; }
         public uint AppType { get; set; } /* Not EAppType!! */
+        public string AppTypeString { get; set; }
         public string Name { get; set; }
         public string StoreName { get; set; }
         public string LastKnownName { get; set; }
