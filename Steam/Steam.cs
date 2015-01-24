@@ -92,20 +92,7 @@ namespace SteamDatabaseBackend
                 data = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subID }).FirstOrDefault();
             }
 
-            if (data.SubID == 0)
-            {
-                return string.Format("SubID {0}", subID);
-            }
-
-            string name     = Utils.RemoveControlCharacters(data.Name);
-            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
-
-            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
-            {
-                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
-            }
-
-            return name;
+            return FormatPackageName(subID, data);
         }
 
         public static string GetAppName(uint appID)
@@ -134,7 +121,7 @@ namespace SteamDatabaseBackend
             return FormatAppName(appID, data);
         }
 
-        private static string FormatAppName(uint appID, App data)
+        public static string FormatAppName(uint appID, App data)
         {
             if (data.AppID == 0)
             {
@@ -145,6 +132,24 @@ namespace SteamDatabaseBackend
             string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+            {
+                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+            }
+
+            return name;
+        }
+
+        public static string FormatPackageName(uint subID, Package data)
+        {
+            if (data.SubID == 0)
+            {
+                return string.Format("SubID {0}", subID);
+            }
+
+            string name     = Utils.RemoveControlCharacters(data.Name);
+            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
+
+            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
             {
                 return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
             }

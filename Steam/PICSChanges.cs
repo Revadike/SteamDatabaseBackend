@@ -280,9 +280,7 @@ namespace SteamDatabaseBackend
 
                     continue;
                 }
-
-                string name;
-
+                    
                 if (appCount > 0)
                 {
                     Dictionary<uint, App> apps;
@@ -295,22 +293,11 @@ namespace SteamDatabaseBackend
 
                     foreach (var app in changeList.Apps)
                     {
-                        if (!apps.TryGetValue(app.ID, out data))
-                        {
-                            name = string.Format("{0}{1}", Colors.RED, SteamDB.UNKNOWN_APP);
-                        }
-                        else if (!string.IsNullOrEmpty(data.LastKnownName) && !data.Name.Equals(data.LastKnownName))
-                        {
-                            name = string.Format("{0} {1}({2}){3}", data.Name, Colors.DARKGRAY, data.LastKnownName, Colors.NORMAL);
-                        }
-                        else
-                        {
-                            name = data.Name;
-                        }
+                        apps.TryGetValue(app.ID, out data);
 
                         IRC.Instance.SendAnnounce("  App: {0}{1}{2} - {3}{4}",
                             Colors.BLUE, app.ID, Colors.NORMAL,
-                            name,
+                            Steam.FormatAppName(app.ID, data),
                             app.NeedsToken ? SteamDB.StringNeedToken : string.Empty
                         );
                     }
@@ -328,22 +315,11 @@ namespace SteamDatabaseBackend
 
                     foreach (var package in changeList.Packages)
                     {
-                        if (!packages.TryGetValue(package.ID, out data))
-                        {
-                            name = string.Format("{0}SteamDB Unknown Package", Colors.RED);
-                        }
-                        else if (!string.IsNullOrEmpty(data.LastKnownName) && !data.Name.Equals(data.LastKnownName)) // TODO: Only do it for 'Steam Sub' names?
-                        {
-                            name = string.Format("{0} {1}({2}){3}", data.Name, Colors.DARKGRAY, data.LastKnownName, Colors.NORMAL);
-                        }
-                        else
-                        {
-                            name = data.Name;
-                        }
+                        packages.TryGetValue(package.ID, out data);
 
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2} - {3}{4}",
                             Colors.BLUE, package.ID, Colors.NORMAL,
-                            name,
+                            Steam.FormatPackageName(package.ID, data),
                             package.NeedsToken ? SteamDB.StringNeedToken : string.Empty
                         );
                     }
