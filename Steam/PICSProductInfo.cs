@@ -28,11 +28,14 @@ namespace SteamDatabaseBackend
                 OnProductInfoForIRC(job.CommandRequest, callback);
             }
 
-            foreach (var app in callback.Apps)
-            {
-                Log.WriteInfo("PICSProductInfo", "AppID: {0}", app.Key);
+            var apps = callback.Apps.Concat(callback.UnknownApps.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
+            var packages = callback.Packages.Concat(callback.UnknownPackages.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
 
+            foreach (var app in apps)
+            {
                 var workaround = app;
+
+                Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", app.Value == null ? "Unknown " : "", app.Key);
 
                 Task mostRecentItem;
                 Application.ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
@@ -46,7 +49,16 @@ namespace SteamDatabaseBackend
                         await mostRecentItem;
                     }
 
-                    new AppProcessor(workaround.Key).Process(workaround.Value);
+                    var processor = new AppProcessor(workaround.Key);
+
+                    if (workaround.Value == null)
+                    {
+                        processor.ProcessUnknown();
+                    }
+                    else
+                    {
+                        processor.Process(workaround.Value);
+                    }
                 });
 
                 if (Settings.IsFullRun)
@@ -68,11 +80,11 @@ namespace SteamDatabaseBackend
                 });
             }
 
-            foreach (var package in callback.Packages)
+            foreach (var package in packages)
             {
-                Log.WriteInfo("PICSProductInfo", "SubID: {0}", package.Key);
-
                 var workaround = package;
+
+                Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", package.Value == null ? "Unknown " : "", package.Key);
 
                 Task mostRecentItem;
                 Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
@@ -86,7 +98,16 @@ namespace SteamDatabaseBackend
                         await mostRecentItem;
                     }
 
-                    new SubProcessor(workaround.Key).Process(workaround.Value);
+                    var processor = new SubProcessor(workaround.Key);
+
+                    if (workaround.Value == null)
+                    {
+                        processor.ProcessUnknown();
+                    }
+                    else
+                    {
+                        processor.Process(workaround.Value);
+                    }
                 });
 
                 if (Settings.IsFullRun)
@@ -103,86 +124,6 @@ namespace SteamDatabaseBackend
                         if (Application.ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
                             Application.ProcessedSubs.TryRemove(workaround.Key, out mostRecentItem);
-                        }
-                    }
-                });
-            }
-
-            foreach (uint app in callback.UnknownApps)
-            {
-                Log.WriteInfo("PICSProductInfo", "Unknown AppID: {0}", app);
-
-                uint workaround = app;
-
-                Task mostRecentItem;
-                Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem);
-
-                var workerItem = TaskManager.Run(async delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing (unknown)", workaround);
-
-                        await mostRecentItem;
-                    }
-
-                    new AppProcessor(workaround).ProcessUnknown();
-                });
-
-                if (Settings.IsFullRun)
-                {
-                    continue;
-                }
-
-                Application.ProcessedApps.AddOrUpdate(app, workerItem, (key, oldValue) => workerItem);
-
-                workerItem.ContinueWith(task =>
-                {
-                    lock (Application.ProcessedApps)
-                    {
-                        if (Application.ProcessedApps.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
-                        {
-                            Application.ProcessedApps.TryRemove(workaround, out mostRecentItem);
-                        }
-                    }
-                });
-            }
-
-            foreach (uint package in callback.UnknownPackages)
-            {
-                Log.WriteInfo("PICSProductInfo", "Unknown SubID: {0}", package);
-
-                uint workaround = package;
-
-                Task mostRecentItem;
-                Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem);
-
-                var workerItem = TaskManager.Run(async delegate
-                {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
-                    {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing (unknown)", workaround);
-
-                        await mostRecentItem;
-                    }
-
-                    new SubProcessor(workaround).ProcessUnknown();
-                });
-
-                if (Settings.IsFullRun)
-                {
-                    continue;
-                }
-
-                Application.ProcessedSubs.AddOrUpdate(package, workerItem, (key, oldValue) => workerItem);
-
-                workerItem.ContinueWith(task =>
-                {
-                    lock (Application.ProcessedSubs)
-                    {
-                        if (Application.ProcessedSubs.TryGetValue(workaround, out mostRecentItem) && mostRecentItem.IsCompleted)
-                        {
-                            Application.ProcessedSubs.TryRemove(workaround, out mostRecentItem);
                         }
                     }
                 });
