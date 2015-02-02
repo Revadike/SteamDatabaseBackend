@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using SteamKit2;
@@ -14,6 +15,13 @@ namespace SteamDatabaseBackend
     {
         private const string CDN = "https://steamcdn-a.akamaihd.net/client/";
 
+        private static readonly List<string> Systems = new List<string>
+        {
+            "osx",
+            "win32",
+            "ubuntu12"
+        };
+
         public BinariesCommand()
         {
             Trigger = "!bins";
@@ -21,6 +29,23 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
+            if (command.Message.Length == 0)
+            {
+                CommandHandler.ReplyToCommand(command, "Usage:{0} !bins <{1}> [stable (returns publicbeta by default)]", Colors.OLIVE, string.Join("/", Systems));
+
+                return;
+            }
+
+            var args = command.Message.Split(' ');
+            string os = args[0];
+
+            if (!Systems.Contains(os))
+            {
+                CommandHandler.ReplyToCommand(command, "Invalid OS. Valid ones are: {0}", string.Join(", ", Systems));
+
+                return;
+            }
+
             using (var webClient = new WebClient())
             {
                 webClient.DownloadDataCompleted += delegate(object sender, DownloadDataCompletedEventArgs e)
@@ -41,19 +66,23 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    if (kv["bins_osx"].Children.Count == 0)
+                    var key = string.Concat("bins_", os);
+
+                    if (kv[key].Children.Count == 0)
                     {
                         CommandHandler.ReplyToCommand(command, "Failed to find binaries in parsed response.");
 
                         return;
                     }
 
-                    kv = kv["bins_osx"];
+                    kv = kv[key];
 
-                    CommandHandler.ReplyToCommand(command, "You're on your own:{0} {1}{2} {3}({4} MB)", Colors.DARKBLUE, CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                    CommandHandler.ReplyToCommand(command, "{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
                 };
 
-                webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_publicbeta_osx?_={1}", CDN, DateTime.UtcNow.Ticks)));
+                var isStable = args.Length > 1 && args[1].Equals("stable");
+
+                webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks)));
             }
         }
     }
