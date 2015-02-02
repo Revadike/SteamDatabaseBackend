@@ -69,7 +69,6 @@
     <Compile Include="Processors\SubProcessor.cs" />
     <Compile Include="Processors\AppProcessor.cs" />
     <Compile Include="Util\SteamDB.cs" />
-    <Compile Include="Util\DbWorker.cs" />
     <Compile Include="Util\Log.cs" />
     <Compile Include="Util\Settings.cs" />
     <Compile Include="Processors\DepotProcessor.cs" />
@@ -119,6 +118,7 @@
     <Compile Include="Database\PackageApp.cs" />
     <Compile Include="Database\PICSInfo.cs" />
     <Compile Include="Database\PICSHistory.cs" />
+    <Compile Include="Database\DepotHistory.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

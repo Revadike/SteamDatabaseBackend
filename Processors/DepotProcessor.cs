@@ -6,22 +6,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using MySql.Data.MySqlClient;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class DepotProcessor
     {
-        private sealed class DepotFile
-        {
-            public string Hash = "0000000000000000000000000000000000000000";
-            public string Name;
-            public ulong Size;
-            public uint Flags;
-        }
-
         public class ManifestJob
         {
             public uint ChangeNumber;
@@ -91,96 +84,114 @@ namespace SteamDatabaseBackend
                 {
                     continue;
                 }
-
-                ulong manifestID;
-
+                    
                 var depotName = depot["name"].AsString();
 
-                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out manifestID))
-                {
-                    // If there is no public manifest for this depot, it still could have some sort of open beta
-
-                    var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
-
-                    if (branch == null || !ulong.TryParse(branch.Value, out manifestID))
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name",
-                            new MySqlParameter("@DepotID", depotID),
-                            new MySqlParameter("@Name", depotName)
-                        );
-
-                        continue;
-                    }
-
-                    Log.WriteInfo("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2} (manifest: {3})", depotID, appID, branch.Name, branch.AsString());
-                }
-                    
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
-                    ParentAppID = appID,
-                    DepotID = depotID,
-                    ManifestID = manifestID,
-                    DepotName = depotName
+                    ParentAppID  = appID,
+                    DepotID      = depotID,
+                    DepotName    = depotName
                 };
 
-                int currentBuildID = 0;
-                string currentDepotName = string.Empty;
-
-                // Check if manifestid in our database is equal
-                using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new MySqlParameter("DepotID", depotID)))
+                using (var db = Database.GetConnection())
                 {
-                    if (reader.Read())
+                    if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
                     {
-                        currentBuildID = reader.GetInt32("buildID");
-                        currentDepotName = reader.GetString("Name");
+                        // If there is no public manifest for this depot, it still could have some sort of open beta
 
-                        request.PreviousManifestID = reader.GetUInt64("ManifestID");
+                        var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
 
-                        if (request.PreviousManifestID == manifestID)
+                        if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                         {
-                            // Update depot name if changed
-                            if (!depotName.Equals(currentDepotName))
-                            {
-                                DbWorker.ExecuteNonQuery("UPDATE `Depots` SET `Name` = @Name WHERE `DepotID` = @DepotID",
-                                    new MySqlParameter("@DepotID", request.DepotID),
-                                    new MySqlParameter("@Name", request.DepotName)
-                                );
-                            }
+                            db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name", new { DepotID = depotID, Name = depotName });
 
+                            continue;
+                        }
+
+                        Log.WriteInfo("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2} (manifest: {3})", depotID, appID, branch.Name, branch.AsString());
+                    }
+
+                    var dbDepot = db.Query<Depot>("SELECT `DepotID`, `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new { DepotID = depotID }).SingleOrDefault();
+
+                    if (dbDepot.DepotID > 0)
+                    {
+                        request.PreviousManifestID = dbDepot.ManifestID;
+
+                        if (dbDepot.ManifestID == request.ManifestID)
+                        {
                             if (Settings.Current.FullRun < 2)
                             {
+                                // Update depot name if changed
+                                if (!depotName.Equals(request.DepotName))
+                                {
+                                    db.Execute("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", request);
+                                }
+
                                 continue;
                             }
                         }
-                        else if (currentBuildID > buildID)
+                        else if (dbDepot.BuildID > buildID)
                         {
-                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", depotID, currentBuildID, buildID);
+                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", depotID, dbDepot.BuildID, buildID);
                             continue;
                         }
                     }
-                }
 
-                DepotLocks.TryAdd(depotID, 1);
+                    DepotLocks.TryAdd(depotID, 1);
 
-                // Update/insert depot information straight away
-                if (currentBuildID != buildID || request.PreviousManifestID != request.ManifestID || !depotName.Equals(currentDepotName))
-                {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @Name, @BuildID, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
-                        new MySqlParameter("@DepotID", request.DepotID),
-                        new MySqlParameter("@BuildID", buildID),
-                        new MySqlParameter("@ManifestID", request.ManifestID),
-                        new MySqlParameter("@Name", request.DepotName)
-                    );
-
-                    if (request.PreviousManifestID != request.ManifestID)
+                    // Update/insert depot information straight away
+                    if (dbDepot.BuildID != buildID || request.PreviousManifestID != request.ManifestID || !depotName.Equals(depot.Name))
                     {
-                        MakeHistory(request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
+                        db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @Name, @BuildID, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
+                            new {
+                                DepotID = request.DepotID,
+                                BuildID = buildID,
+                                ManifestID = request.ManifestID,
+                                Name = depotName
+                            }
+                        );
+
+                        if (request.PreviousManifestID != request.ManifestID)
+                        {
+                            MakeHistory(db, request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
+                        }
                     }
                 }
 
                 JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
             }
+        }
+
+        private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
+        {
+            JobAction job;
+
+            if (!JobManager.TryRemoveJob(callback.JobID, out job))
+            {
+                return;
+            }
+
+            var request = job.ManifestJob;
+
+            if (callback.Result != EResult.OK)
+            {
+                if (callback.Result != EResult.AccessDenied || FileDownloader.IsImportantDepot(request.DepotID))
+                {
+                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
+                }
+
+                RemoveLock(request.DepotID);
+
+                return;
+            }
+
+            request.DepotKey = callback.DepotKey;
+            request.Tries = CDNServers.Count;
+            request.Server = GetContentServer();
+
+            JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
         }
 
         private void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
@@ -228,36 +239,6 @@ namespace SteamDatabaseBackend
             });*/
 
             TryDownloadManifest(request);
-        }
-
-        private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
-        {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job))
-            {
-                return;
-            }
-
-            var request = job.ManifestJob;
-
-            if (callback.Result != EResult.OK)
-            {
-                if (callback.Result != EResult.AccessDenied || FileDownloader.IsImportantDepot(request.DepotID))
-                {
-                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
-                }
-
-                RemoveLock(request.DepotID);
-
-                return;
-            }
-
-            request.DepotKey = callback.DepotKey;
-            request.Tries = CDNServers.Count;
-            request.Server = GetContentServer();
-
-            JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
         }
 
         private void TryDownloadManifest(ManifestJob request)
@@ -310,49 +291,27 @@ namespace SteamDatabaseBackend
                 TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
 
-            TaskManager.Run(() => ProcessDepotAfterDownload(request, depotManifest));
+            using(var db = Database.GetConnection())
+            {
+                ProcessDepotAfterDownload(db, request, depotManifest);
+            }
         }
 
-        private static void ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
+        private static void ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
         {
+            var filesOld = db.Query<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }).ToDictionary(x => x.File, x => x);
             var filesNew = new List<DepotFile>();
-            var filesOld = new Dictionary<string, DepotFile>();
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new MySqlParameter("DepotID", request.DepotID)))
-            {
-                while (reader.Read())
-                {
-                    var fileName = reader.GetString("File");
-
-                    if (filesOld.ContainsKey(fileName))
-                    {
-                        Log.WriteWarn("Depot Processor", "Deleting duplicate file {0} in depot {1} (from parent {2})", fileName, request.DepotID, request.ParentAppID);
-
-                        DbWorker.ExecuteNonQuery("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` = @ID",
-                            new MySqlParameter("@DepotID", request.DepotID),
-                            new MySqlParameter("@ID", reader.GetUInt32("ID"))
-                        );
-
-                        continue;
-                    }
-
-                    filesOld.Add(fileName, new DepotFile
-                    {
-                        Name = fileName,
-                        Hash = reader.GetString("Hash"),
-                        Size = reader.GetUInt64("Size"),
-                        Flags = reader.GetUInt32("Flags")
-                    });
-                }
-            }
+            var filesAdded = new List<DepotFile>();
+            var shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
 
             foreach (var file in depotManifest.Files)
             {
                 var depotFile = new DepotFile
                 {
-                    Name = file.FileName.Replace('\\', '/'),
-                    Size = file.TotalSize,
-                    Flags = (uint)file.Flags
+                    DepotID = request.DepotID,
+                    File    = file.FileName.Replace('\\', '/'),
+                    Size    = file.TotalSize,
+                    Flags   = file.Flags
                 };
 
                 if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
@@ -363,42 +322,33 @@ namespace SteamDatabaseBackend
                 filesNew.Add(depotFile);
             }
 
-            bool shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
-            var filesAdded = new List<DepotFile>();
-
             foreach (var file in filesNew)
             {
-                if (filesOld.ContainsKey(file.Name))
+                if (filesOld.ContainsKey(file.File))
                 {
-                    var oldFile = filesOld[file.Name];
+                    var oldFile = filesOld[file.File];
                     var updateFile = false;
 
                     if (oldFile.Size != file.Size || !file.Hash.Equals(oldFile.Hash))
                     {
-                        MakeHistory(request, file.Name, "modified", oldFile.Size, file.Size);
+                        MakeHistory(db, request, file.File, "modified", oldFile.Size, file.Size);
 
                         updateFile = true;
                     }
 
                     if (oldFile.Flags != file.Flags)
                     {
-                        MakeHistory(request, file.Name, "modified_flags", oldFile.Flags, file.Flags);
+                        MakeHistory(db, request, file.File, "modified_flags", (ulong)oldFile.Flags, (ulong)file.Flags);
 
                         updateFile = true;
                     }
 
                     if (updateFile)
                     {
-                        DbWorker.ExecuteNonQuery("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `File` = @File",
-                            new MySqlParameter("@DepotID", request.DepotID),
-                            new MySqlParameter("@File", file.Name),
-                            new MySqlParameter("@Hash", file.Hash),
-                            new MySqlParameter("@Size", file.Size),
-                            new MySqlParameter("@Flags", file.Flags)
-                        );
+                        db.Execute("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file);
                     }
 
-                    filesOld.Remove(file.Name);
+                    filesOld.Remove(file.File);
                 }
                 else
                 {
@@ -407,43 +357,53 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var file in filesOld)
+            if (filesOld.Any())
             {
-                MakeHistory(request, file.Value.Name, "removed");
+                db.Execute(GetHistoryQuery(), filesOld.Select(x => new DepotHistory
+                {
+                    DepotID  = request.DepotID,
+                    ChangeID = request.ChangeNumber,
+                    Action   = "removed",
+                    File     = x.Value.File
+                }));
 
-                DbWorker.ExecuteNonQuery("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` = @File",
-                    new MySqlParameter("@DepotID", request.DepotID),
-                    new MySqlParameter("@File", file.Value.Name)
-                );
+                db.Execute("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
             }
 
-            foreach (var file in filesAdded)
+            if (filesAdded.Any())
             {
                 if (shouldHistorize)
                 {
-                    MakeHistory(request, file.Name, "added");
+                    db.Execute(GetHistoryQuery(), filesOld.Select(x => new DepotHistory
+                    {
+                        DepotID  = request.DepotID,
+                        ChangeID = request.ChangeNumber,
+                        Action   = "added",
+                        File     = x.Value.File
+                    }));
                 }
 
-                DbWorker.ExecuteNonQuery("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)",
-                    new MySqlParameter("@DepotID", request.DepotID),
-                    new MySqlParameter("@File", file.Name),
-                    new MySqlParameter("@Hash", file.Hash),
-                    new MySqlParameter("@Size", file.Size),
-                    new MySqlParameter("@Flags", file.Flags)
-                );
+                db.Execute("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
             }
         }
 
-        public static void MakeHistory(ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        public static string GetHistoryQuery()
         {
-            DbWorker.ExecuteNonQuery(
-                "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)",
-                new MySqlParameter("@DepotID", request.DepotID),
-                new MySqlParameter("@ChangeID", request.ChangeNumber),
-                new MySqlParameter("@File", file),
-                new MySqlParameter("@Action", action),
-                new MySqlParameter("@OldValue", oldValue),
-                new MySqlParameter("@NewValue", newValue)
+            return "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
+        }
+
+        private static void MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        {
+            db.Execute(GetHistoryQuery(),
+                new DepotHistory
+                {
+                    DepotID  = request.DepotID,
+                    ChangeID = request.ChangeNumber,
+                    Action   = action,
+                    File     = file,
+                    OldValue = oldValue,
+                    NewValue = newValue
+                }
             );
         }
 

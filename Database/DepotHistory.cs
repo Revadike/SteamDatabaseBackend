@@ -3,17 +3,15 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using SteamKit2;
-
 namespace SteamDatabaseBackend
 {
-    struct DepotFile
+    class DepotHistory
     {
         public uint DepotID { get; set; }
-        public uint ID { get; set; }
+        public uint ChangeID { get; set; }
         public string File { get; set; }
-        public string Hash { get; set; }
-        public ulong Size { get; set; }
-        public EDepotFileFlag Flags { get; set; }
+        public string Action { get; set; }
+        public ulong OldValue { get; set; }
+        public ulong NewValue { get; set; }
     }
 }

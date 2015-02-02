@@ -264,7 +264,7 @@ namespace SteamDatabaseBackend
                 {
                     var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type``", new { Name = keyName, DisplayName = displayName, Type = type });
+                    DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`", new { Name = keyName, DisplayName = displayName, Type = type });
 
                     key = GetKeyNameID(keyName);
 

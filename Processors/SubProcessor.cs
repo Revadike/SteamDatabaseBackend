@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
 
                             if (isAppSection)
                             {
-                                DbConnection.Execute(GetHistoryQuery(),
+                                DbConnection.Execute(AppProcessor.GetHistoryQuery(),
                                     new PICSHistory
                                     {
                                         ID       = appID,
@@ -140,11 +140,15 @@ namespace SteamDatabaseBackend
                             }
                             else
                             {
-                                DepotProcessor.MakeHistory(new DepotProcessor.ManifestJob
-                                {
-                                    DepotID = appID,
-                                    ChangeNumber = ChangeNumber
-                                }, string.Empty, "added_to_sub", 0, SubID);
+                                DbConnection.Execute(DepotProcessor.GetHistoryQuery(),
+                                    new DepotHistory
+                                    {
+                                        DepotID  = appID,
+                                        ChangeID = ChangeNumber,
+                                        NewValue = SubID,
+                                        Action   = "added_to_sub"
+                                    }
+                                );
                             }
                         }
                     }
@@ -203,7 +207,7 @@ namespace SteamDatabaseBackend
 
                 if (isAppSection)
                 {
-                    DbConnection.Execute(GetHistoryQuery(),
+                    DbConnection.Execute(AppProcessor.GetHistoryQuery(),
                         new PICSHistory
                         {
                             ID       = app.Key,
@@ -215,11 +219,15 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    DepotProcessor.MakeHistory(new DepotProcessor.ManifestJob
-                    {
-                        DepotID = app.Key,
-                        ChangeNumber = ChangeNumber
-                    }, string.Empty, "removed_from_sub", SubID);
+                    DbConnection.Execute(DepotProcessor.GetHistoryQuery(),
+                        new DepotHistory
+                        {
+                            DepotID  = app.Key,
+                            ChangeID = ChangeNumber,
+                            OldValue = SubID,
+                            Action   = "removed_from_sub"
+                        }
+                    );
                 }
             }
 
