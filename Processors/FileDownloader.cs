@@ -383,8 +383,6 @@ namespace SteamDatabaseBackend
 
                 if (file.FileHash.SequenceEqual(checksum))
                 {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Downloaded {3}{4}", Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, Colors.OLIVE, file.FileName);
-
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
 
                     if (File.Exists(finalPath))
@@ -399,7 +397,6 @@ namespace SteamDatabaseBackend
                 else
                 {
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})", Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, file.Chunks.Count, lastError);
-
 
                     Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded ({3})", file.FileName, count, file.Chunks.Count, lastError);
 
