@@ -47,10 +47,10 @@ namespace SteamDatabaseBackend
                 
             manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
 
-            BillingTypeKey = SubProcessor.GetKeyNameID("root_billingtype");
-
             using (var db = Database.GetConnection())
             {
+                BillingTypeKey = db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype'");
+
                 PreviousChangeNumber = db.ExecuteScalar<uint>("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1");
 
                 Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
@@ -69,8 +69,24 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("PICSChanges", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
+            var apps = callback.AppChanges.Keys.ToList();
+
+            // Horribly unoptimized mess, but it's a full run so whatever
+            while (apps.Any())
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps.Take(500), Enumerable.Empty<uint>()));
+
+                apps = apps.Skip(500).ToList();
+            }
+
+            var packages = callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package)).ToList();
+
+            while (packages.Any())
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages.Take(500)));
+
+                packages = packages.Skip(500).ToList();
+            }
         }
 
         private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
