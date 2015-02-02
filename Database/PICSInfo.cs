@@ -5,13 +5,10 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct AppHistory
+    struct PICSInfo
     {
-        public uint ChangeID { get; set; }
-        public uint AppID { get; set; }
         public uint Key { get; set; }
-        public string Action { get; set; }
-        public string OldValue { get; set; }
-        public string NewValue { get; set; }
+        public string KeyName { get; set; }
+        public string Value { get; set; }
     }
 }

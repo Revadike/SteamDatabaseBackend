@@ -5,24 +5,41 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using Dapper;
-using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SubProcessor
+    class SubProcessor : IDisposable
     {
         private const uint DATABASE_NAME_TYPE = 10;
 
-        private Dictionary<string, string> CurrentData = new Dictionary<string, string>();
+        private IDbConnection DbConnection;
+
+        private readonly string PackageName;
+        private Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
         private readonly uint SubID;
 
         public SubProcessor(uint subID)
         {
-            this.SubID = subID;
+            SubID = subID;
+
+            DbConnection = Database.GetConnection();
+
+            PackageName = DbConnection.ExecuteScalar<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
+            CurrentData = DbConnection.Query<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.KeyName, x => x);
+        }
+
+        public void Dispose()
+        {
+            if (DbConnection != null)
+            {
+                DbConnection.Dispose();
+                DbConnection = null;
+            }
         }
 
         public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
@@ -36,72 +53,36 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
-            string packageName = string.Empty;
-            string packageNameCurrent = string.Empty;
-            var apps = new Dictionary<uint, string>();
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
-            {
-                while (reader.Read())
-                {
-                    CurrentData.Add(reader.GetString("Name"), reader.GetString("Value"));
-                }
-            }
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("@SubID", SubID)))
-            {
-                if (reader.Read())
-                {
-                    packageNameCurrent = reader.GetString("Name");
-                }
-            }
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID)))
-            {
-                while (reader.Read())
-                {
-                    apps.Add(reader.GetUInt32("AppID"), reader.GetString("Type"));
-                }
-            }
-
             var kv = productInfo.KeyValues.Children.FirstOrDefault();
+            var newPackageName = kv["name"].AsString();
 
-            packageName = kv["name"].Value;
+            var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
 
-            if (packageName != null)
+            if (newPackageName != null)
             {
-                if (string.IsNullOrEmpty(packageNameCurrent))
+                if (string.IsNullOrEmpty(PackageName))
                 {
-                    DbWorker.ExecuteNonQuery("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name",
-                                             new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@Name", packageName)
-                    );
+                    DbConnection.Execute("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name", new { SubID, Name = newPackageName });
 
                     MakeHistory("created_sub");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, packageName);
+                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, newPackageName);
                 }
-                else if (!packageNameCurrent.Equals(packageName))
+                else if (!PackageName.Equals(newPackageName))
                 {
-                    if (packageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
+                    if (newPackageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
                     {
-                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID",
-                            new MySqlParameter("@SubID", SubID),
-                            new MySqlParameter("@Name", packageName)
-                        );
+                        DbConnection.Execute("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                     }
                     else
                     {
-                        DbWorker.ExecuteNonQuery("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID",
-                            new MySqlParameter("@SubID", SubID),
-                            new MySqlParameter("@Name", packageName)
-                        );
+                        DbConnection.Execute("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                     }
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, packageNameCurrent, packageName);
+                    MakeHistory("modified_info", DATABASE_NAME_TYPE, PackageName, newPackageName);
                 }
             }
 
-            foreach (KeyValue section in kv.Children)
+            foreach (var section in kv.Children)
             {
                 string sectionName = section.Name.ToLower();
 
@@ -113,11 +94,14 @@ namespace SteamDatabaseBackend
 
                 if (sectionName.Equals("appids") || sectionName.Equals("depotids"))
                 {
-                    string type = sectionName.Replace("ids", string.Empty); // Remove "ids", so we get app from appids and depot from depotids
+                    // Remove "ids", so we get "app" from appids and "depot" from depotids
+                    string type = sectionName.Replace("ids", string.Empty);
 
-                    uint typeID = (uint)(type.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
+                    var isAppSection = type.Equals("app");
 
-                    foreach (KeyValue childrenApp in section.Children)
+                    var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
+
+                    foreach (var childrenApp in section.Children)
                     {
                         uint appID = uint.Parse(childrenApp.Value);
 
@@ -127,11 +111,7 @@ namespace SteamDatabaseBackend
                             // Is this appid's type the same?
                             if (apps[appID] != type)
                             {
-                                DbWorker.ExecuteNonQuery("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID",
-                                                         new MySqlParameter("@SubID", SubID),
-                                                         new MySqlParameter("@AppID", appID),
-                                                         new MySqlParameter("@Type", type)
-                                );
+                                DbConnection.Execute("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new { SubID, AppID = appID, Type = type });
 
                                 MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
 
@@ -142,17 +122,21 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            DbWorker.ExecuteNonQuery("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE `Type` = @Type",
-                                                     new MySqlParameter("@SubID", SubID),
-                                                     new MySqlParameter("@AppID", appID),
-                                                     new MySqlParameter("@Type", type)
-                            );
+                            DbConnection.Execute("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE `Type` = @Type", new { SubID, AppID = appID, Type = type });
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
 
-                            if (typeID == 0)
+                            if (isAppSection)
                             {
-                                AppProcessor.MakeHistory(appID, ChangeNumber, "added_to_sub", 0, string.Empty, SubID.ToString());
+                                DbConnection.Execute(GetHistoryQuery(),
+                                    new PICSHistory
+                                    {
+                                        ID       = appID,
+                                        ChangeID = ChangeNumber,
+                                        NewValue = SubID.ToString(),
+                                        Action   = "added_to_sub"
+                                    }
+                                );
                             }
                             else
                             {
@@ -164,14 +148,6 @@ namespace SteamDatabaseBackend
                             }
                         }
                     }
-
-                    // TODO: Probably should check if apps are owned
-                    if (typeID == 0 && kv["billingtype"].AsInteger() == 12 && !Application.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
-                    {
-                        Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
-
-                        JobManager.AddJob(() => SteamDB.RequestFreeLicense(section.Children.Select(appid => (uint)appid.AsInteger()).ToList()));
-                    }
                 }
                 else if (sectionName.Equals("extended"))
                 {
@@ -179,9 +155,11 @@ namespace SteamDatabaseBackend
 
                     foreach (KeyValue children in section.Children)
                     {
-                        if (children.Children.Count > 0)
+                        if (children.Children.Any())
                         {
                             Log.WriteError("Sub Processor", "SubID {0} has childen in extended section", SubID);
+
+                            ErrorReporter.Notify(new NotImplementedException(string.Format("SubID {0} has childen in extended section", SubID)));
                         }
 
                         keyName = string.Format("{0}_{1}", sectionName, children.Name);
@@ -189,7 +167,7 @@ namespace SteamDatabaseBackend
                         ProcessKey(keyName, children.Name, children.Value);
                     }
                 }
-                else if (section.Children.Count > 0)
+                else if (section.Children.Any())
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
@@ -203,36 +181,37 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (string keyName in CurrentData.Keys)
+            foreach (var data in CurrentData)
             {
-                if (!keyName.StartsWith("website", StringComparison.Ordinal))
+                if (!data.Key.StartsWith("website", StringComparison.Ordinal))
                 {
-                    uint ID = GetKeyNameID(keyName);
+                    DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Value.Key });
 
-                    DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @KeyNameID",
-                                             new MySqlParameter("@SubID", SubID),
-                                             new MySqlParameter("@KeyNameID", ID)
-                    );
-
-                    MakeHistory("removed_key", ID, CurrentData[keyName]);
+                    MakeHistory("removed_key", data.Value.Key, data.Value.Value);
                 }
             }
 
             foreach (var app in apps)
             {
-                DbWorker.ExecuteNonQuery("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type",
-                                         new MySqlParameter("@SubID", SubID),
-                                         new MySqlParameter("@AppID", app.Key),
-                                         new MySqlParameter("@Type", app.Value)
-                );
+                DbConnection.Execute("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new { SubID, AppID = app.Key, Type = app.Value });
 
-                uint typeID = (uint)(app.Value.Equals("app") ? 0 : 1); // TODO: Remove legacy 0/1 and replace with type
+                var isAppSection = app.Value.Equals("app");
+
+                var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
                 MakeHistory("removed_from_sub", typeID, app.Key.ToString());
 
-                if (typeID == 0)
+                if (isAppSection)
                 {
-                    AppProcessor.MakeHistory(app.Key, ChangeNumber, "removed_from_sub", 0, SubID.ToString());
+                    DbConnection.Execute(GetHistoryQuery(),
+                        new PICSHistory
+                        {
+                            ID       = app.Key,
+                            ChangeID = ChangeNumber,
+                            OldValue = SubID.ToString(),
+                            Action   = "removed_from_sub"
+                        }
+                    );
                 }
                 else
                 {
@@ -244,69 +223,40 @@ namespace SteamDatabaseBackend
                 }
             }
 
-#if DEBUG
-            if (packageName == null)
+            if (kv["billingtype"].AsInteger() == 12 && !Application.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
             {
-                if (string.IsNullOrEmpty(packageName)) // We don't have the package in our database yet
-                {
-                    // Don't do anything then
-                    Log.WriteError("Sub Processor", "Got a package without a name, and we don't have it in our database: {0}", SubID);
-                }
-                else
-                {
-                    ////MakeHistory("deleted_sub", "0", packageName, "", true);
+                Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
-                    Log.WriteError("Sub Processor", "Got a package without a name, but we have it in our database: {0}", SubID);
-                }
+                JobManager.AddJob(() => SteamDB.RequestFreeLicense(kv["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
             }
-#endif
         }
 
         public void ProcessUnknown()
         {
             Log.WriteInfo("Sub Processor", "Unknown SubID: {0}", SubID);
 
-            try
-            {
-                TryProcessUnknown();
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("Sub Processor", "Caught exception while processing unknown sub {0}: {1}\n{2}", SubID, e.Message, e.StackTrace);
-            }
-        }
+            var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
 
-        private void TryProcessUnknown()
-        {
-            string name;
-
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new MySqlParameter("SubID", SubID)))
+            if (data.Any())
             {
-                if (!reader.Read())
+                DbConnection.Execute(GetHistoryQuery(), data.Select(x => new PICSHistory
                 {
-                    return;
-                }
-
-                name = reader.GetString("Name");
+                    ID = SubID,
+                    ChangeID = ChangeNumber,
+                    Key = x.Key,
+                    OldValue = x.Value,
+                    Action = "removed_key"
+                }));
             }
 
-            using (var reader = DbWorker.ExecuteReader("SELECT `Name`, `Key`, `Value` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new MySqlParameter("SubID", SubID)))
+            if (!string.IsNullOrEmpty(PackageName))
             {
-                while (reader.Read())
-                {
-                    if (!reader.GetString("Name").StartsWith("website", StringComparison.Ordinal))
-                    {
-                        MakeHistory("removed_key", reader.GetUInt32("Key"), reader.GetString("Value"));
-                    }
-                }
+                MakeHistory("deleted_sub", 0, PackageName);
             }
 
-            DbWorker.ExecuteNonQuery("DELETE FROM `Subs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
-            DbWorker.ExecuteNonQuery("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
-            DbWorker.ExecuteNonQuery("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new MySqlParameter("@SubID", SubID));
-
-            // TODO
-            MakeHistory("deleted_sub", 0, name);
+            DbConnection.Execute("DELETE FROM `Subs` WHERE `SubID` = @SubID", new { SubID });
+            DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
+            DbConnection.Execute("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
         }
 
         private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
@@ -318,33 +268,19 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
-                uint ID = GetKeyNameID(keyName);
+                uint key = GetKeyNameID(keyName);
 
-                if (ID == 0)
+                if (key == 0)
                 {
-                    if (isJSON)
-                    {
-                        const uint DB_TYPE_JSON = 86;
+                    var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
 
-                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
-                                                 new MySqlParameter("@Name", keyName),
-                                                 new MySqlParameter("@DisplayName", displayName),
-                                                 new MySqlParameter("@Type", DB_TYPE_JSON)
-                        );
-                    }
-                    else
-                    {
-                        DbWorker.ExecuteNonQuery("INSERT INTO `KeyNamesSubs` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`",
-                                                 new MySqlParameter("@Name", keyName),
-                                                 new MySqlParameter("@DisplayName", displayName)
-                        );
-                    }
+                    DbConnection.Execute("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`", new { Name = keyName, DisplayName = displayName, Type = type });
 
-                    ID = GetKeyNameID(keyName);
+                    key = GetKeyNameID(keyName);
 
-                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, ID);
+                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, key);
 
-                    if (ID == 0)
+                    if (key == 0)
                     {
                         // We can't insert anything because key wasn't created
                         Log.WriteError("Sub Processor", "Failed to create key {0} for SubID {1}, not inserting info.", keyName, SubID);
@@ -353,22 +289,20 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                InsertInfo(ID, value);
-                MakeHistory("created_key", ID, string.Empty, value);
+                InsertInfo(key, value);
+                MakeHistory("created_key", key, string.Empty, value);
 
                 return true;
             }
 
-            string currentValue = CurrentData[keyName];
+            var data = CurrentData[keyName];
 
             CurrentData.Remove(keyName);
 
-            if (!currentValue.Equals(value))
+            if (!data.Value.Equals(value))
             {
-                uint ID = GetKeyNameID(keyName);
-
-                InsertInfo(ID, value);
-                MakeHistory("modified_key", ID, currentValue, value);
+                InsertInfo(data.Key, value);
+                MakeHistory("modified_key", data.Key, data.Value, value);
 
                 return true;
             }
@@ -378,31 +312,32 @@ namespace SteamDatabaseBackend
 
         private void InsertInfo(uint id, string value)
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO `SubsInfo` VALUES (@SubID, @KeyNameID, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value",
-                                     new MySqlParameter("@SubID", SubID),
-                                     new MySqlParameter("@KeyNameID", id),
-                                     new MySqlParameter("@Value", value)
-            );
+            DbConnection.Execute("INSERT INTO `SubsInfo` VALUES (@SubID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value", new { SubID, Key = id, Value = value });
         }
 
         private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
-            DbWorker.ExecuteNonQuery("INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @SubID, @Action, @KeyNameID, @OldValue, @NewValue)",
-                                     new MySqlParameter("@SubID", SubID),
-                                     new MySqlParameter("@ChangeID", ChangeNumber),
-                                     new MySqlParameter("@Action", action),
-                                     new MySqlParameter("@KeyNameID", keyNameID),
-                                     new MySqlParameter("@OldValue", oldValue),
-                                     new MySqlParameter("@NewValue", newValue)
+            DbConnection.Execute(GetHistoryQuery(),
+                new PICSHistory
+                {
+                    ID       = SubID,
+                    ChangeID = ChangeNumber,
+                    Key      = keyNameID,
+                    OldValue = oldValue,
+                    NewValue = newValue,
+                    Action   = action
+                }
             );
         }
 
-        public static uint GetKeyNameID(string keyName)
+        private static string GetHistoryQuery()
         {
-            using (var db = Database.GetConnection())
-            {
-                return db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
-            }
+            return "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
+        }
+
+        private uint GetKeyNameID(string keyName)
+        {
+            return DbConnection.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
         }
     }
 }

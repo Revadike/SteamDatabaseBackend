@@ -40,15 +40,16 @@ namespace SteamDatabaseBackend
                         await mostRecentItem;
                     }
 
-                    var processor = new AppProcessor(workaround.Key);
-
-                    if (workaround.Value == null)
+                    using (var processor = new AppProcessor(workaround.Key))
                     {
-                        processor.ProcessUnknown();
-                    }
-                    else
-                    {
-                        processor.Process(workaround.Value);
+                        if (workaround.Value == null)
+                        {
+                            processor.ProcessUnknown();
+                        }
+                        else
+                        {
+                            processor.Process(workaround.Value);
+                        }
                     }
                 });
 
@@ -89,15 +90,16 @@ namespace SteamDatabaseBackend
                         await mostRecentItem;
                     }
 
-                    var processor = new SubProcessor(workaround.Key);
-
-                    if (workaround.Value == null)
+                    using (var processor = new SubProcessor(workaround.Key))
                     {
-                        processor.ProcessUnknown();
-                    }
-                    else
-                    {
-                        processor.Process(workaround.Value);
+                        if (workaround.Value == null)
+                        {
+                            processor.ProcessUnknown();
+                        }
+                        else
+                        {
+                            processor.Process(workaround.Value);
+                        }
                     }
                 });
 

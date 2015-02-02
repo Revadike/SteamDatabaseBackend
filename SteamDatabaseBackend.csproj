@@ -116,8 +116,9 @@
     <Compile Include="Database\Important.cs" />
     <Compile Include="Database\Depot.cs" />
     <Compile Include="Database\DepotFile.cs" />
-    <Compile Include="Database\AppInfo.cs" />
-    <Compile Include="Database\AppHistory.cs" />
+    <Compile Include="Database\PackageApp.cs" />
+    <Compile Include="Database\PICSInfo.cs" />
+    <Compile Include="Database\PICSHistory.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
