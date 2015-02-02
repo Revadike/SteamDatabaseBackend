@@ -5,7 +5,6 @@
  */
 using System;
 using System.IO;
-using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -40,9 +39,10 @@ namespace SteamDatabaseBackend
                 throw new InvalidDataException("Missing Steam credentials in settings file");
             }
 
-            using (var connection = new MySqlConnection(Settings.Current.ConnectionString))
+            // Test database connection, it will throw if connection is unable to be made
+            using (var connection = Database.GetConnection())
             {
-                connection.Open(); // Exception will be caught by whatever called Load()
+                // [crashing intensifies]
             }
 
             if (Current.FullRun > 0)

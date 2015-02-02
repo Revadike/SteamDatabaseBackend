@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using Dapper;
-using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -52,7 +51,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
             }
-                
+
             bool depotsSectionModified = false;
             var app = DbConnection.Query<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID }).SingleOrDefault();
 
@@ -61,7 +60,7 @@ namespace SteamDatabaseBackend
                 uint newAppType = 0;
                 string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
 
-                using (var reader = DbConnection.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new MySqlParameter("Type", currentType)))
+                using (var reader = DbConnection.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }))
                 {
                     if (reader.Read())
                     {
