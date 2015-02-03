@@ -249,11 +249,11 @@ namespace SteamDatabaseBackend
             {
                 DbConnection.Execute(GetHistoryQuery(), data.Select(x => new PICSHistory
                 {
-                    ID = SubID,
+                    ID       = SubID,
                     ChangeID = ChangeNumber,
-                    Key = x.Key,
+                    Key      = x.Key,
                     OldValue = x.Value,
-                    Action = "removed_key"
+                    Action   = "removed_key"
                 }));
             }
 

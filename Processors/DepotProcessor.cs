@@ -238,20 +238,13 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
             });*/
 
-            TryDownloadManifest(request);
-        }
-
-        private void TryDownloadManifest(ManifestJob request)
-        {
             try
             {
                 DownloadManifest(request);
             }
-            finally
+            catch (Exception)
             {
                 RemoveLock(request.DepotID);
-
-                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
             }
         }
 
@@ -291,10 +284,19 @@ namespace SteamDatabaseBackend
                 TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
 
-            using(var db = Database.GetConnection())
+            // TODO: Task here instead of in OnCDNAuthTokenCallback due to mono's silly threadpool
+            TaskManager.Run(() =>
             {
-                ProcessDepotAfterDownload(db, request, depotManifest);
-            }
+                using(var db = Database.GetConnection())
+                {
+                    ProcessDepotAfterDownload(db, request, depotManifest);
+                }
+            }).ContinueWith(task =>
+            {
+                RemoveLock(request.DepotID);
+
+                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
+            });
         }
 
         private static void ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
@@ -317,6 +319,10 @@ namespace SteamDatabaseBackend
                 if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
                 {
                     depotFile.Hash = string.Concat(Array.ConvertAll(file.FileHash, x => x.ToString("X2")));
+                }
+                else
+                {
+                    depotFile.Hash = "0000000000000000000000000000000000000000";
                 }
 
                 filesNew.Add(depotFile);
@@ -359,6 +365,8 @@ namespace SteamDatabaseBackend
 
             if (filesOld.Any())
             {
+                db.Execute("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
+
                 db.Execute(GetHistoryQuery(), filesOld.Select(x => new DepotHistory
                 {
                     DepotID  = request.DepotID,
@@ -366,24 +374,22 @@ namespace SteamDatabaseBackend
                     Action   = "removed",
                     File     = x.Value.File
                 }));
-
-                db.Execute("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
             }
 
             if (filesAdded.Any())
             {
+                db.Execute("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
+
                 if (shouldHistorize)
                 {
-                    db.Execute(GetHistoryQuery(), filesOld.Select(x => new DepotHistory
+                    db.Execute(GetHistoryQuery(), filesAdded.Select(x => new DepotHistory
                     {
                         DepotID  = request.DepotID,
                         ChangeID = request.ChangeNumber,
                         Action   = "added",
-                        File     = x.Value.File
+                        File     = x.File
                     }));
                 }
-
-                db.Execute("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
             }
         }
 
