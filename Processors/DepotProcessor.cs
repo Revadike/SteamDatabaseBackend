@@ -20,8 +20,8 @@ namespace SteamDatabaseBackend
             public uint ChangeNumber;
             public uint ParentAppID;
             public uint DepotID;
+            public int BuildID;
             public ulong ManifestID;
-            public ulong PreviousManifestID;
             public string DepotName;
             public string CDNToken;
             public string Server;
@@ -59,108 +59,125 @@ namespace SteamDatabaseBackend
 
         public void Process(uint appID, uint changeNumber, KeyValue depots)
         {
-            var buildID = depots["branches"]["public"]["buildid"].AsInteger();
+            var requests = new List<ManifestJob>();
 
-            foreach (KeyValue depot in depots.Children)
+            // Get data in format we want first
+            foreach (var depot in depots.Children)
             {
                 // Ignore these for now, parent app should be updated too anyway
                 if (depot["depotfromapp"].Value != null)
                 {
-                    ////Log.WriteDebug("Depot Processor", "Ignoring depot {0} with depotfromapp value {1} (parent {2})", depot.Name, depot["depotfromapp"].AsString(), AppID);
-
                     continue;
                 }
-
-                uint depotID;
-
-                if (!uint.TryParse(depot.Name, out depotID))
-                {
-                    // Ignore keys that aren't integers, for example "branches"
-                    continue;
-                }
-
-                // TODO: instead of locking we could wait for current process to finish
-                if (DepotLocks.ContainsKey(depotID))
-                {
-                    continue;
-                }
-                    
-                var depotName = depot["name"].AsString();
 
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
                     ParentAppID  = appID,
-                    DepotID      = depotID,
-                    DepotName    = depotName
+                    DepotName    = depot["name"].AsString()
                 };
 
-                using (var db = Database.GetConnection())
+                // Ignore keys that aren't integers, for example "branches"
+                if (!uint.TryParse(depot.Name, out request.DepotID))
                 {
-                    if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
-                    {
-                        // If there is no public manifest for this depot, it still could have some sort of open beta
-
-                        var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
-
-                        if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
-                        {
-                            db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @Name) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name", new { DepotID = depotID, Name = depotName });
-
-                            continue;
-                        }
-
-                        Log.WriteInfo("Depot Processor", "Failed to find public branch for depot {0} (parent {1}) - but found another branch: {2} (manifest: {3})", depotID, appID, branch.Name, branch.AsString());
-                    }
-
-                    var dbDepot = db.Query<Depot>("SELECT `DepotID`, `Name`, `ManifestID`, `BuildID` FROM `Depots` WHERE `DepotID` = @DepotID LIMIT 1", new { DepotID = depotID }).SingleOrDefault();
-
-                    if (dbDepot.DepotID > 0)
-                    {
-                        request.PreviousManifestID = dbDepot.ManifestID;
-
-                        if (dbDepot.ManifestID == request.ManifestID)
-                        {
-                            if (Settings.Current.FullRun < 2)
-                            {
-                                // Update depot name if changed
-                                if (!depotName.Equals(request.DepotName))
-                                {
-                                    db.Execute("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", request);
-                                }
-
-                                continue;
-                            }
-                        }
-                        else if (dbDepot.BuildID > buildID)
-                        {
-                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", depotID, dbDepot.BuildID, buildID);
-                            continue;
-                        }
-                    }
-
-                    DepotLocks.TryAdd(depotID, 1);
-
-                    // Update/insert depot information straight away
-                    if (dbDepot.BuildID != buildID || request.PreviousManifestID != request.ManifestID || !depotName.Equals(depot.Name))
-                    {
-                        db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @Name, @BuildID, @ManifestID) ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @Name, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
-                            new {
-                                DepotID = request.DepotID,
-                                BuildID = buildID,
-                                ManifestID = request.ManifestID,
-                                Name = depotName
-                            }
-                        );
-
-                        if (request.PreviousManifestID != request.ManifestID)
-                        {
-                            MakeHistory(db, request, string.Empty, "manifest_change", request.PreviousManifestID, request.ManifestID);
-                        }
-                    }
+                    continue;
                 }
 
-                JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+                // TODO: instead of locking we could wait for current process to finish
+                if (DepotLocks.ContainsKey(request.DepotID))
+                {
+                    continue;
+                }
+
+                // If there is no public manifest for this depot, it still could have some sort of open beta
+                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
+                {
+                    var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
+
+                    if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
+                    {
+                        using (var db = Database.GetConnection())
+                        {
+                            db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `Name` = @DepotName", new { request.DepotID, request.DepotName });
+                        }
+
+                        continue;
+                    }
+
+                    request.BuildID = branch["build"].AsInteger();
+                }
+                else
+                {
+                    request.BuildID = depots["branches"]["public"]["buildid"].AsInteger();
+                }
+
+                requests.Add(request);
+            }
+
+            if (!requests.Any())
+            {
+                return;
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                var dbDepots = db.Query<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) })
+                    .ToDictionary(x => x.DepotID, x => x);
+
+                foreach (var request in requests)
+                {
+                    Depot dbDepot;
+
+                    if (dbDepots.ContainsKey(request.DepotID))
+                    {
+                        dbDepot = dbDepots[request.DepotID];
+
+                        if (dbDepot.BuildID > request.BuildID && dbDepot.LastManifestID > 0)
+                        {
+                            // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
+
+                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} < {2}", request.DepotID, dbDepot.BuildID, request.BuildID);
+
+                            continue;
+                        }
+
+                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun < 2)
+                        {
+                            // Update depot name if changed
+                            if (!request.DepotName.Equals(dbDepot.Name))
+                            {
+                                db.Execute("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
+                            }
+
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        dbDepot = new Depot();
+                    }
+
+                    DepotLocks.TryAdd(request.DepotID, 1);
+
+                    if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || !request.DepotName.Equals(dbDepot.Name))
+                    {
+                        db.Execute(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
+                                    ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = @DepotName, `BuildID` = @BuildID, `ManifestID` = @ManifestID",
+                        new {
+                            request.DepotID,
+                            request.DepotName,
+                            request.BuildID,
+                            request.ManifestID
+                        });
+                    }
+
+                    if (dbDepot.ManifestID != request.ManifestID)
+                    {
+                        MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
+                    }
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+                }
             }
         }
 
@@ -391,6 +408,8 @@ namespace SteamDatabaseBackend
                     }));
                 }
             }
+
+            db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
         }
 
         public static string GetHistoryQuery()

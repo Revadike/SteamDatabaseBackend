@@ -52,7 +52,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
             }
 
-            bool depotsSectionModified = false;
             var app = DbConnection.Query<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID }).SingleOrDefault();
 
             if (productInfo.KeyValues["common"]["name"].Value != null)
@@ -127,7 +126,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (KeyValue section in productInfo.KeyValues.Children)
+            foreach (var section in productInfo.KeyValues.Children)
             {
                 string sectionName = section.Name.ToLower();
 
@@ -173,7 +172,7 @@ namespace SteamDatabaseBackend
 
                     if (ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true) && sectionName.Equals("root_depots"))
                     {
-                        depotsSectionModified = true;
+                        DbConnection.Execute("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
                     }
                 }
             }
@@ -204,13 +203,8 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (depotsSectionModified || (Settings.IsFullRun && productInfo.KeyValues["depots"].Children.Count > 0))
+            if (productInfo.KeyValues["depots"] != null)
             {
-                if (depotsSectionModified)
-                {
-                    DbConnection.Execute("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
-                }
-
                 Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
             }
         }

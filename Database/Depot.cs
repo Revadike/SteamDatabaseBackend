@@ -5,11 +5,12 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct Depot
+    class Depot
     {
         public uint DepotID { get; set; }
         public string Name { get; set; }
         public uint BuildID { get; set; }
         public ulong ManifestID { get; set; }
+        public ulong LastManifestID { get; set; }
     }
 }

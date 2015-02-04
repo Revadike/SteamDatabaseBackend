@@ -53,9 +53,9 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
             }
 
+            var appAddedToThisPackage = false;
             var kv = productInfo.KeyValues.Children.FirstOrDefault();
             var newPackageName = kv["name"].AsString();
-
             var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
 
             if (newPackageName != null)
@@ -115,6 +115,8 @@ namespace SteamDatabaseBackend
 
                                 MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
 
+                                appAddedToThisPackage = true;
+
                                 // TODO: Log relevant add/remove history for depot/app?
                             }
 
@@ -150,6 +152,8 @@ namespace SteamDatabaseBackend
                                     }
                                 );
                             }
+
+                            appAddedToThisPackage = true;
                         }
                     }
                 }
@@ -236,6 +240,12 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
                 JobManager.AddJob(() => SteamDB.RequestFreeLicense(kv["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
+            }
+
+            // Re-queue apps in this package so we can update depots and whatnot
+            if (appAddedToThisPackage && !Settings.IsFullRun && !string.IsNullOrEmpty(PackageName))
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(kv["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
             }
         }
 
