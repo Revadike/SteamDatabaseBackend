@@ -15,6 +15,15 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
+            var count = Application.ProcessedSubs.Count;
+
+            if (count > 100)
+            {
+                CommandHandler.ReplyToCommand(command, "There are currently {0} packages awaiting to be processed, try again later.", count);
+
+                return;
+            }
+
             uint subID;
 
             if (command.Message.Length > 0 && uint.TryParse(command.Message, out subID))

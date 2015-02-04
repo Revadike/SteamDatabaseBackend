@@ -31,6 +31,15 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var count = Application.ProcessedApps.Count;
+
+            if (count > 100)
+            {
+                CommandHandler.ReplyToCommand(command, "There are currently {0} apps awaiting to be processed, try again later.", count);
+
+                return;
+            }
+
             uint appID;
 
             if (!uint.TryParse(command.Message, out appID))
