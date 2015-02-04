@@ -325,10 +325,20 @@ namespace SteamDatabaseBackend
 
             foreach (var file in depotManifest.Files)
             {
+                var name = file.FileName.Replace('\\', '/');
+
+                // safe guard
+                if (name.Length > 255)
+                {
+                    ErrorReporter.Notify(new OverflowException(string.Format("File \"{0}\" in depot {1} is too long", name, request.DepotID)));
+
+                    continue;
+                }
+
                 var depotFile = new DepotFile
                 {
                     DepotID = request.DepotID,
-                    File    = file.FileName.Replace('\\', '/'),
+                    File    = name,
                     Size    = file.TotalSize,
                     Flags   = file.Flags
                 };
