@@ -52,15 +52,23 @@ namespace SteamDatabaseBackend
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);
             }
 
-            if (ownedSubs.Any())
-            {
-                using (var db = Database.GetConnection())
-                {
-                    Application.OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = ownedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
-                }
-            }
 
             Application.OwnedSubs = ownedSubs;
+
+            RefreshApps();
+        }
+
+        public static void RefreshApps()
+        {
+            if (!Application.OwnedSubs.Any())
+            {
+                return;
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                Application.OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = Application.OwnedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
+            }
         }
     }
 }

@@ -177,13 +177,13 @@ namespace SteamDatabaseBackend
                 }
             }
            
-            foreach (var data in CurrentData)
+            foreach (var data in CurrentData.Values)
             {
-                if (!data.Key.StartsWith("website", StringComparison.Ordinal))
+                if (!data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal))
                 {
-                    DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Value.Key });
+                    DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
 
-                    MakeHistory("removed_key", data.Value.Key, data.Value.Value);
+                    MakeHistory("removed_key", data.Key, data.Value);
                 }
             }
 
@@ -281,7 +281,16 @@ namespace SteamDatabaseBackend
 
             var data = CurrentData[keyName];
 
-            CurrentData.Remove(keyName);
+            if (data.Processed)
+            {
+                Log.WriteWarn("App Processor", "Duplicate key {0} in AppID {1}", keyName, AppID);
+
+                return false;
+            }
+
+            data.Processed = true;
+
+            CurrentData[keyName] = data;
 
             if (!data.Value.Equals(value))
             {

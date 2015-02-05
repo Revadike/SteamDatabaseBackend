@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}", Colors.BLUE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, request.Target, Application.OwnedSubs.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
 
                     return;
                 }
@@ -137,7 +137,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}", Colors.BLUE, request.Target);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, request.Target, Application.OwnedApps.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
 
                     return;
                 }

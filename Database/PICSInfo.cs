@@ -10,5 +10,6 @@ namespace SteamDatabaseBackend
         public uint Key { get; set; }
         public string KeyName { get; set; }
         public string Value { get; set; }
+        public bool Processed { get; set; }
     }
 }

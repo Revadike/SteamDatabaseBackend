@@ -54,6 +54,7 @@ namespace SteamDatabaseBackend
             }
 
             var appAddedToThisPackage = false;
+            var packageOwned = Application.OwnedSubs.ContainsKey(SubID);
             var kv = productInfo.KeyValues.Children.FirstOrDefault();
             var newPackageName = kv["name"].AsString();
             var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
@@ -154,6 +155,11 @@ namespace SteamDatabaseBackend
                             }
 
                             appAddedToThisPackage = true;
+
+                            if (packageOwned && !Application.OwnedApps.ContainsKey(appID))
+                            {
+                                Application.OwnedApps.Add(appID, (byte)1);
+                            }
                         }
                     }
                 }
@@ -189,15 +195,17 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var data in CurrentData)
+            foreach (var data in CurrentData.Values)
             {
-                if (!data.Key.StartsWith("website", StringComparison.Ordinal))
+                if (!data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal))
                 {
-                    DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Value.Key });
+                    DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
 
-                    MakeHistory("removed_key", data.Value.Key, data.Value.Value);
+                    MakeHistory("removed_key", data.Key, data.Value);
                 }
             }
+
+            var appsRemoved = apps.Any();
 
             foreach (var app in apps)
             {
@@ -235,7 +243,12 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (kv["billingtype"].AsInteger() == 12 && !Application.OwnedSubs.ContainsKey(SubID)) // 12 == free on demand
+            if (appsRemoved)
+            {
+                LicenseList.RefreshApps();
+            }
+
+            if (kv["billingtype"].AsInteger() == 12 && !packageOwned) // 12 == free on demand
             {
                 Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
@@ -315,7 +328,16 @@ namespace SteamDatabaseBackend
 
             var data = CurrentData[keyName];
 
-            CurrentData.Remove(keyName);
+            if (data.Processed)
+            {
+                Log.WriteWarn("Sub Processor", "Duplicate key {0} in SubID {1}", keyName, SubID);
+
+                return false;
+            }
+
+            data.Processed = true;
+
+            CurrentData[keyName] = data;
 
             if (!data.Value.Equals(value))
             {

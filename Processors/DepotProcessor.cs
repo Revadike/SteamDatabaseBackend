@@ -132,7 +132,7 @@ namespace SteamDatabaseBackend
                     {
                         dbDepot = dbDepots[request.DepotID];
 
-                        if (dbDepot.BuildID > request.BuildID && dbDepot.LastManifestID > 0)
+                        if (dbDepot.BuildID > request.BuildID)
                         {
                             // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
 
@@ -157,8 +157,6 @@ namespace SteamDatabaseBackend
                         dbDepot = new Depot();
                     }
 
-                    DepotLocks.TryAdd(request.DepotID, 1);
-
                     if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || !request.DepotName.Equals(dbDepot.Name))
                     {
                         db.Execute(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
@@ -176,7 +174,18 @@ namespace SteamDatabaseBackend
                         MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
-                    JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+                    if (Application.OwnedApps.ContainsKey(request.DepotID))
+                    {
+                        DepotLocks.TryAdd(request.DepotID, 1);
+
+                        JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+                    }
+#if DEBUG
+                    else
+                    {
+                        Log.WriteDebug("Depot Processor", "Skipping depot {0} from app {1} because we don't own it", request.DepotID, request.ParentAppID);
+                    }
+#endif
                 }
             }
         }
@@ -187,6 +196,8 @@ namespace SteamDatabaseBackend
 
             if (!JobManager.TryRemoveJob(callback.JobID, out job))
             {
+                RemoveLock(callback.DepotID);
+
                 return;
             }
 
@@ -289,6 +300,8 @@ namespace SteamDatabaseBackend
 
             if (depotManifest == null)
             {
+                RemoveLock(request.DepotID); // TODO: Remove this once task in OnCDNAuthTokenCallback is used
+
                 Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
 
                 return;
@@ -296,7 +309,8 @@ namespace SteamDatabaseBackend
 
             if (FileDownloader.IsImportantDepot(request.DepotID))
             {
-                IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Depot update: {0}{1}{2} -{3} {4}", Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
+                IRC.Instance.AnnounceImportantAppUpdate(request.ParentAppID, "Depot update: {0}{1}{2} -{3} {4}",
+                    Colors.BLUE, request.DepotName, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetDepotURL(request.DepotID, "history"));
 
                 TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
             }
