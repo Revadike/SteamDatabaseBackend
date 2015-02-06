@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var count = Application.ProcessedApps.Count;
+            var count = PICSProductInfo.ProcessedApps.Count;
 
             if (count > 100)
             {
@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
             {
                 if (!callback.Packages.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, request.Target, Application.OwnedSubs.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, request.Target, LicenseList.OwnedSubs.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
 
                     return;
                 }
@@ -130,14 +130,14 @@ namespace SteamDatabaseBackend
                     Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Application.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else if (request.Type == JobManager.IRCRequestType.TYPE_APP)
             {
                 if (!callback.Apps.ContainsKey(request.Target))
                 {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, request.Target, Application.OwnedApps.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
+                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, request.Target, LicenseList.OwnedApps.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
 
                     return;
                 }
@@ -170,7 +170,7 @@ namespace SteamDatabaseBackend
                     Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
                     info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    Application.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+                    LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
                 );
             }
             else

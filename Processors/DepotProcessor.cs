@@ -174,7 +174,7 @@ namespace SteamDatabaseBackend
                         MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
-                    if (Application.OwnedApps.ContainsKey(request.DepotID))
+                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID))
                     {
                         DepotLocks.TryAdd(request.DepotID, 1);
 

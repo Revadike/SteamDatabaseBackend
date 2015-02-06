@@ -54,7 +54,7 @@ namespace SteamDatabaseBackend
             }
 
             var appAddedToThisPackage = false;
-            var packageOwned = Application.OwnedSubs.ContainsKey(SubID);
+            var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
             var kv = productInfo.KeyValues.Children.FirstOrDefault();
             var newPackageName = kv["name"].AsString();
             var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
@@ -156,9 +156,9 @@ namespace SteamDatabaseBackend
 
                             appAddedToThisPackage = true;
 
-                            if (packageOwned && !Application.OwnedApps.ContainsKey(appID))
+                            if (packageOwned && !LicenseList.OwnedApps.ContainsKey(appID))
                             {
-                                Application.OwnedApps.Add(appID, (byte)1);
+                                LicenseList.OwnedApps.Add(appID, (byte)1);
                             }
                         }
                     }

@@ -12,6 +12,15 @@ namespace SteamDatabaseBackend
 {
     class LicenseList : SteamHandler
     {
+        public static Dictionary<uint, byte> OwnedApps { get; private set; }
+        public static Dictionary<uint, byte> OwnedSubs { get; private set; }
+
+        static LicenseList()
+        {
+            OwnedApps = new Dictionary<uint, byte>();
+            OwnedSubs = new Dictionary<uint, byte>();
+        }
+
         public LicenseList(CallbackManager manager)
             : base(manager)
         {
@@ -31,8 +40,8 @@ namespace SteamDatabaseBackend
 
             if (!licenseList.LicenseList.Any())
             {
-                Application.OwnedSubs.Clear();
-                Application.OwnedApps.Clear();
+                OwnedSubs.Clear();
+                OwnedApps.Clear();
 
                 return;
             }
@@ -53,21 +62,21 @@ namespace SteamDatabaseBackend
             }
 
 
-            Application.OwnedSubs = ownedSubs;
+            OwnedSubs = ownedSubs;
 
             RefreshApps();
         }
 
         public static void RefreshApps()
         {
-            if (!Application.OwnedSubs.Any())
+            if (!OwnedSubs.Any())
             {
                 return;
             }
 
             using (var db = Database.GetConnection())
             {
-                Application.OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = Application.OwnedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
+                OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
             }
         }
     }

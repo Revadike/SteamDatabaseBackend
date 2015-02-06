@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
 
         public override void OnCommand(CommandArguments command)
         {
-            var count = Application.ProcessedSubs.Count;
+            var count = PICSProductInfo.ProcessedSubs.Count;
 
             if (count > 100)
             {

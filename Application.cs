@@ -20,25 +20,13 @@ namespace SteamDatabaseBackend
 
         public static Timer ChangelistTimer { get; private set; }
 
-        public static Dictionary<uint, byte> OwnedApps { get; set; }
-        public static Dictionary<uint, byte> OwnedSubs { get; set; }
-
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
-        public static ConcurrentDictionary<uint, Task> ProcessedApps { get; private set; }
-        public static ConcurrentDictionary<uint, Task> ProcessedSubs { get; private set; }
-
         static Application()
         {
-            OwnedApps = new Dictionary<uint, byte>();
-            OwnedSubs = new Dictionary<uint, byte>();
-
             ImportantApps = new Dictionary<uint, List<string>>();
             ImportantSubs = new Dictionary<uint, byte>();
-
-            ProcessedApps = new ConcurrentDictionary<uint, Task>();
-            ProcessedSubs = new ConcurrentDictionary<uint, Task>();
 
             Threads = new List<Thread>();
 

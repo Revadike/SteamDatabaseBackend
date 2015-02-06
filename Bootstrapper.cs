@@ -97,22 +97,22 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.IsRunning = false;
 
-            var count = Application.ProcessedApps.Count;
+            var count = PICSProductInfo.ProcessedApps.Count;
 
             if (count > 0)
             {
                 Log.WriteInfo("Bootstrapper", "{0} app tasks left, waiting", count);
 
-                Task.WaitAll(Application.ProcessedApps.Values.ToArray());
+                Task.WaitAll(PICSProductInfo.ProcessedApps.Values.ToArray());
             }
 
-            count = Application.ProcessedSubs.Count;
+            count = PICSProductInfo.ProcessedSubs.Count;
 
             if (count > 0)
             {
                 Log.WriteInfo("Bootstrapper", "{0} package tasks left, waiting", count);
 
-                Task.WaitAll(Application.ProcessedSubs.Values.ToArray());
+                Task.WaitAll(PICSProductInfo.ProcessedSubs.Values.ToArray());
             }
 
             Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
