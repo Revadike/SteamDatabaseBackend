@@ -309,8 +309,6 @@ namespace SteamDatabaseBackend
 
                     key = GetKeyNameID(keyName);
 
-                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, key);
-
                     if (key == 0)
                     {
                         // We can't insert anything because key wasn't created
@@ -318,6 +316,8 @@ namespace SteamDatabaseBackend
 
                         return false;
                     }
+
+                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, key);
                 }
 
                 InsertInfo(key, value);
