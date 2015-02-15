@@ -9,6 +9,9 @@ using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
+    // Compiler complains that none of the fields are ever assigned
+    // But it's only every used for de-serializing JSON, which makes sure that all the fields are present
+    #pragma warning disable 0649
     sealed class SettingsJson
     {
         public sealed class SteamJson
@@ -101,4 +104,5 @@ namespace SteamDatabaseBackend
         [JsonProperty(Required = Required.Always)]
         public bool LogToFile;
     }
+    #pragma warning restore 0649
 }
