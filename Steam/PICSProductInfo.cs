@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SteamKit2;
@@ -12,13 +12,13 @@ namespace SteamDatabaseBackend
 {
     class PICSProductInfo : SteamHandler
     {
-        public static ConcurrentDictionary<uint, Task> ProcessedApps { get; private set; }
-        public static ConcurrentDictionary<uint, Task> ProcessedSubs { get; private set; }
+        public static Dictionary<uint, Task> ProcessedApps { get; private set; }
+        public static Dictionary<uint, Task> ProcessedSubs { get; private set; }
 
         static PICSProductInfo()
         {
-            ProcessedApps = new ConcurrentDictionary<uint, Task>();
-            ProcessedSubs = new ConcurrentDictionary<uint, Task>();
+            ProcessedApps = new Dictionary<uint, Task>();
+            ProcessedSubs = new Dictionary<uint, Task>();
         }
 
         public PICSProductInfo(CallbackManager manager)
@@ -32,33 +32,37 @@ namespace SteamDatabaseBackend
             var apps = callback.Apps.Concat(callback.UnknownApps.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
             var packages = callback.Packages.Concat(callback.UnknownPackages.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
 
-            foreach (var app in apps)
+            foreach (var workaround in apps)
             {
-                var workaround = app;
+                var app = workaround;
 
                 Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", app.Value == null ? "Unknown " : "", app.Key);
 
                 Task mostRecentItem;
-                ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem);
+
+                lock (ProcessedApps)
+                {
+                    ProcessedApps.TryGetValue(app.Key, out mostRecentItem);
+                }
 
                 var workerItem = TaskManager.Run(async delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", workaround.Key);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", app.Key);
 
                         await mostRecentItem;
                     }
 
-                    using (var processor = new AppProcessor(workaround.Key))
+                    using (var processor = new AppProcessor(app.Key))
                     {
-                        if (workaround.Value == null)
+                        if (app.Value == null)
                         {
                             processor.ProcessUnknown();
                         }
                         else
                         {
-                            processor.Process(workaround.Value);
+                            processor.Process(app.Value);
                         }
                     }
                 });
@@ -68,47 +72,55 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                ProcessedApps.AddOrUpdate(app.Key, workerItem, (key, oldValue) => workerItem);
+
+                lock (ProcessedApps)
+                {
+                    ProcessedApps[app.Key] = workerItem;
+                }
 
                 workerItem.ContinueWith(task =>
                 {
                     lock (ProcessedApps)
                     {
-                        if (ProcessedApps.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        if (ProcessedApps.TryGetValue(app.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
-                            ProcessedApps.TryRemove(workaround.Key, out mostRecentItem);
+                            ProcessedApps.Remove(app.Key);
                         }
                     }
                 });
             }
 
-            foreach (var package in packages)
+            foreach (var workaround in packages)
             {
-                var workaround = package;
+                var package = workaround;
 
                 Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", package.Value == null ? "Unknown " : "", package.Key);
 
                 Task mostRecentItem;
-                ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem);
+
+                lock (ProcessedSubs)
+                {
+                    ProcessedSubs.TryGetValue(package.Key, out mostRecentItem);
+                }
 
                 var workerItem = TaskManager.Run(async delegate
                 {
                     if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                     {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", workaround.Key);
+                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", package.Key);
 
                         await mostRecentItem;
                     }
 
-                    using (var processor = new SubProcessor(workaround.Key))
+                    using (var processor = new SubProcessor(package.Key))
                     {
-                        if (workaround.Value == null)
+                        if (package.Value == null)
                         {
                             processor.ProcessUnknown();
                         }
                         else
                         {
-                            processor.Process(workaround.Value);
+                            processor.Process(package.Value);
                         }
                     }
                 });
@@ -118,15 +130,18 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                ProcessedSubs.AddOrUpdate(package.Key, workerItem, (key, oldValue) => workerItem);
+                lock (ProcessedSubs)
+                {
+                    ProcessedSubs[package.Key] = workerItem;
+                }
 
                 workerItem.ContinueWith(task =>
                 {
                     lock (ProcessedSubs)
                     {
-                        if (ProcessedSubs.TryGetValue(workaround.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        if (ProcessedSubs.TryGetValue(package.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
-                            ProcessedSubs.TryRemove(workaround.Key, out mostRecentItem);
+                            ProcessedSubs.Remove(package.Key);
                         }
                     }
                 });
