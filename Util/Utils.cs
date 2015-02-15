@@ -130,7 +130,7 @@ namespace SteamDatabaseBackend
         }
     }
 
-    public class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
+    class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
     {
         public TKey Key { get; set; }
 

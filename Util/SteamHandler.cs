@@ -7,7 +7,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public abstract class SteamHandler
+    abstract class SteamHandler
     {
         protected SteamHandler(CallbackManager manager)
         {

@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
-    public sealed class SettingsJson
+    sealed class SettingsJson
     {
         public sealed class SteamJson
         {
