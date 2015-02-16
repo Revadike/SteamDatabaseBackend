@@ -10,10 +10,26 @@ namespace SteamDatabaseBackend
 {
     static class TaskManager
     {
+        public static Task Run(Func<Task> function)
+        {
+            var t = Task.Run(function);
+
+            RegisterErrorHandler(t);
+
+            return t;
+        }
+
         public static Task Run(Action action)
         {
-            var t = new Task(action);
+            var t = Task.Run(action);
                 
+            RegisterErrorHandler(t);
+
+            return t;
+        }
+
+        private static void RegisterErrorHandler(Task t)
+        {
             t.ContinueWith(task =>
             {
                 task.Exception.Flatten().Handle(e =>
@@ -25,10 +41,6 @@ namespace SteamDatabaseBackend
                     return false;
                 });
             }, TaskContinuationOptions.OnlyOnFaulted);
-
-            t.Start();
-
-            return t;
         }
     }
 }
