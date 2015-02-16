@@ -396,9 +396,11 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})", Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, file.Chunks.Count, lastError);
+                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})",
+                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, file.Chunks.Count, lastError);
 
-                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})", file.FileName, count, file.Chunks.Count, job.Server, lastError);
+                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
+                        file.FileName, count, file.Chunks.Count, job.Server, lastError);
 
                     File.Delete(downloadPath);
                 }
