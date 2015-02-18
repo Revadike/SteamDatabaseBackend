@@ -54,6 +54,8 @@ namespace SteamDatabaseBackend
 
                 new GameCoordinator(Client, CallbackManager);
 
+                new WebAuth(CallbackManager);
+
                 new Watchdog();
             }
 

@@ -119,6 +119,8 @@
     <Compile Include="Database\PICSInfo.cs" />
     <Compile Include="Database\PICSHistory.cs" />
     <Compile Include="Database\DepotHistory.cs" />
+    <Compile Include="Steam\WebAuth.cs" />
+    <Compile Include="Util\WebHelpers.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
