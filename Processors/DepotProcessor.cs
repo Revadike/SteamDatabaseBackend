@@ -43,14 +43,9 @@ namespace SteamDatabaseBackend
 
             CDNServers = new List<string>
             {
-                //"content1.steampowered.com", // Used to be Limelight
-                "content2.steampowered.com", // Level3
-                "content3.steampowered.com", // Highwinds
-                //"content4.steampowered.com", // EdgeCast, seems to be missing content
-                "content5.steampowered.com", // CloudFront
-                //"content6.steampowered.com", // Comcast, non optimal
-                //"content7.steampowered.com", //
-                "content8.steampowered.com" // Akamai
+                "cdn.level3.cs.steampowered.com",
+                "cdn.akamai.cs.steampowered.com",
+                "cdn.highwinds.cs.steampowered.com"
             };
 
             manager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
