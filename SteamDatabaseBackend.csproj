@@ -86,7 +86,6 @@
     <Compile Include="IRC\Commands\Important.cs" />
     <Compile Include="IRC\Commands\Enum.cs" />
     <Compile Include="Steam\AccountInfo.cs" />
-    <Compile Include="Steam\MarketingMessage.cs" />
     <Compile Include="Steam\ClanState.cs" />
     <Compile Include="Steam\ChatMemberInfo.cs" />
     <Compile Include="Steam\PICSChanges.cs" />
