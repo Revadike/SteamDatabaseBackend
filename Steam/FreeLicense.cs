@@ -110,6 +110,17 @@ namespace SteamDatabaseBackend
                                     using (var db = Database.GetConnection())
                                     {
                                         db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package, Name = grantedName });
+
+                                        db.Execute(SubProcessor.GetHistoryQuery(),
+                                            new PICSHistory
+                                            {
+                                                ID       = package,
+                                                Key      = SteamDB.DATABASE_NAME_TYPE,
+                                                OldValue = "free on demand; account page",
+                                                NewValue = grantedName,
+                                                Action   = "created_info"
+                                            }
+                                        );
                                     }
                                 }
                             }

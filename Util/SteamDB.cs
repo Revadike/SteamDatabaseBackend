@@ -12,6 +12,9 @@ namespace SteamDatabaseBackend
 {
     static class SteamDB
     {
+        public const uint DATABASE_APPTYPE   = 9;
+        public const uint DATABASE_NAME_TYPE = 10;
+
         public const string UNKNOWN_APP = "SteamDB Unknown App";
 
         public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);

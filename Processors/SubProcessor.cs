@@ -14,8 +14,6 @@ namespace SteamDatabaseBackend
 {
     class SubProcessor : IDisposable
     {
-        private const uint DATABASE_NAME_TYPE = 10;
-
         private IDbConnection DbConnection;
 
         private readonly string PackageName;
@@ -66,7 +64,7 @@ namespace SteamDatabaseBackend
                     DbConnection.Execute("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name", new { SubID, Name = newPackageName });
 
                     MakeHistory("created_sub");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, newPackageName);
+                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
                 }
                 else if (!PackageName.Equals(newPackageName))
                 {
@@ -79,7 +77,7 @@ namespace SteamDatabaseBackend
                         DbConnection.Execute("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                     }
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, PackageName, newPackageName);
+                    MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
                 }
             }
 
@@ -370,7 +368,7 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private static string GetHistoryQuery()
+        public static string GetHistoryQuery()
         {
             return "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
         }

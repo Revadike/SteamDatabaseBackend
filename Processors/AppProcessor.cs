@@ -14,9 +14,6 @@ namespace SteamDatabaseBackend
 {
     class AppProcessor : IDisposable
     {
-        private const uint DATABASE_APPTYPE   = 9;
-        private const uint DATABASE_NAME_TYPE = 10;
-
         private IDbConnection DbConnection;
 
         private Dictionary<string, PICSInfo> CurrentData;
@@ -83,7 +80,7 @@ namespace SteamDatabaseBackend
                     );
 
                     MakeHistory("created_app");
-                    MakeHistory("created_info", DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
+                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
 
                     // TODO: Testy testy
                     if (!Settings.IsFullRun
@@ -108,7 +105,7 @@ namespace SteamDatabaseBackend
 
                     DbConnection.Execute("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
 
-                    MakeHistory("modified_info", DATABASE_NAME_TYPE, app.Name, newAppName);
+                    MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
                 }
 
                 if (app.AppType == 0 || app.AppType != newAppType)
@@ -117,11 +114,11 @@ namespace SteamDatabaseBackend
 
                     if (app.AppType == 0)
                     {
-                        MakeHistory("created_info", DATABASE_APPTYPE, string.Empty, newAppType.ToString());
+                        MakeHistory("created_info", SteamDB.DATABASE_APPTYPE, string.Empty, newAppType.ToString());
                     }
                     else
                     {
-                        MakeHistory("modified_info", DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
+                        MakeHistory("modified_info", SteamDB.DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
                     }
                 }
             }
