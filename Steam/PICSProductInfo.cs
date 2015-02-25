@@ -94,7 +94,7 @@ namespace SteamDatabaseBackend
             {
                 var package = workaround;
 
-                Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", package.Value == null ? "Unknown " : "", package.Key);
+                Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", package.Value == null ? "Unknown " : "", package.Key);
 
                 Task mostRecentItem;
 

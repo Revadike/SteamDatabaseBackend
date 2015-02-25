@@ -57,6 +57,12 @@ namespace SteamDatabaseBackend
             var newPackageName = kv["name"].AsString();
             var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
 
+            // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
+            if (newPackageName == null)
+            {
+                newPackageName = string.Concat("Steam Sub ", SubID);
+            }
+
             if (newPackageName != null)
             {
                 if (string.IsNullOrEmpty(PackageName))
