@@ -64,12 +64,14 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        // TODO: Create it?
-                        Log.WriteError("App Processor", "AppID {0} - unknown app type: {1}", AppID, currentType);
+                        DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Name` = `Name`",
+                            new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
+
+                        Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
                         IRC.Instance.SendOps("New app type: {0}{1}{2} for app {3}{4}{5}", Colors.BLUE, currentType, Colors.NORMAL, Colors.BLUE, AppID, Colors.NORMAL);
 
-                        ErrorReporter.Notify(new NotImplementedException(string.Format("Unknown apptype {0} (appid {1})", currentType, AppID)));
+                        newAppType = DbConnection.ExecuteScalar<uint>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                     }
                 }
 
