@@ -66,24 +66,28 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    var key = string.Concat("bins_", os);
-
-                    if (kv[key].Children.Count == 0)
-                    {
-                        CommandHandler.ReplyToCommand(command, "Failed to find binaries in parsed response.");
-
-                        return;
-                    }
-
-                    kv = kv[key];
-
-                    CommandHandler.ReplyToCommand(command, "{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+                    PrintBinary(command, kv, string.Concat("bins_", os));
+                    PrintBinary(command, kv, string.Concat("bins_client_", os));
                 };
 
                 var isStable = args.Length > 1 && args[1].Equals("stable");
 
                 webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks)));
             }
+        }
+
+        private static bool PrintBinary(CommandArguments command, KeyValue kv, string key)
+        {
+            if (kv[key].Children.Count == 0)
+            {
+                return false;
+            }
+
+            kv = kv[key];
+
+            CommandHandler.ReplyToCommand(command, "{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+
+            return true;
         }
     }
 }
