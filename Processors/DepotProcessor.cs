@@ -131,7 +131,7 @@ namespace SteamDatabaseBackend
                         {
                             // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
 
-                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} < {2}", request.DepotID, dbDepot.BuildID, request.BuildID);
+                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", request.DepotID, dbDepot.BuildID, request.BuildID);
 
                             continue;
                         }
@@ -236,7 +236,7 @@ namespace SteamDatabaseBackend
                         request.DepotID, request.ParentAppID, request.Server, callback.Result, request.Tries);
                 }
 
-                if (--request.Tries > 0)
+                if (--request.Tries >= 0)
                 {
                     request.Server = GetContentServer(request.Tries);
 
@@ -295,9 +295,18 @@ namespace SteamDatabaseBackend
 
             if (depotManifest == null)
             {
-                RemoveLock(request.DepotID); // TODO: Remove this once task in OnCDNAuthTokenCallback is used
+                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2}) (#{3})", request.DepotID, request.Server, lastError, request.Tries);
 
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", request.DepotID, request.Server, lastError);
+                if (--request.Tries >= 0)
+                {
+                    request.Server = GetContentServer(request.Tries);
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
+
+                    return;
+                }
+
+                RemoveLock(request.DepotID); // TODO: Remove this once task in OnCDNAuthTokenCallback is used
 
                 if (FileDownloader.IsImportantDepot(request.DepotID))
                 {
