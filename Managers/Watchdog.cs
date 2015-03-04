@@ -17,6 +17,13 @@ namespace SteamDatabaseBackend
 
         private void OnTimer(object state)
         {
+            if (Settings.Current.IRC.Enabled && !IRC.Instance.IsConnected)
+            {
+                Log.WriteWarn("Watchdog", "Forcing IRC reconnect.");
+
+                IRC.Instance.Connect();
+            }
+
             if (Steam.Instance.Client.IsConnected && Application.ChangelistTimer.Enabled)
             {
                 AccountInfo.Sync();

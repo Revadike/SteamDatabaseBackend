@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `ID` DESC LIMIT 1").SingleOrDefault();
+                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `Time` DESC LIMIT 1").SingleOrDefault();
                 }
             }
 

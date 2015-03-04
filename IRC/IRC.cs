@@ -18,6 +18,14 @@ namespace SteamDatabaseBackend
         private readonly IrcClient Client;
         private bool Disconnecting;
 
+        public bool IsConnected
+        {
+            get
+            {
+                return Client.IsConnected;
+            }
+        }
+
         public IRC()
         {
             if (!Settings.Current.IRC.Enabled)

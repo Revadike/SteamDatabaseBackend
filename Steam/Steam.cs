@@ -144,6 +144,12 @@ namespace SteamDatabaseBackend
         {
             if (data.SubID == 0)
             {
+                // much hackery
+                if (subID == 0)
+                {
+                    return "Steam";
+                }
+
                 return string.Format("SubID {0}", subID);
             }
 
