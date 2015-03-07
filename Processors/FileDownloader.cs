@@ -49,6 +49,7 @@ namespace SteamDatabaseBackend
                 new List<string>
                 {
                     "bin/engine.dylib",
+                    "bin/networksystem.dylib",
                     "dota/bin/client.dylib",
                     "dota/bin/server.dylib"
                 }
