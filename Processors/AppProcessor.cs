@@ -14,6 +14,18 @@ namespace SteamDatabaseBackend
 {
     class AppProcessor : IDisposable
     {
+        private static string[] Triggers =
+        {
+            "Valve",
+            "Steam",
+            "Half-Life",
+            "Left 4 Dead",
+            "Counter-Strike",
+            "Dota",
+            "Day of Defeat",
+            "Team Fortress"
+        };
+
         private IDbConnection DbConnection;
 
         private Dictionary<string, PICSInfo> CurrentData;
@@ -51,7 +63,9 @@ namespace SteamDatabaseBackend
 
             var app = DbConnection.Query<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID }).SingleOrDefault();
 
-            if (productInfo.KeyValues["common"]["name"].Value != null)
+            var newAppName = productInfo.KeyValues["common"]["name"].AsString();
+
+            if (newAppName != null)
             {
                 uint newAppType = 0;
                 string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
@@ -78,33 +92,36 @@ namespace SteamDatabaseBackend
                 if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
                 {
                     DbConnection.Execute("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `LastKnownName` = @AppName, `AppType` = @Type",
-                        new { AppID, Type = newAppType, AppName = productInfo.KeyValues["common"]["name"].Value }
+                        new { AppID, Type = newAppType, AppName = newAppName }
                     );
 
                     MakeHistory("created_app");
-                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, productInfo.KeyValues["common"]["name"].Value);
+                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
 
                     // TODO: Testy testy
-                    if (!Settings.IsFullRun
-                    &&  Settings.Current.ChatRooms.Count > 0
-                    &&  !app.Name.StartsWith("SteamApp", StringComparison.Ordinal)
-                    &&  !app.Name.StartsWith("ValveTest", StringComparison.Ordinal))
+                    if (!Settings.IsFullRun && Settings.Current.ChatRooms.Count > 0)
                     {
                         Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
                             string.Format(
                                 "New {0} was published: {1}\nSteamDB: {2}\nSteam: http://store.steampowered.com/app/{3}/",
                                 currentType,
-                                productInfo.KeyValues["common"]["name"].AsString(),
+                                newAppName,
                                 SteamDB.GetAppURL(AppID),
                                 AppID
                             )
                         );
                     }
-                }
-                else if (!app.Name.Equals(productInfo.KeyValues["common"]["name"].Value))
-                {
-                    string newAppName = productInfo.KeyValues["common"]["name"].AsString();
 
+                    if ((newAppType > 9 && newAppType != 13) || Triggers.Any(newAppName.Contains))
+                    {
+                        IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
+                            currentType,
+                            Colors.BLUE, newAppName, Colors.NORMAL,
+                            Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                    }
+                }
+                else if (!app.Name.Equals(newAppName))
+                {
                     DbConnection.Execute("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
 
                     MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
@@ -186,7 +203,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (productInfo.KeyValues["common"]["name"].Value == null)
+            if (newAppName == null)
             {
                 if (string.IsNullOrEmpty(app.Name)) // We don't have the app in our database yet
                 {
