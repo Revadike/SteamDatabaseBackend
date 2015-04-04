@@ -9,8 +9,8 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Xml;
-using Timer = System.Timers.Timer;
 using Dapper;
+using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
@@ -24,16 +24,12 @@ namespace SteamDatabaseBackend
 
         public Timer Timer { get; private set; }
 
-        private Dictionary<string, byte> Items;
-
         public RSS()
         {
-            Items = new Dictionary<string, byte>();
-
             Timer = new Timer();
             Timer.Elapsed += Tick;
             Timer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
-            //Timer.Start();
+            Timer.Start();
         }
 
         private void Tick(object sender, System.Timers.ElapsedEventArgs e)
@@ -48,24 +44,23 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-               /*using (var db = Database.GetConnection())
+                using (var db = Database.GetConnection())
                 {
-                    Items = db.Query<RssItem>("SELECT `ID` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) });
-                }*/
+                    var items = db.Query<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) }).ToDictionary(x => x.Link, x => (byte)1);
 
-                var newItems = rssItems.Where(item => !Items.ContainsKey(item.Link));
+                    var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
 
-                foreach (var item in newItems)
-                {
-                    // Worst hacks EU
-                    if (item.Title != "Team Fortress 2 Update Released" && feedTitle != "Steam RSS News Feed")
+                    foreach (var item in newItems)
                     {
-                        IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title.Trim(), Colors.DARKBLUE, item.Link);
-                    }
+                        Log.WriteInfo("RSS", "[{0}] {1}: {2}", feedTitle, item.Title, item.Link);
 
-                    lock (Items)
-                    {
-                        Items.Add(item.Link, (byte)1);
+                        // Worst hacks EU
+                        if (item.Title != "Team Fortress 2 Update Released" && feedTitle != "Steam RSS News Feed")
+                        {
+                            IRC.Instance.SendMain("[TEST] {0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
+                        }
+
+                        db.Execute("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
                     }
                 }
             });
@@ -128,7 +123,7 @@ namespace SteamDatabaseBackend
                         switch (name)
                         {
                             case "title":
-                                currentItem.Title = reader.Value;
+                                currentItem.Title = reader.Value.Trim();
                                 break;
                             case "link":
                                 currentItem.Link = reader.Value;
