@@ -16,7 +16,9 @@ namespace SteamDatabaseBackend
 {
     static class Application
     {
-        public static readonly List<Thread> Threads;
+        private static readonly List<Thread> Threads;
+
+        private static RSS RssReader;
 
         public static Timer ChangelistTimer { get; private set; }
 
@@ -56,6 +58,8 @@ namespace SteamDatabaseBackend
 
             if (Settings.Current.IRC.Enabled)
             {
+                RssReader = new RSS();
+
                 thread = new Thread(new ThreadStart(IRC.Instance.Connect));
                 thread.Name = "IRC";
                 thread.Start();
@@ -107,6 +111,61 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("Application", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+        }
+
+        public static void Cleanup(bool cleaningUp)
+        {
+            Log.WriteInfo("Bootstrapper", "Exiting...");
+
+            ChangelistTimer.Stop();
+
+            Steam.Instance.IsRunning = false;
+
+            var count = PICSProductInfo.ProcessedApps.Count;
+
+            if (count > 0)
+            {
+                Log.WriteInfo("Bootstrapper", "{0} app tasks left, waiting", count);
+
+                Task.WaitAll(PICSProductInfo.ProcessedApps.Values.ToArray());
+            }
+
+            count = PICSProductInfo.ProcessedSubs.Count;
+
+            if (count > 0)
+            {
+                Log.WriteInfo("Bootstrapper", "{0} package tasks left, waiting", count);
+
+                Task.WaitAll(PICSProductInfo.ProcessedSubs.Values.ToArray());
+            }
+
+            Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
+
+            try { Steam.Instance.Client.Disconnect(); } catch { }
+
+            if (Settings.Current.IRC.Enabled)
+            {
+                Log.WriteInfo("Bootstrapper", "Closing IRC connection");
+
+                RssReader.Timer.Stop();
+
+                IRC.Instance.Close(cleaningUp);
+            }
+
+            foreach (var thread in Application.Threads)
+            {
+                if (thread.ThreadState == ThreadState.Running)
+                {
+                    Log.WriteInfo("Bootstrapper", "Joining thread {0}", thread.Name);
+
+                    thread.Join(TimeSpan.FromSeconds(30));
+                }
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("DELETE FROM `GC`");
+            }
         }
     }
 }

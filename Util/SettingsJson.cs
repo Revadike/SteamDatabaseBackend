@@ -84,6 +84,9 @@ namespace SteamDatabaseBackend
         public IrcJson IRC;
 
         [JsonProperty(Required = Required.Always)]
+        public List<Uri> RssFeeds;
+
+        [JsonProperty(Required = Required.Always)]
         public Uri BaseURL;
 
         [JsonProperty(Required = Required.Always)]
