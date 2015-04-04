@@ -48,9 +48,6 @@
     <Reference Include="SteamKit2">
       <HintPath>packages\SteamKit2.1.6.2\lib\net40\SteamKit2.dll</HintPath>
     </Reference>
-    <Reference Include="Bugsnag">
-      <HintPath>packages\Bugsnag.1.0.0.0\lib\net45\Bugsnag.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -59,7 +56,10 @@
     </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Dapper">
-      <HintPath>packages\Dapper.1.39\lib\net45\Dapper.dll</HintPath>
+      <HintPath>packages\Dapper.1.40\lib\net45\Dapper.dll</HintPath>
+    </Reference>
+    <Reference Include="BugsnagMono">
+      <HintPath>packages\BugsnagMono.1.1.0.2\lib\net45\BugsnagMono.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
