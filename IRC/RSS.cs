@@ -55,9 +55,9 @@ namespace SteamDatabaseBackend
                         Log.WriteInfo("RSS", "[{0}] {1}: {2}", feedTitle, item.Title, item.Link);
 
                         // Worst hacks EU
-                        if (item.Title != "Team Fortress 2 Update Released" && feedTitle != "Steam RSS News Feed")
+                        if (item.Title != "Team Fortress 2 Update Released" && feedTitle == "Steam RSS News Feed")
                         {
-                            IRC.Instance.SendMain("[TEST] {0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
+                            IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
                         }
 
                         db.Execute("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
