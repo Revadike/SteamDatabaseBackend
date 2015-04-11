@@ -93,8 +93,6 @@ namespace SteamDatabaseBackend
                             packageData = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package }).FirstOrDefault();
                         }
 
-                        string grantedName = "failed to lookup name on account page";
-
                         if (!string.IsNullOrEmpty(data))
                         {
                             // Tell me all about using regex
@@ -102,7 +100,7 @@ namespace SteamDatabaseBackend
 
                             if (match.Success)
                             {
-                                grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
+                                var grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
 
                                 // Update last known name if we can
                                 if(packageData.SubID > 0 && (string.IsNullOrEmpty(packageData.LastKnownName) || packageData.LastKnownName.StartsWith("Steam Sub ", StringComparison.Ordinal)))
@@ -126,9 +124,8 @@ namespace SteamDatabaseBackend
                             }
                         }
 
-                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} {3}({4}){5} -{6} {7}",
+                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
                             Colors.BLUE, Steam.FormatPackageName(package, packageData), Colors.NORMAL,
-                            Colors.DARKGRAY, grantedName, Colors.NORMAL,
                             Colors.DARKBLUE, SteamDB.GetPackageURL(package)
                         );
                     }
