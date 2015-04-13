@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
 using NetIrc2;
 
 namespace SteamDatabaseBackend
@@ -13,6 +14,7 @@ namespace SteamDatabaseBackend
     class IRC
     {
         private static IRC _instance = new IRC();
+
         public static IRC Instance { get { return _instance; } }
 
         private readonly IrcClient Client;
@@ -46,7 +48,21 @@ namespace SteamDatabaseBackend
         {
             try
             {
-                Client.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port);
+                IrcClientConnectionOptions options = null;
+
+                if (Settings.Current.IRC.Ssl)
+                {
+                    options = new IrcClientConnectionOptions();
+                    options.Ssl = true;
+                    options.SslHostname = Settings.Current.IRC.Server;
+
+                    if (Settings.Current.IRC.SslAcceptInvalid)
+                    {
+                        options.SslCertificateValidationCallback = new RemoteCertificateValidationCallback((sender, certificate, chain, policyErrors) => true);
+                    }
+                }
+
+                Client.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port, options);
             }
             catch (Exception e)
             {
