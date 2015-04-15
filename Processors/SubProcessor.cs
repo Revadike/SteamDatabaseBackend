@@ -171,18 +171,18 @@ namespace SteamDatabaseBackend
                 {
                     string keyName;
 
-                    foreach (KeyValue children in section.Children)
+                    foreach (var children in section.Children)
                     {
-                        if (children.Children.Any())
-                        {
-                            Log.WriteError("Sub Processor", "SubID {0} has childen in extended section", SubID);
-
-                            ErrorReporter.Notify(new NotImplementedException(string.Format("SubID {0} has childen in extended section", SubID)));
-                        }
-
                         keyName = string.Format("{0}_{1}", sectionName, children.Name);
 
-                        ProcessKey(keyName, children.Name, children.Value);
+                        if (children.Children.Count > 0)
+                        {
+                            ProcessKey(keyName, children.Name, Utils.JsonifyKeyValue(children), true);
+                        }
+                        else
+                        {
+                            ProcessKey(keyName, children.Name, children.Value);
+                        }
                     }
                 }
                 else if (section.Children.Any())

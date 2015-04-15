@@ -59,7 +59,7 @@
       <HintPath>packages\Dapper.1.40\lib\net45\Dapper.dll</HintPath>
     </Reference>
     <Reference Include="BugsnagMono">
-      <HintPath>packages\BugsnagMono.1.1.0.2\lib\net45\BugsnagMono.dll</HintPath>
+      <HintPath>packages\BugsnagMono.1.2.0.0\lib\Net45\BugsnagMono.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
