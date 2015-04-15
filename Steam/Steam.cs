@@ -156,9 +156,9 @@ namespace SteamDatabaseBackend
             string name     = Utils.RemoveControlCharacters(data.Name);
             string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
-            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast)) // TODO: Only do it for 'Steam Sub' names?
+            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
             {
-                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+                return string.Format("{0} {1}({2}){3}", nameLast, Colors.DARKGRAY, name, Colors.NORMAL);
             }
 
             return name;
