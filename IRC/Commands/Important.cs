@@ -38,6 +38,7 @@ namespace SteamDatabaseBackend
                     case "reload":
                         {
                             Application.ReloadImportant(command);
+                            PICSTokens.Reload(command);
 
                             return;
                         }

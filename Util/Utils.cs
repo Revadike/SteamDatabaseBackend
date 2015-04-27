@@ -41,8 +41,18 @@ namespace SteamDatabaseBackend
                 select resultSelector(leftValue, rightValue, key);
         }
 
-        public static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken = 0)
+        public static SteamApps.PICSRequest NewPICSRequest(uint id)
         {
+            return new SteamApps.PICSRequest(id, PICSTokens.GetToken(id), false);
+        }
+
+        public static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken)
+        {
+            if (accessToken > 0)
+            {
+                PICSTokens.HandleToken(id, accessToken);
+            }
+
             return new SteamApps.PICSRequest(id, accessToken, false);
         }
 
