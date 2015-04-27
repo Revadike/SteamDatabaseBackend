@@ -102,6 +102,8 @@ namespace SteamDatabaseBackend
                             {
                                 var grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
 
+                                packageData.LastKnownName = grantedName;
+
                                 // Update last known name if we can
                                 if(packageData.SubID > 0 && (string.IsNullOrEmpty(packageData.LastKnownName) || packageData.LastKnownName.StartsWith("Steam Sub ", StringComparison.Ordinal)))
                                 {
