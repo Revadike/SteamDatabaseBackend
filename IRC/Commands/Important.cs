@@ -39,6 +39,7 @@ namespace SteamDatabaseBackend
                         {
                             Application.ReloadImportant(command);
                             PICSTokens.Reload(command);
+                            FileDownloader.ReloadFileList();
 
                             return;
                         }

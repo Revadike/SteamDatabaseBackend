@@ -33,6 +33,7 @@ namespace SteamDatabaseBackend
         {
             Reload();
 
+            command.ReplyAsNotice = true;
             CommandHandler.ReplyToCommand(command, "Reloaded {0} token overrides", SecretTokens.Count);
         }
 

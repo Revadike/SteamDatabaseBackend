@@ -12,6 +12,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using SteamKit2;
+using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
@@ -19,250 +20,7 @@ namespace SteamDatabaseBackend
     {
         public const string FILES_DIRECTORY = "files";
 
-        private static readonly Dictionary<uint, List<string>> ImportantDepots = new Dictionary<uint, List<string>>
-        {
-            // Team Fortress 2
-            {
-                232252,
-                new List<string>
-                {
-                    "tf/bin/client.dylib",
-                    "tf/bin/server.dylib"
-                }
-            },
-            {
-                441,
-                new List<string>
-                {
-                    "tf/steam.inf",
-                    "tf/scripts/items/items_game.txt",
-                    "tf/resource/tf_english.txt",
-                    "tf/tf2_misc_dir.vpk",
-                    "tf/tf2_sound_misc_dir.vpk",
-                    "tf/tf2_sound_vo_english_dir.vpk",
-                    "tf/tf2_textures_dir.vpk"
-                }
-            },
-            // Dota 2
-            {
-                574,
-                new List<string>
-                {
-                    "bin/engine.dylib",
-                    "bin/networksystem.dylib",
-                    "dota/bin/client.dylib",
-                    "dota/bin/server.dylib"
-                }
-            },
-            {
-                571,
-                new List<string>
-                {
-                    "dota/steam.inf",
-                    "dota/resource/items_english.txt",
-                    "dota/resource/dota_english.txt",
-                    "dota/pak01_dir.vpk"
-                }
-            },
-            // Dota 2 Workshop
-            {
-                313250,
-                new List<string>
-                {
-                    "dota_ugc/game/bin/win64/engine2.dll",
-                    "dota_ugc/game/bin/win64/vphysics2.dll",
-                    "dota_ugc/game/dota/bin/win64/client.dll",
-                    "dota_ugc/game/dota/bin/win64/server.dll"
-                }
-            },
-            // Dota 2 Test
-            {
-                205794,
-                new List<string>
-                {
-                    "bin/engine.dylib",
-                    "dota/bin/client.dylib",
-                    "dota/bin/server.dylib"
-                }
-            },
-            {
-                205791,
-                new List<string>
-                {
-                    "dota/steam.inf",
-                    "dota/resource/items_english.txt",
-                    "dota/resource/dota_english.txt",
-                    "dota/pak01_dir.vpk"
-                }
-            },
-            // Counter-Strike: Global Offensive
-            {
-                733,
-                new List<string>
-                {
-                    "bin/engine.dylib",
-                    "csgo/bin/client.dylib",
-                    "csgo/bin/server.dylib"
-                }
-            },
-            {
-                731,
-                new List<string>
-                {
-                    "csgo/steam.inf",
-                    "csgo/scripts/items/items_game.txt",
-                    "csgo/resource/csgo_english.txt",
-                    "csgo/pak01_dir.vpk"
-                }
-            },
-            // Half-Life 2
-            {
-                221,
-                new List<string>
-                {
-                    "hl2/steam.inf",
-                    "hl2/resource/hl2_english.txt",
-                    "hl2/hl2_misc_dir.vpk",
-                    "hl2/hl2_pak_dir.vpk",
-                    "hl2/hl2_sound_misc_dir.vpk",
-                    "hl2/hl2_sound_vo_english_dir.vpk",
-                    "hl2/hl2_textures_dir.vpk"
-                }
-            },
-            {
-                223,
-                new List<string>
-                {
-                    "hl2/bin/client.dylib",
-                    "hl2/bin/server.dylib"
-                }
-            },
-            // Half-Life 2: Episode One
-            {
-                389,
-                new List<string>
-                {
-                    "episodic/ep1_pak_dir.vpk"
-                }
-            },
-            // Half-Life 2: Episode Two
-            {
-                420,
-                new List<string>
-                {
-                    "ep2/ep2_pak_dir.vpk"
-                }
-            },
-            // Half-Life 2: Deathmatch
-            {
-                321,
-                new List<string>
-                {
-                    "hl2mp/steam.inf",
-                    "hl2mp/hl2mp_pak_dir.vpk"
-                }
-            },
-            {
-                232372,
-                new List<string>
-                {
-                    "hl2mp/bin/client.dylib",
-                    "hl2mp/bin/server.dylib"
-                }
-            },
-            // Portal
-            {
-                401,
-                new List<string>
-                {
-                    "portal/steam.inf",
-                    "portal/resource/portal_english.txt",
-                    "portal/portal_pak_dir.vpk"
-                }
-            },
-            {
-                403,
-                new List<string>
-                {
-                    "portal/bin/client.dylib",
-                    "portal/bin/server.dylib"
-                }
-            },
-            // Portal 2
-            {
-                621,
-                new List<string>
-                {
-                    "portal2/steam.inf",
-                    "portal2/pak01_dir.vpk",
-                    "portal2/resource/portal2_english.txt"
-                }
-            },
-            {
-                624,
-                new List<string>
-                {
-                    "portal2/bin/client.dylib",
-                    "portal2/bin/server.dylib"
-                }
-            },
-            // Alien Swarm
-            {
-                631,
-                new List<string>
-                {
-                    "swarm/bin/client.dll",
-                    "swarm/bin/server.dll",
-
-                    "swarm/steam.inf",
-                    "swarm/pak01_dir.vpk",
-                    "swarm/resource/swarm_english.txt"
-                }
-            },
-            // Left 4 Dead
-            {
-                502,
-                new List<string>
-                {
-                    "left4dead/steam.inf",
-                    "left4dead/pak01_dir.vpk"
-                }
-            },
-            {
-                515,
-                new List<string>
-                {
-                    "left4dead/bin/client.dylib",
-                    "left4dead/bin/server.dylib"
-                }
-            },
-            // Left 4 Dead 2
-            {
-                551,
-                new List<string>
-                {
-                    "left4dead2/steam.inf",
-                    "left4dead2/pak01_dir.vpk"
-                }
-            },
-            {
-                553,
-                new List<string>
-                {
-                    "left4dead2/bin/client.dylib",
-                    "left4dead2/bin/server.dylib"
-                }
-            },
-            // OpenVR
-            {
-                250822,
-                new List<string>
-                {
-                    "bin/openvr.dylib",
-                    "bin/vrclient.dylib"
-                }
-            },
-        };
+        private static Dictionary<uint, List<string>> ImportantDepots = new Dictionary<uint, List<string>>();
 
         private static CDNClient CDNClient;
 
@@ -278,6 +36,22 @@ namespace SteamDatabaseBackend
             catch (Exception ex)
             {
                 Log.WriteError("FileDownloader", "Unable to create files directory: {0}", ex.Message);
+            }
+
+            ReloadFileList();
+        }
+
+        public static void ReloadFileList()
+        {
+            string file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files.json");
+
+            if (!File.Exists(file))
+            {
+                Log.WriteWarn("FileDownloader", "files.json file not found.");
+            }
+            else
+            {
+                ImportantDepots = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
             }
         }
 

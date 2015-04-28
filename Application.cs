@@ -79,6 +79,7 @@ namespace SteamDatabaseBackend
         {
             ReloadImportant();
 
+            command.ReplyAsNotice = true;
             CommandHandler.ReplyToCommand(command, "Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
         }
 
