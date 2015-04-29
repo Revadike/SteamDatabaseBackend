@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
 
                                 break;
                             }
-                            catch (WebException e)
+                            catch (Exception e)
                             {
                                 lastError = e.Message;
                             }
