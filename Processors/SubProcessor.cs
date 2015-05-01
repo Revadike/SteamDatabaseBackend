@@ -321,7 +321,7 @@ namespace SteamDatabaseBackend
                         return false;
                     }
 
-                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3})", Colors.BLUE, displayName, Colors.LIGHTGRAY, key);
+                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4})", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName);
                 }
 
                 InsertInfo(key, value);
