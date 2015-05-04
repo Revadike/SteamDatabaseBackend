@@ -40,6 +40,11 @@ namespace SteamDatabaseBackend
             return new Uri(Settings.Current.RawBaseURL, string.Format("/sub/{0}.vdf", subID)).AbsoluteUri;
         }
 
+        public static string GetUGCURL(ulong id)
+        {
+            return new Uri(Settings.Current.RawBaseURL, string.Format("/ugc/{0}.json", id)).AbsoluteUri;
+        }
+
         public static string GetAppURL(uint appID)
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/", appID)).AbsoluteUri;

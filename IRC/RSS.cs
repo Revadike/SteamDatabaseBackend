@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Cache;
 using System.Threading.Tasks;
 using System.Xml;
 using Dapper;
@@ -71,6 +72,7 @@ namespace SteamDatabaseBackend
             try
             {
                 var webReq = WebRequest.Create(url) as HttpWebRequest;
+                webReq.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.Default);
                 webReq.UserAgent = "RSS2IRC";
                 webReq.Timeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
                 webReq.ReadWriteTimeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;

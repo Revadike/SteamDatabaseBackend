@@ -122,6 +122,8 @@
     <Compile Include="Steam\WebAuth.cs" />
     <Compile Include="Util\WebHelpers.cs" />
     <Compile Include="IRC\RSS.cs" />
+    <Compile Include="IRC\Commands\PubFile.cs" />
+    <Compile Include="IRC\Commands\UGC.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

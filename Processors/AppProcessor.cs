@@ -297,6 +297,14 @@ namespace SteamDatabaseBackend
                 InsertInfo(key, value);
                 MakeHistory("created_key", key, string.Empty, value);
 
+                if ((keyName == "extended_developer" || keyName == "extended_publisher") && value == "Valve")
+                {
+                    IRC.Instance.SendOps("New {0}=Valve app: {1}{2}{3} -{4} {5}",
+                        displayName,
+                        Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL,
+                        Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                }
+
                 return true;
             }
 
