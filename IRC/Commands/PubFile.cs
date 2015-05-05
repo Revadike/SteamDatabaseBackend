@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
 
             request.Command.ReplyAsNotice = true;
 
-            CommandHandler.ReplyToCommand(request.Command, "File URL: {0} - https:/steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
+            CommandHandler.ReplyToCommand(request.Command, "File URL: {0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
         }
     }
 }
