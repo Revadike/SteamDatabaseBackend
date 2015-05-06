@@ -10,6 +10,7 @@ namespace SteamDatabaseBackend
 {
     enum ECommandType
     {
+        Unknown,
         IRC,
         SteamChatRoom,
         SteamIndividual

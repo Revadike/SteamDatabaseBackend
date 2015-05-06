@@ -14,25 +14,29 @@ namespace SteamDatabaseBackend
     class CommandHandler
     {
         private List<Command> RegisteredCommands;
+        private PubFileCommand PubFileHandler;
 
         private static DateTime LastCommandUseTime = DateTime.Now;
         private static uint LastCommandUseCount = 0;
 
         public CommandHandler()
         {
-            RegisteredCommands = new List<Command>();
+            PubFileHandler = new PubFileCommand();
 
-            RegisteredCommands.Add(new BlogCommand());
-            RegisteredCommands.Add(new PlayersCommand());
-            RegisteredCommands.Add(new AppCommand());
-            RegisteredCommands.Add(new PackageCommand());
-            RegisteredCommands.Add(new SteamIDCommand());
-            RegisteredCommands.Add(new PubFileCommand());
-            RegisteredCommands.Add(new UGCCommand());
-            RegisteredCommands.Add(new EnumCommand());
-            RegisteredCommands.Add(new BinariesCommand());
-            RegisteredCommands.Add(new ImportantCommand());
-            RegisteredCommands.Add(new ReloginCommand());
+            RegisteredCommands = new List<Command>
+            {
+                new BlogCommand(),
+                new PlayersCommand(),
+                new AppCommand(),
+                new PackageCommand(),
+                new SteamIDCommand(),
+                PubFileHandler,
+                new UGCCommand(),
+                new EnumCommand(),
+                new BinariesCommand(),
+                new ImportantCommand(),
+                new ReloginCommand(),
+            };
 
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
@@ -111,7 +115,9 @@ namespace SteamDatabaseBackend
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
         {
-            if (e.Sender == null || e.Message[0] != '!')
+            PubFileHandler.OnMessage(e);
+
+            if (e.Message[0] != '!')
             {
                 return;
             }

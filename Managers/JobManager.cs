@@ -48,8 +48,10 @@ namespace SteamDatabaseBackend
 
         public enum IRCRequestType
         {
+            TYPE_NONE,
             TYPE_APP,
-            TYPE_SUB
+            TYPE_SUB,
+            TYPE_SILENT,
         }
 
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
