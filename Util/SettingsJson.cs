@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
             public string Password;
 
             [JsonProperty(Required = Required.Always)]
-            public uint SendDelay;
+            public char CommandPrefix;
 
             [JsonProperty(Required = Required.Always)]
             public IrcChannelsJson Channel;

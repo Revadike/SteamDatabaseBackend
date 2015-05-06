@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
 
         public SteamIDCommand()
         {
-            Trigger = "!steamid";
+            Trigger = "steamid";
             IsSteamCommand = true;
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.PersonaStateCallback>(OnPersonaState));
@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
 
                 return;
             }

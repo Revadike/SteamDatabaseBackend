@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
 
         public EnumCommand()
         {
-            Trigger = "!enum";
+            Trigger = "enum";
 
             SteamKitEnums = typeof(CMClient).Assembly.GetTypes()
                 .Where(x => x.IsEnum)
@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
 
             if (args.Length < 1)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
 
                 return;
             }

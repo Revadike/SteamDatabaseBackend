@@ -9,7 +9,7 @@ namespace SteamDatabaseBackend
     {
         public ReloginCommand()
         {
-            Trigger = "!relogin";
+            Trigger = "relogin";
             IsAdminCommand = true;
         }
 

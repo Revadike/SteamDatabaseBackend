@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
     {
         public ImportantCommand()
         {
-            Trigger = "!important";
+            Trigger = "important";
             IsAdminCommand = true;
         }
 
@@ -262,7 +262,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            CommandHandler.ReplyToCommand(command, "Usage:{0} !important reload {1}or{2} !important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
+            CommandHandler.ReplyToCommand(command, "Usage:{0} important reload {1}or{2} important <add/remove/queue> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
         }
     }
 }

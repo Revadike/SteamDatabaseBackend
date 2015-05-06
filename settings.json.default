@@ -31,7 +31,7 @@
 		"Port": 0,
 		"Nickname": "SteamDB-Fork",
 		"Password": "",
-		"SendDelay": 1000,
+		"CommandPrefix": ".",
 		"Channel":
 		{
 			"Ops": "#steamdb-test",

@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
 
         public UGCCommand()
         {
-            Trigger = "!ugc";
+            Trigger = "ugc";
             IsSteamCommand = true;
 
             Cloud = Steam.Instance.Client.GetHandler<SteamCloud>();
@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !ugc <ugcid>", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} ugc <ugcid>", Colors.OLIVE);
 
                 return;
             }

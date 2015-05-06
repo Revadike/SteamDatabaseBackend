@@ -12,7 +12,7 @@ namespace SteamDatabaseBackend
     {
         public PlayersCommand()
         {
-            Trigger = "!players";
+            Trigger = "players";
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers));
         }
@@ -21,8 +21,8 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !players <appid or partial game name>{1}{2} (use ^ and $ just like in regex to narrow down your match, e.g:{3} !players Portal${4})",
-                    Colors.OLIVE, Colors.NORMAL, Colors.IrcConstants.IrcItalic, Colors.OLIVE, Colors.NORMAL);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} players <appid or partial game name>", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, true, "Use {0}^{1} and {2}${3} just like in regex to narrow down your match, e.g:{4} !players Portal$", Colors.BLUE, Colors.NORMAL, Colors.BLUE, Colors.NORMAL, Colors.OLIVE);
 
                 return;
             }

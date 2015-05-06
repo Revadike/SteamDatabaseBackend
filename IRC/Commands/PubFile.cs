@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
 
         public PubFileCommand()
         {
-            Trigger = "!pubfile";
+            Trigger = "pubfile";
             IsSteamCommand = true;
 
             SharedFileMatch = new Regex(@"(?:^|/|\.)steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(?<pubfileid>[0-9]+)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !pubfile <pubfileid>", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} pubfile <pubfileid>", Colors.OLIVE);
 
                 return;
             }

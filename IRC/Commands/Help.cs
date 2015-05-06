@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
 
         public HelpCommand(List<Command> commands)
         {
-            Trigger = "!help";
+            Trigger = "help";
 
             Commands = commands;
         }

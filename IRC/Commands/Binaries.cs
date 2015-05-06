@@ -24,14 +24,14 @@ namespace SteamDatabaseBackend
 
         public BinariesCommand()
         {
-            Trigger = "!bins";
+            Trigger = "bins";
         }
 
         public override void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !bins <{1}> [stable (returns publicbeta by default)]", Colors.OLIVE, string.Join("/", Systems));
+                CommandHandler.ReplyToCommand(command, "Usage:{0} bins <{1}> [stable (returns publicbeta by default)]", Colors.OLIVE, string.Join("/", Systems));
 
                 return;
             }

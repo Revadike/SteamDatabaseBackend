@@ -9,7 +9,7 @@ namespace SteamDatabaseBackend
     {
         public PackageCommand()
         {
-            Trigger = "!sub";
+            Trigger = "sub";
             IsSteamCommand = true;
         }
 
@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            CommandHandler.ReplyToCommand(command, "Usage:{0} !sub <subid>", Colors.OLIVE);
+            CommandHandler.ReplyToCommand(command, "Usage:{0} sub <subid>", Colors.OLIVE);
         }
     }
 }

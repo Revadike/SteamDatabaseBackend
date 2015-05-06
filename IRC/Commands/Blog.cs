@@ -12,7 +12,7 @@ namespace SteamDatabaseBackend
     {
         public BlogCommand()
         {
-            Trigger = "!blog";
+            Trigger = "blog";
         }
 
         public override void OnCommand(CommandArguments command)

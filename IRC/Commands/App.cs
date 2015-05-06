@@ -16,7 +16,7 @@ namespace SteamDatabaseBackend
     {
         public AppCommand()
         {
-            Trigger = "!app";
+            Trigger = "app";
             IsSteamCommand = true;
 
             Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} !app <appid or partial game name>", Colors.OLIVE);
+                CommandHandler.ReplyToCommand(command, "Usage:{0} app <appid or partial game name>", Colors.OLIVE);
 
                 return;
             }

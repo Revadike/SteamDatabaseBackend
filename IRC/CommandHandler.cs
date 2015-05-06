@@ -59,7 +59,6 @@ namespace SteamDatabaseBackend
             switch (command.CommandType)
             {
                 case ECommandType.IRC:
-                {
                     var isChannelMessage = IRC.IsRecipientChannel(command.Recipient);
                     bool shouldReplyAsNotice = false;
                     string recipient = command.Recipient;
@@ -85,31 +84,26 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendReply(recipient, message, shouldReplyAsNotice);
 
                     break;
-                }
 
                 case ECommandType.SteamChatRoom:
-                {
                     if (!Steam.Instance.Client.IsConnected)
                     {
                         break;
                     }
 
                     Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("{0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
-                    
+                
                     break;
-                }
 
                 case ECommandType.SteamIndividual:
-                {
                     if (!Steam.Instance.Client.IsConnected)
                     {
                         break;
                     }
 
                     Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
-                    
+                
                     break;
-                }
             }
         }
 
@@ -117,15 +111,25 @@ namespace SteamDatabaseBackend
         {
             PubFileHandler.OnMessage(e);
 
-            if (e.Message[0] != '!')
+            if (e.Message[0] != Settings.Current.IRC.CommandPrefix && e.Message[0] != '!') // TODO: Remove ! in the future
             {
                 return;
             }
 
             var message = (string)e.Message;
             var messageArray = message.Split(' ');
+            var trigger = messageArray[0];
 
-            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(messageArray[0]));
+            if (trigger.Length < 2)
+            {
+                return;
+            }
+
+            bool warnWrongPrefix = trigger[0] == '!'; // TODO: Remove in the future
+
+            trigger = trigger.Substring(1);
+
+            var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(trigger));
 
             if (command == null)
             {
@@ -142,6 +146,13 @@ namespace SteamDatabaseBackend
                 Message = input
             };
 
+            if (warnWrongPrefix)
+            {
+                ReplyToCommand(commandData, true, "We changed command prefix to a dot, please use {0}{1}{2}{3} next time",
+                    Colors.OLIVE, Settings.Current.IRC.CommandPrefix, command.Trigger, Colors.NORMAL
+                );
+            }
+
             if (command.IsSteamCommand && !Steam.Instance.Client.IsConnected)
             {
                 ReplyToCommand(commandData, "Not connected to Steam.");
@@ -154,8 +165,6 @@ namespace SteamDatabaseBackend
 
                 if (!Settings.Current.IRC.Admins.Contains(ident))
                 {
-                    ReplyToCommand(commandData, "You're not an admin!");
-
                     return;
                 }
             }
@@ -169,7 +178,7 @@ namespace SteamDatabaseBackend
         {
             if (callback.EntryType != EChatEntryType.ChatMsg        // Is chat message
             ||  callback.Sender == Steam.Instance.Client.SteamID    // Is not sent by the bot
-            ||  callback.Message[0] != '!'                          // Starts with !
+            ||  callback.Message[0] != Settings.Current.IRC.CommandPrefix
             ||  callback.Message.Contains('\n')                     // Does not contain new lines
             )
             {
@@ -185,7 +194,7 @@ namespace SteamDatabaseBackend
         {
             if (callback.ChatMsgType != EChatEntryType.ChatMsg      // Is chat message
             ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
-            ||  callback.Message[0] != '!'                          // Starts with !
+            ||  callback.Message[0] != Settings.Current.IRC.CommandPrefix
             ||  callback.Message.Contains('\n')                     // Does not contain new lines
             )
             {
