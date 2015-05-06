@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
 
             SteamKitEnums = typeof(CMClient).Assembly.GetTypes()
                 .Where(x => x.IsEnum)
-                .Where(x => x.Namespace == "SteamKit2");
+                .Where(x => x.Namespace.StartsWith("SteamKit2", StringComparison.Ordinal));
         }
 
         public override void OnCommand(CommandArguments command)
