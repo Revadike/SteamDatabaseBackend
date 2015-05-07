@@ -23,9 +23,24 @@ namespace SteamDatabaseBackend
     {
         class SessionInfo
         {
+            public uint AppID { get; set; }
             public uint Version { get; set; }
             public uint SchemaVersion { get; set; }
-            public GCConnectionStatus Status { get; set; }
+
+            private GCConnectionStatus _status;
+            public GCConnectionStatus Status
+            {
+                get
+                {
+                    return _status;
+                }
+                set
+                {
+                    _status = value;
+
+                    UpdateStatus(AppID, _status.ToString());
+                }
+            }
         }
 
         const uint k_EMsgGCClientGoodbye = 4008;
@@ -101,11 +116,7 @@ namespace SteamDatabaseBackend
         {
             foreach (var appID in Settings.Current.GameCoordinatorIdlers)
             {
-                var info = GetSessionInfo(appID);
-
-                info.Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION;
-
-                UpdateStatus(appID, info.Status.ToString());
+                GetSessionInfo(appID).Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION;
             }
         }
 
@@ -142,8 +153,6 @@ namespace SteamDatabaseBackend
 
             info.Version = msg.version;
             info.Status = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
-
-            UpdateStatus(appID, info.Status.ToString());
         }
 
         private void OnItemSchemaUpdate(uint appID, IPacketGCMsg packetMsg)
@@ -158,10 +167,6 @@ namespace SteamDatabaseBackend
             }
 
             info.SchemaVersion = msg.item_schema_version;
-
-#if DEBUG
-            Log.WriteDebug(string.Format("GC {0}", appID), msg.items_game_url);
-#endif
         }
 
         private void OnVersionUpdate(uint appID, IPacketGCMsg packetMsg)
@@ -186,13 +191,9 @@ namespace SteamDatabaseBackend
         {
             var msg = new ClientGCMsgProtobuf<CMsgConnectionStatus>(packetMsg).Body;
 
-            var info = GetSessionInfo(appID);
+            GetSessionInfo(appID).Status = msg.status;
 
-            info.Status = msg.status;
-
-            IRC.Instance.SendAnnounce("{0}{1}{2} status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, info.Status);
-
-            UpdateStatus(appID, info.Status.ToString());
+            IRC.Instance.SendAnnounce("{0}{1}{2} status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.status);
         }
 
         private void OnWrenchBroadcast(uint appID, IPacketGCMsg packetMsg)
@@ -244,6 +245,7 @@ namespace SteamDatabaseBackend
 
             info = new SessionInfo
             {
+                AppID = appID,
                 Status = GCConnectionStatus.GCConnectionStatus_NO_SESSION
             };
 
