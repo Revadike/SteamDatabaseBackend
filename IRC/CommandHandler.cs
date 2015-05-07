@@ -209,7 +209,7 @@ namespace SteamDatabaseBackend
         private void HandleSteamMessage(SteamID sender, string message, ECommandType commandType, SteamID chatRoom = null)
         {
             var i = message.IndexOf(' ');
-            var inputCommand = i == -1 ? message : message.Substring(0, i);
+            var inputCommand = i == -1 ? message.Substring(1) : message.Substring(1, i - 1);
 
             var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(inputCommand));
 
