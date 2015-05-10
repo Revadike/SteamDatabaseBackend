@@ -189,9 +189,7 @@ namespace SteamDatabaseBackend
                 Colors.DARKBLUE, SteamDB.GetUGCURL(details.publishedfileid)
             );
 
-            request.Command.ReplyAsNotice = true;
-
-            CommandHandler.ReplyToCommand(request.Command, "{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
+            CommandHandler.ReplyToCommand(request.Command, true, "{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
         }
     }
 }

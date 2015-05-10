@@ -20,8 +20,10 @@ namespace SteamDatabaseBackend
             Trigger = "enum";
 
             SteamKitEnums = typeof(CMClient).Assembly.GetTypes()
-                .Where(x => x.IsEnum)
-                .Where(x => x.Namespace.StartsWith("SteamKit2", StringComparison.Ordinal));
+                .Where(x => x.IsEnum && x.Namespace.StartsWith("SteamKit2", StringComparison.Ordinal))
+                // some inner namespaces have enums that have matching names, but we (most likely) want to match against the root enums
+                // so we order by having the root enums first
+                .OrderByDescending(x => x.Namespace == "SteamKit2");
         }
 
         public override void OnCommand(CommandArguments command)
@@ -42,7 +44,10 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var matchingEnumType = SteamKitEnums.FirstOrDefault(x => x.Name.Equals(args[0], StringComparison.InvariantCultureIgnoreCase));
+            var enumType = args[0].Replace("SteamKit2.", "");
+
+            var matchingEnumType = SteamKitEnums
+                .FirstOrDefault(x => x.Name.Equals(enumType, StringComparison.InvariantCultureIgnoreCase) || GetDottedTypeName(x).IndexOf(enumType, StringComparison.OrdinalIgnoreCase) != -1);
 
             if (matchingEnumType == null)
             {
@@ -61,11 +66,12 @@ namespace SteamDatabaseBackend
         void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
             where TEnum : struct
         {
+            string enumName = GetDottedTypeName(typeof(TEnum));
             TEnum enumValue;
 
             if (Enum.TryParse(inputValue, out enumValue))
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} = {3}", Colors.BLUE, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.NORMAL, enumValue);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, enumValue);
 
                 return;
             }
@@ -109,7 +115,28 @@ namespace SteamDatabaseBackend
                 formatted = string.Format("{0}, and {1} more...", formatted, count - 10);
             }
 
-            CommandHandler.ReplyToCommand(command, formatted);
+            CommandHandler.ReplyToCommand(command, "{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
+        }
+
+        private static string GetDottedTypeName(Type type)
+        {
+            // @VoiDeD:
+            // naive implementation of programmer friendly type full names
+            // ideally we'd want something like http://stackoverflow.com/a/28943180/139147
+            // but bringing in codedom is probably like using a sledgehammer to open a sliding glass door
+
+            string fullName = type.FullName;
+
+            if (fullName == null)
+            {
+                return fullName;
+            }
+
+            fullName = fullName
+                .Replace("+", ".")
+                .Replace("SteamKit2.", "");
+
+            return fullName;
         }
     }
 }
