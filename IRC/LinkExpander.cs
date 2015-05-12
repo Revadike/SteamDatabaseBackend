@@ -26,6 +26,12 @@ namespace SteamDatabaseBackend
             {
                 var id = uint.Parse(match.Groups["id"].Value);
                 var isPackage = match.Groups["type"].Value == "sub";
+                var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id);
+
+                if (e.Message.ToString().Contains(name))
+                {
+                    continue;
+                }
 
                 IRC.Instance.SendReply(e.Recipient,
                     string.Format("{0}\u2937 {1}{2} {3} —{4} {5}",
@@ -34,7 +40,7 @@ namespace SteamDatabaseBackend
                         isPackage ? "Package" : "App",
                         id,
                         Colors.BLUE,
-                        isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id)
+                        name
                     ),
                     false
                 );
