@@ -17,8 +17,8 @@ namespace SteamDatabaseBackend
 {
     class PubFileCommand : Command
     {
-        private SteamUnifiedMessages.UnifiedService<IPublishedFile> PublishedFiles;
-        private Regex SharedFileMatch;
+        private readonly SteamUnifiedMessages.UnifiedService<IPublishedFile> PublishedFiles;
+        private readonly Regex SharedFileMatch;
 
         public PubFileCommand()
         {
@@ -34,11 +34,6 @@ namespace SteamDatabaseBackend
 
         public void OnMessage(ChatMessageEventArgs e)
         {
-            if (!Steam.Instance.Client.IsConnected)
-            {
-                return;
-            }
-
             var matches = SharedFileMatch.Matches(e.Message);
 
             foreach (Match match in matches)
@@ -131,13 +126,33 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
+                string title;
+
+                if (!string.IsNullOrWhiteSpace(details.title))
+                {
+                    title = details.title;
+                }
+                else if (!string.IsNullOrEmpty(details.file_description))
+                {
+                    title = details.file_description;
+                }
+                else
+                {
+                    title = details.filename;
+                }
+
+                if (title.Length > 49)
+                {
+                    title = title.Substring(0, 49) + "…";
+                }
+
                 IRC.Instance.SendReply(request.Command.Recipient,
                     string.Format("{0}\u2937 {1}{2} {3}{4}{5} for {6}{7}",
                         Colors.OLIVE,
                         Colors.NORMAL,
                         ((EWorkshopFileType)details.file_type),
                         Colors.BLUE,
-                        string.IsNullOrWhiteSpace(details.title) ? details.filename : details.title,
+                        title,
                         Colors.NORMAL,
                         Colors.BLUE,
                         details.app_name

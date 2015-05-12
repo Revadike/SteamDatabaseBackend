@@ -124,6 +124,7 @@
     <Compile Include="IRC\RSS.cs" />
     <Compile Include="IRC\Commands\PubFile.cs" />
     <Compile Include="IRC\Commands\UGC.cs" />
+    <Compile Include="IRC\LinkExpander.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

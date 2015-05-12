@@ -15,12 +15,14 @@ namespace SteamDatabaseBackend
     {
         private List<Command> RegisteredCommands;
         private PubFileCommand PubFileHandler;
+        private LinkExpander LinkExpander;
 
         private static DateTime LastCommandUseTime = DateTime.Now;
         private static uint LastCommandUseCount = 0;
 
         public CommandHandler()
         {
+            LinkExpander = new LinkExpander();
             PubFileHandler = new PubFileCommand();
 
             RegisteredCommands = new List<Command>
@@ -109,7 +111,11 @@ namespace SteamDatabaseBackend
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
         {
-            PubFileHandler.OnMessage(e);
+            if (Steam.Instance.Client.IsConnected)
+            {
+                PubFileHandler.OnMessage(e);
+                LinkExpander.OnMessage(e);
+            }
 
             if (e.Message[0] != Settings.Current.IRC.CommandPrefix && e.Message[0] != '!') // TODO: Remove ! in the future
             {
