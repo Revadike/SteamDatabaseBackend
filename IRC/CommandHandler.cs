@@ -114,8 +114,9 @@ namespace SteamDatabaseBackend
             if (Steam.Instance.Client.IsConnected)
             {
                 PubFileHandler.OnMessage(e);
-                LinkExpander.OnMessage(e);
             }
+
+            LinkExpander.OnMessage(e);
 
             if (e.Message[0] != Settings.Current.IRC.CommandPrefix && e.Message[0] != '!') // TODO: Remove ! in the future
             {
