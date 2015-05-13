@@ -8,11 +8,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Dapper;
-using NetIrc2.Events;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    public class LinkExpander
+    class LinkExpander
     {
         private readonly Regex SteamLinkMatch;
 
@@ -21,9 +21,9 @@ namespace SteamDatabaseBackend
             SteamLinkMatch = new Regex(@"(?:^|/|\.)steam(?:community|powered)\.com/(?<type>sub|app|games|stats)/(?<id>[0-9]{1,7})", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         }
 
-        public void OnMessage(ChatMessageEventArgs e)
+        public void OnMessage(CommandArguments command)
         {
-            var matches = SteamLinkMatch.Matches(e.Message);
+            var matches = SteamLinkMatch.Matches(command.Message);
 
             foreach (Match match in matches)
             {
@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
                 var isPackage = match.Groups["type"].Value == "sub";
                 var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id);
 
-                if (e.Message.ToString().Contains(name))
+                if (command.Message.Contains(name))
                 {
                     continue;
                 }
@@ -47,22 +47,29 @@ namespace SteamDatabaseBackend
                         prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'it')", new { AppID = id }).ToList();
                     }
 
-                    priceInfo = string.Format(" {0}({1})", Colors.LIGHTGRAY, string.Join(" / ", prices.Select(x => x.Format())));
+                    priceInfo = string.Format(" ({0})", string.Join(" / ", prices.Select(x => x.Format())));
                 }
 
-                IRC.Instance.SendReply(e.Recipient,
-                    string.Format("{0}\u2937 {1}{2} {3} —{4} {5}{6}{7}",
-                        Colors.OLIVE,
-                        Colors.NORMAL,
-                        isPackage ? "Package" : "App",
-                        id,
-                        Colors.BLUE,
-                        name,
-                        Colors.NORMAL,
-                        priceInfo
-                    ),
-                    false
-                );
+                if (command.CommandType == ECommandType.SteamChatRoom)
+                {
+                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("\u2937 {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, name, priceInfo));
+                }
+                else
+                {
+                    IRC.Instance.SendReply(command.Recipient,
+                        string.Format("{0}\u2937 {1}{2} {3} —{4} {5}{6}{7}",
+                            Colors.OLIVE,
+                            Colors.NORMAL,
+                            isPackage ? "Package" : "App",
+                            id,
+                            Colors.BLUE,
+                            name,
+                            Colors.LIGHTGRAY,
+                            priceInfo
+                        ),
+                        false
+                    );
+                }
             }
         }
     }

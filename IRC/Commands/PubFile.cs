@@ -32,9 +32,9 @@ namespace SteamDatabaseBackend
             Steam.Instance.CallbackManager.Register(new Callback<SteamUnifiedMessages.ServiceMethodResponse>(OnServiceMethod));
         }
 
-        public void OnMessage(ChatMessageEventArgs e)
+        public void OnMessage(CommandArguments command)
         {
-            var matches = SharedFileMatch.Matches(e.Message);
+            var matches = SharedFileMatch.Matches(command.Message);
 
             foreach (Match match in matches)
             {
@@ -48,10 +48,7 @@ namespace SteamDatabaseBackend
                     new JobManager.IRCRequest
                     {
                         Type = JobManager.IRCRequestType.TYPE_SILENT,
-                        Command = new CommandArguments
-                        {
-                            Recipient = e.Recipient
-                        }
+                        Command = command
                     }
                 );
             }
@@ -146,19 +143,30 @@ namespace SteamDatabaseBackend
                     title = title.Substring(0, 49) + "…";
                 }
 
-                IRC.Instance.SendReply(request.Command.Recipient,
-                    string.Format("{0}\u2937 {1}{2} {3}{4}{5} for {6}{7}",
-                        Colors.OLIVE,
-                        Colors.NORMAL,
-                        ((EWorkshopFileType)details.file_type),
-                        Colors.BLUE,
-                        title,
-                        Colors.NORMAL,
-                        Colors.BLUE,
-                        details.app_name
-                    ),
-                    false
-                );
+                if (request.Command.CommandType == ECommandType.SteamChatRoom)
+                {
+                    Steam.Instance.Friends.SendChatRoomMessage(request.Command.ChatRoomID, EChatEntryType.ChatMsg,
+                        string.Format("\u2937 {0}: {1} for {2} ({3} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
+                    );
+                }
+                else
+                {
+                    IRC.Instance.SendReply(request.Command.Recipient,
+                        string.Format("{0}\u2937 {1}{2} {3}{4}{5} for {6}{7}{8} ({9} views)",
+                            Colors.OLIVE,
+                            Colors.NORMAL,
+                            ((EWorkshopFileType)details.file_type),
+                            Colors.BLUE,
+                            title,
+                            Colors.NORMAL,
+                            Colors.BLUE,
+                            details.app_name,
+                            Colors.LIGHTGRAY,
+                            details.views
+                        ),
+                        false
+                    );
+                }
 
                 return;
             }

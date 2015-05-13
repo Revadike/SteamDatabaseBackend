@@ -111,12 +111,20 @@ namespace SteamDatabaseBackend
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
         {
+            var commandData = new CommandArguments
+            {
+                CommandType = ECommandType.IRC,
+                SenderIdentity = e.Sender,
+                Recipient = e.Recipient,
+                Message = e.Message
+            };
+
             if (Steam.Instance.Client.IsConnected)
             {
-                PubFileHandler.OnMessage(e);
+                PubFileHandler.OnMessage(commandData);
             }
 
-            LinkExpander.OnMessage(e);
+            LinkExpander.OnMessage(commandData);
 
             if (e.Message[0] != Settings.Current.IRC.CommandPrefix && e.Message[0] != '!') // TODO: Remove ! in the future
             {
@@ -143,15 +151,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var input = message.Substring(messageArray[0].Length).Trim();
-
-            var commandData = new CommandArguments
-            {
-                CommandType = ECommandType.IRC,
-                SenderIdentity = e.Sender,
-                Recipient = e.Recipient,
-                Message = input
-            };
+            commandData.Message = message.Substring(messageArray[0].Length).Trim();
 
             if (warnWrongPrefix)
             {
@@ -192,29 +192,49 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            HandleSteamMessage(callback.Sender, callback.Message, ECommandType.SteamIndividual);
+            var commandData = new CommandArguments
+            {
+                CommandType = ECommandType.SteamIndividual,
+                SenderID = callback.Sender,
+                Message = callback.Message
+            };
+
+            HandleSteamMessage(commandData);
 
             Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1}", callback.Message, callback.Sender);
         }
 
         public void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
         {
-            if (callback.ChatMsgType != EChatEntryType.ChatMsg      // Is chat message
-            ||  callback.ChatterID == Steam.Instance.Client.SteamID // Is not sent by the bot
-            ||  callback.Message[0] != Settings.Current.IRC.CommandPrefix
-            ||  callback.Message.Contains('\n')                     // Does not contain new lines
-            )
+            if (callback.ChatMsgType != EChatEntryType.ChatMsg || callback.ChatterID == Steam.Instance.Client.SteamID)
             {
                 return;
             }
 
-            HandleSteamMessage(callback.ChatterID, callback.Message, ECommandType.SteamChatRoom, callback.ChatRoomID);
+            var commandData = new CommandArguments
+            {
+                CommandType = ECommandType.SteamChatRoom,
+                SenderID = callback.ChatterID,
+                ChatRoomID = callback.ChatRoomID,
+                Message = callback.Message
+            };
+
+            PubFileHandler.OnMessage(commandData);
+            LinkExpander.OnMessage(commandData);
+
+            if (callback.Message[0] != Settings.Current.IRC.CommandPrefix || callback.Message.Contains('\n'))
+            {
+                return;
+            }
+
+            HandleSteamMessage(commandData);
 
             Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
         }
 
-        private void HandleSteamMessage(SteamID sender, string message, ECommandType commandType, SteamID chatRoom = null)
+        private void HandleSteamMessage(CommandArguments commandData)
         {
+            var message = commandData.Message;
             var i = message.IndexOf(' ');
             var inputCommand = i == -1 ? message.Substring(1) : message.Substring(1, i - 1);
 
@@ -225,17 +245,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var input = i == -1 ? string.Empty : message.Substring(i).Trim();
+            commandData.Message = i == -1 ? string.Empty : message.Substring(i).Trim();
 
-            var commandData = new CommandArguments
-            {
-                CommandType = commandType,
-                SenderID = sender,
-                ChatRoomID = chatRoom,
-                Message = input
-            };
-
-            if (command.IsAdminCommand && !Settings.Current.SteamAdmins.Contains(sender.ConvertToUInt64()))
+            if (command.IsAdminCommand && !Settings.Current.SteamAdmins.Contains(commandData.SenderID.ConvertToUInt64()))
             {
                 ReplyToCommand(commandData, "You're not an admin!");
 
