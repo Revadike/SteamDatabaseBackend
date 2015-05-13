@@ -291,6 +291,7 @@ namespace SteamDatabaseBackend
 
             DbConnection.Execute("DELETE FROM `Subs` WHERE `SubID` = @SubID", new { SubID });
             DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
+            DbConnection.Execute("DELETE FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID });
             DbConnection.Execute("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
         }
 
