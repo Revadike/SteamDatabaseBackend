@@ -334,7 +334,7 @@ namespace SteamDatabaseBackend
 
         private void InsertInfo(uint id, string value)
         {
-            DbConnection.Execute("INSERT INTO `AppsInfo` VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value", new { AppID, Key = id, Value = value });
+            DbConnection.Execute("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)", new { AppID, Key = id, Value = value });
         }
 
         public static string GetHistoryQuery()

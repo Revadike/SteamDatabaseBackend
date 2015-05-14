@@ -357,7 +357,7 @@ namespace SteamDatabaseBackend
 
         private void InsertInfo(uint id, string value)
         {
-            DbConnection.Execute("INSERT INTO `SubsInfo` VALUES (@SubID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = @Value", new { SubID, Key = id, Value = value });
+            DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)", new { SubID, Key = id, Value = value });
         }
 
         private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
