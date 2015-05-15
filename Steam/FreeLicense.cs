@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
                                         // Add a app comment on each app in this package
                                         var comment = string.Format("This app is in a free on demand package called <b>{0}</b>", System.Security.SecurityElement.Escape(grantedName));
                                         var apps = db.Query<PackageApp>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID = package }).ToList();
-                                        var types = db.Query<App>("SELECT `AppID` FROM `Apps` WHERE `AppType` = 0 AND `AppID` IN @Ids", new { Ids = apps.Select(x => x.AppID) }).ToDictionary(x => x.AppID, x => true);
+                                        var types = db.Query<App>("SELECT `AppID` FROM `Apps` WHERE `AppType` > 0 AND `AppID` IN @Ids", new { Ids = apps.Select(x => x.AppID) }).ToDictionary(x => x.AppID, x => true);
                                         var key = db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = 'website_comment'");
 
                                         foreach (var app in apps)
