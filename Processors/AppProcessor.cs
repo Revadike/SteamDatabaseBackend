@@ -269,6 +269,13 @@ namespace SteamDatabaseBackend
 
         private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
+            if (keyName.Length > 90)
+            {
+                Log.WriteError("App Processor", "Key {0} for AppID {1} is too long, not inserting info.", keyName, AppID);
+
+                return false;
+            }
+
             // All keys in PICS are supposed to be lower case
             keyName = keyName.ToLower().Trim();
 
