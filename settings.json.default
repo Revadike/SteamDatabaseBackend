@@ -32,7 +32,7 @@
 		"Nickname": "SteamDB-Fork",
 		"Password": "",
 		"CommandPrefix": ".",
-        "PrioritySendPrefix":  "",
+		"PrioritySendPrefix":  "",
 		"Channel":
 		{
 			"Ops": "#steamdb-test",
