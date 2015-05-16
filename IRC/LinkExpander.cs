@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
 
                 if (command.CommandType == ECommandType.SteamChatRoom)
                 {
-                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("\u2937 {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, name, priceInfo));
+                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("\u2937 {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, Colors.StripColors(name), priceInfo));
                 }
                 else
                 {
