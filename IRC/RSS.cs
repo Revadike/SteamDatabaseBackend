@@ -72,10 +72,9 @@ namespace SteamDatabaseBackend
             try
             {
                 var webReq = WebRequest.Create(url) as HttpWebRequest;
-                webReq.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.Default);
                 webReq.UserAgent = "RSS2IRC";
-                webReq.Timeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
-                webReq.ReadWriteTimeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
+                webReq.Timeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
+                webReq.ReadWriteTimeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
 
                 using (var response = webReq.GetResponse())
                 {
