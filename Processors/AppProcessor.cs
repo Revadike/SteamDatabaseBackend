@@ -67,26 +67,27 @@ namespace SteamDatabaseBackend
 
             if (newAppName != null)
             {
-                uint newAppType = 0;
+                int newAppType = -1;
                 string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
 
                 using (var reader = DbConnection.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }))
                 {
                     if (reader.Read())
                     {
-                        newAppType = (uint)reader.GetInt32(reader.GetOrdinal("AppType"));
+                        newAppType = reader.GetInt32(reader.GetOrdinal("AppType"));
                     }
-                    else
-                    {
-                        DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Name` = `Name`",
-                            new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
+                }
 
-                        Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
+                if (newAppType == -1)
+                {
+                    DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Name` = `Name`",
+                        new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
 
-                        IRC.Instance.SendOps("New app type: {0}{1}{2} for app {3}{4}{5}", Colors.BLUE, currentType, Colors.NORMAL, Colors.BLUE, AppID, Colors.NORMAL);
+                    Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
-                        newAppType = DbConnection.ExecuteScalar<uint>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
-                    }
+                    IRC.Instance.SendOps("New app type: {0}{1}{2} for app {3}{4}{5}", Colors.BLUE, currentType, Colors.NORMAL, Colors.BLUE, AppID, Colors.NORMAL);
+
+                    newAppType = DbConnection.ExecuteScalar<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                 }
 
                 if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
@@ -242,11 +243,11 @@ namespace SteamDatabaseBackend
             {
                 DbConnection.Execute(GetHistoryQuery(), data.Select(x => new PICSHistory
                 {
-                    ID = AppID,
+                    ID       = AppID,
                     ChangeID = ChangeNumber,
-                    Key = x.Key,
+                    Key      = x.Key,
                     OldValue = x.Value,
-                    Action = "removed_key"
+                    Action   = "removed_key"
                 }));
             }
 
@@ -265,7 +266,7 @@ namespace SteamDatabaseBackend
             DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
             DbConnection.Execute("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
         }
-            
+
         private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             // All keys in PICS are supposed to be lower case
