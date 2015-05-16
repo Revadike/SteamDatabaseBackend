@@ -39,7 +39,7 @@ namespace SteamDatabaseBackend
 
             try
             {
-                string logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY);
+                string logsDir = Path.Combine(Application.Path, LOG_DIRECTORY);
                 Directory.CreateDirectory(logsDir);
             }
             catch (Exception ex)
@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
         {
             string logFile = string.Format("{0}.log", DateTime.Now.ToString("MMMM_dd_yyyy"));
 
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LOG_DIRECTORY, logFile);
+            return Path.Combine(Application.Path, LOG_DIRECTORY, logFile);
         }
     }
 }

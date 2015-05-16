@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
         public Connection(CallbackManager manager)
             : base(manager)
         {
-            SentryFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sentry.bin");
+            SentryFile = Path.Combine(Application.Path, "sentry.bin");
 
             ReconnectionTimer = new Timer();
             ReconnectionTimer.AutoReset = false;

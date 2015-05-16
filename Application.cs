@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -25,8 +24,12 @@ namespace SteamDatabaseBackend
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
+        public static string Path { get; private set; }
+
         static Application()
         {
+            Path = System.IO.Path.GetDirectoryName(typeof(Bootstrapper).Assembly.Location);
+
             ImportantApps = new Dictionary<uint, List<string>>();
             ImportantSubs = new Dictionary<uint, byte>();
 

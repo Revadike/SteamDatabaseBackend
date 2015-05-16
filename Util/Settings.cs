@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
 
         public static void Load()
         {
-            string settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            string settingsFile = Path.Combine(Application.Path, "settings.json");
 
             if (!File.Exists(settingsFile))
             {

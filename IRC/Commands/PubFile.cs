@@ -191,7 +191,7 @@ namespace SteamDatabaseBackend
             {
                 var json = JsonConvert.SerializeObject(details, Formatting.Indented);
 
-                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
+                File.WriteAllText(Path.Combine(Application.Path, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
             }
             catch (Exception e)
             {

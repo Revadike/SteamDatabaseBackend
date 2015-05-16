@@ -116,7 +116,7 @@ namespace SteamDatabaseBackend
 
                 try
                 {
-                    kv.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sub", string.Format("{0}.vdf", info.ID)), false);
+                    kv.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
                 }
                 catch (Exception e)
                 {
@@ -156,7 +156,7 @@ namespace SteamDatabaseBackend
 
                 try
                 {
-                    info.KeyValues.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "app", string.Format("{0}.vdf", info.ID)), false);
+                    info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", string.Format("{0}.vdf", info.ID)), false);
                 }
                 catch (Exception e)
                 {
