@@ -18,7 +18,10 @@ namespace SteamDatabaseBackend
 
         public LinkExpander()
         {
-            SteamLinkMatch = new Regex(@"(?:^|/|\.)steam(?:community|powered)\.com/(?<type>sub|app|games|stats)/(?<id>[0-9]{1,7})", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+            SteamLinkMatch = new Regex(
+                @"(?:^|/|\.)steam(?:community|powered)\.com/(?<type>sub|app|games|stats)/(?<id>[0-9]{1,7})(?:/(?<page>[a-z]+)/.)?",
+                RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
+            );
         }
 
         public void OnMessage(CommandArguments command)
@@ -27,6 +30,14 @@ namespace SteamDatabaseBackend
 
             foreach (Match match in matches)
             {
+                var page = match.Groups["page"].Value;
+
+                // Ignore sub pages, easier to do it here rather than in regex
+                if (!string.IsNullOrEmpty(page))
+                {
+                    continue;
+                }
+
                 var id = uint.Parse(match.Groups["id"].Value);
                 var isPackage = match.Groups["type"].Value == "sub";
                 var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id);
