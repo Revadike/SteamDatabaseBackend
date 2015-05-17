@@ -25,7 +25,10 @@ namespace SteamDatabaseBackend
             Trigger = "pubfile";
             IsSteamCommand = true;
 
-            SharedFileMatch = new Regex(@"(?:^|/|\.)steamcommunity\.com\/sharedfiles\/filedetails\/\?id=(?<pubfileid>[0-9]+)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+            SharedFileMatch = new Regex(
+                @"(?:^|/|\.)steamcommunity\.com/sharedfiles/filedetails/(?:\?id=|comments/|changelog/|discussions/|)(?<pubfileid>[0-9]+)",
+                RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
+            );
 
             PublishedFiles = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IPublishedFile>();
 
