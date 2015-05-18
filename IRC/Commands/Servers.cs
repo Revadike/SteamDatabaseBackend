@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
             var request = new CGameServers_GetServerList_Request
             {
                 filter = command.Message,
-                limit = 100,
+                limit = 5000,
             };
 
             JobManager.AddJob(
