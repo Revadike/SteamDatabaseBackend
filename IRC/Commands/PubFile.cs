@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using NetIrc2.Events;
 using Newtonsoft.Json;
 using SteamKit2;
 using SteamKit2.Unified.Internal;
@@ -31,8 +30,6 @@ namespace SteamDatabaseBackend
             );
 
             PublishedFiles = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IPublishedFile>();
-
-            Steam.Instance.CallbackManager.Register(new Callback<SteamUnifiedMessages.ServiceMethodResponse>(OnServiceMethod));
         }
 
         public void OnMessage(CommandArguments command)
@@ -50,7 +47,7 @@ namespace SteamDatabaseBackend
                     () => PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest)), 
                     new JobManager.IRCRequest
                     {
-                        Type = JobManager.IRCRequestType.TYPE_SILENT,
+                        Type = JobManager.IRCRequestType.TYPE_PUBFILE_SILENT,
                         Command = command
                     }
                 );
@@ -90,36 +87,18 @@ namespace SteamDatabaseBackend
                 () => PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest)), 
                 new JobManager.IRCRequest
                 {
+                    Type = JobManager.IRCRequestType.TYPE_PUBFILE,
                     Command = command
                 }
             );
         }
 
-        private void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback)
+        public static void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback, JobManager.IRCRequest request)
         {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job) || !job.IsCommand)
-            {
-                return;
-            }
-
-            var request = job.CommandRequest;
-
-            if (callback.Result != EResult.OK)
-            {
-                if (request.Type != JobManager.IRCRequestType.TYPE_SILENT)
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Unable to make service request for published file info: {0}", callback.Result);
-                }
-
-                return;
-            }
-
             var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
             var details = response.publishedfiledetails.FirstOrDefault();
 
-            if (request.Type == JobManager.IRCRequestType.TYPE_SILENT)
+            if (request.Type == JobManager.IRCRequestType.TYPE_PUBFILE_SILENT)
             {
                 if (details == null || (EResult)details.result != EResult.OK)
                 {

@@ -126,6 +126,8 @@
     <Compile Include="IRC\Commands\UGC.cs" />
     <Compile Include="IRC\LinkExpander.cs" />
     <Compile Include="Database\Price.cs" />
+    <Compile Include="IRC\Commands\Servers.cs" />
+    <Compile Include="Steam\UnifiedServices.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

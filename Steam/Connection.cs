@@ -4,9 +4,9 @@
  * found in the LICENSE file.
  */
 using System;
-using SteamKit2;
 using System.IO;
 using System.Linq;
+using SteamKit2;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend

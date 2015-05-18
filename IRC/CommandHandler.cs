@@ -35,6 +35,7 @@ namespace SteamDatabaseBackend
                 PubFileHandler,
                 new UGCCommand(),
                 new EnumCommand(),
+                new ServersCommand(),
                 new BinariesCommand(),
                 new ImportantCommand(),
                 new ReloginCommand(),

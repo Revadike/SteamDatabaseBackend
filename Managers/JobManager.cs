@@ -51,7 +51,9 @@ namespace SteamDatabaseBackend
             TYPE_NONE,
             TYPE_APP,
             TYPE_SUB,
-            TYPE_SILENT,
+            TYPE_PUBFILE,
+            TYPE_PUBFILE_SILENT,
+            TYPE_GAMESERVERS,
         }
 
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
