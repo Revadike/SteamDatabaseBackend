@@ -42,11 +42,11 @@ namespace SteamDatabaseBackend
 
         public static void ReloadFileList()
         {
-            string file = Path.Combine(Application.Path, "files.json");
+            string file = Path.Combine(Application.Path, FILES_DIRECTORY, "files.json");
 
             if (!File.Exists(file))
             {
-                Log.WriteWarn("FileDownloader", "files.json file not found.");
+                Log.WriteWarn("FileDownloader", "files/files.json not found. No files will be downloaded.");
             }
             else
             {
