@@ -17,8 +17,10 @@ namespace SteamDatabaseBackend
         private PubFileCommand PubFileHandler;
         private LinkExpander LinkExpander;
 
+#if false
         private static DateTime LastCommandUseTime = DateTime.Now;
         private static uint LastCommandUseCount = 0;
+#endif
 
         public CommandHandler()
         {
@@ -260,6 +262,7 @@ namespace SteamDatabaseBackend
 
         private static void TryCommand(Command command, CommandArguments commandData)
         {
+#if false
             if (commandData.CommandType == ECommandType.IRC && IRC.IsRecipientChannel(commandData.Recipient))
             {
                 if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
@@ -273,6 +276,7 @@ namespace SteamDatabaseBackend
 
                 LastCommandUseTime = DateTime.Now;
             }
+#endif
 
             try
             {
