@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
             var serv = servers.Take(5).Select(x => string.Format("{0} ({1})", x.addr, x.players));
 
-            CommandHandler.ReplyToCommand(request.Command, "{0}{1}", string.Join(", ", serv), servers.Count > 5 ? string.Format(", and {0} more", servers.Count - 5) : "");
+            CommandHandler.ReplyToCommand(request.Command, "{0}{1}", string.Join(", ", serv), servers.Count > 5 ? string.Format(", and {0} more", servers.Count == 5000 ? ">5000" : servers.Count - 5) : "");
         }
     }
 }
