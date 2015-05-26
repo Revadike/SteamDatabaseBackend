@@ -58,7 +58,10 @@ namespace SteamDatabaseBackend
                         prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'it')", new { AppID = id }).ToList();
                     }
 
-                    priceInfo = string.Format(" ({0})", string.Join(" / ", prices.Select(x => x.Format())));
+                    if (prices.Any())
+                    {
+                        priceInfo = string.Format(" ({0})", string.Join(" / ", prices.Select(x => x.Format())));
+                    }
                 }
 
                 if (command.CommandType == ECommandType.SteamChatRoom)
