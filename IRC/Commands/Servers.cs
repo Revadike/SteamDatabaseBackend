@@ -55,7 +55,6 @@ namespace SteamDatabaseBackend
 
         public static void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback, JobManager.IRCRequest request)
         {
-            
             var response = callback.GetDeserializedResponse<CGameServers_GetServerList_Response>();
             var servers = response.servers;
 
@@ -70,8 +69,8 @@ namespace SteamDatabaseBackend
             {
                 var server = servers.First();
 
-                CommandHandler.ReplyToCommand(request.Command, "{0} - {1} - {2}/{3} - Map: {4} - AppID: {5} - Version: {6} - Dir: {7} - Type: {8}",
-                    server.addr, new SteamID(server.steamid).Render(true), server.players, server.max_players, server.map, server.appid, server.version, server.gamedir, server.gametype
+                CommandHandler.ReplyToCommand(request.Command, "{0} - {1} - {2}/{3} - Map: {4} - AppID: {5} - Version: {6} - Dir: {7} - Tags: {8} - Name: {9}",
+                    server.addr, new SteamID(server.steamid).Render(true), server.players, server.max_players, server.map, server.appid, server.version, server.gamedir, server.gametype, server.name
                 );
 
                 return;

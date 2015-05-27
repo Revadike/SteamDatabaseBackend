@@ -128,13 +128,13 @@ namespace SteamDatabaseBackend
                 if (request.Command.CommandType == ECommandType.SteamChatRoom)
                 {
                     Steam.Instance.Friends.SendChatRoomMessage(request.Command.ChatRoomID, EChatEntryType.ChatMsg,
-                        string.Format("\u2937 {0}: {1} for {2} ({3} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
+                        string.Format("» {0}: {1} for {2} ({3} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
                     );
                 }
                 else
                 {
                     IRC.Instance.SendReply(request.Command.Recipient,
-                        string.Format("{0}\u2937 {1}{2} {3}{4}{5} for {6}{7}{8} ({9} views)",
+                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9} views)",
                             Colors.OLIVE,
                             Colors.NORMAL,
                             ((EWorkshopFileType)details.file_type),

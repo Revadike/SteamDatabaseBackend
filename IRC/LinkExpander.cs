@@ -66,12 +66,12 @@ namespace SteamDatabaseBackend
 
                 if (command.CommandType == ECommandType.SteamChatRoom)
                 {
-                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("\u2937 {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, Colors.StripColors(name), priceInfo));
+                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("» {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, Colors.StripColors(name), priceInfo));
                 }
                 else
                 {
                     IRC.Instance.SendReply(command.Recipient,
-                        string.Format("{0}\u2937 {1}{2} {3} —{4} {5}{6}{7}",
+                        string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
                             Colors.OLIVE,
                             Colors.NORMAL,
                             isPackage ? "Package" : "App",
