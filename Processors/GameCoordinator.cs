@@ -26,7 +26,6 @@ namespace SteamDatabaseBackend
             public uint AppID { get; set; }
             public uint Version { get; set; }
             public uint SchemaVersion { get; set; }
-            public DateTime NextPing { get; set; }
 
             private GCConnectionStatus _status;
             public GCConnectionStatus Status
@@ -95,8 +94,7 @@ namespace SteamDatabaseBackend
                 var info = GetSessionInfo(appID);
 
                 if (info.Status == GCConnectionStatus.GCConnectionStatus_NO_SESSION
-                ||  info.Status == GCConnectionStatus.GCConnectionStatus_GC_GOING_DOWN
-                ||  info.NextPing >= DateTime.Now)
+                ||  info.Status == GCConnectionStatus.GCConnectionStatus_GC_GOING_DOWN)
                 {
                     var hello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
                     SteamGameCoordinator.Send(hello, appID);
@@ -155,7 +153,6 @@ namespace SteamDatabaseBackend
 
             info.Version = msg.version;
             info.Status = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
-            info.NextPing = DateTime.Now.AddMinutes(5);
         }
 
         private void OnItemSchemaUpdate(uint appID, IPacketGCMsg packetMsg)
