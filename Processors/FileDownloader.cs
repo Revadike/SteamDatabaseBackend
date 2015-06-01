@@ -9,9 +9,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using SteamKit2;
 using Newtonsoft.Json;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -19,7 +20,7 @@ namespace SteamDatabaseBackend
     {
         public const string FILES_DIRECTORY = "files";
 
-        private static Dictionary<uint, List<string>> ImportantDepots = new Dictionary<uint, List<string>>();
+        private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
 
         private static CDNClient CDNClient;
 
@@ -50,25 +51,34 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                ImportantDepots = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+                Files = new Dictionary<uint, Regex>();
+
+                var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+
+                foreach(var depot in files)
+                {
+                    string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(x => ConvertFileMatch(x))));
+
+                    Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+                }
             }
         }
 
         public static bool IsImportantDepot(uint depotID)
         {
-            return ImportantDepots.ContainsKey(depotID);
+            return Files.ContainsKey(depotID);
         }
 
         public static void DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
-            var files = depotManifest.Files.Where(x => ImportantDepots[job.DepotID].Contains(x.FileName.Replace('\\', '/'))).ToList();
+            var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
 
             Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count(), job.DepotID);
 
             foreach (var file in files)
             {
-                string directory = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString());
+                string directory = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
                 string finalPath = Path.Combine(directory, Path.GetFileName(file.FileName));
 
                 if (File.Exists(finalPath))
@@ -190,6 +200,21 @@ namespace SteamDatabaseBackend
                     Process.Start(updateScript, job.DepotID.ToString());
                 }
             }
+        }
+
+        private static bool IsFileNameMatching(uint depotID, string fileName)
+        {
+            return Files[depotID].IsMatch(fileName.Replace('\\', '/'));
+        }
+
+        private static string ConvertFileMatch(string input)
+        {
+            if (input.StartsWith("regex:", StringComparison.Ordinal))
+            {
+                return input.Substring(6);
+            }
+
+            return Regex.Escape(input);
         }
     }
 }
