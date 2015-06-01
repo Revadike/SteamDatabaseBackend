@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
                 if (request.Command.CommandType == ECommandType.SteamChatRoom)
                 {
                     Steam.Instance.Friends.SendChatRoomMessage(request.Command.ChatRoomID, EChatEntryType.ChatMsg,
-                        string.Format("» {0}: {1} for {2} ({3} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
+                        string.Format("» {0}: {1} for {2} ({3:N0} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
                     );
                 }
                 else
