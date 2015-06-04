@@ -165,7 +165,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (file.FileHash.SequenceEqual(checksum))
+                if (file.Chunks.Count == 0 || file.FileHash.SequenceEqual(checksum))
                 {
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
 
