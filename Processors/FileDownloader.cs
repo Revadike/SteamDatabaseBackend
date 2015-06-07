@@ -78,10 +78,15 @@ namespace SteamDatabaseBackend
 
             foreach (var file in files)
             {
-                string directory = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
-                string finalPath = Path.Combine(directory, Path.GetFileName(file.FileName));
+                string directory    = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
+                string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
+                string downloadPath = Path.GetTempFileName();
 
-                if (File.Exists(finalPath))
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                else if (File.Exists(finalPath))
                 {
                     using (var fs = File.Open(finalPath, FileMode.Open))
                     {
@@ -95,19 +100,6 @@ namespace SteamDatabaseBackend
                             }
                         }
                     }
-                }
-
-                string downloadPath = Path.Combine(directory, string.Concat("staged_", Path.GetFileName(file.FileName)));
-
-                if (!Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
-                else if (File.Exists(downloadPath))
-                {
-                    Log.WriteWarn("FileDownloader", "Removing stale {0}", file.FileName);
-
-                    File.Delete(downloadPath);
                 }
 
                 Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
