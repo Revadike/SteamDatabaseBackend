@@ -129,7 +129,7 @@ namespace SteamDatabaseBackend
 
             LinkExpander.OnMessage(commandData);
 
-            if (e.Message[0] != Settings.Current.IRC.CommandPrefix && e.Message[0] != '!') // TODO: Remove ! in the future
+            if (e.Message[0] != Settings.Current.IRC.CommandPrefix)
             {
                 return;
             }
@@ -142,9 +142,7 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-
-            bool warnWrongPrefix = trigger[0] == '!'; // TODO: Remove in the future
-
+                
             trigger = trigger.Substring(1);
 
             var command = RegisteredCommands.FirstOrDefault(cmd => cmd.Trigger.Equals(trigger));
@@ -155,13 +153,6 @@ namespace SteamDatabaseBackend
             }
 
             commandData.Message = message.Substring(messageArray[0].Length).Trim();
-
-            if (warnWrongPrefix)
-            {
-                ReplyToCommand(commandData, true, "We changed command prefix to a dot, please use {0}{1}{2}{3} next time",
-                    Colors.OLIVE, Settings.Current.IRC.CommandPrefix, command.Trigger, Colors.NORMAL
-                );
-            }
 
             if (command.IsSteamCommand && !Steam.Instance.Client.IsConnected)
             {
