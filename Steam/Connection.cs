@@ -188,7 +188,16 @@ namespace SteamDatabaseBackend
 
             byte[] sentryHash = CryptoHelper.SHAHash(callback.Data);
 
-            File.WriteAllBytes(SentryFile, callback.Data);
+            if (callback.Data.Length != callback.BytesToWrite)
+            {
+                ErrorReporter.Notify(new InvalidDataException(string.Format("Data.Length ({0}) != BytesToWrite ({1}) in OnMachineAuth", callback.Data.Length, callback.BytesToWrite)));
+            }
+
+            using (var file = File.OpenWrite(SentryFile))
+            {
+                file.Seek(callback.Offset, SeekOrigin.Begin);
+                file.Write(callback.Data, 0, callback.BytesToWrite);
+            }
 
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
             {
