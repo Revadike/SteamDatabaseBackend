@@ -256,7 +256,7 @@ namespace SteamDatabaseBackend
 
         private static string GetItemName(uint depotID, uint itemDefIndex)
         {
-            var file = Path.Combine(Application.Path, FileDownloader.FILES_DIRECTORY, depotID.ToString(), "items_game.txt");
+            var file = Path.Combine(Application.Path, FileDownloader.FILES_DIRECTORY, depotID.ToString(), "tf", "scripts", "items", "items_game.txt");
 
             var schema = KeyValue.LoadAsText(file);
 
