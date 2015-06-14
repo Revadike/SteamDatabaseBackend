@@ -193,7 +193,16 @@ namespace SteamDatabaseBackend
 
             GetSessionInfo(appID).Status = msg.status;
 
-            IRC.Instance.SendAnnounce("{0}{1}{2} status:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.status);
+            string extraInfo = string.Empty;
+
+            if (msg.status == GCConnectionStatus.GCConnectionStatus_NO_SESSION_IN_LOGON_QUEUE)
+            {
+                extraInfo = string.Format(" {0}(queue: {1}/{2}, waited {3} of an estimated {4} seconds)",
+                    Colors.DARKGRAY, msg.queue_position, msg.queue_size, msg.wait_seconds, msg.estimated_wait_seconds_remaining
+                );
+            }
+
+            IRC.Instance.SendAnnounce("{0}{1}{2} status:{3} {4}{5}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.status, extraInfo);
         }
 
         private void OnWrenchBroadcast(uint appID, IPacketGCMsg packetMsg)
