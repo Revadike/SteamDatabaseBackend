@@ -6,6 +6,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using SteamKit2;
 using Timer = System.Timers.Timer;
 
@@ -186,17 +187,26 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Steam", "Updating sentry file...");
 
-            byte[] sentryHash = CryptoHelper.SHAHash(callback.Data);
-
             if (callback.Data.Length != callback.BytesToWrite)
             {
                 ErrorReporter.Notify(new InvalidDataException(string.Format("Data.Length ({0}) != BytesToWrite ({1}) in OnMachineAuth", callback.Data.Length, callback.BytesToWrite)));
             }
 
-            using (var file = File.OpenWrite(SentryFile))
+            int fileSize;
+            byte[] sentryHash;
+
+            using (var file = File.Open(SentryFile, FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
                 file.Seek(callback.Offset, SeekOrigin.Begin);
                 file.Write(callback.Data, 0, callback.BytesToWrite);
+                file.Seek(0, SeekOrigin.Begin);
+
+                fileSize = (int)file.Length;
+
+                using (var sha = new SHA1CryptoServiceProvider())
+                {
+                    sentryHash = sha.ComputeHash(file);
+                }
             }
 
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
@@ -206,7 +216,7 @@ namespace SteamDatabaseBackend
                 FileName = callback.FileName,
 
                 BytesWritten = callback.BytesToWrite,
-                FileSize = callback.Data.Length,
+                FileSize = fileSize,
                 Offset = callback.Offset,
 
                 Result = EResult.OK,
