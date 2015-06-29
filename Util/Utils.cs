@@ -56,6 +56,17 @@ namespace SteamDatabaseBackend
             return new SteamApps.PICSRequest(id, accessToken, false);
         }
 
+        public static byte[] AdlerHash(byte[] input)
+        {
+            uint a = 0, b = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                a = (a + input[i]) % 65521;
+                b = (b + a) % 65521;
+            }
+            return BitConverter.GetBytes(a | (b << 16));
+        }
+
         public static bool ConvertUserInputToSQLSearch(ref string output)
         {
             if (output.Length < 2 || !output.Distinct().Skip(1).Any()) // TODO: Probably would be better to only search for % and _ repetitions

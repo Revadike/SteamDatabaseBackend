@@ -100,6 +100,8 @@ namespace SteamDatabaseBackend
                             }
                         }
                     }
+
+                    File.Move(finalPath, downloadPath);
                 }
 
                 Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
@@ -107,16 +109,32 @@ namespace SteamDatabaseBackend
                 uint count = 0;
                 byte[] checksum;
                 string lastError = "or checksum failed";
-
-                using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate))
+                
+                using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
                 {
                     fs.SetLength((long)file.TotalSize);
 
                     var lockObject = new object();
 
-                    // TODO: We *could* verify each chunk and only download needed ones
                     Parallel.ForEach(file.Chunks, (chunk, state) =>
                     {
+                        // TODO: async fs
+                        lock (lockObject)
+                        {
+                            fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+
+                            var oldData = new byte[chunk.UncompressedLength];
+
+                            fs.Read(oldData, 0, oldData.Length);
+
+                            if (Utils.AdlerHash(oldData).SequenceEqual(chunk.Checksum))
+                            {
+                                Log.WriteDebug("FileDownloader", "{0} Chunk offset {1} is matching in existing file, not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
+
+                                return;
+                            }
+                        }
+
                         var downloaded = false;
 
                         for (var i = 0; i <= 5; i++)
