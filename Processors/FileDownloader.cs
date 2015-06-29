@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
 
                 var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
 
-                foreach(var depot in files)
+                foreach (var depot in files)
                 {
                     string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(x => ConvertFileMatch(x))));
 
@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
             {
                 string directory    = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
                 string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
-                string downloadPath = Path.GetTempFileName();
+                string downloadPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".steamdb_tmp"));
 
                 if (!Directory.Exists(directory))
                 {
@@ -109,7 +109,7 @@ namespace SteamDatabaseBackend
                 uint count = 0;
                 byte[] checksum;
                 string lastError = "or checksum failed";
-                
+
                 using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
                 {
                     fs.SetLength((long)file.TotalSize);
