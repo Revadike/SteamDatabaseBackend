@@ -399,6 +399,8 @@ namespace SteamDatabaseBackend
 
                     if (updateFile)
                     {
+                        file.ID = oldFile.ID;
+
                         db.Execute("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file);
                     }
 
