@@ -71,12 +71,13 @@ namespace SteamDatabaseBackend
 
         public static void DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
+            var randomGenerator = new Random();
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
 
             Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count(), job.DepotID);
 
-            foreach (var file in files)
+            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
             {
                 string directory    = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
                 string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
@@ -90,18 +91,33 @@ namespace SteamDatabaseBackend
                 {
                     using (var fs = File.Open(finalPath, FileMode.Open))
                     {
+                        if (fs.Length == 0 && file.TotalSize == 0)
+                        {
+                            Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
+
+                            return;
+                        }
+
                         using (var sha = new SHA1Managed())
                         {
                             if (file.FileHash.SequenceEqual(sha.ComputeHash(fs)))
                             {
                                 Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
 
-                                continue;
+                                return;
                             }
                         }
                     }
 
-                    File.Move(finalPath, downloadPath);
+                    File.Copy(finalPath, downloadPath);
+                }
+                else if (file.TotalSize == 0)
+                {
+                    File.Create(finalPath);
+
+                    Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
+
+                    return;
                 }
 
                 Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
@@ -115,26 +131,29 @@ namespace SteamDatabaseBackend
                     fs.SetLength((long)file.TotalSize);
 
                     var lockObject = new object();
+                    var neededChunks = new List<DepotManifest.ChunkData>();
 
-                    Parallel.ForEach(file.Chunks, (chunk, state) =>
+                    foreach (var chunk in file.Chunks.OrderBy(x => x.Offset))
                     {
-                        // TODO: async fs
-                        lock (lockObject)
+                        var oldData = new byte[chunk.UncompressedLength];
+
+                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                        fs.Read(oldData, 0, oldData.Length);
+
+                        var existingChecksum = Utils.AdlerHash(oldData);
+
+                        if (existingChecksum.SequenceEqual(chunk.Checksum))
                         {
-                            fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-
-                            var oldData = new byte[chunk.UncompressedLength];
-
-                            fs.Read(oldData, 0, oldData.Length);
-
-                            if (Utils.AdlerHash(oldData).SequenceEqual(chunk.Checksum))
-                            {
-                                Log.WriteDebug("FileDownloader", "{0} Chunk offset {1} is matching in existing file, not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
-
-                                return;
-                            }
+                            Log.WriteDebug("FileDownloader", "{0} Chunk offset {1} is matching in existing file, not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
                         }
+                        else
+                        {
+                            neededChunks.Add(chunk);
+                        }
+                    }
 
+                    Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, async (chunk, state) =>
+                    {
                         var downloaded = false;
 
                         for (var i = 0; i <= 5; i++)
@@ -159,6 +178,9 @@ namespace SteamDatabaseBackend
                             {
                                 lastError = e.Message;
                             }
+
+                            // See https://developers.google.com/drive/web/handle-errors
+                            await Task.Delay((1 << i) * 1000 + randomGenerator.Next(1001));
                         }
 
                         if (!downloaded)
@@ -175,7 +197,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (file.Chunks.Count == 0 || file.FileHash.SequenceEqual(checksum))
+                if (file.FileHash.SequenceEqual(checksum))
                 {
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
 
@@ -198,7 +220,7 @@ namespace SteamDatabaseBackend
 
                     File.Delete(downloadPath);
                 }
-            }
+            });
 
             if (filesUpdated)
             {
