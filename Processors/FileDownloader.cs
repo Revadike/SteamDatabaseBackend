@@ -152,7 +152,7 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, async (chunk, state) =>
+                    Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
                     {
                         var downloaded = false;
 
@@ -180,7 +180,7 @@ namespace SteamDatabaseBackend
                             }
 
                             // See https://developers.google.com/drive/web/handle-errors
-                            await Task.Delay((1 << i) * 1000 + randomGenerator.Next(1001));
+                            Task.Delay((1 << i) * 1000 + randomGenerator.Next(1001)).Wait();
                         }
 
                         if (!downloaded)
