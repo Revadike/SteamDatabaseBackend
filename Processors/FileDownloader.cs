@@ -20,8 +20,8 @@ namespace SteamDatabaseBackend
     {
         public const string FILES_DIRECTORY = "files";
 
+        private static object updateLock = new object();
         private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
-
         private static CDNClient CDNClient;
 
         public static void SetCDNClient(CDNClient cdnClient)
@@ -280,8 +280,11 @@ namespace SteamDatabaseBackend
 
                 if (File.Exists(updateScript))
                 {
-                    // YOLO
-                    Process.Start(updateScript, job.DepotID.ToString());
+                    lock (updateLock)
+                    {
+                        // YOLO
+                        Process.Start(updateScript, job.DepotID.ToString());
+                    }
                 }
             }
         }
