@@ -99,11 +99,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (Application.ChangelistTimer.Enabled)
-            {
-                IRC.Instance.SendMain("Disconnected from Steam. See{0} https://steamstat.us", Colors.DARKBLUE);
-            }
-
             Application.ChangelistTimer.Stop();
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
@@ -148,8 +143,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
 
-            IRC.Instance.SendMain("Logged in to Steam. Valve time: {0}{1}", Colors.DARKGRAY, callback.ServerTime.ToString("R"));
-            IRC.Instance.SendEmoteAnnounce("logged in.");
+            IRC.Instance.SendEmoteAnnounce("logged in. Valve time: {0}", callback.ServerTime.ToString("R"));
 
             if (Settings.IsFullRun)
             {
@@ -177,7 +171,6 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
-            IRC.Instance.SendMain("Logged out of Steam: {0}{1}{2}. See{3} https://steamstat.us", Colors.OLIVE, callback.Result, Colors.NORMAL, Colors.DARKBLUE);
             IRC.Instance.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
 
             GameCoordinator.UpdateStatus(0, callback.Result.ToString());

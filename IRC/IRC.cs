@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
 
             if (!isCancelKeyExit)
             {
-                Client.ChatAction(Settings.Current.IRC.Channel.Main, "is exiting…");
+                Client.ChatAction(Settings.Current.IRC.Channel.Ops, "is exiting… (most likely due to a crash)");
             }
 
             SendEmoteAnnounce("is exiting…");
