@@ -30,7 +30,7 @@ namespace SteamDatabaseBackend
 
             try
             {
-                string filesDir = Path.Combine(Application.Path, FILES_DIRECTORY);
+                string filesDir = Path.Combine(Application.Path, FILES_DIRECTORY, ".support", "chunks");
                 Directory.CreateDirectory(filesDir);
             }
             catch (Exception ex)
@@ -69,6 +69,9 @@ namespace SteamDatabaseBackend
             return Files.ContainsKey(depotID);
         }
 
+        /*
+         * Here be dragons.
+         */
         public static void DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
             var randomGenerator = new Random();
@@ -89,7 +92,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (File.Exists(finalPath))
                 {
-                    using (var fs = File.Open(finalPath, FileMode.Open))
+                    using (var fs = File.Open(finalPath, FileMode.Open, FileAccess.Read))
                     {
                         if (fs.Length == 0 && file.TotalSize == 0)
                         {
@@ -108,8 +111,6 @@ namespace SteamDatabaseBackend
                             }
                         }
                     }
-
-                    File.Copy(finalPath, downloadPath);
                 }
                 else if (file.TotalSize == 0)
                 {
@@ -125,6 +126,14 @@ namespace SteamDatabaseBackend
                 uint count = 0;
                 byte[] checksum;
                 string lastError = "or checksum failed";
+                string oldChunksFile;
+
+                using (var sha = new SHA1Managed())
+                {
+                    oldChunksFile = Path.Combine(Application.Path, FILES_DIRECTORY, ".support", "chunks",
+                        string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(file.FileName))))
+                    );
+                }
 
                 using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
                 {
@@ -133,23 +142,51 @@ namespace SteamDatabaseBackend
                     var lockObject = new object();
                     var neededChunks = new List<DepotManifest.ChunkData>();
 
-                    foreach (var chunk in file.Chunks.OrderBy(x => x.Offset))
+                    if (File.Exists(oldChunksFile) && File.Exists(finalPath))
                     {
-                        var oldData = new byte[chunk.UncompressedLength];
+                        var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(
+                                            File.ReadAllText(oldChunksFile),
+                                            new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All }
+                                        );
 
-                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                        fs.Read(oldData, 0, oldData.Length);
-
-                        var existingChecksum = Utils.AdlerHash(oldData);
-
-                        if (existingChecksum.SequenceEqual(chunk.Checksum))
+                        using (var fsOld = File.Open(finalPath, FileMode.Open, FileAccess.Read))
                         {
-                            Log.WriteDebug("FileDownloader", "{0} Chunk offset {1} is matching in existing file, not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
+                            foreach (var chunk in file.Chunks)
+                            {
+                                var oldChunk = oldChunks.FirstOrDefault(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+
+                                if (oldChunk != null)
+                                {
+                                    var oldData = new byte[oldChunk.UncompressedLength];
+                                    fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
+                                    fsOld.Read(oldData, 0, oldData.Length);
+
+                                    var existingChecksum = Utils.AdlerHash(oldData);
+
+                                    if (existingChecksum.SequenceEqual(chunk.Checksum))
+                                    {
+                                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                                        fs.Write(oldData, 0, oldData.Length);
+
+                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
+                                    }
+                                    else
+                                    {
+                                        neededChunks.Add(chunk);
+
+                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), but checksum differs", file.FileName, chunk.Offset);
+                                    }
+                                }
+                                else
+                                {
+                                    neededChunks.Add(chunk);
+                                }
+                            }
                         }
-                        else
-                        {
-                            neededChunks.Add(chunk);
-                        }
+                    }
+                    else
+                    {
+                        neededChunks = file.Chunks;
                     }
 
                     Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
@@ -207,6 +244,21 @@ namespace SteamDatabaseBackend
                     }
 
                     File.Move(downloadPath, finalPath);
+
+                    if (file.Chunks.Count > 1)
+                    {
+                        File.WriteAllText(oldChunksFile,
+                            JsonConvert.SerializeObject(
+                                file.Chunks,
+                                Formatting.None,
+                                new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All }
+                            )
+                        );
+                    }
+                    else if (File.Exists(oldChunksFile))
+                    {
+                        File.Delete(oldChunksFile);
+                    }
 
                     filesUpdated = true;
                 }
