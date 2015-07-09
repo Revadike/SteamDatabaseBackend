@@ -121,7 +121,9 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, file.Chunks.Count);
+                var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
+
+                Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, chunks.Count);
 
                 uint count = 0;
                 byte[] checksum;
@@ -151,7 +153,7 @@ namespace SteamDatabaseBackend
 
                         using (var fsOld = File.Open(finalPath, FileMode.Open, FileAccess.Read))
                         {
-                            foreach (var chunk in file.Chunks)
+                            foreach (var chunk in chunks)
                             {
                                 var oldChunk = oldChunks.FirstOrDefault(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
 
@@ -168,7 +170,7 @@ namespace SteamDatabaseBackend
                                         fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
                                         fs.Write(oldData, 0, oldData.Length);
 
-                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, file.Chunks.Count);
+                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, chunks.Count);
                                     }
                                     else
                                     {
@@ -186,7 +188,7 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        neededChunks = file.Chunks;
+                        neededChunks = chunks;
                     }
 
                     Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
@@ -204,7 +206,7 @@ namespace SteamDatabaseBackend
                                     fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
                                     fs.Write(chunkData.Data, 0, chunkData.Data.Length);
 
-                                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, file.Chunks.Count);
+                                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
                                 }
 
                                 downloaded = true;
@@ -245,11 +247,11 @@ namespace SteamDatabaseBackend
 
                     File.Move(downloadPath, finalPath);
 
-                    if (file.Chunks.Count > 1)
+                    if (chunks.Count > 1)
                     {
                         File.WriteAllText(oldChunksFile,
                             JsonConvert.SerializeObject(
-                                file.Chunks,
+                                chunks,
                                 Formatting.None,
                                 new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All }
                             )
@@ -265,10 +267,10 @@ namespace SteamDatabaseBackend
                 else
                 {
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})",
-                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, file.Chunks.Count, lastError);
+                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, chunks.Count, lastError);
 
                     Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
-                        file.FileName, count, file.Chunks.Count, job.Server, lastError);
+                        file.FileName, count, chunks.Count, job.Server, lastError);
 
                     File.Delete(downloadPath);
                 }
