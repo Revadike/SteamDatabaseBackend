@@ -75,10 +75,12 @@ namespace SteamDatabaseBackend
             var pubFileRequest = new CPublishedFile_GetDetails_Request
             {
                 includeadditionalpreviews = true,
+                includechildren = true,
                 includetags = true,
                 includekvtags = true,
                 includevotes = true,
                 includeforsaledata = true,
+                includemetadata = true,
             };
 
             pubFileRequest.publishedfileids.Add(pubFileId);
