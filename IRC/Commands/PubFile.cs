@@ -78,7 +78,7 @@ namespace SteamDatabaseBackend
                 includetags = true,
                 includekvtags = true,
                 includevotes = true,
-                //includeforsaledata = true, // TODO: Needs updated steamkit
+                includeforsaledata = true,
             };
 
             pubFileRequest.publishedfileids.Add(pubFileId);
