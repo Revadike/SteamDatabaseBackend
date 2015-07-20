@@ -37,6 +37,7 @@ namespace SteamDatabaseBackend
             clientMsg.Body.games_played.AddRange(
                 Settings.Current.GameCoordinatorIdlers.Select(appID => new CMsgClientGamesPlayed.GamePlayed
                 {
+                    game_extra_info = "steamdb.info",
                     game_id = appID
                 })
             );
