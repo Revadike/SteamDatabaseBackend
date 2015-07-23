@@ -45,9 +45,6 @@
     <Reference Include="protobuf-net">
       <HintPath>packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
-    <Reference Include="MySql.Data">
-      <HintPath>packages\MySql.Data.6.9.6\lib\net45\MySql.Data.dll</HintPath>
-    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="BugsnagMono">
       <HintPath>packages\BugsnagMono.1.2.0.0\lib\Net45\BugsnagMono.dll</HintPath>
@@ -60,6 +57,9 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="MySql.Data">
+      <HintPath>packages\MySql.Data.6.9.7\lib\net45\MySql.Data.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
