@@ -215,6 +215,25 @@ namespace SteamDatabaseBackend
             request.Server = GetContentServer();
 
             JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
+
+            var decryptionKey = Utils.ByteArrayToString(callback.DepotKey);
+
+            using (var db = Database.GetConnection())
+            {
+                var currentDecryptionKey = db.ExecuteScalar<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { callback.DepotID });
+
+                if (decryptionKey != currentDecryptionKey)
+                {
+                    if (currentDecryptionKey != null)
+                    {
+                        Log.WriteInfo("Depot Processor", "Decryption key for {0} changed: {1} -> {2}", callback.DepotID, currentDecryptionKey, decryptionKey);
+
+                        IRC.Instance.SendOps("Decryption key for {0} changed: {1} -> {2}", callback.DepotID, currentDecryptionKey, decryptionKey);
+                    }
+
+                    db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { callback.DepotID, Key = decryptionKey });
+                }
+            }
         }
 
         private void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
@@ -366,7 +385,7 @@ namespace SteamDatabaseBackend
 
                 if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
                 {
-                    depotFile.Hash = string.Concat(Array.ConvertAll(file.FileHash, x => x.ToString("X2")));
+                    depotFile.Hash = Utils.ByteArrayToString(file.FileHash);
                 }
                 else
                 {

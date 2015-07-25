@@ -67,6 +67,11 @@ namespace SteamDatabaseBackend
             return BitConverter.GetBytes(a | (b << 16));
         }
 
+        public static string ByteArrayToString(byte[] ba)
+        {
+            return BitConverter.ToString(ba).Replace("-", "");
+        }
+
         public static bool ConvertUserInputToSQLSearch(ref string output)
         {
             if (output.Length < 2 || !output.Distinct().Skip(1).Any()) // TODO: Probably would be better to only search for % and _ repetitions
