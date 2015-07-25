@@ -118,7 +118,7 @@ namespace SteamDatabaseBackend
         {
             if (WebAPIUserNonce == null)
             {
-                throw WebException("Tried to perform a web request, but didn't receieve webauth nonce yet.");
+                throw new WebException("Tried to perform a web request, but didn't receieve webauth nonce yet.");
             }
 
             HttpWebResponse response = null;
