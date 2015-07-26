@@ -12,5 +12,5 @@ notifications:
     channels:
       - "chat.freenode.net#steamdb"
     template:
-      - "%{repository}#%{build_number} (%{commit} by %{author}): %{message}"
-      - "Build details: %{build_url}"
+      - "[%{repository_name}] %{commit} by %{author}: %{message}"
+      - "[%{repository_name}] Build details: %{build_url}"
