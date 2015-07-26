@@ -33,6 +33,7 @@
     <Externalconsole>true</Externalconsole>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DebugSymbols>true</DebugSymbols>
+    <NoWarn>1701</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
