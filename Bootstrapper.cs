@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 using System;
+using System.IO;
 using System.Reflection;
 using SteamKit2;
 
@@ -25,6 +26,10 @@ namespace SteamDatabaseBackend
 
             try
             {
+                // Just create deepest folder we will use in the app
+                string filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
+                Directory.CreateDirectory(filesDir);
+
                 Settings.Load();
             }
             catch (Exception e)

@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         public Connection(CallbackManager manager)
             : base(manager)
         {
-            SentryFile = Path.Combine(Application.Path, "sentry.bin");
+            SentryFile = Path.Combine(Application.Path, "files", ".support", "sentry.bin");
 
             ReconnectionTimer = new Timer();
             ReconnectionTimer.AutoReset = false;
@@ -178,7 +178,7 @@ namespace SteamDatabaseBackend
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
-            Log.WriteInfo("Steam", "Updating sentry file...");
+            Log.WriteInfo("Steam", "Updating sentry file... {0}", callback.FileName);
 
             if (callback.Data.Length != callback.BytesToWrite)
             {

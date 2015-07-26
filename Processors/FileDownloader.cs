@@ -18,8 +18,6 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        public const string FILES_DIRECTORY = "files";
-
         private static object updateLock = new object();
         private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
         private static CDNClient CDNClient;
@@ -28,22 +26,12 @@ namespace SteamDatabaseBackend
         {
             CDNClient = cdnClient;
 
-            try
-            {
-                string filesDir = Path.Combine(Application.Path, FILES_DIRECTORY, ".support", "chunks");
-                Directory.CreateDirectory(filesDir);
-            }
-            catch (Exception ex)
-            {
-                Log.WriteError("FileDownloader", "Unable to create files directory: {0}", ex.Message);
-            }
-
             ReloadFileList();
         }
 
         public static void ReloadFileList()
         {
-            string file = Path.Combine(Application.Path, FILES_DIRECTORY, "files.json");
+            string file = Path.Combine(Application.Path, "files", "files.json");
 
             if (!File.Exists(file))
             {
@@ -82,7 +70,7 @@ namespace SteamDatabaseBackend
 
             Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
             {
-                string directory    = Path.Combine(Application.Path, FILES_DIRECTORY, job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
+                string directory    = Path.Combine(Application.Path, "files", job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
                 string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
                 string downloadPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".steamdb_tmp"));
 
@@ -132,7 +120,7 @@ namespace SteamDatabaseBackend
 
                 using (var sha = new SHA1Managed())
                 {
-                    oldChunksFile = Path.Combine(Application.Path, FILES_DIRECTORY, ".support", "chunks",
+                    oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks",
                         string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(file.FileName))))
                     );
                 }
