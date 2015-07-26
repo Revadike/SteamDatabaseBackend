@@ -5,7 +5,6 @@
  */
 using System;
 using System.IO;
-using System.Reflection;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -18,10 +17,7 @@ namespace SteamDatabaseBackend
         {
             Console.Title = "Steam Database";
 
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            var date = new DateTime(2000, 01, 01).AddDays(version.Build).AddSeconds(version.Revision * 2).ToUniversalTime().ToString();
-
-            Log.WriteInfo("Bootstrapper", "Steam Database backend application. Built on {0} UTC", date);
+            Log.WriteInfo("Bootstrapper", "Steam Database, assembly version: {0}", typeof(Steam).Assembly.GetName().Version);
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             try
