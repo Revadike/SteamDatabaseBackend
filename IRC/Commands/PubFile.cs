@@ -39,7 +39,10 @@ namespace SteamDatabaseBackend
             foreach (Match match in matches)
             {
                 var pubFileId = ulong.Parse(match.Groups["pubfileid"].Value);
-                var pubFileRequest = new CPublishedFile_GetDetails_Request();
+                var pubFileRequest = new CPublishedFile_GetDetails_Request
+                {
+                    includevotes = true,
+                };
 
                 pubFileRequest.publishedfileids.Add(pubFileId);
 
@@ -127,26 +130,39 @@ namespace SteamDatabaseBackend
                     title = title.Substring(0, 49) + "…";
                 }
 
+                var votesUp = details.vote_data != null ? details.vote_data.votes_up : 0;
+                var votesDown = details.vote_data != null ? details.vote_data.votes_down : 0;
+
                 if (request.Command.CommandType == ECommandType.SteamChatRoom)
                 {
                     Steam.Instance.Friends.SendChatRoomMessage(request.Command.ChatRoomID, EChatEntryType.ChatMsg,
-                        string.Format("» {0}: {1} for {2} ({3:N0} views){4}", ((EWorkshopFileType)details.file_type), title, details.app_name, details.views, details.spoiler_tag ? " :retreat: SPOILER" : "")
+                        string.Format("» {0}: {1} for {2} ({3:N0} views, {4:N0} \ud83d\udc4d, {5:N0} \ud83d\udc4e){6}",
+                            (EWorkshopFileType)details.file_type,
+                            title,
+                            details.app_name,
+                            details.views,
+                            votesUp,
+                            votesDown,
+                            details.spoiler_tag ? " :retreat: SPOILER" : ""
+                        )
                     );
                 }
                 else
                 {
                     IRC.Instance.SendReply(request.Command.Recipient,
-                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9} views)",
+                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9:N0} views, {10:N0} \ud83d\udc4d, {11:N0} \ud83d\udc4e)",
                             Colors.OLIVE,
                             Colors.NORMAL,
-                            ((EWorkshopFileType)details.file_type),
+                            (EWorkshopFileType)details.file_type,
                             Colors.BLUE,
                             title,
                             Colors.NORMAL,
                             Colors.BLUE,
                             details.app_name,
                             Colors.LIGHTGRAY,
-                            details.views
+                            details.views,
+                            votesUp,
+                            votesDown
                         ),
                         false
                     );
