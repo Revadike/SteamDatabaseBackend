@@ -133,7 +133,7 @@ namespace SteamDatabaseBackend
             }
 
             fullName = fullName
-                .Replace("+", ".")
+                .Replace('+', '.')
                 .Replace("SteamKit2.", "");
 
             return fullName;

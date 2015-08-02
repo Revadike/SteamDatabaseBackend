@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
 
-            Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count(), job.DepotID);
+            Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
             Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
             {
