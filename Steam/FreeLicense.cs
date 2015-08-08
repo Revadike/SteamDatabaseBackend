@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
         public FreeLicense(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback));
+            manager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback);
         }
 
         private static void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)

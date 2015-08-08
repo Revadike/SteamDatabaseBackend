@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
             Trigger = "steamid";
             IsSteamCommand = true;
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamFriends.PersonaStateCallback>(OnPersonaState));
+            Steam.Instance.CallbackManager.Subscribe<SteamFriends.PersonaStateCallback>(OnPersonaState);
         }
 
         public override void OnCommand(CommandArguments command)

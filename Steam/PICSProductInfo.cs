@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
         public PICSProductInfo(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
+            manager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);
         }
 
         private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)

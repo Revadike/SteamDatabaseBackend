@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
             Trigger = "app";
             IsSteamCommand = true;
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo));
+            Steam.Instance.CallbackManager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);
         }
 
         public override void OnCommand(CommandArguments command)

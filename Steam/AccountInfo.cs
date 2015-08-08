@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
         public AccountInfo(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamUser.AccountInfoCallback>(OnAccountInfo));
+            manager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
         }
 
         private static void OnAccountInfo(SteamUser.AccountInfoCallback callback)

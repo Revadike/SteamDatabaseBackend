@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
         public PICSTokens(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamApps.PICSTokensCallback>(OnPICSTokens));
+            manager.Subscribe<SteamApps.PICSTokensCallback>(OnPICSTokens);
 
             Reload();
         }

@@ -25,8 +25,8 @@ namespace SteamDatabaseBackend
         public WebAuth(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
-            manager.Register(new Callback<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce));
+            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            manager.Subscribe<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce);
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)

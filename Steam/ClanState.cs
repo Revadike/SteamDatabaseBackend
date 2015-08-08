@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
         public ClanState(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamFriends.ClanStateCallback>(OnClanState));
+            manager.Subscribe<SteamFriends.ClanStateCallback>(OnClanState);
         }
 
         private static void OnClanState(SteamFriends.ClanStateCallback callback)

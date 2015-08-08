@@ -77,9 +77,9 @@ namespace SteamDatabaseBackend
             SessionTimer.Elapsed += OnSessionTick;
             SessionTimer.Start();
 
-            manager.Register(new Callback<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage));
-            manager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
-            manager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
+            manager.Subscribe<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage);
+            manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+            manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
         }
 
         private void OnSessionTick(object sender, System.Timers.ElapsedEventArgs e)

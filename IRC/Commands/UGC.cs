@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
 
             Cloud = Steam.Instance.Client.GetHandler<SteamCloud>();
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamCloud.UGCDetailsCallback>(OnUGCInfo));
+            Steam.Instance.CallbackManager.Subscribe<SteamCloud.UGCDetailsCallback>(OnUGCInfo);
         }
 
         public override void OnCommand(CommandArguments command)

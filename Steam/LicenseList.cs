@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
         public LicenseList(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamApps.LicenseListCallback>(OnLicenseListCallback));
+            manager.Subscribe<SteamApps.LicenseListCallback>(OnLicenseListCallback);
         }
 
         private static void OnLicenseListCallback(SteamApps.LicenseListCallback licenseList)

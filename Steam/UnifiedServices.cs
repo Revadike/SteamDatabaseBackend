@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
         public UnifiedServices(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamUnifiedMessages.ServiceMethodResponse>(OnServiceMethod));
+            manager.Subscribe<SteamUnifiedMessages.ServiceMethodResponse>(OnServiceMethod);
         }
 
         private void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback)

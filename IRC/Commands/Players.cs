@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
         {
             Trigger = "players";
 
-            Steam.Instance.CallbackManager.Register(new Callback<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers));
+            Steam.Instance.CallbackManager.Subscribe<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers);
         }
 
         public override void OnCommand(CommandArguments command)

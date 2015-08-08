@@ -12,7 +12,7 @@ namespace SteamDatabaseBackend
         public ChatMemberInfo(CallbackManager manager)
             : base(manager)
         {
-            manager.Register(new Callback<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo));
+            manager.Subscribe<SteamFriends.ChatMemberInfoCallback>(OnChatMemberInfo);
         }
 
         private static void OnChatMemberInfo(SteamFriends.ChatMemberInfoCallback callback)

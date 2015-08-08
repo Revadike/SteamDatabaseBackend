@@ -33,11 +33,11 @@ namespace SteamDatabaseBackend
             ReconnectionTimer.Elapsed += Reconnect;
             ReconnectionTimer.Interval = TimeSpan.FromSeconds(RETRY_DELAY).TotalMilliseconds;
 
-            manager.Register(new Callback<SteamClient.ConnectedCallback>(OnConnected));
-            manager.Register(new Callback<SteamClient.DisconnectedCallback>(OnDisconnected));
-            manager.Register(new Callback<SteamUser.LoggedOnCallback>(OnLoggedOn));
-            manager.Register(new Callback<SteamUser.LoggedOffCallback>(OnLoggedOff));
-            manager.Register(new Callback<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth));
+            manager.Subscribe<SteamClient.ConnectedCallback>(OnConnected);
+            manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
+            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+            manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+            manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
         }
 
         public static void Reconnect(object sender, System.Timers.ElapsedEventArgs e)

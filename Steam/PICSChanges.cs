@@ -40,12 +40,12 @@ namespace SteamDatabaseBackend
             {
                 PreviousChangeNumber = 1; // Request everything
 
-                manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun));
+                manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun);
 
                 return;
             }
                 
-            manager.Register(new Callback<SteamApps.PICSChangesCallback>(OnPICSChanges));
+            manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChanges);
 
             using (var db = Database.GetConnection())
             {

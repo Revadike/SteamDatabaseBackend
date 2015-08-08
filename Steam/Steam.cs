@@ -79,10 +79,10 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.ChatRooms.Count > 0)
             {
-                CallbackManager.Register(new Callback<SteamFriends.ChatMsgCallback>(handler.OnSteamChatMessage));
+                CallbackManager.Subscribe<SteamFriends.ChatMsgCallback>(handler.OnSteamChatMessage);
             }
 
-            CallbackManager.Register(new Callback<SteamFriends.FriendMsgCallback>(handler.OnSteamFriendMessage));
+            CallbackManager.Subscribe<SteamFriends.FriendMsgCallback>(handler.OnSteamFriendMessage);
         }
 
         public static string GetPackageName(uint subID)

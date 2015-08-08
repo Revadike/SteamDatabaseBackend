@@ -48,8 +48,8 @@ namespace SteamDatabaseBackend
                 "cdn.highwinds.cs.steampowered.com"
             };
 
-            manager.Register(new Callback<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback));
-            manager.Register(new Callback<SteamApps.DepotKeyCallback>(OnDepotKeyCallback));
+            manager.Subscribe<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback);
+            manager.Subscribe<SteamApps.DepotKeyCallback>(OnDepotKeyCallback);
         }
 
         public void Process(uint appID, uint changeNumber, KeyValue depots)
