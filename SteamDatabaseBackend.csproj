@@ -53,14 +53,14 @@
     <Reference Include="Dapper">
       <HintPath>packages\Dapper.1.42\lib\net45\Dapper.dll</HintPath>
     </Reference>
-    <Reference Include="SteamKit2">
-      <HintPath>packages\SteamKit2.1.6.3\lib\net40\SteamKit2.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="MySql.Data">
       <HintPath>packages\MySql.Data.6.9.7\lib\net45\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="SteamKit2">
+      <HintPath>packages\SteamKit2.1.6.4\lib\net40\SteamKit2.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
