@@ -102,12 +102,11 @@ namespace SteamDatabaseBackend
                 }
 
                 var info = callback.Packages[request.Target];
-                var kv = info.KeyValues.Children.FirstOrDefault();
                 string name;
 
-                if (kv["name"].Value != null)
+                if (info.KeyValues["name"].Value != null)
                 {
-                    name = Utils.RemoveControlCharacters(kv["name"].AsString());
+                    name = Utils.RemoveControlCharacters(info.KeyValues["name"].AsString());
                 }
                 else
                 {
@@ -116,7 +115,7 @@ namespace SteamDatabaseBackend
 
                 try
                 {
-                    kv.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
+                    info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
                 }
                 catch (Exception e)
                 {

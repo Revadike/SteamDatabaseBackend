@@ -53,8 +53,7 @@ namespace SteamDatabaseBackend
 
             var appAddedToThisPackage = false;
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
-            var kv = productInfo.KeyValues.Children.FirstOrDefault();
-            var newPackageName = kv["name"].AsString();
+            var newPackageName = productInfo.KeyValues["name"].AsString();
             var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
 
             // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
@@ -87,7 +86,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var section in kv.Children)
+            foreach (var section in productInfo.KeyValues.Children)
             {
                 string sectionName = section.Name.ToLower();
 
@@ -252,17 +251,17 @@ namespace SteamDatabaseBackend
                 LicenseList.RefreshApps();
             }
 
-            if (kv["billingtype"].AsInteger() == 12 && !packageOwned) // 12 == free on demand
+            if (productInfo.KeyValues["billingtype"].AsInteger() == 12 && !packageOwned) // 12 == free on demand
             {
                 Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
-                JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(kv["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
+                JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(productInfo.KeyValues["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
             }
 
             // Re-queue apps in this package so we can update depots and whatnot
             if (appAddedToThisPackage && !Settings.IsFullRun && !string.IsNullOrEmpty(PackageName))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(kv["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(productInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
             }
         }
 
