@@ -256,7 +256,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
-                JobManager.AddJob(() => SteamDB.RequestFreeLicense(kv["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
+                JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(kv["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
             }
 
             // Re-queue apps in this package so we can update depots and whatnot

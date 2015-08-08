@@ -16,40 +16,23 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class FreeLicense : ClientMsgHandler
+    class FreeLicense : SteamHandler
     {
-        public JobID RequestFreeLicence(IEnumerable<uint> appIDs)
+        public FreeLicense(CallbackManager manager)
+            : base(manager)
         {
-            var msg = new ClientMsgProtobuf<CMsgClientRequestFreeLicense>(EMsg.ClientRequestFreeLicense);
-            msg.Body.appids.AddRange(appIDs);
-
-            var jid = Client.GetNextJobID();
-            msg.SourceJobID = jid;
-
-            Client.Send(msg);
-
-            return jid;
+            manager.Register(new Callback<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback));
         }
 
-        public override void HandleMsg(IPacketMsg packetMsg)
+        private static void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
         {
-            if (packetMsg.MsgType == EMsg.ClientRequestFreeLicenseResponse)
-            {
-                HandleClientRequestFreeLicenseResponse(packetMsg);
-            }
-        }
-
-        private static void HandleClientRequestFreeLicenseResponse(IPacketMsg packetMsg)
-        {
-            var resp = new ClientMsgProtobuf<CMsgClientRequestFreeLicenseResponse>(packetMsg);
-
             JobAction job;
-            JobManager.TryRemoveJob(packetMsg.TargetJobID, out job);
+            JobManager.TryRemoveJob(callback.JobID, out job);
 
-            var packageIDs = resp.Body.granted_packageids;
-            var appIDs = resp.Body.granted_appids;
+            var packageIDs = callback.GrantedPackages;
+            var appIDs = callback.GrantedApps;
 
-            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps, {2} packages)", (EResult)resp.Body.eresult, appIDs.Count, packageIDs.Count);
+            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps, {2} packages)", callback.Result, appIDs.Count, packageIDs.Count);
 
             if (appIDs.Count > 0)
             {

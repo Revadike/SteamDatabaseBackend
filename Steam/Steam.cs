@@ -38,13 +38,13 @@ namespace SteamDatabaseBackend
 
             CallbackManager = new CallbackManager(Client);
 
-            Client.AddHandler(new FreeLicense());
             Client.AddHandler(new ReadMachineAuth());
 
             new Connection(CallbackManager);
             new PICSProductInfo(CallbackManager);
             new PICSTokens(CallbackManager);
             new LicenseList(CallbackManager);
+            new FreeLicense(CallbackManager);
 
             if (!Settings.IsFullRun)
             {
