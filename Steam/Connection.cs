@@ -21,14 +21,11 @@ namespace SteamDatabaseBackend
 
         public readonly Timer ReconnectionTimer;
 
-        private readonly string SentryFile;
         private string AuthCode;
 
         public Connection(CallbackManager manager)
             : base(manager)
         {
-            SentryFile = Path.Combine(Application.Path, "files", ".support", "sentry.bin");
-
             ReconnectionTimer = new Timer();
             ReconnectionTimer.AutoReset = false;
             ReconnectionTimer.Elapsed += Reconnect;
@@ -74,9 +71,9 @@ namespace SteamDatabaseBackend
 
             byte[] sentryHash = null;
 
-            if (File.Exists(SentryFile))
+            if (LocalConfig.Sentry != null)
             {
-                sentryHash = CryptoHelper.SHAHash(File.ReadAllBytes(SentryFile));
+                sentryHash = CryptoHelper.SHAHash(LocalConfig.Sentry);
             }
 
             Steam.Instance.User.LogOn(new SteamUser.LogOnDetails
@@ -140,6 +137,20 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var cellId = (int)callback.CellID;
+
+            if (LocalConfig.CellID != cellId)
+            {
+                Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.CellID, cellId);
+
+                LocalConfig.CellID = cellId;
+
+                // TODO: is this really needed?
+                LocalConfig.LoadServers();
+
+                LocalConfig.Save();
+            }
+
             LastSuccessfulLogin = DateTime.Now;
 
             Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
@@ -189,19 +200,25 @@ namespace SteamDatabaseBackend
             int fileSize;
             byte[] sentryHash;
 
-            using (var file = File.Open(SentryFile, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-            {
-                file.Seek(callback.Offset, SeekOrigin.Begin);
-                file.Write(callback.Data, 0, callback.BytesToWrite);
-                file.Seek(0, SeekOrigin.Begin);
 
-                fileSize = (int)file.Length;
+            using (var stream = new MemoryStream(LocalConfig.Sentry ?? new byte[callback.BytesToWrite]))
+            {
+                stream.Seek(callback.Offset, SeekOrigin.Begin);
+                stream.Write(callback.Data, 0, callback.BytesToWrite);
+                stream.Seek(0, SeekOrigin.Begin);
+
+                fileSize = (int)stream.Length;
 
                 using (var sha = new SHA1CryptoServiceProvider())
                 {
-                    sentryHash = sha.ComputeHash(file);
+                    sentryHash = sha.ComputeHash(stream);
                 }
+
+                LocalConfig.Sentry = stream.ToArray();
             }
+
+            LocalConfig.SentryFileName = callback.FileName;
+            LocalConfig.Save();
 
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
             {

@@ -130,6 +130,8 @@
     <Compile Include="IRC\Commands\Servers.cs" />
     <Compile Include="Steam\UnifiedServices.cs" />
     <Compile Include="Steam\ReadMachineAuth.cs" />
+    <Compile Include="Util\LocalConfig.cs" />
+    <Compile Include="Util\JsonConverters.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
