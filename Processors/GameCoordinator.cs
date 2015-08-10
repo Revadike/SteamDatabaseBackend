@@ -3,15 +3,15 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Timers;
 using Dapper;
 using SteamKit2;
 using SteamKit2.GC;
 using SteamKit2.GC.Internal;
-
-using Timer = System.Timers.Timer;
 
 // TF2
 using CMsgGCTFSpecificItemBroadcast = SteamKit2.GC.TF2.Internal.CMsgGCTFSpecificItemBroadcast;
@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
             manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
         }
 
-        private void OnSessionTick(object sender, System.Timers.ElapsedEventArgs e)
+        private void OnSessionTick(object sender, ElapsedEventArgs e)
         {
             if (!Steam.Instance.Client.IsConnected)
             {

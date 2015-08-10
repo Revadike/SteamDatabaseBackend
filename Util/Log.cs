@@ -1,9 +1,9 @@
 ﻿/*
  * Log.cs copied from VoiDeD's IRC bot at https://github.com/VoiDeD/steam-irc-bot/blob/master/SteamIrcBot/Utils/Log.cs
  */
+
 using System;
 using System.IO;
-using System.Text.RegularExpressions;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -24,11 +24,11 @@ namespace SteamDatabaseBackend
         {
             public void WriteLine(string category, string msg)
             {
-                Log.WriteDebug(category, msg);
+                WriteDebug(category, msg);
             }
         }
 
-        private static object logLock = new object();
+        private static readonly object logLock = new object();
 
         static Log()
         {

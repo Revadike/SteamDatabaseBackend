@@ -1,13 +1,14 @@
-/*
+﻿/*
  * Copyright (c) 2013-2015, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Security;
 using NetIrc2;
+using NetIrc2.Events;
 
 namespace SteamDatabaseBackend
 {
@@ -58,7 +59,7 @@ namespace SteamDatabaseBackend
 
                     if (Settings.Current.IRC.SslAcceptInvalid)
                     {
-                        options.SslCertificateValidationCallback = new RemoteCertificateValidationCallback((sender, certificate, chain, policyErrors) => true);
+                        options.SslCertificateValidationCallback = (sender, certificate, chain, policyErrors) => true;
                     }
                 }
 
@@ -114,7 +115,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnError(object sender, NetIrc2.Events.IrcErrorEventArgs e)
+        private void OnError(object sender, IrcErrorEventArgs e)
         {
             switch (e.Error)
             {

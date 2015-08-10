@@ -3,12 +3,13 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Timers;
 using SteamKit2;
-using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
@@ -40,7 +41,7 @@ namespace SteamDatabaseBackend
             manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
         }
 
-        public static void Reconnect(object sender, System.Timers.ElapsedEventArgs e)
+        public static void Reconnect(object sender, ElapsedEventArgs e)
         {
             if (Steam.Instance.Client.IsConnected)
             {

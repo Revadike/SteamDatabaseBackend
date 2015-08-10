@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace SteamDatabaseBackend
 {
     class EnumCommand : Command
     {
-        IEnumerable<Type> SteamKitEnums;
+        readonly IEnumerable<Type> SteamKitEnums;
 
         public EnumCommand()
         {
@@ -80,7 +81,7 @@ namespace SteamDatabaseBackend
 
             if (!includeDeprecated)
             {
-                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), inherit: false).Any()));
+                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Any()));
             }
 
             if (!string.IsNullOrEmpty(inputValue))
@@ -96,7 +97,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-            else if (count > 10)
+
+            if (count > 10)
             {
                 if (!string.IsNullOrEmpty(inputValue))
                 {

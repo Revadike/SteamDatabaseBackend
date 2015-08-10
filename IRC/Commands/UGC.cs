@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using SteamKit2;
 
@@ -10,7 +11,7 @@ namespace SteamDatabaseBackend
 {
     class UGCCommand : Command
     {
-        private SteamCloud Cloud;
+        private readonly SteamCloud Cloud;
 
         public UGCCommand()
         {
@@ -87,7 +88,7 @@ namespace SteamDatabaseBackend
 
             int place = Convert.ToInt32(Math.Floor(Math.Log(size, 1024)));
             double num = Math.Round(size / Math.Pow(1024, place), 1);
-            return (Math.Sign(size) * num).ToString() + suf[place];
+            return (Math.Sign(size) * num) + suf[place];
         }
     }
 }

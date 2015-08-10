@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
 
         static PICSChanges()
         {
-            IgnorableBillingTypes = new List<EBillingType>()
+            IgnorableBillingTypes = new List<EBillingType>
             {
                 EBillingType.ProofOfPrepurchaseOnly, // CDKey
                 EBillingType.GuestPass,
@@ -173,13 +173,13 @@ namespace SteamDatabaseBackend
             // Steam comp
             if (!ignoredPackages.ContainsKey(0))
             {
-                ignoredPackages.Add(0, (byte)1);
+                ignoredPackages.Add(0, 1);
             }
 
             // Anon dedi comp
             if (!ignoredPackages.ContainsKey(17906))
             {
-                ignoredPackages.Add(17906, (byte)1);
+                ignoredPackages.Add(17906, 1);
             }
 
             var subids = callback.PackageChanges.Values.Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x));

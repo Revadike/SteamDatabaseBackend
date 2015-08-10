@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,9 +14,9 @@ namespace SteamDatabaseBackend
 {
     class CommandHandler
     {
-        private List<Command> RegisteredCommands;
-        private PubFileCommand PubFileHandler;
-        private LinkExpander LinkExpander;
+        private readonly List<Command> RegisteredCommands;
+        private readonly PubFileCommand PubFileHandler;
+        private readonly LinkExpander LinkExpander;
 
 #if false
         private static DateTime LastCommandUseTime = DateTime.Now;
@@ -160,7 +161,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-            else if (command.IsAdminCommand)
+
+            if (command.IsAdminCommand)
             {
                 var ident = string.Format("{0}@{1}", e.Sender.Username, e.Sender.Hostname);
 

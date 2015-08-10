@@ -4,6 +4,7 @@
  * 
  * ﻿Copyright (C) 2011 Ryan Stecker & SteamRE Team
  **/
+
 using System.Text;
 
 namespace SteamDatabaseBackend

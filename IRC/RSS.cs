@@ -3,15 +3,15 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Cache;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Xml;
 using Dapper;
-using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
             Timer.Start();
         }
 
-        private void Tick(object sender, System.Timers.ElapsedEventArgs e)
+        private void Tick(object sender, ElapsedEventArgs e)
         {
             Parallel.ForEach(Settings.Current.RssFeeds, feed =>
             {

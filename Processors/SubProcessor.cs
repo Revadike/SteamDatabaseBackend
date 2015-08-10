@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -17,7 +18,7 @@ namespace SteamDatabaseBackend
         private IDbConnection DbConnection;
 
         private readonly string PackageName;
-        private Dictionary<string, PICSInfo> CurrentData;
+        private readonly Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
         private readonly uint SubID;
 
@@ -161,7 +162,7 @@ namespace SteamDatabaseBackend
 
                             if (packageOwned && !LicenseList.OwnedApps.ContainsKey(appID))
                             {
-                                LicenseList.OwnedApps.Add(appID, (byte)1);
+                                LicenseList.OwnedApps.Add(appID, 1);
                             }
                         }
                     }

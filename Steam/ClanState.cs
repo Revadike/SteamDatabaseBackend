@@ -3,6 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -70,7 +71,7 @@ namespace SteamDatabaseBackend
                     Colors.BLUE, groupName, Colors.NORMAL,
                     Colors.OLIVE, groupEvent.Headline, Colors.NORMAL,
                     Colors.DARKBLUE, callback.ClanID, groupEvent.ID,
-                    Colors.DARKGRAY, groupEvent.EventTime.ToString()
+                    Colors.DARKGRAY, groupEvent.EventTime
                 );
 
                 // Send events only to steamlug channel

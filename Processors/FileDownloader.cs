@@ -3,12 +3,14 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -18,7 +20,7 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        private static object updateLock = new object();
+        private static readonly object updateLock = new object();
         private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
         private static CDNClient CDNClient;
 
@@ -121,7 +123,7 @@ namespace SteamDatabaseBackend
                 using (var sha = new SHA1Managed())
                 {
                     oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks",
-                        string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(file.FileName))))
+                        string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName))))
                     );
                 }
 

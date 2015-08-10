@@ -3,11 +3,13 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Dapper;
 using Timer = System.Timers.Timer;
 
@@ -44,7 +46,7 @@ namespace SteamDatabaseBackend
         {
             ReloadImportant();
 
-            var thread = new Thread(new ThreadStart(Steam.Instance.Tick));
+            var thread = new Thread(Steam.Instance.Tick);
             thread.Name = "Steam";
             thread.Start();
 
@@ -63,7 +65,7 @@ namespace SteamDatabaseBackend
             {
                 RssReader = new RSS();
 
-                thread = new Thread(new ThreadStart(IRC.Instance.Connect));
+                thread = new Thread(IRC.Instance.Connect);
                 thread.Name = "IRC";
                 thread.Start();
 
@@ -73,7 +75,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void Tick(object sender, System.Timers.ElapsedEventArgs e)
+        private static void Tick(object sender, ElapsedEventArgs e)
         {
             Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
         }
@@ -156,7 +158,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.Close(cleaningUp);
             }
 
-            foreach (var thread in Application.Threads)
+            foreach (var thread in Threads)
             {
                 if (thread.ThreadState == ThreadState.Running)
                 {
