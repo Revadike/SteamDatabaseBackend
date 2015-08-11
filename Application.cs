@@ -127,13 +127,15 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.IsRunning = false;
 
+            var timeout = TimeSpan.FromSeconds(30);
+
             var count = PICSProductInfo.ProcessedApps.Count;
 
             if (count > 0)
             {
                 Log.WriteInfo("Bootstrapper", "{0} app tasks left, waiting", count);
 
-                Task.WaitAll(PICSProductInfo.ProcessedApps.Values.ToArray());
+                Task.WaitAll(PICSProductInfo.ProcessedApps.Values.ToArray(), timeout);
             }
 
             count = PICSProductInfo.ProcessedSubs.Count;
@@ -142,7 +144,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo("Bootstrapper", "{0} package tasks left, waiting", count);
 
-                Task.WaitAll(PICSProductInfo.ProcessedSubs.Values.ToArray());
+                Task.WaitAll(PICSProductInfo.ProcessedSubs.Values.ToArray(), timeout);
             }
 
             Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
@@ -164,7 +166,7 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo("Bootstrapper", "Joining thread {0}", thread.Name);
 
-                    thread.Join(TimeSpan.FromSeconds(30));
+                    thread.Join(timeout);
                 }
             }
 
