@@ -32,7 +32,8 @@ namespace SteamDatabaseBackend
             var packageIDs = callback.GrantedPackages;
             var appIDs = callback.GrantedApps;
 
-            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps, {2} packages)", callback.Result, appIDs.Count, packageIDs.Count);
+            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps: {2}, {3} packages: {4})",
+                callback.Result, appIDs.Count, string.Join(", ", appIDs), packageIDs.Count, string.Join(", ", packageIDs));
 
             if (appIDs.Count > 0)
             {
@@ -43,8 +44,6 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
 
-                // TODO: We could re-queue apps in these packages as well
-
                 // We don't want to block our main thread with web requests
                 TaskManager.Run(() =>
                 {
@@ -52,7 +51,7 @@ namespace SteamDatabaseBackend
 
                     try
                     {
-                        var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/");
+                        var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/licenses/");
 
                         using (var responseStream = response.GetResponseStream())
                         {
@@ -67,28 +66,23 @@ namespace SteamDatabaseBackend
                         Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
                     }
 
-                    foreach (var package in packageIDs)
+                    using (var db = Database.GetConnection())
                     {
-                        Package packageData;
-
-                        using (var db = Database.GetConnection())
+                        foreach (var package in packageIDs)
                         {
-                            packageData = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package }).FirstOrDefault();
-                        }
+                            var packageData = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package }).FirstOrDefault();
 
-                        if (!string.IsNullOrEmpty(data))
-                        {
-                            // Tell me all about using regex
-                            var match = Regex.Match(data, string.Format("RemoveFreeLicense\\( ?{0}, ?'(.+)' ?\\)", package));
-
-                            if (match.Success)
+                            if (!string.IsNullOrEmpty(data))
                             {
-                                var grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
+                                // Tell me all about using regex
+                                var match = Regex.Match(data, string.Format("RemoveFreeLicense\\( ?{0}, ?'(.+)' ?\\)", package));
 
-                                // Update last known name if we can
-                                if (packageData.SubID > 0 && (string.IsNullOrEmpty(packageData.LastKnownName) || packageData.LastKnownName.StartsWith("Steam Sub ", StringComparison.Ordinal)))
+                                if (match.Success)
                                 {
-                                    using (var db = Database.GetConnection())
+                                    var grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
+
+                                    // Update last known name if we can
+                                    if (packageData.SubID > 0 && (string.IsNullOrEmpty(packageData.LastKnownName) || packageData.LastKnownName.StartsWith("Steam Sub ", StringComparison.Ordinal)))
                                     {
                                         db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package, Name = grantedName });
 
@@ -119,16 +113,16 @@ namespace SteamDatabaseBackend
                                             db.Execute("INSERT INTO `AppsInfo` VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `Key` = `Key`", new {app.AppID, Key = key, value = comment });
                                         }
                                     }
+
+                                    packageData.LastKnownName = grantedName;
                                 }
-
-                                packageData.LastKnownName = grantedName;
                             }
-                        }
 
-                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
-                            Colors.BLUE, Steam.FormatPackageName(package, packageData), Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetPackageURL(package)
-                        );
+                            IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
+                                Colors.BLUE, Steam.FormatPackageName(package, packageData), Colors.NORMAL,
+                                Colors.DARKBLUE, SteamDB.GetPackageURL(package)
+                            );
+                        }
                     }
                 });
             }

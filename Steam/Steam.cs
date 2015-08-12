@@ -45,6 +45,7 @@ namespace SteamDatabaseBackend
             new PICSProductInfo(CallbackManager);
             new PICSTokens(CallbackManager);
             new LicenseList(CallbackManager);
+            new WebAuth(CallbackManager);
             new FreeLicense(CallbackManager);
 
             if (!Settings.IsFullRun)
@@ -54,8 +55,6 @@ namespace SteamDatabaseBackend
                 new ChatMemberInfo(CallbackManager);
                 new UnifiedServices(CallbackManager);
                 new GameCoordinator(Client, CallbackManager);
-
-                new WebAuth(CallbackManager);
 
                 new Watchdog();
             }

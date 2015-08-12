@@ -12,8 +12,7 @@ namespace SteamDatabaseBackend
 {
     class WebAuth : SteamHandler
     {
-        public static bool IsAuthorized { get; private set; }
-
+        private static bool IsAuthorized;
         private static string WebAPIUserNonce;
         private static CookieContainer Cookies;
 
