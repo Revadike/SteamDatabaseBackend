@@ -67,23 +67,46 @@ namespace SteamDatabaseBackend
                 if (command.CommandType == ECommandType.SteamChatRoom)
                 {
                     Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("» {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, Colors.StripColors(name), priceInfo));
+
+                    continue;
                 }
-                else
+
+                if (!isPackage && command.Recipient == "#steamlug")
                 {
-                    IRC.Instance.SendReply(command.Recipient,
-                        string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
-                            Colors.OLIVE,
-                            Colors.NORMAL,
-                            isPackage ? "Package" : "App",
-                            id,
-                            Colors.BLUE,
-                            name,
-                            Colors.LIGHTGRAY,
-                            priceInfo
-                        ),
-                        false
-                    );
+                    using (var db = Database.GetConnection())
+                    {
+                        var status = db.ExecuteScalar<string>("SELECT `Status` FROM `LinuxSupport` WHERE `AppID` = @AppID", new { AppID = id });
+
+                        switch(status)
+                        {
+                            case "working":
+                                priceInfo += " (✓ Confirmed for Linux)";
+                                break;
+
+                            case "beta":
+                                priceInfo += " (Has a public Linux βeta)";
+                                break;
+
+                            default:
+                                priceInfo += " (✘ Unknown Linux status)";
+                                break;
+                        }
+                    }
                 }
+
+                IRC.Instance.SendReply(command.Recipient,
+                    string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
+                        Colors.OLIVE,
+                        Colors.NORMAL,
+                        isPackage ? "Package" : "App",
+                        id,
+                        Colors.BLUE,
+                        name,
+                        Colors.LIGHTGRAY,
+                        priceInfo
+                    ),
+                    false
+                );
             }
         }
     }

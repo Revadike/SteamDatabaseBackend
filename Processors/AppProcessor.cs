@@ -314,6 +314,14 @@ namespace SteamDatabaseBackend
                         Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
                 }
 
+                if (keyName == "common_oslist" && value.Contains("linux"))
+                {
+                    string appType;
+                    var name = Steam.GetAppName(AppID, out appType);
+
+                    IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
+                }
+
                 return true;
             }
 
@@ -334,6 +342,14 @@ namespace SteamDatabaseBackend
             {
                 InsertInfo(data.Key, value);
                 MakeHistory("modified_key", data.Key, data.Value, value);
+
+                if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
+                {
+                    string appType;
+                    var name = Steam.GetAppName(AppID, out appType);
+
+                    IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
+                }
 
                 return true;
             }
