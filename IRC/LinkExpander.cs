@@ -47,22 +47,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                string priceInfo = string.Empty;
-
-                if (!isPackage)
-                {
-                    List<Price> prices;
-
-                    using (var db = Database.GetConnection())
-                    {
-                        prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'it')", new { AppID = id }).ToList();
-                    }
-
-                    if (prices.Any())
-                    {
-                        priceInfo = string.Format(" ({0})", string.Join(" / ", prices.Select(x => x.Format())));
-                    }
-                }
+                string priceInfo = isPackage ? string.Empty : GetFormattedPrices(id);
 
                 if (command.CommandType == ECommandType.SteamChatRoom)
                 {
@@ -108,6 +93,25 @@ namespace SteamDatabaseBackend
                     false
                 );
             }
+        }
+
+        public static string GetFormattedPrices(uint appID)
+        {
+            string priceInfo = string.Empty;
+
+            List<Price> prices;
+
+            using (var db = Database.GetConnection())
+            {
+                prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'it')", new { AppID = appID }).ToList();
+            }
+
+            if (prices.Any())
+            {
+                priceInfo = string.Format(" ({0})", string.Join(" / ", prices.Select(x => x.Format())));
+            }
+
+            return priceInfo;
         }
     }
 }

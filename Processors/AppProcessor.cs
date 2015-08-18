@@ -391,7 +391,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
+            IRC.Instance.SendSteamLUG(string.Format("[oslist][{0}] {1} now lists Linux{2} - {3}", appType, name, LinkExpander.GetFormattedPrices(AppID), SteamDB.GetAppURL(AppID, "history")));
         }
     }
 }
