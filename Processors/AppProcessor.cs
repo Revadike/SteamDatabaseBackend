@@ -316,10 +316,7 @@ namespace SteamDatabaseBackend
 
                 if (keyName == "common_oslist" && value.Contains("linux"))
                 {
-                    string appType;
-                    var name = Steam.GetAppName(AppID, out appType);
-
-                    IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
+                    PrintLinux();
                 }
 
                 return true;
@@ -345,10 +342,7 @@ namespace SteamDatabaseBackend
 
                 if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
                 {
-                    string appType;
-                    var name = Steam.GetAppName(AppID, out appType);
-
-                    IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
+                    PrintLinux();
                 }
 
                 return true;
@@ -385,6 +379,19 @@ namespace SteamDatabaseBackend
         private uint GetKeyNameID(string keyName)
         {
             return DbConnection.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = @keyName", new { keyName });
+        }
+
+        private void PrintLinux()
+        {
+            string appType;
+            var name = Steam.GetAppName(AppID, out appType);
+
+            if (appType == "DLC" || appType == "Demo")
+            {
+                return;
+            }
+
+            IRC.Instance.SendSteamLUG(string.Format("{0} \"{1}\" ({2}) now has Linux in oslist - {3}", appType, name, AppID, SteamDB.GetAppURL(AppID, "history")));
         }
     }
 }
