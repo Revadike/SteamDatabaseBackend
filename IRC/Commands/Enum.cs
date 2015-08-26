@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
 
             if (Enum.TryParse(inputValue, out enumValue))
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, enumValue);
+                CommandHandler.ReplyToCommand(command, "{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
 
                 return;
             }
@@ -118,6 +118,48 @@ namespace SteamDatabaseBackend
             }
 
             CommandHandler.ReplyToCommand(command, "{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
+        }
+
+        private static string ExpandEnumFlagsToString<TEnum>(TEnum enumValue)
+        {
+            if (typeof(TEnum).GetCustomAttributes<FlagsAttribute>().Any())
+            {
+                var definedFlags = new List<string>();
+                int flags = Convert.ToInt32(enumValue);
+                int i = 0;
+                int currentFlag = -1;
+                int flag = 0;
+
+                while (i < flags)
+                {
+                    flag = (1 << ++currentFlag);
+
+                    i += flag;
+
+                    if ((flag & flags) == 0)
+                    {
+                        continue;
+                    }
+
+                    if (Enum.IsDefined(typeof(TEnum), flag))
+                    {
+                        definedFlags.Add(Enum.ToObject(typeof(TEnum), flag).ToString());
+                    }
+                    else
+                    {
+                        definedFlags.Add(string.Format("{0}(1<<{1}){2}", Colors.RED, currentFlag, Colors.BLUE));
+                    }
+                }
+
+                // TODO: Handle odd flags that aren't (1<<x)
+
+                if (definedFlags.Any())
+                {
+                    return string.Join(", ", definedFlags);
+                }
+            }
+
+            return enumValue.ToString();
         }
 
         private static string GetDottedTypeName(Type type)
