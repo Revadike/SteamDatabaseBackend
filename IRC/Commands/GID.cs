@@ -1,0 +1,47 @@
+﻿/*
+ * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+using SteamKit2;
+
+namespace SteamDatabaseBackend
+{
+    class GIDCommand : Command
+    {
+        public GIDCommand()
+        {
+            Trigger = "gid";
+        }
+
+        public override void OnCommand(CommandArguments command)
+        {
+            if (command.Message.Length == 0)
+            {
+                CommandHandler.ReplyToCommand(command, "Usage:{0} gid <globalid>", Colors.OLIVE);
+
+                return;
+            }
+
+            ulong uGid;
+
+            if (!ulong.TryParse(command.Message, out uGid))
+            {
+                CommandHandler.ReplyToCommand(command, "Invalid GlobalID.");
+
+                return;
+            }
+
+            GlobalID gid = uGid;
+
+            CommandHandler.ReplyToCommand(command, "{0} (SeqCount: {1}{2}{3}, StartTime: {4}{5}{6}, ProcessID: {7}{8}{9}, BoxID: {10}{11}{12})",
+                (ulong)gid,
+                Colors.LIGHTGRAY, gid.SequentialCount, Colors.NORMAL,
+                Colors.LIGHTGRAY, gid.StartTime, Colors.NORMAL,
+                Colors.LIGHTGRAY, gid.ProcessID, Colors.NORMAL,
+                Colors.LIGHTGRAY, gid.BoxID, Colors.NORMAL
+            );
+        }
+    }
+}

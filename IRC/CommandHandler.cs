@@ -35,6 +35,7 @@ namespace SteamDatabaseBackend
                 new AppCommand(),
                 new PackageCommand(),
                 new SteamIDCommand(),
+                new GIDCommand(),
                 PubFileHandler,
                 new UGCCommand(),
                 new EnumCommand(),
