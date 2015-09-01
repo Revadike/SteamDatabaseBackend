@@ -386,7 +386,7 @@ namespace SteamDatabaseBackend
             string appType;
             var name = Steam.GetAppName(AppID, out appType);
 
-            if (appType == "DLC" || appType == "Demo")
+            if (appType != "Game" && appType != "Application")
             {
                 return;
             }
