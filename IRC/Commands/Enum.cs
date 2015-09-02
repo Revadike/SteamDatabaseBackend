@@ -129,6 +129,7 @@ namespace SteamDatabaseBackend
                 ulong flag = 0;
                 ulong i = 0;
                 int currentFlag = -1;
+                object flagObject;
 
                 while (i < flags)
                 {
@@ -141,9 +142,11 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    if (Enum.IsDefined(typeof(TEnum), flag))
+                    flagObject = Enum.ToObject(typeof(TEnum), flag);
+
+                    if (Enum.IsDefined(typeof(TEnum), flagObject))
                     {
-                        definedFlags.Add(Enum.ToObject(typeof(TEnum), flag).ToString());
+                        definedFlags.Add(Enum.ToObject(typeof(TEnum), flagObject).ToString());
                     }
                     else
                     {
