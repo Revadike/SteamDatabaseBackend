@@ -125,14 +125,14 @@ namespace SteamDatabaseBackend
             if (typeof(TEnum).GetCustomAttributes<FlagsAttribute>().Any())
             {
                 var definedFlags = new List<string>();
-                int flags = Convert.ToInt32(enumValue);
-                int i = 0;
+                ulong flags = Convert.ToUInt64(enumValue);
+                ulong flag = 0;
+                ulong i = 0;
                 int currentFlag = -1;
-                int flag = 0;
 
                 while (i < flags)
                 {
-                    flag = (1 << ++currentFlag);
+                    flag = (1UL << ++currentFlag);
 
                     i += flag;
 
