@@ -6,9 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamDatabaseBackend", "SteamDatabaseBackend.csproj", "{1FDF0684-CAEF-4290-80C0-D86515063DB5}"
 EndProject
 Global
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
