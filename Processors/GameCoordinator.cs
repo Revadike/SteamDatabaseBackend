@@ -97,6 +97,12 @@ namespace SteamDatabaseBackend
                 ||  info.Status == GCConnectionStatus.GCConnectionStatus_GC_GOING_DOWN)
                 {
                     var hello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
+
+                    if (info.AppID == 570)
+                    {
+                        hello.Body.engine = ESourceEngine.k_ESE_Source2;
+                    }
+
                     SteamGameCoordinator.Send(hello, appID);
                 }
             }
