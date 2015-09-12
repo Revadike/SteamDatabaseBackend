@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Application", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
         }
 
-        public static void Cleanup(bool cleaningUp)
+        public static void Cleanup()
         {
             Log.WriteInfo("Bootstrapper", "Exiting...");
 
@@ -157,7 +157,7 @@ namespace SteamDatabaseBackend
 
                 RssReader.Timer.Stop();
 
-                IRC.Instance.Close(cleaningUp);
+                IRC.Instance.Close();
             }
 
             foreach (var thread in Threads)

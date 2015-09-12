@@ -71,18 +71,13 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Close(bool isCancelKeyExit)
+        public void Close()
         {
             Disconnecting = true;
 
             if (!Client.IsConnected)
             {
                 return;
-            }
-
-            if (!isCancelKeyExit)
-            {
-                Client.ChatAction(Settings.Current.IRC.Channel.Ops, "is exiting… (most likely due to a crash)");
             }
 
             SendEmoteAnnounce("is exiting…");

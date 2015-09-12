@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
 
             CleaningUp = true;
 
-            Application.Cleanup(CleaningUp);
+            Application.Cleanup();
         }
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendOps("I am literally about to crash, send help. ({0})", e.Message);
 
-                Application.Cleanup(CleaningUp);
+                Application.Cleanup();
             }
         }
     }
