@@ -29,6 +29,9 @@ namespace SteamDatabaseBackend
             CDNClient = cdnClient;
 
             ReloadFileList();
+
+            string filesDir = Path.Combine(Application.Path, "files", ".support", "hashes");
+            Directory.CreateDirectory(filesDir);
         }
 
         public static void ReloadFileList()
@@ -68,6 +71,14 @@ namespace SteamDatabaseBackend
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
 
+            var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
+            var hashes = new Dictionary<string, byte[]>();
+
+            if (File.Exists(hashesFile))
+            {
+                hashes = JsonConvert.DeserializeObject<Dictionary<string, byte[]>>(File.ReadAllText(hashesFile));
+            }
+
             Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
             Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
@@ -80,33 +91,31 @@ namespace SteamDatabaseBackend
                 {
                     Directory.CreateDirectory(directory);
                 }
-                else if (File.Exists(finalPath))
+                else if (file.TotalSize == 0)
                 {
-                    using (var fs = File.Open(finalPath, FileMode.Open, FileAccess.Read))
+                    if (File.Exists(finalPath))
                     {
-                        if (fs.Length == 0 && file.TotalSize == 0)
+                        var f = new FileInfo(finalPath);
+
+                        if(f.Length == 0)
                         {
                             Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
 
                             return;
                         }
+                    }
+                    else
+                    {
+                        File.Create(finalPath);
 
-                        using (var sha = new SHA1Managed())
-                        {
-                            if (file.FileHash.SequenceEqual(sha.ComputeHash(fs)))
-                            {
-                                Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
+                        Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
 
-                                return;
-                            }
-                        }
+                        return;
                     }
                 }
-                else if (file.TotalSize == 0)
+                else if(hashes.ContainsKey(file.FileName) && file.FileHash.SequenceEqual(hashes[file.FileName]))
                 {
-                    File.Create(finalPath);
-
-                    Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
+                    Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
 
                     return;
                 }
@@ -230,6 +239,8 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
 
+                    hashes[file.FileName] = checksum;
+
                     if (File.Exists(finalPath))
                     {
                         File.Delete(finalPath);
@@ -268,6 +279,8 @@ namespace SteamDatabaseBackend
 
             if (filesUpdated)
             {
+                File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
+
                 var updateScript = Path.Combine(Application.Path, "files", "update.sh");
 
                 if (File.Exists(updateScript))
