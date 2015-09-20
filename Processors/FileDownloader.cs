@@ -99,7 +99,9 @@ namespace SteamDatabaseBackend
 
                         if(f.Length == 0)
                         {
+#if DEBUG
                             Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
+#endif
 
                             return;
                         }
@@ -115,7 +117,9 @@ namespace SteamDatabaseBackend
                 }
                 else if(hashes.ContainsKey(file.FileName) && file.FileHash.SequenceEqual(hashes[file.FileName]))
                 {
+#if DEBUG
                     Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
+#endif
 
                     return;
                 }
@@ -169,13 +173,17 @@ namespace SteamDatabaseBackend
                                         fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
                                         fs.Write(oldData, 0, oldData.Length);
 
+#if DEBUG
                                         Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, chunks.Count);
+#endif
                                     }
                                     else
                                     {
                                         neededChunks.Add(chunk);
 
+#if DEBUG
                                         Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), but checksum differs", file.FileName, chunk.Offset);
+#endif
                                     }
                                 }
                                 else
