@@ -36,9 +36,12 @@ namespace SteamDatabaseBackend
                 }
                 set
                 {
-                    _status = value;
+                    if (value != _status)
+                    {
+                        _status = value;
 
-                    UpdateStatus(AppID, _status.ToString());
+                        UpdateStatus(AppID, _status.ToString());
+                    }
                 }
             }
         }
@@ -78,6 +81,7 @@ namespace SteamDatabaseBackend
             SessionTimer.Start();
 
             manager.Subscribe<SteamGameCoordinator.MessageCallback>(OnGameCoordinatorMessage);
+            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
             manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
             manager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
         }
@@ -116,6 +120,11 @@ namespace SteamDatabaseBackend
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             ResetSessions();
+        }
+
+        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
+        {
+            OnSessionTick(null, null);
         }
 
         private void ResetSessions()
