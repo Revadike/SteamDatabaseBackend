@@ -70,6 +70,7 @@ namespace SteamDatabaseBackend
             var randomGenerator = new Random();
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
+            var filesAnyFailed = false;
 
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
             var hashes = new Dictionary<string, byte[]>();
@@ -275,6 +276,8 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
+                    filesAnyFailed = true;
+
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})",
                         Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, chunks.Count, lastError);
 
@@ -287,6 +290,14 @@ namespace SteamDatabaseBackend
 
             if (filesUpdated)
             {
+                if (filesAnyFailed)
+                {
+                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
+                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
+
+                    return;
+                }
+
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
 
                 var updateScript = Path.Combine(Application.Path, "files", "update.sh");
