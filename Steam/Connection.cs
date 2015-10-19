@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
 
             GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
 
-            Log.WriteInfo("Steam", "Connected, logging in...");
+            Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
 
             byte[] sentryHash = null;
 
