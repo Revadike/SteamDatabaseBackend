@@ -147,26 +147,42 @@ namespace SteamDatabaseBackend
 
         private void OnWelcome(uint appID, IPacketGCMsg packetMsg)
         {
-            var msg = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body;
+            uint version = 0;
+
+            switch (appID)
+            {
+                case 730:
+                    //OnWelcomeClean(appID, new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body.version);
+                    // TODO: SteamKit doesn't build CSGO's gcsdk protos
+                    break;
+
+                case 440: // TF2 is compatible with Dota's protos because it only sends 2 fields, but better be safe
+                    version = new ClientGCMsgProtobuf<SteamKit2.GC.TF2.Internal.CMsgClientWelcome>(packetMsg).Body.version;
+                    break;
+
+                default: // SteamKit defaults to using Dota 2's protobufs
+                    version = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body.version;
+                    break;
+            }
 
             var info = GetSessionInfo(appID);
 
             string message = string.Format("{0}{1}{2} new GC session", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL);
 
-            if (info.Version == 0 || info.Version == msg.version)
+            if (info.Version == 0 || info.Version == version)
             {
-                message += string.Format(" {0}(version {1})", Colors.DARKGRAY, msg.version);
+                message += string.Format(" {0}(version {1})", Colors.DARKGRAY, version);
             }
             else
             {
-                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, info.Version, msg.version);
+                message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, info.Version, version);
 
                 IRC.Instance.SendMain(message);
             }
 
             IRC.Instance.SendAnnounce(message);
 
-            info.Version = msg.version;
+            info.Version = version;
             info.Status = GCConnectionStatus.GCConnectionStatus_HAVE_SESSION;
         }
 
