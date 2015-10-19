@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
             {
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
-
+                CellID = LocalConfig.CellID,
                 AuthCode = AuthCode,
                 SentryFileHash = sentryHash
             });
@@ -137,7 +137,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var cellId = (int)callback.CellID;
+            var cellId = callback.CellID;
 
             if (LocalConfig.CellID != cellId)
             {

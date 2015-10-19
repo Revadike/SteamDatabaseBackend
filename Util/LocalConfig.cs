@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
         class LocalConfigJson
         {
             [JsonProperty]
-            public int CellID;
+            public uint CellID;
 
             [JsonProperty]
             public IPEndPoint[] ServerList;
@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             public byte[] Sentry;
         }
 
-        public static int CellID { get; set; }
+        public static uint CellID { get; set; }
 
         public static string SentryFileName { get; set; }
 
@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Steam", "Loading Steam servers...");
 
-            var loadServersTask = SteamDirectory.Initialize(CellID);
+            var loadServersTask = SteamDirectory.Initialize((int)CellID);
             loadServersTask.Wait();
 
             if (loadServersTask.IsFaulted)
