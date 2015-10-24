@@ -33,11 +33,11 @@ namespace SteamDatabaseBackend
         {
             t.ContinueWith(task =>
             {
+                ErrorReporter.Notify(task.Exception);
+
                 task.Exception.Flatten().Handle(e =>
                 {
                     Log.WriteError("Task Manager", "Exception: {0}\n{1}", e.Message, e.StackTrace);
-
-                    ErrorReporter.Notify(e);
 
                     return false;
                 });
