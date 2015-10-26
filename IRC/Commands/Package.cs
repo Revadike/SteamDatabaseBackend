@@ -50,16 +50,7 @@ namespace SteamDatabaseBackend
 
             var info = callback.Packages[subID];
 
-            try
-            {
-                info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
-            }
-            catch (Exception e)
-            {
-                CommandHandler.ReplyToCommand(command, "Unable to save file: {0}", e.Message);
-
-                return;
-            }
+            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
 
             CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,

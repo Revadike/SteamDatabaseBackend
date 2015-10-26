@@ -28,7 +28,7 @@ namespace SteamDatabaseBackend
             Trigger = "bins";
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
@@ -49,46 +49,31 @@ namespace SteamDatabaseBackend
 
             using (var webClient = new WebClient())
             {
-                webClient.DownloadDataCompleted += delegate(object sender, DownloadDataCompletedEventArgs e)
-                {
-                    var kv = new KeyValue();
-
-                    using (var ms = new MemoryStream(e.Result))
-                    {
-                        try
-                        {
-                            kv.ReadAsText(ms);
-                        }
-                        catch
-                        {
-                            CommandHandler.ReplyToCommand(command, "Something went horribly wrong and keyvalue parser died.");
-
-                            return;
-                        }
-                    }
-
-                    PrintBinary(command, kv, string.Concat("bins_", os));
-                    PrintBinary(command, kv, string.Concat("bins_client_", os));
-                };
-
                 var isStable = args.Length > 1 && args[1].Equals("stable");
+                string data = await webClient.DownloadStringTaskAsync(new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks)));
 
-                webClient.DownloadDataAsync(new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks)));
+                var kv = KeyValue.LoadFromString(data);
+
+                if (kv == null)
+                {
+                    throw new Exception("Failed to parse downloaded client manifest.");
+                }
+
+                PrintBinary(command, kv, string.Concat("bins_", os));
+                PrintBinary(command, kv, string.Concat("bins_client_", os));
             }
         }
 
-        private static bool PrintBinary(CommandArguments command, KeyValue kv, string key)
+        private static void PrintBinary(CommandArguments command, KeyValue kv, string key)
         {
             if (kv[key].Children.Count == 0)
             {
-                return false;
+                return;
             }
 
             kv = kv[key];
 
             CommandHandler.ReplyToCommand(command, "{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
-
-            return true;
         }
     }
 }

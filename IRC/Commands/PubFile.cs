@@ -169,18 +169,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            try
-            {
-                var json = JsonConvert.SerializeObject(details, Formatting.Indented);
+            var json = JsonConvert.SerializeObject(details, Formatting.Indented);
 
-                File.WriteAllText(Path.Combine(Application.Path, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
-            }
-            catch (Exception e)
-            {
-                CommandHandler.ReplyToCommand(command, "Unable to save file: {0}", e.Message);
-
-                return;
-            }
+            File.WriteAllText(Path.Combine(Application.Path, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
 
             CommandHandler.ReplyToCommand(command, "{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
                 (EWorkshopFileType)details.file_type,
