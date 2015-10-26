@@ -8,9 +8,8 @@ notifications:
   irc:
     skip_join: false
     on_success: never
-    on_failure: always
+    on_failure: change
     channels:
       - "chat.freenode.net#steamdb"
     template:
-      - "[%{repository_name}] %{commit} by %{author}: %{message}"
-      - "[%{repository_name}] Build details: %{build_url}"
+      - "[%{repository_name}] %{message} - %{build_url}"
