@@ -48,25 +48,20 @@ namespace SteamDatabaseBackend
 
         private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
-            Log.WriteDebug("Steam", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
-
-            var apps = callback.AppTokensDenied
-                .Select(app => Utils.NewPICSRequest(app))
-                .Concat(callback.AppTokens.Select(app => Utils.NewPICSRequest(app.Key, app.Value)));
-
-            Func<JobID> func = () => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>());
-
-            JobAction job;
-
-            // We have to preserve CommandRequest between jobs
-            if (JobManager.TryRemoveJob(callback.JobID, out job) && job.IsCommand)
+            if (!JobManager.TryRemoveJob(callback.JobID))
             {
-                JobManager.AddJob(func, job.CommandRequest);
+                Log.WriteDebug("PICSTokens", "Got tokens, but we had no job");
 
                 return;
             }
 
-            JobManager.AddJob(func);
+            Log.WriteDebug("PICSTokens", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
+
+            var apps = callback.AppTokensDenied
+                .Select(app => Utils.NewPICSRequest(app))
+                .Concat(callback.AppTokens.Select(app => Utils.NewPICSRequest(app.Key, app.Value)));
+            
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
         }
 
         public static ulong GetToken(uint id)
@@ -97,6 +92,10 @@ namespace SteamDatabaseBackend
                         new { AppID = id, Token = accessToken, CommunityID = Steam.Instance.Client.SteamID.ConvertToUInt64() }
                     );
                 }
+            }
+            else if (SecretTokens[id] != accessToken)
+            {
+                IRC.Instance.SendOps("[TOKENS] Yo xPaw, bot got a token that mismatches the one in database: {0} != {1}", SecretTokens[id], accessToken);
             }
         }
     }

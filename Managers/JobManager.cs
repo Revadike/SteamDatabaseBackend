@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
     class JobAction
     {
         public Func<JobID> Action;
-        public JobManager.IRCRequest CommandRequest;
+        public CommandArguments Command;
         public DepotProcessor.ManifestJob ManifestJob;
 
         public bool IsManifestJob
@@ -24,44 +24,14 @@ namespace SteamDatabaseBackend
                 return ManifestJob != null;
             }
         }
-
-        public bool IsCommand
-        {
-            get
-            {
-                return CommandRequest != null;
-            }
-        }
     }
 
     static class JobManager
     {
-        private const uint CHAT_COMMAND_TIMEOUT = 5;
-
-        public class IRCRequest
-        {
-            public CommandArguments Command { get; set; }
-            public IRCRequestType Type { get; set; }
-            public uint Target { get; set; }
-            public DateTime ExpireTime { get; set; }
-        }
-
-        public enum IRCRequestType
-        {
-            TYPE_NONE,
-            TYPE_APP,
-            TYPE_SUB,
-            TYPE_PUBFILE,
-            TYPE_PUBFILE_SILENT,
-            TYPE_GAMESERVERS,
-        }
-
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
 
         public static void AddJob(Func<JobID> action)
         {
-            RemoveStaleJobs();
-
             var jobID = action();
 
             var job = new JobAction
@@ -74,30 +44,24 @@ namespace SteamDatabaseBackend
             Jobs.TryAdd(jobID, job);
         }
 
-        public static void AddJob(Func<JobID> action, IRCRequest request)
+        public static void AddJob(Func<JobID> action, CommandArguments command)
         {
-            RemoveStaleJobs();
-
             var jobID = action();
-
-            request.ExpireTime = DateTime.Now + TimeSpan.FromSeconds(CHAT_COMMAND_TIMEOUT);
 
             var job = new JobAction
             {
                 Action = action,
-                CommandRequest = request
+                Command = command
             };
 
             // Chat rooms don't have full message saved
-            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, request.Command.Message);
+            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, command.Message);
 
             Jobs.TryAdd(jobID, job);
         }
 
         public static void AddJob(Func<JobID> action, DepotProcessor.ManifestJob manifestJob)
         {
-            RemoveStaleJobs();
-
             var jobID = action();
 
             var job = new JobAction
@@ -111,10 +75,15 @@ namespace SteamDatabaseBackend
             Jobs.TryAdd(jobID, job);
         }
 
+        public static bool TryRemoveJob(JobID jobID)
+        {
+            JobAction job;
+
+            return TryRemoveJob(jobID, out job);
+        }
+
         public static bool TryRemoveJob(JobID jobID, out JobAction job)
         {
-            RemoveStaleJobs();
-
             if (Jobs.TryRemove(jobID, out job))
             {
                 Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
@@ -141,36 +110,6 @@ namespace SteamDatabaseBackend
             foreach (var job in jobs)
             {
                 Jobs.TryAdd(job.Value.Action(), job.Value);
-            }
-        }
-
-        public static void CancelChatJobsIfAny()
-        {
-            var jobs = Jobs.Where(job => job.Value.IsCommand).ToList();
-
-            JobAction dummy;
-
-            foreach (var job in jobs)
-            {
-                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, true, "Your request failed.");
-
-                Jobs.TryRemove(job.Key, out dummy);
-            }
-        }
-
-        private static void RemoveStaleJobs()
-        {
-            var jobs = Jobs.Where(job => job.Value.IsCommand && DateTime.Now >= job.Value.CommandRequest.ExpireTime).ToList();
-
-            JobAction dummy;
-
-            foreach (var job in jobs)
-            {
-                Log.WriteDebug("Job Manager", "Timed out job: {0} ({1} jobs left)", job.Key, Jobs.Count);
-
-                CommandHandler.ReplyToCommand(job.Value.CommandRequest.Command, true, "Your request timed out.");
-
-                Jobs.TryRemove(job.Key, out dummy);
             }
         }
     }

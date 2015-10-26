@@ -30,6 +30,8 @@ namespace SteamDatabaseBackend
 
         private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
+            JobManager.TryRemoveJob(callback.JobID);
+
             var apps = callback.Apps.Concat(callback.UnknownApps.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
             var packages = callback.Packages.Concat(callback.UnknownPackages.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
 

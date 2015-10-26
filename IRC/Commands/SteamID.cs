@@ -89,15 +89,11 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            JobAction job;
-            JobManager.TryRemoveJob(new JobID(steamID), out job); // Remove previous "job" if any
+            JobManager.TryRemoveJob(new JobID(steamID)); // Remove previous "job" if any
 
             JobManager.AddJob(
                 () => FakePersonaStateJob(steamID),
-                new JobManager.IRCRequest
-                {
-                    Command = command
-                }
+                command
             );
         }
 
@@ -105,12 +101,12 @@ namespace SteamDatabaseBackend
         {
             JobAction job;
 
-            if (!JobManager.TryRemoveJob(new JobID(callback.FriendID), out job) || !job.IsCommand)
+            if (!JobManager.TryRemoveJob(new JobID(callback.FriendID), out job))
             {
                 return;
             }
 
-            var command = job.CommandRequest.Command;
+            var command = job.Command;
 
             if (callback.FriendID.IsClanAccount)
             {

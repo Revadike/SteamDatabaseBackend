@@ -3,6 +3,11 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
+using System;
+using System.IO;
+using System.Linq;
+
 namespace SteamDatabaseBackend
 {
     class PackageCommand : Command
@@ -13,8 +18,17 @@ namespace SteamDatabaseBackend
             IsSteamCommand = true;
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
+            uint subID;
+
+            if (command.Message.Length == 0 || !uint.TryParse(command.Message, out subID))
+            {
+                CommandHandler.ReplyToCommand(command, "Usage:{0} sub <subid>", Colors.OLIVE);
+
+                return;
+            }
+
             var count = PICSProductInfo.ProcessedSubs.Count;
 
             if (count > 100)
@@ -24,21 +38,36 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            uint subID;
+            var job = await Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
+            var callback = job.Results.First(x => !x.ResponsePending);
 
-            if (command.Message.Length > 0 && uint.TryParse(command.Message, out subID))
+            if (!callback.Packages.ContainsKey(subID))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false), new JobManager.IRCRequest
-                {
-                    Target = subID,
-                    Type = JobManager.IRCRequestType.TYPE_SUB,
-                    Command = command
-                });
+                CommandHandler.ReplyToCommand(command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, subID, LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty);
 
                 return;
             }
 
-            CommandHandler.ReplyToCommand(command, "Usage:{0} sub <subid>", Colors.OLIVE);
+            var info = callback.Packages[subID];
+
+            try
+            {
+                info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
+            }
+            catch (Exception e)
+            {
+                CommandHandler.ReplyToCommand(command, "Unable to save file: {0}", e.Message);
+
+                return;
+            }
+
+            CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
+                Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
+                info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
+                LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+            );
         }
     }
 }

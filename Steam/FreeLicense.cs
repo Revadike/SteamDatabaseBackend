@@ -26,8 +26,7 @@ namespace SteamDatabaseBackend
 
         private static void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
         {
-            JobAction job;
-            JobManager.TryRemoveJob(callback.JobID, out job);
+            JobManager.TryRemoveJob(callback.JobID);
 
             var packageIDs = callback.GrantedPackages;
             var appIDs = callback.GrantedApps;

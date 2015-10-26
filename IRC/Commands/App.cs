@@ -19,11 +19,9 @@ namespace SteamDatabaseBackend
         {
             Trigger = "app";
             IsSteamCommand = true;
-
-            Steam.Instance.CallbackManager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
@@ -42,10 +40,11 @@ namespace SteamDatabaseBackend
             }
 
             uint appID;
+            string name;
 
             if (!uint.TryParse(command.Message, out appID))
             {
-                string name = command.Message;
+                name = command.Message;
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
@@ -67,116 +66,57 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var apps = new List<uint>();
+            var tokenCallback = await Steam.Instance.Apps.PICSGetAccessTokens(new List<uint> { appID }, Enumerable.Empty<uint>());
+            SteamApps.PICSRequest request;
 
-            apps.Add(appID);
-
-            JobManager.AddJob(
-                () => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()), 
-                new JobManager.IRCRequest
-                {
-                    Target = appID,
-                    Type = JobManager.IRCRequestType.TYPE_APP,
-                    Command = command
-                }
-            );
-        }
-
-        private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
-        {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job) || !job.IsCommand)
+            if (tokenCallback.AppTokens.ContainsKey(appID))
             {
-                return;
-            }
-
-            var request = job.CommandRequest;
-
-            if (request.Type == JobManager.IRCRequestType.TYPE_SUB)
-            {
-                if (!callback.Packages.ContainsKey(request.Target))
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, request.Target, LicenseList.OwnedSubs.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
-
-                    return;
-                }
-
-                var info = callback.Packages[request.Target];
-                string name;
-
-                if (info.KeyValues["name"].Value != null)
-                {
-                    name = Utils.RemoveControlCharacters(info.KeyValues["name"].AsString());
-                }
-                else
-                {
-                    name = Steam.GetPackageName(info.ID);
-                }
-
-                try
-                {
-                    info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
-                }
-                catch (Exception e)
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {0}: {1}", name, e.Message);
-
-                    return;
-                }
-
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                    Colors.BLUE, name, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
-                    info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
-                );
-            }
-            else if (request.Type == JobManager.IRCRequestType.TYPE_APP)
-            {
-                if (!callback.Apps.ContainsKey(request.Target))
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, request.Target, LicenseList.OwnedApps.ContainsKey(request.Target) ? SteamDB.StringCheckmark : string.Empty);
-
-                    return;
-                }
-
-                var info = callback.Apps[request.Target];
-                string name;
-
-                if (info.KeyValues["common"]["name"].Value != null)
-                {
-                    name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString());
-                }
-                else
-                {
-                    name = Steam.GetAppName(info.ID);
-                }
-
-                try
-                {
-                    info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", string.Format("{0}.vdf", info.ID)), false);
-                }
-                catch (Exception e)
-                {
-                    CommandHandler.ReplyToCommand(request.Command, "Unable to save file for {0}: {1}", name, e.Message);
-
-                    return;
-                }
-
-                CommandHandler.ReplyToCommand(request.Command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                    Colors.BLUE, name, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
-                    info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
-                );
+                request = Utils.NewPICSRequest(appID, tokenCallback.AppTokens[appID]);
             }
             else
             {
-                CommandHandler.ReplyToCommand(request.Command, "I have no idea what happened here!");
+                request = Utils.NewPICSRequest(appID);
             }
+
+            var job = await Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
+            var callback = job.Results.First(x => !x.ResponsePending);
+
+            if (!callback.Apps.ContainsKey(appID))
+            {
+                CommandHandler.ReplyToCommand(command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, appID, LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty);
+
+                return;
+            }
+
+            var info = callback.Apps[appID];
+
+            if (info.KeyValues["common"]["name"].Value != null)
+            {
+                name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString());
+            }
+            else
+            {
+                name = Steam.GetAppName(info.ID);
+            }
+
+            try
+            {
+                info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", string.Format("{0}.vdf", info.ID)), false);
+            }
+            catch (Exception e)
+            {
+                CommandHandler.ReplyToCommand(command, "Unable to save file: {0}", e.Message);
+
+                return;
+            }
+
+            CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
+                Colors.BLUE, name, Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,
+                info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
+                LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
+            );
         }
     }
 }
