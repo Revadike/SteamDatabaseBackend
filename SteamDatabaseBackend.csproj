@@ -123,7 +123,6 @@
     <Compile Include="IRC\LinkExpander.cs" />
     <Compile Include="Database\Price.cs" />
     <Compile Include="IRC\Commands\Servers.cs" />
-    <Compile Include="Steam\UnifiedServices.cs" />
     <Compile Include="Steam\ReadMachineAuth.cs" />
     <Compile Include="Util\LocalConfig.cs" />
     <Compile Include="Util\JsonConverters.cs" />

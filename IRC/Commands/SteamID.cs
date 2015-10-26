@@ -90,11 +90,7 @@ namespace SteamDatabaseBackend
             }
 
             JobAction job;
-
-            if (JobManager.TryRemoveJob(new JobID(steamID), out job) && job.IsCommand)
-            {
-                CommandHandler.ReplyToCommand(job.CommandRequest.Command, true, "Your !steamid request was lost in space.");
-            }
+            JobManager.TryRemoveJob(new JobID(steamID), out job); // Remove previous "job" if any
 
             JobManager.AddJob(
                 () => FakePersonaStateJob(steamID),

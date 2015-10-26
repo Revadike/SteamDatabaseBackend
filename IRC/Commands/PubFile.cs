@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
             PublishedFiles = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IPublishedFile>();
         }
 
-        public void OnMessage(CommandArguments command)
+        public async void OnMessage(CommandArguments command)
         {
             var matches = SharedFileMatch.Matches(command.Message);
 
@@ -47,18 +47,78 @@ namespace SteamDatabaseBackend
 
                 pubFileRequest.publishedfileids.Add(pubFileId);
 
-                JobManager.AddJob(
-                    () => PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest)), 
-                    new JobManager.IRCRequest
-                    {
-                        Type = JobManager.IRCRequestType.TYPE_PUBFILE_SILENT,
-                        Command = command
-                    }
-                );
+                var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+                var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
+                var details = response.publishedfiledetails.FirstOrDefault();
+
+                if (details == null || (EResult)details.result != EResult.OK)
+                {
+                    return; // TODO
+                }
+
+                string title;
+
+                if (!string.IsNullOrWhiteSpace(details.title))
+                {
+                    title = details.title;
+                }
+                else if (!string.IsNullOrEmpty(details.file_description))
+                {
+                    title = details.file_description;
+                }
+                else
+                {
+                    title = details.filename;
+                }
+
+                if (title.Length > 49)
+                {
+                    title = title.Substring(0, 49) + "…";
+                }
+
+                var votesUp = details.vote_data != null ? details.vote_data.votes_up : 0;
+                var votesDown = details.vote_data != null ? details.vote_data.votes_down : 0;
+
+                if (command.CommandType == ECommandType.SteamChatRoom)
+                {
+                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg,
+                        string.Format("» {0}: {1} for {2} ({3:N0} views, {4:N0} \ud83d\udc4d, {5:N0} \ud83d\udc4e){6}",
+                            (EWorkshopFileType)details.file_type,
+                            title,
+                            details.app_name,
+                            details.views,
+                            votesUp,
+                            votesDown,
+                            details.spoiler_tag ? " :retreat: SPOILER" : ""
+                        )
+                    );
+                }
+                else
+                {
+                    IRC.Instance.SendReply(command.Recipient,
+                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9:N0} views, {10:N0} \ud83d\udc4d, {11:N0} \ud83d\udc4e)",
+                            Colors.OLIVE,
+                            Colors.NORMAL,
+                            (EWorkshopFileType)details.file_type,
+                            Colors.BLUE,
+                            title,
+                            Colors.NORMAL,
+                            Colors.BLUE,
+                            details.app_name,
+                            Colors.LIGHTGRAY,
+                            details.views,
+                            votesUp,
+                            votesDown
+                        ),
+                        false
+                    );
+                }
+
+                break; // TODO: Fix this (can't really await in a foreach)
             }
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
@@ -89,92 +149,13 @@ namespace SteamDatabaseBackend
 
             pubFileRequest.publishedfileids.Add(pubFileId);
 
-            JobManager.AddJob(
-                () => PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest)), 
-                new JobManager.IRCRequest
-                {
-                    Type = JobManager.IRCRequestType.TYPE_PUBFILE,
-                    Command = command
-                }
-            );
-        }
-
-        public static void OnServiceMethod(SteamUnifiedMessages.ServiceMethodResponse callback, JobManager.IRCRequest request)
-        {
+            var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
             var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
             var details = response.publishedfiledetails.FirstOrDefault();
 
-            if (request.Type == JobManager.IRCRequestType.TYPE_PUBFILE_SILENT)
-            {
-                if (details == null || (EResult)details.result != EResult.OK)
-                {
-                    return;
-                }
-
-                string title;
-
-                if (!string.IsNullOrWhiteSpace(details.title))
-                {
-                    title = details.title;
-                }
-                else if (!string.IsNullOrEmpty(details.file_description))
-                {
-                    title = details.file_description;
-                }
-                else
-                {
-                    title = details.filename;
-                }
-
-                if (title.Length > 49)
-                {
-                    title = title.Substring(0, 49) + "…";
-                }
-
-                var votesUp = details.vote_data != null ? details.vote_data.votes_up : 0;
-                var votesDown = details.vote_data != null ? details.vote_data.votes_down : 0;
-
-                if (request.Command.CommandType == ECommandType.SteamChatRoom)
-                {
-                    Steam.Instance.Friends.SendChatRoomMessage(request.Command.ChatRoomID, EChatEntryType.ChatMsg,
-                        string.Format("» {0}: {1} for {2} ({3:N0} views, {4:N0} \ud83d\udc4d, {5:N0} \ud83d\udc4e){6}",
-                            (EWorkshopFileType)details.file_type,
-                            title,
-                            details.app_name,
-                            details.views,
-                            votesUp,
-                            votesDown,
-                            details.spoiler_tag ? " :retreat: SPOILER" : ""
-                        )
-                    );
-                }
-                else
-                {
-                    IRC.Instance.SendReply(request.Command.Recipient,
-                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9:N0} views, {10:N0} \ud83d\udc4d, {11:N0} \ud83d\udc4e)",
-                            Colors.OLIVE,
-                            Colors.NORMAL,
-                            (EWorkshopFileType)details.file_type,
-                            Colors.BLUE,
-                            title,
-                            Colors.NORMAL,
-                            Colors.BLUE,
-                            details.app_name,
-                            Colors.LIGHTGRAY,
-                            details.views,
-                            votesUp,
-                            votesDown
-                        ),
-                        false
-                    );
-                }
-
-                return;
-            }
-
             if (details == null)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to make service request for published file info: the server returned no info");
+                CommandHandler.ReplyToCommand(command, "Unable to make service request for published file info: the server returned no info");
 
                 return;
             }
@@ -183,7 +164,7 @@ namespace SteamDatabaseBackend
 
             if (result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to get published file info: {0}", result);
+                CommandHandler.ReplyToCommand(command, "Unable to get published file info: {0}{1}", Colors.RED, result);
 
                 return;
             }
@@ -196,12 +177,12 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to save file: {0}", e.Message);
+                CommandHandler.ReplyToCommand(command, "Unable to save file: {0}", e.Message);
 
                 return;
             }
 
-            CommandHandler.ReplyToCommand(request.Command, "{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
+            CommandHandler.ReplyToCommand(command, "{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
                 (EWorkshopFileType)details.file_type,
                 Colors.BLUE, string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title, Colors.NORMAL,
                 Colors.BLUE, new SteamID(details.creator).Render(true), Colors.NORMAL,
@@ -213,7 +194,7 @@ namespace SteamDatabaseBackend
                 Colors.DARKBLUE, SteamDB.GetUGCURL(details.publishedfileid)
             );
 
-            CommandHandler.ReplyToCommand(request.Command, true, "{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
+            CommandHandler.ReplyToCommand(command, true, "{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
         }
     }
 }

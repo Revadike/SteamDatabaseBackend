@@ -53,7 +53,6 @@ namespace SteamDatabaseBackend
                 new AccountInfo(CallbackManager);
                 new ClanState(CallbackManager);
                 new ChatMemberInfo(CallbackManager);
-                new UnifiedServices(CallbackManager);
                 new GameCoordinator(Client, CallbackManager);
 
                 new Watchdog();

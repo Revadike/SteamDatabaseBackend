@@ -14,11 +14,10 @@ namespace SteamDatabaseBackend
         public PlayersCommand()
         {
             Trigger = "players";
-
-            Steam.Instance.CallbackManager.Subscribe<SteamUserStats.NumberOfPlayersCallback>(OnNumberOfPlayers);
+            IsSteamCommand = true;
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
@@ -54,35 +53,16 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            JobManager.AddJob(
-                () => Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID),
-                new JobManager.IRCRequest
-                {
-                    Target = appID,
-                    Command = command
-                }
-            );
-        }
-
-        private static void OnNumberOfPlayers(SteamUserStats.NumberOfPlayersCallback callback)
-        {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job) || !job.IsCommand)
-            {
-                return;
-            }
-
-            var request = job.CommandRequest;
+            var callback = await Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to request player count: {0}{1}", Colors.RED, callback.Result);
+                CommandHandler.ReplyToCommand(command, "Unable to request player count: {0}{1}", Colors.RED, callback.Result);
             }
-            else if (request.Target == 0)
+            else if (appID == 0)
             {
                 CommandHandler.ReplyToCommand(
-                    request.Command,
+                    command,
                     "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}",
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetAppURL(753, "graphs")
@@ -91,11 +71,11 @@ namespace SteamDatabaseBackend
             else
             {
                 CommandHandler.ReplyToCommand(
-                    request.Command,
+                    command,
                     "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
-                    Colors.BLUE, Steam.GetAppName(request.Target), Colors.NORMAL,
+                    Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(request.Target, "graphs")
+                    Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
                 );
             }
         }

@@ -101,8 +101,6 @@ namespace SteamDatabaseBackend
 
             GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
 
-            JobManager.CancelChatJobsIfAny();
-
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
             IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);

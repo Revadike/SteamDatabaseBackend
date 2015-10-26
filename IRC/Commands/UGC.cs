@@ -19,11 +19,9 @@ namespace SteamDatabaseBackend
             IsSteamCommand = true;
 
             Cloud = Steam.Instance.Client.GetHandler<SteamCloud>();
-
-            Steam.Instance.CallbackManager.Subscribe<SteamCloud.UGCDetailsCallback>(OnUGCInfo);
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async void OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {
@@ -41,34 +39,16 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            JobManager.AddJob(
-                () => Cloud.RequestUGCDetails(ugcId), 
-                new JobManager.IRCRequest
-                {
-                    Command = command
-                }
-            );
-        }
-
-        private void OnUGCInfo(SteamCloud.UGCDetailsCallback callback)
-        {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job) || !job.IsCommand)
-            {
-                return;
-            }
-
-            var request = job.CommandRequest;
+            var callback = await Cloud.RequestUGCDetails(ugcId);
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(request.Command, "Unable to request UGC info: {0}", callback.Result);
+                CommandHandler.ReplyToCommand(command, "Unable to request UGC info: {0}{1}", Colors.RED, callback.Result);
 
                 return;
             }
 
-            CommandHandler.ReplyToCommand(request.Command, "Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
+            CommandHandler.ReplyToCommand(command, "Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
                 Colors.BLUE, callback.Creator.Render(true), Colors.NORMAL,
                 Colors.BLUE, callback.AppID, Colors.NORMAL,
                 Colors.BLUE, callback.FileName, Colors.NORMAL,

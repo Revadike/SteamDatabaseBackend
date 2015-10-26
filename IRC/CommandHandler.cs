@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NetIrc2.Events;
 using SteamKit2;
 
@@ -275,6 +276,14 @@ namespace SteamDatabaseBackend
             try
             {
                 command.OnCommand(commandData);
+            }
+            catch (TaskCanceledException)
+            {
+                ReplyToCommand(commandData, "Your command timed out.");
+            }
+            catch (AsyncJobFailedException)
+            {
+                ReplyToCommand(commandData, "Steam says this job failed, unable to execute your command.");
             }
             catch (Exception e)
             {
