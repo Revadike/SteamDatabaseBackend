@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
 
                 if (newAppType == -1)
                 {
-                    DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName) ON DUPLICATE KEY UPDATE `Name` = `Name`",
+                    DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
                         new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
 
                 if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
                 {
-                    DbConnection.Execute("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = @AppName, `LastKnownName` = @AppName, `AppType` = @Type",
+                    DbConnection.Execute("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `LastKnownName` = VALUES(`LastKnownName`), `AppType` = VALUES(`AppType`)",
                         new { AppID, Type = newAppType, AppName = newAppName }
                     );
 
@@ -288,7 +288,7 @@ namespace SteamDatabaseBackend
                 {
                     var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`", new { Name = keyName, DisplayName = displayName, Type = type });
+                    DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
 
                     key = GetKeyNameID(keyName);
 
@@ -303,7 +303,7 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4})", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName);
                 }
 
-                InsertInfo(key, value);
+                DbConnection.Execute("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
                 MakeHistory("created_key", key, string.Empty, value);
 
                 if ((keyName == "extended_developer" || keyName == "extended_publisher") && value == "Valve")
@@ -337,7 +337,7 @@ namespace SteamDatabaseBackend
 
             if (!data.Value.Equals(value))
             {
-                InsertInfo(data.Key, value);
+                DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, Key = data.Key, Value = value });
                 MakeHistory("modified_key", data.Key, data.Value, value);
 
                 if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
@@ -349,11 +349,6 @@ namespace SteamDatabaseBackend
             }
 
             return false;
-        }
-
-        private void InsertInfo(uint id, string value)
-        {
-            DbConnection.Execute("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)", new { AppID, Key = id, Value = value });
         }
 
         public static string GetHistoryQuery()

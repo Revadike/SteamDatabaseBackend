@@ -318,7 +318,7 @@ namespace SteamDatabaseBackend
         {
             using (var db = Database.GetConnection())
             {
-                db.Execute("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = @Status", new { AppID = appID, Status = status });
+                db.Execute("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = VALUES(`Status`)", new { AppID = appID, Status = status });
             }
         }
     }

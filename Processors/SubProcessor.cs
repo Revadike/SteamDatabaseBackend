@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(PackageName))
                 {
-                    DbConnection.Execute("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name) ON DUPLICATE KEY UPDATE `Name` = @Name", new { SubID, Name = newPackageName });
+                    DbConnection.Execute("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
 
                     MakeHistory("created_sub");
                     MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
@@ -129,7 +129,7 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            DbConnection.Execute("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type) ON DUPLICATE KEY UPDATE `Type` = @Type", new { SubID, AppID = appID, Type = type });
+                            DbConnection.Execute("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type)", new { SubID, AppID = appID, Type = type });
 
                             MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
 
@@ -317,7 +317,7 @@ namespace SteamDatabaseBackend
                 {
                     var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    DbConnection.Execute("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName) ON DUPLICATE KEY UPDATE `Type` = `Type`", new { Name = keyName, DisplayName = displayName, Type = type });
+                    DbConnection.Execute("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
 
                     key = GetKeyNameID(keyName);
 
@@ -332,7 +332,7 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4})", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName);
                 }
 
-                InsertInfo(key, value);
+                DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });
                 MakeHistory("created_key", key, string.Empty, value);
 
                 return true;
@@ -353,18 +353,13 @@ namespace SteamDatabaseBackend
 
             if (!data.Value.Equals(value))
             {
-                InsertInfo(data.Key, value);
+                DbConnection.Execute("UPDATE `SubsInfo` SET `Value` = @Value WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, Key = data.Key, Value = value });
                 MakeHistory("modified_key", data.Key, data.Value, value);
 
                 return true;
             }
 
             return false;
-        }
-
-        private void InsertInfo(uint id, string value)
-        {
-            DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)", new { SubID, Key = id, Value = value });
         }
 
         private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
