@@ -40,6 +40,15 @@ namespace SteamDatabaseBackend
             var args = command.Message.Split(' ');
             string os = args[0];
 
+            if (os == "windows")
+            {
+                os = "win32";
+            }
+            else if (os == "linux")
+            {
+                os = "ubuntu12";
+            }
+
             if (!Systems.Contains(os))
             {
                 CommandHandler.ReplyToCommand(command, "Invalid OS. Valid ones are: {0}", string.Join(", ", Systems));
