@@ -152,15 +152,14 @@ namespace SteamDatabaseBackend
             switch (appID)
             {
                 case 730:
-                    //OnWelcomeClean(appID, new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body.version);
-                    // TODO: SteamKit doesn't build CSGO's gcsdk protos
+                    version = new ClientGCMsgProtobuf<SteamKit2.GC.CSGO.Internal.CMsgClientWelcome>(packetMsg).Body.version;
                     break;
 
-                case 440: // TF2 is compatible with Dota's protos because it only sends 2 fields, but better be safe
+                case 440:
                     version = new ClientGCMsgProtobuf<SteamKit2.GC.TF2.Internal.CMsgClientWelcome>(packetMsg).Body.version;
                     break;
 
-                default: // SteamKit defaults to using Dota 2's protobufs
+                default:
                     version = new ClientGCMsgProtobuf<CMsgClientWelcome>(packetMsg).Body.version;
                     break;
             }
