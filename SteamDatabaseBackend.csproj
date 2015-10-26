@@ -10,7 +10,8 @@
     <StartupObject>SteamDatabaseBackend.Bootstrapper</StartupObject>
     <CodePage>65001</CodePage>
     <UseMSBuildEngine>False</UseMSBuildEngine>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <PlatformTarget>x64</PlatformTarget>
@@ -41,6 +42,9 @@
     <Reference Include="Dapper, Version=1.40.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>packages\Dapper.1.42\lib\net45\Dapper.dll</HintPath>
     </Reference>
+    <Reference Include="MySql.Data, Version=6.9.8.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d">
+      <HintPath>packages\MySql.Data.6.9.8\lib\net45\MySql.Data.dll</HintPath>
+    </Reference>
     <Reference Include="NetIrc2, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>packages\NetIrc2.1.0.0.0\lib\NetIrc2.dll</HintPath>
     </Reference>
@@ -51,10 +55,7 @@
       <HintPath>packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="SteamKit2">
-      <HintPath>packages\SteamKit2.1.6.5\lib\net40\SteamKit2.dll</HintPath>
-    </Reference>
-    <Reference Include="MySql.Data">
-      <HintPath>packages\MySql.Data.6.9.8\lib\net45\MySql.Data.dll</HintPath>
+      <HintPath>packages\SteamKit2-experiment-await\SteamKit2.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

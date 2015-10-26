@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Steam", "Loading Steam servers...");
 
-            var loadServersTask = SteamDirectory.Initialize((int)CellID);
+            var loadServersTask = SteamDirectory.Initialize(CellID);
             loadServersTask.Wait();
 
             if (loadServersTask.IsFaulted)

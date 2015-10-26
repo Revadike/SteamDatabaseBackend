@@ -11,7 +11,7 @@ using System.Timers;
 using Dapper;
 using SteamKit2;
 using SteamKit2.GC;
-using SteamKit2.GC.Internal;
+using SteamKit2.GC.Dota.Internal;
 
 // TF2
 using CMsgGCTFSpecificItemBroadcast = SteamKit2.GC.TF2.Internal.CMsgGCTFSpecificItemBroadcast;
