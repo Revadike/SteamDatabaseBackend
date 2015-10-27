@@ -135,9 +135,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="settings.json.default" />
-    <None Include="LICENSE">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="app.config" />
   </ItemGroup>
   <ProjectExtensions>
