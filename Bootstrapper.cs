@@ -7,18 +7,24 @@
 using System;
 using System.IO;
 using SteamKit2;
+using System.Diagnostics;
 
 namespace SteamDatabaseBackend
 {
     static class Bootstrapper
     {
+        public static string ProductVersion;
         private static bool CleaningUp;
 
         public static void Main()
         {
             Console.Title = "Steam Database";
 
-            Log.WriteInfo("Bootstrapper", "Steam Database, assembly version: {0}", typeof(Steam).Assembly.GetName().Version);
+            var version = FileVersionInfo.GetVersionInfo(typeof(Steam).Assembly.Location);
+
+            ProductVersion = version.ProductVersion;
+
+            Log.WriteInfo("Bootstrapper", "Steam Database, built from commit: {0}", ProductVersion);
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             try

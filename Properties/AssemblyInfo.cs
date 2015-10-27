@@ -17,3 +17,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyInformationalVersion("master")]
