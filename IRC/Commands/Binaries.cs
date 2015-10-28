@@ -32,7 +32,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} bins <{1}> [stable (returns publicbeta by default)]", Colors.OLIVE, string.Join("/", Systems));
+                command.Reply("Usage:{0} bins <{1}> [stable (returns publicbeta by default)]", Colors.OLIVE, string.Join("/", Systems));
 
                 return;
             }
@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
 
             if (!Systems.Contains(os))
             {
-                CommandHandler.ReplyToCommand(command, "Invalid OS. Valid ones are: {0}", string.Join(", ", Systems));
+                command.Reply("Invalid OS. Valid ones are: {0}", string.Join(", ", Systems));
 
                 return;
             }
@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
 
             kv = kv[key];
 
-            CommandHandler.ReplyToCommand(command, "{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
+            command.Reply("{0}{1} {2}({3} MB)", CDN, kv["file"].AsString(), Colors.DARKGRAY, (kv["size"].AsLong() / 1048576.0).ToString("0.###"));
         }
     }
 }

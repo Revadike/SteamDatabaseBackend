@@ -19,11 +19,6 @@ namespace SteamDatabaseBackend
         private readonly PubFileCommand PubFileHandler;
         private readonly LinkExpander LinkExpander;
 
-#if false
-        private static DateTime LastCommandUseTime = DateTime.Now;
-        private static uint LastCommandUseCount = 0;
-#endif
-
         public CommandHandler()
         {
             LinkExpander = new LinkExpander();
@@ -50,69 +45,6 @@ namespace SteamDatabaseBackend
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
 
             Log.WriteInfo("CommandHandler", "Registered {0} commands", RegisteredCommands.Count);
-        }
-
-        public static void ReplyToCommand(CommandArguments command, bool notice, string message, params object[] args)
-        {
-            ReplyToCommand(command, string.Format(message, args), notice);
-        }
-
-        public static void ReplyToCommand(CommandArguments command, string message, params object[] args)
-        {
-            ReplyToCommand(command, string.Format(message, args), false);
-        }
-
-        private static void ReplyToCommand(CommandArguments command, string message, bool notice)
-        {
-            switch (command.CommandType)
-            {
-                case ECommandType.IRC:
-                    var isChannelMessage = IRC.IsRecipientChannel(command.Recipient);
-                    bool shouldReplyAsNotice = false;
-                    string recipient = command.Recipient;
-
-                    if (isChannelMessage)
-                    {
-                        shouldReplyAsNotice = notice || command.ReplyAsNotice;
-
-                        if (!shouldReplyAsNotice)
-                        {
-                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, command.SenderIdentity.Nickname, Colors.NORMAL, message);
-                        }
-                        else
-                        {
-                            recipient = command.SenderIdentity.Nickname.ToString();
-                        }
-                    }
-                    else
-                    {
-                        recipient = command.SenderIdentity.Nickname.ToString();
-                    }
-
-                    IRC.Instance.SendReply(recipient, message, shouldReplyAsNotice);
-
-                    break;
-
-                case ECommandType.SteamChatRoom:
-                    if (!Steam.Instance.Client.IsConnected)
-                    {
-                        break;
-                    }
-
-                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("{0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(command.SenderID), Colors.StripColors(message)));
-                
-                    break;
-
-                case ECommandType.SteamIndividual:
-                    if (!Steam.Instance.Client.IsConnected)
-                    {
-                        break;
-                    }
-
-                    Steam.Instance.Friends.SendChatMessage(command.SenderID, EChatEntryType.ChatMsg, Colors.StripColors(message));
-                
-                    break;
-            }
         }
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
@@ -159,7 +91,7 @@ namespace SteamDatabaseBackend
 
             if (command.IsSteamCommand && !Steam.Instance.Client.IsConnected)
             {
-                ReplyToCommand(commandData, "Not connected to Steam.");
+                commandData.Reply("Not connected to Steam.");
 
                 return;
             }
@@ -247,7 +179,7 @@ namespace SteamDatabaseBackend
 
             if (command.IsAdminCommand && !Settings.Current.SteamAdmins.Contains(commandData.SenderID.ConvertToUInt64()))
             {
-                ReplyToCommand(commandData, "You're not an admin!");
+                commandData.Reply("You're not an admin!");
 
                 return;
             }
@@ -257,39 +189,23 @@ namespace SteamDatabaseBackend
 
         private static void TryCommand(Command command, CommandArguments commandData)
         {
-#if false
-            if (commandData.CommandType == ECommandType.IRC && IRC.IsRecipientChannel(commandData.Recipient))
-            {
-                if (DateTime.Now.Subtract(LastCommandUseTime).TotalSeconds < 60)
-                {
-                    commandData.ReplyAsNotice = ++LastCommandUseCount > 3;
-                }
-                else
-                {
-                    LastCommandUseCount = 1;
-                }
-
-                LastCommandUseTime = DateTime.Now;
-            }
-#endif
-
             try
             {
                 command.OnCommand(commandData);
             }
             catch (TaskCanceledException)
             {
-                ReplyToCommand(commandData, "Your command timed out.");
+                commandData.Reply("Your command timed out.");
             }
             catch (AsyncJobFailedException)
             {
-                ReplyToCommand(commandData, "Steam says this job failed, unable to execute your command.");
+                commandData.Reply("Steam says this job failed, unable to execute your command.");
             }
             catch (Exception e)
             {
                 Log.WriteError("CommandHandler", "Exception while executing a command: {0}\n{1}", e.Message, e.StackTrace);
 
-                ReplyToCommand(commandData, "Exception: {0}", e.Message);
+                commandData.Reply("Exception: {0}", e.Message);
 
                 ErrorReporter.Notify(e);
             }

@@ -36,6 +36,73 @@ namespace SteamDatabaseBackend
         public ECommandType CommandType { get; set; }
         public SteamID ChatRoomID { get; set; }
         public SteamID SenderID { get; set; }
-        public bool ReplyAsNotice { get; set; }
+
+        public void Notice(string message, params object[] args)
+        {
+            ReplyToCommand(string.Format(message, args), true);
+        }
+
+        public void Reply(string message, params object[] args)
+        {
+            ReplyToCommand(string.Format(message, args), false);
+        }
+
+        private void ReplyToCommand(string message, bool notice)
+        {
+            switch (CommandType)
+            {
+                case ECommandType.IRC:
+                    var isChannelMessage = IRC.IsRecipientChannel(Recipient);
+                    string recipient = Recipient;
+
+                    if (isChannelMessage)
+                    {
+                        if (!notice)
+                        {
+                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, SenderIdentity.Nickname, Colors.NORMAL, message);
+                        }
+                        else
+                        {
+                            recipient = SenderIdentity.Nickname.ToString();
+                        }
+                    }
+                    else
+                    {
+                        recipient = SenderIdentity.Nickname.ToString();
+                    }
+
+                    IRC.Instance.SendReply(recipient, message, notice);
+
+                    break;
+
+                case ECommandType.SteamChatRoom:
+                    if (!Steam.Instance.Client.IsConnected)
+                    {
+                        break;
+                    }
+
+                    Steam.Instance.Friends.SendChatRoomMessage(
+                        ChatRoomID,
+                        EChatEntryType.ChatMsg,
+                        string.Format("{0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(SenderID), Colors.StripColors(message))
+                    );
+
+                    break;
+
+                case ECommandType.SteamIndividual:
+                    if (!Steam.Instance.Client.IsConnected)
+                    {
+                        break;
+                    }
+
+                    Steam.Instance.Friends.SendChatMessage(
+                        SenderID,
+                        EChatEntryType.ChatMsg,
+                        Colors.StripColors(message)
+                    );
+
+                    break;
+            }
+        }
     }
 }

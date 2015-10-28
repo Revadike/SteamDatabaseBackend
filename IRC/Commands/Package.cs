@@ -24,7 +24,7 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Length == 0 || !uint.TryParse(command.Message, out subID))
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} sub <subid>", Colors.OLIVE);
+                command.Reply("Usage:{0} sub <subid>", Colors.OLIVE);
 
                 return;
             }
@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
 
             if (count > 100)
             {
-                CommandHandler.ReplyToCommand(command, "There are currently {0} packages awaiting to be processed, try again later.", count);
+                command.Reply("There are currently {0} packages awaiting to be processed, try again later.", count);
 
                 return;
             }
@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
 
             if (!callback.Packages.ContainsKey(subID))
             {
-                CommandHandler.ReplyToCommand(command, "Unknown SubID: {0}{1}{2}", Colors.BLUE, subID, LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty);
+                command.Reply("Unknown SubID: {0}{1}{2}", Colors.BLUE, subID, LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty);
 
                 return;
             }
@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
 
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
 
-            CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
+            command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,
                 Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
                 Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,

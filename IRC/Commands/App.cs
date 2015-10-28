@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} app <appid or partial game name>", Colors.OLIVE);
+                command.Reply("Usage:{0} app <appid or partial game name>", Colors.OLIVE);
 
                 return;
             }
@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
             if (count > 100)
             {
-                CommandHandler.ReplyToCommand(command, "There are currently {0} apps awaiting to be processed, try again later.", count);
+                command.Reply("There are currently {0} apps awaiting to be processed, try again later.", count);
 
                 return;
             }
@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
-                    CommandHandler.ReplyToCommand(command, "Your request is invalid or too short.");
+                    command.Reply("Your request is invalid or too short.");
 
                     return;
                 }
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
 
                 if (appID == 0)
                 {
-                    CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
+                    command.Reply("Nothing was found matching your request.");
 
                     return;
                 }
@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
 
             if (!callback.Apps.ContainsKey(appID))
             {
-                CommandHandler.ReplyToCommand(command, "Unknown AppID: {0}{1}{2}", Colors.BLUE, appID, LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty);
+                command.Reply("Unknown AppID: {0}{1}{2}", Colors.BLUE, appID, LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty);
 
                 return;
             }
@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
 
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", string.Format("{0}.vdf", info.ID)), false);
 
-            CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
+            command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, name, Colors.NORMAL,
                 Colors.DARKBLUE, SteamDB.GetAppURL(info.ID), Colors.NORMAL,
                 Colors.DARKBLUE, SteamDB.GetRawAppURL(info.ID), Colors.NORMAL,

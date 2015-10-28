@@ -34,14 +34,12 @@ namespace SteamDatabaseBackend
 
             if (post.ID == 0)
             {
-                CommandHandler.ReplyToCommand(command, "No blog post found.");
+                command.Reply("No blog post found.");
 
                 return;
             }
 
-            CommandHandler.ReplyToCommand(
-                command,
-
+            command.Reply(
                 command.Message.Length > 0 ?
                     "Blog post:{0} {1}{2} -{3} {4}" :
                     "Latest blog post:{0} {1}{2} -{3} {4}",

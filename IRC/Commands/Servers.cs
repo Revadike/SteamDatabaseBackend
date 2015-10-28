@@ -26,14 +26,14 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} servers <filter> - See https://developer.valvesoftware.com/wiki/Master_Server_Query_Protocol", Colors.OLIVE);
+                command.Reply("Usage:{0} servers <filter> - See https://developer.valvesoftware.com/wiki/Master_Server_Query_Protocol", Colors.OLIVE);
 
                 return;
             }
 
             if (command.Message.IndexOf('\\') == -1)
             {
-                CommandHandler.ReplyToCommand(command, "That doesn't look like a filter.");
+                command.Reply("That doesn't look like a filter.");
 
                 return;
             }
@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
 
             if (!servers.Any())
             {
-                CommandHandler.ReplyToCommand(command, "No servers.");
+                command.Reply("No servers.");
 
                 return;
             }
@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
             {
                 var server = servers.First();
 
-                CommandHandler.ReplyToCommand(command, "{0} - {1} - {2}/{3} - Map: {4} - AppID: {5} - Version: {6} - Dir: {7} - Tags: {8} - Name: {9}",
+                command.Reply("{0} - {1} - {2}/{3} - Map: {4} - AppID: {5} - Version: {6} - Dir: {7} - Tags: {8} - Name: {9}",
                     server.addr, new SteamID(server.steamid).Render(true), server.players, server.max_players, server.map, server.appid, server.version, server.gamedir, server.gametype, server.name
                 );
 
@@ -68,7 +68,7 @@ namespace SteamDatabaseBackend
 
             var serv = servers.Take(5).Select(x => string.Format("{0} ({1})", x.addr, x.players));
 
-            CommandHandler.ReplyToCommand(command, "{0}{1}", string.Join(", ", serv), servers.Count > 5 ? string.Format(", and {0}{1} more", servers.Count == 5000 ? ">" : "", servers.Count - 5) : "");
+            command.Reply("{0}{1}", string.Join(", ", serv), servers.Count > 5 ? string.Format(", and {0}{1} more", servers.Count == 5000 ? ">" : "", servers.Count - 5) : "");
         }
     }
 }

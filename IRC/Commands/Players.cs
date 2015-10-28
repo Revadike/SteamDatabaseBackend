@@ -21,8 +21,8 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} players <appid or partial game name>", Colors.OLIVE);
-                CommandHandler.ReplyToCommand(command, true, "Use {0}^{1} and {2}${3} just like in regex to narrow down your match, e.g:{4} !players Portal$", Colors.BLUE, Colors.NORMAL, Colors.BLUE, Colors.NORMAL, Colors.OLIVE);
+                command.Reply("Usage:{0} players <appid or partial game name>", Colors.OLIVE);
+                command.Notice("Use {0}^{1} and {2}${3} just like in regex to narrow down your match, e.g:{4} !players Portal$", Colors.BLUE, Colors.NORMAL, Colors.BLUE, Colors.NORMAL, Colors.OLIVE);
 
                 return;
             }
@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
-                    CommandHandler.ReplyToCommand(command, "Your request is invalid or too short.");
+                    command.Reply("Your request is invalid or too short.");
 
                     return;
                 }
@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
 
                 if (appID == 0)
                 {
-                    CommandHandler.ReplyToCommand(command, "Nothing was found matching your request.");
+                    command.Reply("Nothing was found matching your request.");
 
                     return;
                 }
@@ -57,12 +57,11 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(command, "Unable to request player count: {0}{1}", Colors.RED, callback.Result);
+                command.Reply("Unable to request player count: {0}{1}", Colors.RED, callback.Result);
             }
             else if (appID == 0)
             {
-                CommandHandler.ReplyToCommand(
-                    command,
+                command.Reply(
                     "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}",
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetAppURL(753, "graphs")
@@ -70,8 +69,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                CommandHandler.ReplyToCommand(
-                    command,
+                command.Reply(
                     "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
                     Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
                     Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,

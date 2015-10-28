@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Equals("list", StringComparison.CurrentCultureIgnoreCase))
             {
-                CommandHandler.ReplyToCommand(command, string.Join(", ", SteamKitEnums.Select(@enum => @enum.Name)));
+                command.Reply(string.Join(", ", SteamKitEnums.Select(@enum => @enum.Name)));
 
                 return;
             }
@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
 
             if (args.Length < 1)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
+                command.Reply("Usage:{0} enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
 
                 return;
             }
@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
 
             if (matchingEnumType == null)
             {
-                CommandHandler.ReplyToCommand(command, "No such enum type.");
+                command.Reply("No such enum type.");
 
                 return;
             }
@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
 
             if (Enum.TryParse(inputValue, out enumValue))
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
+                command.Reply("{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
 
                 return;
             }
@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
 
             if (count == 0)
             {
-                CommandHandler.ReplyToCommand(command, "No matches found.");
+                command.Reply("No matches found.");
 
                 return;
             }
@@ -102,7 +102,7 @@ namespace SteamDatabaseBackend
             {
                 if (!string.IsNullOrEmpty(inputValue))
                 {
-                    CommandHandler.ReplyToCommand(command, "More than 10 results found.");
+                    command.Reply("More than 10 results found.");
 
                     return;
                 }
@@ -117,7 +117,7 @@ namespace SteamDatabaseBackend
                 formatted = string.Format("{0}, and {1} more...", formatted, count - 10);
             }
 
-            CommandHandler.ReplyToCommand(command, "{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
+            command.Reply("{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
         }
 
         private static string ExpandEnumFlagsToString<TEnum>(TEnum enumValue)

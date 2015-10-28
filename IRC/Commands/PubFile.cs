@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} pubfile <pubfileid>", Colors.OLIVE);
+                command.Reply("Usage:{0} pubfile <pubfileid>", Colors.OLIVE);
 
                 return;
             }
@@ -131,7 +131,7 @@ namespace SteamDatabaseBackend
 
             if (!ulong.TryParse(command.Message, out pubFileId))
             {
-                CommandHandler.ReplyToCommand(command, "Invalid Published File ID");
+                command.Reply("Invalid Published File ID");
 
                 return;
             }
@@ -155,7 +155,7 @@ namespace SteamDatabaseBackend
 
             if (details == null)
             {
-                CommandHandler.ReplyToCommand(command, "Unable to make service request for published file info: the server returned no info");
+                command.Reply("Unable to make service request for published file info: the server returned no info");
 
                 return;
             }
@@ -164,7 +164,7 @@ namespace SteamDatabaseBackend
 
             if (result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(command, "Unable to get published file info: {0}{1}", Colors.RED, result);
+                command.Reply("Unable to get published file info: {0}{1}", Colors.RED, result);
 
                 return;
             }
@@ -173,7 +173,7 @@ namespace SteamDatabaseBackend
 
             File.WriteAllText(Path.Combine(Application.Path, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
 
-            CommandHandler.ReplyToCommand(command, "{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
+            command.Reply("{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
                 (EWorkshopFileType)details.file_type,
                 Colors.BLUE, string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title, Colors.NORMAL,
                 Colors.BLUE, new SteamID(details.creator).Render(true), Colors.NORMAL,
@@ -185,7 +185,7 @@ namespace SteamDatabaseBackend
                 Colors.DARKBLUE, SteamDB.GetUGCURL(details.publishedfileid)
             );
 
-            CommandHandler.ReplyToCommand(command, true, "{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
+            command.Notice("{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
         }
     }
 }

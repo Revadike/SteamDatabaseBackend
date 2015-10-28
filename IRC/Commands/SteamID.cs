@@ -32,7 +32,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
+                command.Reply("Usage:{0} steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
 
                 return;
             }
@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                         break;
 
                     default:
-                        CommandHandler.ReplyToCommand(command, "Invalid vanity url type.");
+                        command.Reply("Invalid vanity url type.");
                         return;
                 }
             }
@@ -76,13 +76,13 @@ namespace SteamDatabaseBackend
 
                 if (eResult != EResult.OK)
                 {
-                    CommandHandler.ReplyToCommand(command, "Failed to resolve vanity url: {0}{1}", Colors.RED, eResult.ToString());
+                    command.Reply("Failed to resolve vanity url: {0}{1}", Colors.RED, eResult.ToString());
 
                     return;
                 }
             }
 
-            CommandHandler.ReplyToCommand(command, ExpandSteamID(steamID));
+            command.Reply(ExpandSteamID(steamID));
 
             if (!steamID.IsValid || (!steamID.IsIndividualAccount && !steamID.IsClanAccount))
             {
@@ -113,14 +113,14 @@ namespace SteamDatabaseBackend
                 var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format(" {0}(Clan tag: {1}{2}{3})",
                     Colors.NORMAL, Colors.LIGHTGRAY, callback.ClanTag, Colors.NORMAL);
 
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} https://steamcommunity.com/gid/{4}/{5}",
+                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/gid/{4}/{5}",
                     Colors.BLUE, callback.Name, Colors.NORMAL,
                     Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(), clantag
                 );
             }
             else if (callback.FriendID.IsIndividualAccount)
             {
-                CommandHandler.ReplyToCommand(command, "{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/ {5}(Last login: {6}, Last logoff: {7})",
+                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/ {5}(Last login: {6}, Last logoff: {7})",
                     Colors.BLUE, callback.Name, Colors.NORMAL,
                     Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(),
                     Colors.DARKGRAY, callback.LastLogOn, callback.LastLogOff
@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                CommandHandler.ReplyToCommand(command, callback.Name);
+                command.Reply(callback.Name);
             }
         }
 

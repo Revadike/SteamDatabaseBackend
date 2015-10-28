@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} gid <globalid>", Colors.OLIVE);
+                command.Reply("Usage:{0} gid <globalid>", Colors.OLIVE);
 
                 return;
             }
@@ -28,14 +28,14 @@ namespace SteamDatabaseBackend
 
             if (!ulong.TryParse(command.Message, out uGid))
             {
-                CommandHandler.ReplyToCommand(command, "Invalid GlobalID.");
+                command.Reply("Invalid GlobalID.");
 
                 return;
             }
 
             GlobalID gid = uGid;
 
-            CommandHandler.ReplyToCommand(command, "{0} (SeqCount: {1}{2}{3}, StartTime: {4}{5}{6}, ProcessID: {7}{8}{9}, BoxID: {10}{11}{12})",
+            command.Reply("{0} (SeqCount: {1}{2}{3}, StartTime: {4}{5}{6}, ProcessID: {7}{8}{9}, BoxID: {10}{11}{12})",
                 (ulong)gid,
                 Colors.LIGHTGRAY, gid.SequentialCount, Colors.NORMAL,
                 Colors.LIGHTGRAY, gid.StartTime, Colors.NORMAL,

@@ -32,7 +32,7 @@ namespace SteamDatabaseBackend
                             .Where(cmd => !cmd.IsAdminCommand && cmd != this)
                             .Select(cmd => cmd.Trigger);
 
-            CommandHandler.ReplyToCommand(command, true, "Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), commands));
+            command.Notice("Available commands: {0}{1}", Colors.OLIVE, string.Join(string.Format("{0}, {1}", Colors.NORMAL, Colors.OLIVE), commands));
         }
     }
 }

@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                CommandHandler.ReplyToCommand(command, "Usage:{0} ugc <ugcid>", Colors.OLIVE);
+                command.Reply("Usage:{0} ugc <ugcid>", Colors.OLIVE);
 
                 return;
             }
@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
             if (!ulong.TryParse(command.Message, out ugcId))
             {
-                CommandHandler.ReplyToCommand(command, "Invalid UGC ID");
+                command.Reply("Invalid UGC ID");
 
                 return;
             }
@@ -43,12 +43,12 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                CommandHandler.ReplyToCommand(command, "Unable to request UGC info: {0}{1}", Colors.RED, callback.Result);
+                command.Reply("Unable to request UGC info: {0}{1}", Colors.RED, callback.Result);
 
                 return;
             }
 
-            CommandHandler.ReplyToCommand(command, "Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
+            command.Reply("Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
                 Colors.BLUE, callback.Creator.Render(true), Colors.NORMAL,
                 Colors.BLUE, callback.AppID, Colors.NORMAL,
                 Colors.BLUE, callback.FileName, Colors.NORMAL,
