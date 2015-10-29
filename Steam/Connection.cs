@@ -159,12 +159,12 @@ namespace SteamDatabaseBackend
             {
                 if (Settings.Current.FullRun == 3)
                 {
-                    Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Enumerable.Empty<uint>());
-                    Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), Application.ImportantSubs.Keys.Select(package => Utils.NewPICSRequest(package)));
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Enumerable.Empty<uint>()));
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), Application.ImportantSubs.Keys.Select(package => Utils.NewPICSRequest(package))));
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 1)
                 {
-                    Steam.Instance.Apps.PICSGetChangesSince(1, true, true);
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetChangesSince(1, true, true));
                 }
             }
             else
