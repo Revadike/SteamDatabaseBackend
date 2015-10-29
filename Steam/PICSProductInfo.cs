@@ -91,6 +91,23 @@ namespace SteamDatabaseBackend
                         }
                     }
                 });
+
+                workerItem.ContinueWith(task =>
+                {
+                    Log.WriteError("PICSProductInfo", "App {0} faulted, trying again", app.Key);
+
+                    using (var processor = new AppProcessor(app.Key))
+                    {
+                        if (app.Value == null)
+                        {
+                            processor.ProcessUnknown();
+                        }
+                        else
+                        {
+                            processor.Process(app.Value);
+                        }
+                    }
+                }, TaskContinuationOptions.OnlyOnFaulted);
             }
 
             foreach (var workaround in packages)
@@ -148,6 +165,23 @@ namespace SteamDatabaseBackend
                         }
                     }
                 });
+
+                workerItem.ContinueWith(task =>
+                {
+                    Log.WriteError("PICSProductInfo", "Package {0} faulted, trying again", package.Key);
+
+                    using (var processor = new SubProcessor(package.Key))
+                    {
+                        if (package.Value == null)
+                        {
+                            processor.ProcessUnknown();
+                        }
+                        else
+                        {
+                            processor.Process(package.Value);
+                        }
+                    }
+                }, TaskContinuationOptions.OnlyOnFaulted);
             }
         }
     }
