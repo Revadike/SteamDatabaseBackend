@@ -200,6 +200,8 @@ namespace SteamDatabaseBackend
 
         private async void DownloadDepots(Dictionary<uint, ManifestJob> depots)
         {
+            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
+
             var tasks = depots.Values
                 .Select(d => new
                 {
@@ -322,6 +324,8 @@ namespace SteamDatabaseBackend
             // TODO: use ContinueWith on tasks
             if (!hasImportantDepots)
             {
+                Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count);
+
                 foreach (var depot in depots.Values)
                 {
                     RemoveLock(depot.DepotID);
@@ -343,6 +347,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var depot in depots.Values)
                 {
+                    // TODO: this only needs to run if any downloaded files changed
                     if (canUpdate && FileDownloader.IsImportantDepot(depot.DepotID))
                     {
                         RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
