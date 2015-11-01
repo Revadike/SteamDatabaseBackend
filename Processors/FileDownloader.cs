@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -20,7 +19,6 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        private static readonly object updateLock = new object();
         private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
         private static CDNClient CDNClient;
 
@@ -65,9 +63,8 @@ namespace SteamDatabaseBackend
         /*
          * Here be dragons.
          */
-        public static void DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
+        public static bool DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
-            var randomGenerator = new Random();
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
             var filesAnyFailed = false;
@@ -226,8 +223,7 @@ namespace SteamDatabaseBackend
                                 lastError = e.Message;
                             }
 
-                            // See https://developers.google.com/drive/web/handle-errors
-                            Task.Delay((1 << i) * 1000 + randomGenerator.Next(1001)).Wait();
+                            Task.Delay(Utils.ExponentionalBackoff(i)).Wait();
                         }
 
                         if (!downloaded)
@@ -295,22 +291,13 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
                         Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
 
-                    return;
+                    return false;
                 }
 
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
-
-                var updateScript = Path.Combine(Application.Path, "files", "update.sh");
-
-                if (File.Exists(updateScript))
-                {
-                    lock (updateLock)
-                    {
-                        // YOLO
-                        Process.Start(updateScript, job.DepotID.ToString());
-                    }
-                }
             }
+
+            return true;
         }
 
         private static bool IsFileNameMatching(uint depotID, string fileName)

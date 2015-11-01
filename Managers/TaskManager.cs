@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
             return t;
         }
 
-        private static void RegisterErrorHandler(Task t)
+        public static void RegisterErrorHandler(Task t)
         {
             t.ContinueWith(task =>
             {

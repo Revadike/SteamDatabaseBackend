@@ -8,7 +8,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
 
@@ -27,12 +29,12 @@ namespace SteamDatabaseBackend
             public string CDNToken;
             public string Server;
             public byte[] DepotKey;
-            public int Tries;
         }
 
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly ConcurrentDictionary<uint, byte> DepotLocks;
+        private static readonly object UpdateScriptLock = new object();
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
@@ -48,9 +50,6 @@ namespace SteamDatabaseBackend
                 "cdn.akamai.cs.steampowered.com",
                 "cdn.highwinds.cs.steampowered.com"
             };
-
-            manager.Subscribe<SteamApps.CDNAuthTokenCallback>(OnCDNAuthTokenCallback);
-            manager.Subscribe<SteamApps.DepotKeyCallback>(OnDepotKeyCallback);
         }
 
         public void Process(uint appID, uint changeNumber, KeyValue depots)
@@ -115,6 +114,8 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var depotsToDownload = new Dictionary<uint, ManifestJob>();
+
             using (var db = Database.GetConnection())
             {
                 var dbDepots = db.Query<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) })
@@ -174,7 +175,9 @@ namespace SteamDatabaseBackend
                     {
                         DepotLocks.TryAdd(request.DepotID, 1);
 
-                        JobManager.AddJob(() => Steam.Instance.Apps.GetDepotDecryptionKey(request.DepotID, request.ParentAppID), request);
+                        request.Server = GetContentServer();
+
+                        depotsToDownload.Add(request.DepotID, request);
                     }
 #if DEBUG
                     else
@@ -184,181 +187,168 @@ namespace SteamDatabaseBackend
 #endif
                 }
             }
+
+            if (depotsToDownload.Any())
+            {
+                TaskManager.Run(() => DownloadDepots(depotsToDownload));
+            }
         }
 
-        private void OnDepotKeyCallback(SteamApps.DepotKeyCallback callback)
+        private async void DownloadDepots(Dictionary<uint, ManifestJob> depots)
         {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job))
-            {
-                RemoveLock(callback.DepotID);
-
-                return;
-            }
-
-            var request = job.ManifestJob;
-
-            if (callback.Result != EResult.OK)
-            {
-                if (callback.Result != EResult.AccessDenied || FileDownloader.IsImportantDepot(request.DepotID))
+            var tasks = depots.Values
+                .Select(d => new
                 {
-                    Log.WriteError("Depot Processor", "Failed to get depot key for depot {0} (parent {1}) - {2}", callback.DepotID, request.ParentAppID, callback.Result);
-                }
+                    DepotID = d.DepotID,
 
-                RemoveLock(request.DepotID);
+                    KeyJob = Steam.Instance.Apps.GetDepotDecryptionKey(d.DepotID, d.ParentAppID),
+                    TokenJob = Steam.Instance.Apps.GetCDNAuthToken(d.DepotID, d.Server)
+                })
+                .ToList();
 
-                return;
-            }
+            await Task.WhenAll(tasks.Select(t => t.KeyJob.ToTask()));
+            await Task.WhenAll(tasks.Select(t => t.TokenJob.ToTask()));
 
-            request.DepotKey = callback.DepotKey;
-            request.Tries = CDNServers.Count;
-            request.Server = GetContentServer();
-
-            JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
-
-            var decryptionKey = Utils.ByteArrayToString(callback.DepotKey);
-
-            using (var db = Database.GetConnection())
+            foreach (var task in tasks)
             {
-                var currentDecryptionKey = db.ExecuteScalar<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { callback.DepotID });
+                var depotID = task.DepotID;
 
-                if (decryptionKey != currentDecryptionKey)
+                var depotCallback = await task.KeyJob;
+                var tokenCallback = await task.TokenJob;
+
+                if (depotCallback.Result != EResult.OK || tokenCallback.Result != EResult.OK)
                 {
-                    if (currentDecryptionKey != null)
+                    if (depotCallback.Result != EResult.AccessDenied)
                     {
-                        Log.WriteInfo("Depot Processor", "Decryption key for {0} changed: {1} -> {2}", callback.DepotID, currentDecryptionKey, decryptionKey);
-
-                        IRC.Instance.SendOps("Decryption key for {0} changed: {1} -> {2}", callback.DepotID, currentDecryptionKey, decryptionKey);
+                        Log.WriteError("Depot Processor", "No access to depot {0} (Key - {1}; CDN - {2})", depotID, depotCallback.Result, tokenCallback.Result);
                     }
 
-                    db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { callback.DepotID, Key = decryptionKey });
+                    RemoveLock(depotID);
+
+                    depots.Remove(depotID);
+
+                    continue;
                 }
-            }
-        }
 
-        private void OnCDNAuthTokenCallback(SteamApps.CDNAuthTokenCallback callback)
-        {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(callback.JobID, out job))
-            {
-                return;
+                depots[depotID].DepotKey = depotCallback.DepotKey;
+                depots[depotID].CDNToken = tokenCallback.Token;
             }
 
-            var request = job.ManifestJob;
-
-            if (callback.Result != EResult.OK)
+            if (!depots.Any())
             {
-                if (FileDownloader.IsImportantDepot(request.DepotID))
-                {
-                    Log.WriteError("Depot Processor", "Failed to get CDN auth token for depot {0} (parent {1} - server {2}) - {3} (#{4})",
-                        request.DepotID, request.ParentAppID, request.Server, callback.Result, request.Tries);
-                }
-
-                if (--request.Tries >= 0)
-                {
-                    request.Server = GetContentServer(request.Tries);
-
-                    JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
-
-                    return;
-                }
-
-                RemoveLock(request.DepotID);
+#if DEBUG
+                Log.WriteDebug("Depot Downloader", "No depots to download as no keys and/or tokens were granted.");
+#endif
 
                 return;
             }
 
-            request.CDNToken = callback.Token;
+            var processTasks = new List<Task<bool>>();
 
-            // TODO: Using tasks makes every manifest download timeout
-            // TODO: which seems to be bug with mono's threadpool implementation
-            /*TaskManager.Run(() => DownloadManifest(request)).ContinueWith(task =>
+            foreach (var depot in depots.Values)
             {
-                RemoveLock(request.DepotID);
+                DepotManifest depotManifest = null;
+                string lastError = string.Empty;
 
-                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
-            });*/
+                for (var i = 0; i <= 5; i++)
+                {
+                    try
+                    {
+                        depotManifest = CDNClient.DownloadManifest(depot.DepotID, depot.ManifestID, depot.Server, depot.CDNToken, depot.DepotKey);
 
-            try
-            {
-                DownloadManifest(request);
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        lastError = e.Message;
+                    }
+
+                    await Task.Delay(Utils.ExponentionalBackoff(i));
+                }
+
+                if (depotManifest == null)
+                {
+                    Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", depot.DepotID, depot.Server, lastError);
+
+                    if (FileDownloader.IsImportantDepot(depot.DepotID))
+                    {
+                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download depot {3} manifest ({4}: {5})",
+                            Colors.OLIVE, Steam.GetAppName(depot.ParentAppID), Colors.NORMAL, depot.DepotID, depot.Server, lastError);
+                    }
+
+                    continue;
+                }
+
+                var task = Task.Run(() =>
+                {
+                    using (var db = Database.GetConnection())
+                    {
+                        return ProcessDepotAfterDownload(db, depot, depotManifest);
+                    }
+                });
+
+                processTasks.Add(task);
+
+                if (FileDownloader.IsImportantDepot(depot.DepotID))
+                {
+                    task = Task.Run(() =>
+                    {
+                        return FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
+                    });
+
+                    TaskManager.RegisterErrorHandler(task);
+
+                    processTasks.Add(task);
+                }
             }
-            catch (Exception)
+
+            await Task.WhenAll(processTasks);
+
+            var updateScript = Path.Combine(Application.Path, "files", "update.sh");
+            var canUpdate = processTasks.All(x => x.Result == true) && File.Exists(updateScript);
+
+#if DEBUG
+            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
+#endif
+
+            lock (UpdateScriptLock)
             {
-                RemoveLock(request.DepotID);
+                foreach (var depot in depots.Values)
+                {
+                    if (canUpdate)
+                    {
+                        System.Diagnostics.Process.Start(updateScript, string.Format("{0} no-git", depot.DepotID));
+                    }
+
+                    RemoveLock(depot.DepotID);
+
+                    Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depot.DepotID, DepotLocks.Count);
+                }
+
+                if (canUpdate)
+                {
+                    System.Diagnostics.Process.Start(updateScript, "0");
+                }
             }
         }
 
-        private void DownloadManifest(ManifestJob request)
+        private static bool ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
         {
-            Log.WriteInfo("Depot Processor", "DepotID: {0}", request.DepotID);
+            var decryptionKey = Utils.ByteArrayToString(request.DepotKey);
+            var currentDecryptionKey = db.ExecuteScalar<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { request.DepotID });
 
-            DepotManifest depotManifest = null;
-            string lastError = string.Empty;
-
-            // CDN is very random, just keep trying
-            for (var i = 0; i <= 5; i++)
+            if (decryptionKey != currentDecryptionKey)
             {
-                try
+                if (currentDecryptionKey != null)
                 {
-                    depotManifest = CDNClient.DownloadManifest(request.DepotID, request.ManifestID, request.Server, request.CDNToken, request.DepotKey);
+                    Log.WriteInfo("Depot Processor", "Decryption key for {0} changed: {1} -> {2}", request.DepotID, currentDecryptionKey, decryptionKey);
 
-                    break;
+                    IRC.Instance.SendOps("Decryption key for {0} changed: {1} -> {2}", request.DepotID, currentDecryptionKey, decryptionKey);
                 }
-                catch (Exception e)
-                {
-                    lastError = e.Message;
-                }
+
+                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { request.DepotID, Key = decryptionKey });
             }
 
-            if (depotManifest == null)
-            {
-                Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2}) (#{3})", request.DepotID, request.Server, lastError, request.Tries);
-
-                if (--request.Tries >= 0)
-                {
-                    request.Server = GetContentServer(request.Tries);
-
-                    JobManager.AddJob(() => Steam.Instance.Apps.GetCDNAuthToken(request.DepotID, request.Server), request);
-
-                    return;
-                }
-
-                RemoveLock(request.DepotID); // TODO: Remove this once task in OnCDNAuthTokenCallback is used
-
-                if (FileDownloader.IsImportantDepot(request.DepotID))
-                {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download depot {3} manifest ({4}: {5})",
-                        Colors.OLIVE, Steam.GetAppName(request.ParentAppID), Colors.NORMAL, request.DepotID, request.Server, lastError);
-                }
-
-                return;
-            }
-
-            if (FileDownloader.IsImportantDepot(request.DepotID))
-            {
-                TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(request, depotManifest));
-            }
-
-            // TODO: Task here instead of in OnCDNAuthTokenCallback due to mono's silly threadpool
-            TaskManager.Run(() =>
-            {
-                using(var db = Database.GetConnection())
-                {
-                    ProcessDepotAfterDownload(db, request, depotManifest);
-                }
-            }).ContinueWith(task =>
-            {
-                RemoveLock(request.DepotID);
-
-                Log.WriteDebug("Depot Processor", "Processed depot {0} ({1} depot locks left)", request.DepotID, DepotLocks.Count);
-            });
-        }
-
-        private static void ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
-        {
             var filesOld = db.Query<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }).ToDictionary(x => x.File, x => x);
             var filesNew = new List<DepotFile>();
             var filesAdded = new List<DepotFile>();
@@ -463,6 +453,8 @@ namespace SteamDatabaseBackend
             }
 
             db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
+
+            return true;
         }
 
         public static string GetHistoryQuery()
@@ -494,7 +486,7 @@ namespace SteamDatabaseBackend
 
         private string GetContentServer()
         {
-            var i = new Random().Next(CDNServers.Count);
+            var i = Utils.NextRandom(CDNServers.Count);
 
             return CDNServers[i];
         }

@@ -17,6 +17,8 @@ namespace SteamDatabaseBackend
 {
     static class Utils
     {
+        private static Random RandomGenerator = new Random();
+
         // Adapted from http://stackoverflow.com/a/13503860/139147
         // Mono doesn't really like method extensions
         public static IEnumerable<TResult> FullOuterJoin<TLeft, TRight, TKey, TResult>(
@@ -40,6 +42,19 @@ namespace SteamDatabaseBackend
                 from leftValue in leftLookup[key].DefaultIfEmpty(defaultLeft)
                 from rightValue in rightLookup[key].DefaultIfEmpty(defaultRight)
                 select resultSelector(leftValue, rightValue, key);
+        }
+
+        public static int NextRandom(int maxValue)
+        {
+            lock (RandomGenerator)
+            {
+                return RandomGenerator.Next(maxValue);
+            }
+        }
+
+        public static int ExponentionalBackoff(int i)
+        {
+            return (1 << i) * 1000 + NextRandom(1001);
         }
 
         public static SteamApps.PICSRequest NewPICSRequest(uint id)
