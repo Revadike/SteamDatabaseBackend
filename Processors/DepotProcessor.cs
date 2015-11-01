@@ -210,6 +210,14 @@ namespace SteamDatabaseBackend
                 })
                 .ToList();
 
+            var timeout = TimeSpan.FromSeconds(90);
+
+            foreach (var task in tasks)
+            {
+                task.KeyJob.Timeout = timeout;
+                task.TokenJob.Timeout = timeout;
+            }
+
             await Task.WhenAll(tasks.Select(t => t.KeyJob.ToTask()));
             await Task.WhenAll(tasks.Select(t => t.TokenJob.ToTask()));
 
