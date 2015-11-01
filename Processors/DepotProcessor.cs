@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -34,7 +35,7 @@ namespace SteamDatabaseBackend
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly ConcurrentDictionary<uint, byte> DepotLocks;
-        private static readonly object UpdateScriptLock = new object();
+        private static readonly SpinLock UpdateScriptLock = new SpinLock();
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
@@ -310,9 +311,12 @@ namespace SteamDatabaseBackend
 #if DEBUG
             Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
 #endif
+            bool lockTaken = false;
 
-            lock (UpdateScriptLock)
+            try
             {
+                UpdateScriptLock.Enter(ref lockTaken);
+
                 foreach (var depot in depots.Values)
                 {
                     if (canUpdate)
@@ -328,6 +332,13 @@ namespace SteamDatabaseBackend
                 if (canUpdate)
                 {
                     System.Diagnostics.Process.Start(updateScript, "0");
+                }
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    UpdateScriptLock.Exit();
                 }
             }
         }
