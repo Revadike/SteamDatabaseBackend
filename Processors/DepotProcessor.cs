@@ -35,10 +35,11 @@ namespace SteamDatabaseBackend
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly ConcurrentDictionary<uint, byte> DepotLocks;
-        private static readonly SpinLock UpdateScriptLock = new SpinLock();
+        private SpinLock UpdateScriptLock;
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
+            UpdateScriptLock = new SpinLock();
             DepotLocks = new ConcurrentDictionary<uint, byte>();
 
             CDNClient = new CDNClient(client);
