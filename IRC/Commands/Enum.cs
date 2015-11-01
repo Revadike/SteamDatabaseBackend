@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
@@ -27,8 +28,10 @@ namespace SteamDatabaseBackend
                 .OrderByDescending(x => x.Namespace == "SteamKit2");
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             if (command.Message.Equals("list", StringComparison.CurrentCultureIgnoreCase))
             {
                 command.Reply(string.Join(", ", SteamKitEnums.Select(@enum => @enum.Name)));

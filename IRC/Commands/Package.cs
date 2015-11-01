@@ -7,6 +7,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
@@ -18,7 +19,7 @@ namespace SteamDatabaseBackend
             IsSteamCommand = true;
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             uint subID;
 

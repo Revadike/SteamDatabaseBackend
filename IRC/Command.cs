@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System.Threading.Tasks;
 using NetIrc2;
 using SteamKit2;
 
@@ -25,7 +26,7 @@ namespace SteamDatabaseBackend
         public bool IsAdminCommand { get; protected set; }
         public bool IsSteamCommand { get; protected set; }
 
-        public abstract void OnCommand(CommandArguments command);
+        public abstract Task OnCommand(CommandArguments command);
     }
 
     class CommandArguments

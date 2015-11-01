@@ -5,6 +5,7 @@
  */
 
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 
 namespace SteamDatabaseBackend
@@ -16,8 +17,10 @@ namespace SteamDatabaseBackend
             Trigger = "blog";
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             BlogPost post;
 
             using (var db = Database.GetConnection())

@@ -5,6 +5,7 @@
  */
 
 using System.Linq;
+using System.Threading.Tasks;
 using SteamKit2;
 using SteamKit2.Unified.Internal;
 
@@ -22,7 +23,7 @@ namespace SteamDatabaseBackend
             GameServers = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IGameServers>();
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {

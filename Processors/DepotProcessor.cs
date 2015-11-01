@@ -194,11 +194,14 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
-                TaskManager.Run(() => DownloadDepots(depotsToDownload));
+                TaskManager.Run(async () =>
+                {
+                    await DownloadDepots(depotsToDownload);
+                });
             }
         }
 
-        private async void DownloadDepots(Dictionary<uint, ManifestJob> depots)
+        private async Task DownloadDepots(Dictionary<uint, ManifestJob> depots)
         {
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
 

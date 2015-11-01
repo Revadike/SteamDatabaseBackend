@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
 
@@ -17,7 +18,7 @@ namespace SteamDatabaseBackend
             IsSteamCommand = true;
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {

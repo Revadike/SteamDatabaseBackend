@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Dapper;
 
 namespace SteamDatabaseBackend
@@ -17,8 +18,10 @@ namespace SteamDatabaseBackend
             IsAdminCommand = true;
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             if (command.CommandType != ECommandType.IRC || !IRC.IsRecipientChannel(command.Recipient))
             {
                 command.Reply("This command is only available in channels.");

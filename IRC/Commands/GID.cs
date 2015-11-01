@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -15,8 +16,10 @@ namespace SteamDatabaseBackend
             Trigger = "gid";
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             if (command.Message.Length == 0)
             {
                 command.Reply("Usage:{0} gid <globalid>", Colors.OLIVE);

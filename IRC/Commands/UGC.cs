@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -21,7 +22,7 @@ namespace SteamDatabaseBackend
             Cloud = Steam.Instance.Client.GetHandler<SteamCloud>();
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {

@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
@@ -20,8 +21,10 @@ namespace SteamDatabaseBackend
             Commands = commands;
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             if (command.Message.Length > 0)
             {
                 return;

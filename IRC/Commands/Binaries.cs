@@ -6,8 +6,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -28,7 +28,7 @@ namespace SteamDatabaseBackend
             Trigger = "bins";
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {

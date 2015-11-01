@@ -3,6 +3,9 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
+using System.Threading.Tasks;
+
 namespace SteamDatabaseBackend
 {
     class ReloginCommand : Command
@@ -13,8 +16,10 @@ namespace SteamDatabaseBackend
             IsAdminCommand = true;
         }
 
-        public override void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
+            await Task.Yield();
+
             Steam.Instance.Client.Connect();
         }
     }

@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SteamKit2;
 using SteamKit2.Unified.Internal;
@@ -118,7 +119,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public override async void OnCommand(CommandArguments command)
+        public override async Task OnCommand(CommandArguments command)
         {
             if (command.Message.Length == 0)
             {

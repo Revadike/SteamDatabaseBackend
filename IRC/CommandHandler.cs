@@ -187,11 +187,11 @@ namespace SteamDatabaseBackend
             TryCommand(command, commandData);
         }
 
-        private static void TryCommand(Command command, CommandArguments commandData)
+        private static async void TryCommand(Command command, CommandArguments commandData)
         {
             try
             {
-                command.OnCommand(commandData);
+                await command.OnCommand(commandData);
             }
             catch (TaskCanceledException)
             {
