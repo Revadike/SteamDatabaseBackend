@@ -15,15 +15,6 @@ namespace SteamDatabaseBackend
     {
         public Func<JobID> Action;
         public CommandArguments Command;
-        public DepotProcessor.ManifestJob ManifestJob;
-
-        public bool IsManifestJob
-        {
-            get
-            {
-                return ManifestJob != null;
-            }
-        }
     }
 
     static class JobManager
@@ -56,21 +47,6 @@ namespace SteamDatabaseBackend
 
             // Chat rooms don't have full message saved
             Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, command.Message);
-
-            Jobs.TryAdd(jobID, job);
-        }
-
-        public static void AddJob(Func<JobID> action, DepotProcessor.ManifestJob manifestJob)
-        {
-            var jobID = action();
-
-            var job = new JobAction
-            {
-                Action = action,
-                ManifestJob = manifestJob
-            };
-
-            Log.WriteDebug("Job Manager", "New depot job: {0} ({1} - {2})", jobID, manifestJob.DepotID, manifestJob.ManifestID);
 
             Jobs.TryAdd(jobID, job);
         }
