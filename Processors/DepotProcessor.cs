@@ -35,10 +35,12 @@ namespace SteamDatabaseBackend
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly ConcurrentDictionary<uint, byte> DepotLocks;
+        private string UpdateScript;
         private SpinLock UpdateScriptLock;
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
+            UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
             DepotLocks = new ConcurrentDictionary<uint, byte>();
 
@@ -306,8 +308,7 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks);
 
-            var updateScript = Path.Combine(Application.Path, "files", "update.sh");
-            var canUpdate = processTasks.All(x => x.Result == true) && File.Exists(updateScript);
+            var canUpdate = processTasks.All(x => x.Result == true) && File.Exists(UpdateScript);
 
 #if DEBUG
             Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
@@ -322,7 +323,7 @@ namespace SteamDatabaseBackend
                 {
                     if (canUpdate)
                     {
-                        System.Diagnostics.Process.Start(updateScript, string.Format("{0} no-git", depot.DepotID));
+                        RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
                     }
 
                     RemoveLock(depot.DepotID);
@@ -332,7 +333,7 @@ namespace SteamDatabaseBackend
 
                 if (canUpdate)
                 {
-                    System.Diagnostics.Process.Start(updateScript, "0");
+                    RunUpdateScript("0");
                 }
             }
             finally
@@ -342,6 +343,18 @@ namespace SteamDatabaseBackend
                     UpdateScriptLock.Exit();
                 }
             }
+        }
+
+        private void RunUpdateScript(string arg)
+        {
+            var process = new System.Diagnostics.Process();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = UpdateScript,
+                Arguments = arg,
+            };
+            process.Start();
+            process.WaitForExit(120000);
         }
 
         private static bool ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
