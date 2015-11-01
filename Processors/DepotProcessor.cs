@@ -256,6 +256,7 @@ namespace SteamDatabaseBackend
             }
 
             var processTasks = new List<Task<bool>>();
+            bool hasImportantDepots = false;
 
             foreach (var depot in depots.Values)
             {
@@ -303,6 +304,8 @@ namespace SteamDatabaseBackend
 
                 if (FileDownloader.IsImportantDepot(depot.DepotID))
                 {
+                    hasImportantDepots = true;
+
                     task = Task.Run(() =>
                     {
                         return FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
@@ -316,9 +319,20 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks);
 
+            // TODO: use ContinueWith on tasks
+            if (!hasImportantDepots)
+            {
+                foreach (var depot in depots.Values)
+                {
+                    RemoveLock(depot.DepotID);
+                }
+
+                return;
+            }
+
             var canUpdate = processTasks.All(x => x.Result == true) && File.Exists(UpdateScript);
 
-#if DEBUG
+#if true
             Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
 #endif
             bool lockTaken = false;
@@ -329,14 +343,12 @@ namespace SteamDatabaseBackend
 
                 foreach (var depot in depots.Values)
                 {
-                    if (canUpdate)
+                    if (canUpdate && FileDownloader.IsImportantDepot(depot.DepotID))
                     {
                         RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
                     }
 
                     RemoveLock(depot.DepotID);
-
-                    Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depot.DepotID, DepotLocks.Count);
                 }
 
                 if (canUpdate)
@@ -515,6 +527,8 @@ namespace SteamDatabaseBackend
             byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
 
             DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam);
+
+            Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
         }
 
         private string GetContentServer()
