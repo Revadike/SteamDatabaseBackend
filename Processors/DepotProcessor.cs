@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
         private string UpdateScript;
         private SpinLock UpdateScriptLock;
 
-        public DepotProcessor(SteamClient client, CallbackManager manager)
+        public DepotProcessor(SteamClient client)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
@@ -260,7 +260,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var processTasks = new List<Task<bool>>();
+            var processTasks = new List<Task<EResult>>();
             bool hasImportantDepots = false;
 
             foreach (var depot in depots.Values)
@@ -337,7 +337,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var canUpdate = processTasks.All(x => x.Result == true) && File.Exists(UpdateScript);
+            var canUpdate = processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored) && File.Exists(UpdateScript);
 
 #if true
             Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
@@ -385,7 +385,7 @@ namespace SteamDatabaseBackend
             process.WaitForExit(120000);
         }
 
-        private static bool ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
+        private EResult ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
         {
             var decryptionKey = Utils.ByteArrayToString(request.DepotKey);
             var currentDecryptionKey = db.ExecuteScalar<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { request.DepotID });
@@ -507,7 +507,7 @@ namespace SteamDatabaseBackend
 
             db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
 
-            return true;
+            return EResult.OK;
         }
 
         public static string GetHistoryQuery()

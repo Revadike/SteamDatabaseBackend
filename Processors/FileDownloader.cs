@@ -63,7 +63,7 @@ namespace SteamDatabaseBackend
         /*
          * Here be dragons.
          */
-        public static bool DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
+        public static EResult DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
@@ -291,13 +291,15 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
                         Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
 
-                    return false;
+                    return EResult.Fail;
                 }
 
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
+
+                return EResult.OK;
             }
 
-            return true;
+            return EResult.Ignored;
         }
 
         private static bool IsFileNameMatching(uint depotID, string fileName)
