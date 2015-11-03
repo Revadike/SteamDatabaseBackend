@@ -5,10 +5,10 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using Dapper;
@@ -18,13 +18,23 @@ namespace SteamDatabaseBackend
 {
     class FreeLicense : SteamHandler
     {
+        private Regex PackageRegex;
+
         public FreeLicense(CallbackManager manager)
             : base(manager)
         {
+            PackageRegex = new Regex("RemoveFreeLicense\\( ?(?<subid>[0-9]+), ?'(?<name>.+)' ?\\)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+
             manager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback);
+
+            TaskManager.Run(async () =>
+            {
+                await System.Threading.Tasks.Task.Delay(5000);
+                RefreshPackageNames();
+            });
         }
 
-        private static void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
+        private void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
         {
             JobManager.TryRemoveJob(callback.JobID);
 
@@ -34,80 +44,92 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps: {2}, {3} packages: {4})",
                 callback.Result, appIDs.Count, string.Join(", ", appIDs), packageIDs.Count, string.Join(", ", packageIDs));
 
-            if (appIDs.Count > 0)
+            if (appIDs.Any())
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs, Enumerable.Empty<uint>()));
             }
 
-            if (packageIDs.Count > 0)
+            if (packageIDs.Any())
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
 
-                // We don't want to block our main thread with web requests
                 TaskManager.Run(() =>
                 {
-                    string data = null;
+                    RefreshPackageNames();
 
-                    try
+                    foreach (var subID in packageIDs)
                     {
-                        var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/licenses/");
-
-                        using (var responseStream = response.GetResponseStream())
-                        {
-                            using (var reader = new StreamReader(responseStream))
-                            {
-                                data = reader.ReadToEnd();
-                            }
-                        }
-                    }
-                    catch (WebException e)
-                    {
-                        Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
-                    }
-
-                    using (var db = Database.GetConnection())
-                    {
-                        foreach (var package in packageIDs)
-                        {
-                            var packageData = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package }).FirstOrDefault();
-
-                            if (!string.IsNullOrEmpty(data))
-                            {
-                                // Tell me all about using regex
-                                var match = Regex.Match(data, string.Format("RemoveFreeLicense\\( ?{0}, ?'(.+)' ?\\)", package));
-
-                                if (match.Success)
-                                {
-                                    var grantedName = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups[1].Value));
-
-                                    // Update last known name if we can
-                                    if (packageData.SubID > 0 && (string.IsNullOrEmpty(packageData.LastKnownName) || packageData.LastKnownName.StartsWith("Steam Sub ", StringComparison.Ordinal)))
-                                    {
-                                        db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package, Name = grantedName });
-
-                                        db.Execute(SubProcessor.GetHistoryQuery(),
-                                            new PICSHistory
-                                            {
-                                                ID       = package,
-                                                Key      = SteamDB.DATABASE_NAME_TYPE,
-                                                OldValue = "free on demand; account page",
-                                                NewValue = grantedName,
-                                                Action   = "created_info"
-                                            }
-                                        );
-                                    }
-
-                                    packageData.LastKnownName = grantedName;
-                                }
-                            }
-
-                            IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
-                                Colors.BLUE, Steam.FormatPackageName(package, packageData), Colors.NORMAL,
-                                Colors.DARKBLUE, SteamDB.GetPackageURL(package)
-                            );
-                        }
+                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
+                            Colors.BLUE, Steam.GetPackageName(subID), Colors.NORMAL,
+                            Colors.DARKBLUE, SteamDB.GetPackageURL(subID)
+                        );
                     }
                 });
+            }
+        }
+
+        private void RefreshPackageNames()
+        {
+            string data;
+
+            try
+            {
+                var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/licenses/");
+
+                using (var responseStream = response.GetResponseStream())
+                {
+                    using (var reader = new StreamReader(responseStream))
+                    {
+                        data = reader.ReadToEnd();
+                    }
+                }
+            }
+            catch (WebException e)
+            {
+                Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
+
+                return;
+            }
+
+            var matches = PackageRegex.Matches(data);
+            var names = new Dictionary<uint, string>();
+
+            foreach (Match match in matches)
+            {
+                var subID = uint.Parse(match.Groups["subid"].Value);
+                var name = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups["name"].Value));
+
+                names.Add(subID, name);
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                // Skip packages that have a store name to avoid messing up history
+                var packageData = db.Query<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
+
+                foreach (var package in packageData)
+                {
+                    var newName = names[package.SubID];
+
+                    if (package.LastKnownName != newName)
+                    {
+                        Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
+
+                        db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.SubID, Name = newName });
+
+                        db.Execute(
+                            SubProcessor.GetHistoryQuery(),
+                            new PICSHistory
+                            {
+                                ID = package.SubID,
+                                Key = SteamDB.DATABASE_NAME_TYPE,
+                                OldValue = "free on demand; account page",
+                                NewValue = newName,
+                                Action = "created_info"
+                            }
+                        );
+                    }
+                }
             }
         }
     }

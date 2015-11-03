@@ -36,6 +36,8 @@ namespace SteamDatabaseBackend
             }
 
             WebAPIUserNonce = callback.WebAPIUserNonce;
+
+            TaskManager.Run(() => AuthenticateUser());
         }
 
         private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
@@ -52,7 +54,7 @@ namespace SteamDatabaseBackend
             WebAPIUserNonce = callback.Nonce;
         }
 
-        private static bool AuthenticateUser(string nonce)
+        private static bool AuthenticateUser()
         {
             // 32 byte random blob of data
             var sessionKey = CryptoHelper.GenerateRandomBlock(32);
@@ -66,7 +68,7 @@ namespace SteamDatabaseBackend
             }
 
             // users hashed loginkey, AES encrypted with the sessionkey
-            var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(nonce), sessionKey);
+            var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(WebAPIUserNonce), sessionKey);
 
             using (dynamic userAuth = WebAPI.GetInterface("ISteamUserAuth"))
             {
@@ -124,7 +126,7 @@ namespace SteamDatabaseBackend
 
             for (var i = 0; i < 5; i++)
             {
-                if (!IsAuthorized && !AuthenticateUser(WebAPIUserNonce))
+                if (!IsAuthorized && !AuthenticateUser())
                 {
                     continue;
                 }
