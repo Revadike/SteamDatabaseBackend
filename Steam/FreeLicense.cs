@@ -95,22 +95,6 @@ namespace SteamDatabaseBackend
                                                 Action   = "created_info"
                                             }
                                         );
-
-                                        // Add a app comment on each app in this package
-                                        var comment = string.Format("This app is in a free on demand package called <b>{0}</b>", SecurityElement.Escape(grantedName));
-                                        var apps = db.Query<PackageApp>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID = package }).ToList();
-                                        var types = db.Query<App>("SELECT `AppID` FROM `Apps` WHERE `AppType` > 0 AND `AppID` IN @Ids", new { Ids = apps.Select(x => x.AppID) }).ToDictionary(x => x.AppID, x => true);
-                                        var key = db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = 'website_comment'");
-
-                                        foreach (var app in apps)
-                                        {
-                                            if (types.ContainsKey(app.AppID))
-                                            {
-                                                continue;
-                                            }
-
-                                            db.Execute("INSERT INTO `AppsInfo` VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `Key` = `Key`", new {app.AppID, Key = key, value = comment });
-                                        }
                                     }
 
                                     packageData.LastKnownName = grantedName;
