@@ -26,12 +26,6 @@ namespace SteamDatabaseBackend
             PackageRegex = new Regex("RemoveFreeLicense\\( ?(?<subid>[0-9]+), ?'(?<name>.+)' ?\\)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 
             manager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback);
-
-            TaskManager.Run(async () =>
-            {
-                await System.Threading.Tasks.Task.Delay(5000);
-                RefreshPackageNames();
-            });
         }
 
         private void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
