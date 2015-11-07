@@ -29,10 +29,11 @@ namespace SteamDatabaseBackend
             }
 
             uint appID;
+            string name;
 
             if (!uint.TryParse(command.Message, out appID))
             {
-                string name = command.Message;
+                name = command.Message;
 
                 if (!Utils.ConvertUserInputToSQLSearch(ref name))
                 {
@@ -59,24 +60,47 @@ namespace SteamDatabaseBackend
             if (callback.Result != EResult.OK)
             {
                 command.Reply("Unable to request player count: {0}{1}", Colors.RED, callback.Result);
+
+                return;
             }
-            else if (appID == 0)
+
+            if (appID == 0)
             {
-                command.Reply(
-                    "{0}{1:N0}{2} people praising lord Gaben right now, influence:{3} {4}",
-                    Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(753, "graphs")
-                );
+                appID = 753;
             }
-            else
+
+            string appType, type = "playing";
+            name = Steam.GetAppName(appID, out appType);
+
+            switch (appType)
             {
-                command.Reply(
-                    "People playing {0}{1}{2} right now: {3}{4:N0}{5} -{6} {7}",
-                    Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
-                    Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
-                );
+                case "Tool":
+                case "Config":
+                case "Application":
+                    type = "using";
+                    break;
+
+                case "Legacy Media":
+                case "Video":
+                    type = "watching";
+                    break;
+
+                case "Guide":
+                    type = "reading";
+                    break;
+
+                case "Hardware":
+                    type = "bricking";
+                    break;
             }
+
+            command.Reply(
+                "People {0} {1}{2}{3} right now: {4}{5:N0}{6} -{7} {8}",
+                type,
+                Colors.BLUE, name, Colors.NORMAL,
+                Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
+            );
         }
     }
 }
