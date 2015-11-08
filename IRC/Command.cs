@@ -105,5 +105,22 @@ namespace SteamDatabaseBackend
                     break;
             }
         }
+
+        public override string ToString()
+        {
+            switch (CommandType)
+            {
+                case ECommandType.IRC:
+                    return string.Format("IRC User \"{0}\" in \"{1}\"", SenderIdentity, Recipient);
+
+                case ECommandType.SteamChatRoom:
+                    return string.Format("Steam User \"{0}\" in \"{1}\"", SenderID.Render(true), ChatRoomID.Render(true));
+
+                case ECommandType.SteamIndividual:
+                    return string.Format("Steam User \"{0}\"", SenderID.Render(true));
+            }
+
+            return base.ToString();
+        }
     }
 }

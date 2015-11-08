@@ -106,7 +106,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            Log.WriteInfo("CommandHandler", "Handling IRC command {0} for user {1} in channel {2}", message, e.Sender, e.Recipient);
+            Log.WriteInfo("CommandHandler", "Handling IRC command \"{0}\" for {1}", message, commandData);
 
             TryCommand(command, commandData);
         }
@@ -129,9 +129,9 @@ namespace SteamDatabaseBackend
                 Message = callback.Message
             };
 
-            HandleSteamMessage(commandData);
+            Log.WriteInfo("CommandHandler", "Handling Steam friend command \"{0}\" for {1}", callback.Message, commandData);
 
-            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1}", callback.Message, callback.Sender);
+            HandleSteamMessage(commandData);
         }
 
         public void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
@@ -157,9 +157,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            HandleSteamMessage(commandData);
+            Log.WriteInfo("CommandHandler", "Handling Steam command \"{0}\" for {1}", callback.Message, commandData);
 
-            Log.WriteInfo("CommandHandler", "Handling Steam command {0} for user {1} in chatroom {2}", callback.Message, callback.ChatterID, callback.ChatRoomID);
+            HandleSteamMessage(commandData);
         }
 
         private void HandleSteamMessage(CommandArguments commandData)

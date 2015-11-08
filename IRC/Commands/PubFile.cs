@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
             IsSteamCommand = true;
 
             SharedFileMatch = new Regex(
-                @"(?:^|/|\.)steamcommunity\.com/sharedfiles/filedetails/(?:\?id=|comments/|changelog/|discussions/|)(?<pubfileid>[0-9]+)",
+                @"(?:^|/|\.)steamcommunity\.com/sharedfiles/filedetails/(?:\?id=|comments/|changelog/|discussions/|)(?<pubfileid>[0-9]{1,20})",
                 RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
             );
 
@@ -40,7 +40,15 @@ namespace SteamDatabaseBackend
 
             foreach (Match match in matches)
             {
-                var pubFileId = ulong.Parse(match.Groups["pubfileid"].Value);
+                ulong pubFileId;
+
+                if (!ulong.TryParse(match.Groups["pubfileid"].Value, out pubFileId))
+                {
+                    continue;
+                }
+
+                Log.WriteInfo("Link Expander", "Will look up pubfile {0} for {1}", pubFileId, command);
+
                 var pubFileRequest = new CPublishedFile_GetDetails_Request
                 {
                     includevotes = true,
@@ -48,13 +56,24 @@ namespace SteamDatabaseBackend
 
                 pubFileRequest.publishedfileids.Add(pubFileId);
 
-                var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
-                var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
-                var details = response.publishedfiledetails.FirstOrDefault();
+                PublishedFileDetails details;
+
+                try
+                {
+                    var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+                    var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
+                    details = response.publishedfiledetails.FirstOrDefault();
+                }
+                catch (Exception e)
+                {
+                    Log.WriteError("Link Expander", "Failed to get pubfile details: {0}", e.Message);
+
+                    continue;
+                }
 
                 if (details == null || (EResult)details.result != EResult.OK)
                 {
-                    return; // TODO
+                    continue;
                 }
 
                 string title;
@@ -114,8 +133,6 @@ namespace SteamDatabaseBackend
                         false
                     );
                 }
-
-                break; // TODO: Fix this (can't really await in a foreach)
             }
         }
 
