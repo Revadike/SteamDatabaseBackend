@@ -19,7 +19,8 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        private static Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
+        private static Dictionary<uint, string> DownloadFolders;
+        private static Dictionary<uint, Regex> Files;
         private static CDNClient CDNClient;
 
         public static void SetCDNClient(CDNClient cdnClient)
@@ -34,23 +35,40 @@ namespace SteamDatabaseBackend
 
         public static void ReloadFileList()
         {
-            string file = Path.Combine(Application.Path, "files", "files.json");
+            Files = new Dictionary<uint, Regex>();
+            DownloadFolders = new Dictionary<uint, string>();
+
+            string file = Path.Combine(Application.Path, "files", "depots_mapping.json");
+
+            if (!File.Exists(file))
+            {
+                Log.WriteWarn("FileDownloader", "files/depots_mapping.json not found.");
+
+                return;
+            }
+
+            DownloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+
+            file = Path.Combine(Application.Path, "files", "files.json");
 
             if (!File.Exists(file))
             {
                 Log.WriteWarn("FileDownloader", "files/files.json not found. No files will be downloaded.");
+
+                return;
             }
-            else
+
+            var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+
+            foreach (var depot in files)
             {
-                Files = new Dictionary<uint, Regex>();
+                string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(x => ConvertFileMatch(x))));
 
-                var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+                Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 
-                foreach (var depot in files)
+                if (!DownloadFolders.ContainsKey(depot.Key))
                 {
-                    string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(x => ConvertFileMatch(x))));
-
-                    Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+                    throw new InvalidDataException(string.Format("Missing depot mapping for depotid {0}.", depot.Key));
                 }
             }
         }
@@ -81,7 +99,7 @@ namespace SteamDatabaseBackend
 
             Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
             {
-                string directory    = Path.Combine(Application.Path, "files", job.DepotID.ToString(), Path.GetDirectoryName(file.FileName));
+                string directory    = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
                 string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
                 string downloadPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".steamdb_tmp"));
 
