@@ -78,7 +78,8 @@ namespace SteamDatabaseBackend
 
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
         {
-            var e = args.ExceptionObject as Exception;
+            var parentException = args.ExceptionObject as Exception;
+            var e = parentException.InnerException ?? parentException;
 
             Log.WriteError("Unhandled Exception", "{0}\n{1}", e.Message, e.StackTrace);
 
