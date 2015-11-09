@@ -247,6 +247,13 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                LocalConfig.CDNAuthTokens[depotID] = new LocalConfig.CDNAuthToken
+                {
+                    Server = depots[depotID].Server,
+                    Token = tokenCallback.Token,
+                    Expiration = tokenCallback.Expiration,
+                };
+
                 depots[depotID].DepotKey = depotCallback.DepotKey;
                 depots[depotID].CDNToken = tokenCallback.Token;
             }
@@ -259,6 +266,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+
+            LocalConfig.Save();
 
             var processTasks = new List<Task<EResult>>();
             bool hasImportantDepots = false;

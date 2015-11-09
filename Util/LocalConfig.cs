@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using Newtonsoft.Json;
@@ -16,19 +17,40 @@ namespace SteamDatabaseBackend
     static class LocalConfig
     {
         [JsonObject(MemberSerialization.OptIn)]
+        public class CDNAuthToken
+        {
+            [JsonProperty]
+            public string Server { get; set; }
+
+            [JsonProperty]
+            public string Token { get; set; }
+
+            [JsonProperty]
+            public DateTime Expiration { get; set; }
+        }
+
+        [JsonObject(MemberSerialization.OptIn)]
         class LocalConfigJson
         {
             [JsonProperty]
-            public uint CellID;
+            public uint CellID { get; set; } 
 
             [JsonProperty]
-            public IPEndPoint[] ServerList;
+            public IPEndPoint[] ServerList { get; set; } 
 
             [JsonProperty]
-            public string SentryFileName;
+            public string SentryFileName { get; set; } 
 
             [JsonProperty]
-            public byte[] Sentry;
+            public byte[] Sentry { get; set; } 
+
+            [JsonProperty]
+            public Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; } 
+
+            public LocalConfigJson()
+            {
+                CDNAuthTokens = new Dictionary<uint, CDNAuthToken>();
+            }
         }
 
         public static uint CellID { get; set; }
@@ -36,6 +58,8 @@ namespace SteamDatabaseBackend
         public static string SentryFileName { get; set; }
 
         public static byte[] Sentry { get; set; }
+
+        public static Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; private set; }
 
         public static void Load()
         {
@@ -53,6 +77,7 @@ namespace SteamDatabaseBackend
             CellID = current.CellID;
             Sentry = current.Sentry;
             SentryFileName = current.SentryFileName;
+            CDNAuthTokens = current.CDNAuthTokens;
 
             if (current.ServerList.Length > 0)
             {
@@ -77,6 +102,7 @@ namespace SteamDatabaseBackend
                 CellID = CellID,
                 Sentry = Sentry,
                 SentryFileName = SentryFileName,
+                CDNAuthTokens = CDNAuthTokens,
             };
 
             var json = JsonConvert.SerializeObject(current, GetSettings());
