@@ -286,6 +286,8 @@ namespace SteamDatabaseBackend
 
                 if (depot.DepotKey == null)
                 {
+                    RemoveLock(depot.DepotID);
+
                     continue;
                 }
 
@@ -293,6 +295,8 @@ namespace SteamDatabaseBackend
 
                 if (depot.DepotKey == null)
                 {
+                    RemoveLock(depot.DepotID);
+
                     Log.WriteDebug("Depot Downloader", "Got a depot key for depot {0} but no cdn auth token", depot.DepotID);
 
                     continue;
@@ -321,11 +325,16 @@ namespace SteamDatabaseBackend
 
                     // TODO: get new auth key if auth fails
 
-                    await Task.Delay(Utils.ExponentionalBackoff(i));
+                    if (depotManifest == null)
+                    {
+                        await Task.Delay(Utils.ExponentionalBackoff(i));
+                    }
                 }
 
                 if (depotManifest == null)
                 {
+                    RemoveLock(depot.DepotID);
+
                     Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", depot.DepotID, depot.Server, lastError);
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
