@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var tokenCallback = await Steam.Instance.Apps.PICSGetAccessTokens(new List<uint> { appID }, Enumerable.Empty<uint>());
+            var tokenCallback = await Steam.Instance.Apps.PICSGetAccessTokens(appID, null);
             SteamApps.PICSRequest request;
 
             if (tokenCallback.AppTokens.ContainsKey(appID))

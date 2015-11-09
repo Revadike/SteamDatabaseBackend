@@ -36,9 +36,6 @@ namespace SteamDatabaseBackend
             public uint CellID { get; set; } 
 
             [JsonProperty]
-            public IPEndPoint[] ServerList { get; set; } 
-
-            [JsonProperty]
             public string SentryFileName { get; set; } 
 
             [JsonProperty]
@@ -46,6 +43,9 @@ namespace SteamDatabaseBackend
 
             [JsonProperty]
             public Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; } 
+
+            [JsonProperty]
+            public IPEndPoint[] ServerList { get; set; } 
 
             public LocalConfigJson()
             {

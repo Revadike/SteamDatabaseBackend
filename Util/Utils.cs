@@ -7,6 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -81,6 +82,19 @@ namespace SteamDatabaseBackend
                 b = (b + a) % 65521;
             }
             return BitConverter.GetBytes(a | (b << 16));
+        }
+
+        public static byte[] StringToByteArray(string str)
+        {
+            var HexAsBytes = new byte[str.Length / 2];
+
+            for (int index = 0; index < HexAsBytes.Length; index++)
+            {
+                string byteValue = str.Substring(index * 2, 2);
+                HexAsBytes[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            }
+
+            return HexAsBytes; 
         }
 
         public static string ByteArrayToString(byte[] ba)
