@@ -11,7 +11,18 @@ namespace SteamDatabaseBackend
 {
     static class TaskManager
     {
-        public static Task Run(Func<Task> function)
+        public static Task<T> Run<T>(Func<T> function, TaskCreationOptions options)
+        {
+            var t = new Task<T>(function, options);
+
+            RegisterErrorHandler(t);
+
+            t.Start();
+
+            return t;
+        }
+
+        public static Task<T> Run<T>(Func<T> function)
         {
             var t = Task.Run(function);
 

@@ -196,7 +196,7 @@ namespace SteamDatabaseBackend
                 TaskManager.Run(async () =>
                 {
                     await DownloadDepots(depotsToDownload);
-                });
+                }, TaskCreationOptions.LongRunning);
             }
         }
 
@@ -346,7 +346,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                var task = Task.Run(() =>
+                var task = TaskManager.Run(() =>
                 {
                     using (var db = Database.GetConnection())
                     {
@@ -360,10 +360,7 @@ namespace SteamDatabaseBackend
                 {
                     hasImportantDepots = true;
 
-                    task = Task.Run(() =>
-                    {
-                        return FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
-                    });
+                    task = TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(depot, depotManifest), TaskCreationOptions.LongRunning);
 
                     TaskManager.RegisterErrorHandler(task);
 
