@@ -225,7 +225,7 @@ namespace SteamDatabaseBackend
 
                 Log.WriteDebug("Depot Downloader", "Got a new depot key for depot {0}", depotID);
 
-                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = callback.DepotKey });
+                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
 
                 return callback.DepotKey;
             }
