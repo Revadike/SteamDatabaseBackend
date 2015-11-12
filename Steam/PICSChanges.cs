@@ -259,7 +259,7 @@ namespace SteamDatabaseBackend
         {
             if (DateTime.Now > ChangelistBurstTime)
             {
-                ChangelistBurstTime = DateTime.Now.AddMinutes(2);
+                ChangelistBurstTime = DateTime.Now.AddMinutes(5);
                 ChangelistBurstCount = 0;
             }
 
@@ -281,12 +281,11 @@ namespace SteamDatabaseBackend
 
             foreach (var changeList in changeLists)
             {
-                if (++ChangelistBurstCount >= 50)
+                if (ChangelistBurstCount++ >= 50)
                 {
                     if (ChangelistBurstCount == 50)
                     {
-                        IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be suppressed.", Colors.RED);
-                        IRC.Instance.SendAnnounce("{0}You can still view changelists online: {1}/changelist/", Colors.RED, Settings.Current.BaseURL);
+                        IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be suppressed. You can still view changelists online: {1}changelist/", Colors.RED, Settings.Current.BaseURL);
                     }
 
                     return;
