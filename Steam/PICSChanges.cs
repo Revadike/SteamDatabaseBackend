@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -18,6 +19,9 @@ namespace SteamDatabaseBackend
         private readonly uint BillingTypeKey;
 
         private static readonly List<EBillingType> IgnorableBillingTypes;
+
+        private uint ChangelistBurstCount;
+        private DateTime ChangelistBurstTime;
 
         static PICSChanges()
         {
@@ -253,6 +257,23 @@ namespace SteamDatabaseBackend
 
         private void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
         {
+            if (DateTime.Now > ChangelistBurstTime)
+            {
+                ChangelistBurstTime = DateTime.Now.AddMinutes(2);
+                ChangelistBurstCount = 0;
+            }
+
+            if (++ChangelistBurstCount >= 50)
+            {
+                if (ChangelistBurstCount == 50)
+                {
+                    IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be surpressed.", Colors.RED);
+                    IRC.Instance.SendAnnounce("{0}You can still view changelists online: {1}/changelist/", Colors.RED, Settings.Current.BaseURL);
+                }
+
+                return;
+            }
+
             // Group apps and package changes by changelist, this will seperate into individual changelists
             var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
             var packageGrouping = callback.PackageChanges.Values.GroupBy(p => p.ChangeNumber);
