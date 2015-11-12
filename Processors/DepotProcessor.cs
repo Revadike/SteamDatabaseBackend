@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var depotsToDownload = new Dictionary<uint, ManifestJob>();
+            var depotsToDownload = new List<ManifestJob>();
 
             using (var db = Database.GetConnection())
             {
@@ -180,7 +180,7 @@ namespace SteamDatabaseBackend
                     {
                         DepotLocks.TryAdd(request.DepotID, 1);
 
-                        depotsToDownload.Add(request.DepotID, request);
+                        depotsToDownload.Add(request);
                     }
 #if DEBUG
                     else
@@ -273,14 +273,14 @@ namespace SteamDatabaseBackend
             return newToken;
         }
 
-        private async Task DownloadDepots(Dictionary<uint, ManifestJob> depots)
+        private async Task DownloadDepots(IEnumerable<ManifestJob> depots)
         {
-            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
+            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count(), DepotLocks.Count);
 
             var processTasks = new List<Task<EResult>>();
             bool hasImportantDepots = false;
 
-            foreach (var depot in depots.Values)
+            foreach (var depot in depots)
             {
                 depot.DepotKey = await GetDepotDecryptionKey(depot.DepotID, depot.ParentAppID);
 
@@ -380,9 +380,9 @@ namespace SteamDatabaseBackend
             // TODO: use ContinueWith on tasks
             if (!hasImportantDepots)
             {
-                Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count);
+                Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count());
 
-                foreach (var depot in depots.Values)
+                foreach (var depot in depots)
                 {
                     RemoveLock(depot.DepotID);
                 }
@@ -393,7 +393,7 @@ namespace SteamDatabaseBackend
             var canUpdate = processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored) && File.Exists(UpdateScript);
 
 #if true
-            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count, canUpdate);
+            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count(), canUpdate);
 #endif
             bool lockTaken = false;
 
@@ -401,7 +401,7 @@ namespace SteamDatabaseBackend
             {
                 UpdateScriptLock.Enter(ref lockTaken);
 
-                foreach (var depot in depots.Values)
+                foreach (var depot in depots)
                 {
                     // TODO: this only needs to run if any downloaded files changed
                     if (canUpdate && FileDownloader.IsImportantDepot(depot.DepotID))
@@ -572,9 +572,10 @@ namespace SteamDatabaseBackend
         {
             byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
 
-            DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam);
-
-            Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
+            if (DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam))
+            {
+                Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
+            }
         }
 
         private string GetContentServer()
