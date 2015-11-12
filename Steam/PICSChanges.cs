@@ -20,6 +20,7 @@ namespace SteamDatabaseBackend
 
         private static readonly List<EBillingType> IgnorableBillingTypes;
 
+        private const uint CHANGELIST_BURST_MIN = 50;
         private uint ChangelistBurstCount;
         private DateTime ChangelistBurstTime;
 
@@ -281,9 +282,9 @@ namespace SteamDatabaseBackend
 
             foreach (var changeList in changeLists)
             {
-                if (ChangelistBurstCount++ >= 50)
+                if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN)
                 {
-                    if (ChangelistBurstCount == 50)
+                    if (ChangelistBurstCount == CHANGELIST_BURST_MIN + 1)
                     {
                         IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be suppressed. You can still view changelists online: {1}changelist/", Colors.RED, Settings.Current.BaseURL);
                     }
