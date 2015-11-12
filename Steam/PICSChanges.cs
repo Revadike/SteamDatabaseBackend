@@ -263,17 +263,6 @@ namespace SteamDatabaseBackend
                 ChangelistBurstCount = 0;
             }
 
-            if (++ChangelistBurstCount >= 50)
-            {
-                if (ChangelistBurstCount == 50)
-                {
-                    IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be surpressed.", Colors.RED);
-                    IRC.Instance.SendAnnounce("{0}You can still view changelists online: {1}/changelist/", Colors.RED, Settings.Current.BaseURL);
-                }
-
-                return;
-            }
-
             // Group apps and package changes by changelist, this will seperate into individual changelists
             var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
             var packageGrouping = callback.PackageChanges.Values.GroupBy(p => p.ChangeNumber);
@@ -292,6 +281,17 @@ namespace SteamDatabaseBackend
 
             foreach (var changeList in changeLists)
             {
+                if (++ChangelistBurstCount >= 50)
+                {
+                    if (ChangelistBurstCount == 50)
+                    {
+                        IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be suppressed.", Colors.RED);
+                        IRC.Instance.SendAnnounce("{0}You can still view changelists online: {1}/changelist/", Colors.RED, Settings.Current.BaseURL);
+                    }
+
+                    return;
+                }
+
                 var appCount = changeList.Apps.Count;
                 var packageCount = changeList.Packages.Count;
 
