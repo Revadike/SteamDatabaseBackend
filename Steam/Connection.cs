@@ -164,7 +164,8 @@ namespace SteamDatabaseBackend
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 1)
                 {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetChangesSince(1, true, true));
+                    Steam.Instance.PICSChanges.PerformSync();
+                    //JobManager.AddJob(() => Steam.Instance.Apps.PICSGetChangesSince(1, true, true));
                 }
             }
             else

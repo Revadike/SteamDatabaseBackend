@@ -68,23 +68,45 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public void PerformSync()
+        {
+            Log.WriteInfo("PICSChanges", "Doing a full run on all apps and packages in the database.");
+
+            IEnumerable<uint> apps;
+            IEnumerable<uint> packages;
+
+            using (var db = Database.GetConnection())
+            {
+                apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC");
+                packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC");
+            }
+
+            RequestUpdateForList(apps, packages);
+        }
+
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
         {
             PreviousChangeNumber = 2;
 
-            Log.WriteInfo("PICSChanges", "Requesting info for {0} apps and {1} packages", callback.AppChanges.Count, callback.PackageChanges.Count);
+            var apps = callback.AppChanges.Keys;
+            var packages = callback.PackageChanges.Keys;
 
-            var apps = callback.AppChanges.Keys.ToList();
+            RequestUpdateForList(apps, packages);
+        }
+
+        private void RequestUpdateForList(IEnumerable<uint> appIDs, IEnumerable<uint> packageIDs)
+        {
+            Log.WriteInfo("PICSChanges", "Requesting info for {0} apps and {1} packages", appIDs.Count(), packageIDs.Count());
 
             // Horribly unoptimized mess, but it's a full run so whatever
-            while (apps.Any())
+            while (appIDs.Any())
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps.Take(500), Enumerable.Empty<uint>()));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs.Take(500), Enumerable.Empty<uint>()));
 
-                apps = apps.Skip(500).ToList();
+                appIDs = appIDs.Skip(500).ToList();
             }
 
-            var packages = callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package)).ToList();
+            var packages = packageIDs.Select(package => Utils.NewPICSRequest(package));
 
             while (packages.Any())
             {
