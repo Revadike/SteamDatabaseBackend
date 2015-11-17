@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
-        private readonly ConcurrentDictionary<uint, byte> DepotLocks;
+        private readonly Dictionary<uint, byte> DepotLocks;
         private string UpdateScript;
         private SpinLock UpdateScriptLock;
         private bool SaveLocalConfig;
@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
-            DepotLocks = new ConcurrentDictionary<uint, byte>();
+            DepotLocks = new Dictionary<uint, byte>();
 
             CDNClient = new CDNClient(client);
 
@@ -178,7 +178,10 @@ namespace SteamDatabaseBackend
 
                     if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun > 1)
                     {
-                        DepotLocks.TryAdd(request.DepotID, 1);
+                        lock (DepotLocks)
+                        {
+                            DepotLocks.Add(request.DepotID, 1);
+                        }
 
                         depotsToDownload.Add(request);
                     }
@@ -278,7 +281,7 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count(), DepotLocks.Count);
 
             var processTasks = new List<Task<EResult>>();
-            bool hasImportantDepots = false;
+            bool anyFilesDownloaded = false;
 
             foreach (var depot in depots)
             {
@@ -358,9 +361,17 @@ namespace SteamDatabaseBackend
 
                 if (FileDownloader.IsImportantDepot(depot.DepotID))
                 {
-                    hasImportantDepots = true;
+                    task = TaskManager.Run(() =>
+                    {
+                        var result = FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
 
-                    task = TaskManager.Run(() => FileDownloader.DownloadFilesFromDepot(depot, depotManifest), TaskCreationOptions.LongRunning);
+                        if (result == EResult.OK)
+                        {
+                            anyFilesDownloaded = true;
+                        }
+
+                        return result;
+                    }, TaskCreationOptions.LongRunning);
 
                     TaskManager.RegisterErrorHandler(task);
 
@@ -378,7 +389,7 @@ namespace SteamDatabaseBackend
             await Task.WhenAll(processTasks);
 
             // TODO: use ContinueWith on tasks
-            if (!hasImportantDepots)
+            if (!anyFilesDownloaded)
             {
                 Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count());
 
@@ -570,10 +581,10 @@ namespace SteamDatabaseBackend
 
         private void RemoveLock(uint depotID)
         {
-            byte microsoftWhyIsThereNoRemoveMethodWithoutSecondParam;
-
-            if (DepotLocks.TryRemove(depotID, out microsoftWhyIsThereNoRemoveMethodWithoutSecondParam))
+            lock (DepotLocks)
             {
+                DepotLocks.Remove(depotID);
+
                 Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
             }
         }
