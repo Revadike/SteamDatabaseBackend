@@ -263,13 +263,11 @@ namespace SteamDatabaseBackend
 
             var msg = new ClientGCMsgProtobuf<CMsgGCTFSpecificItemBroadcast>(packetMsg).Body;
 
-            var itemName = GetItemName(441, msg.item_def_index);
-
             IRC.Instance.SendMain("{0}{1}{2} item notification: {3}{4}{5} {6} {7}{8}{9}!",
                 Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
                 Colors.BLUE, msg.user_name, Colors.NORMAL,
                 msg.was_destruction ? "has destroyed their" : "just received a",
-                Colors.OLIVE, itemName, Colors.NORMAL
+                Colors.OLIVE, GetTF2ItemName(msg.item_def_index), Colors.NORMAL
             );
         }
 
@@ -293,9 +291,9 @@ namespace SteamDatabaseBackend
             return info;
         }
 
-        private static string GetItemName(uint depotID, uint itemDefIndex)
+        private static string GetTF2ItemName(uint itemDefIndex)
         {
-            var file = Path.Combine(Application.Path, "files", depotID.ToString(), "tf", "scripts", "items", "items_game.txt");
+            var file = Path.Combine(Application.Path, "files", "tf", "tf", "scripts", "items", "items_game.txt");
 
             var schema = KeyValue.LoadAsText(file);
 
@@ -303,7 +301,7 @@ namespace SteamDatabaseBackend
 
             if (schema == null)
             {
-                Log.WriteWarn("Game Coordinator", "Unable to load item schema from depot {0}", depotID);
+                Log.WriteWarn("Game Coordinator", "Unable to load TF2 item schema");
             }
             else
             {
