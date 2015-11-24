@@ -18,6 +18,7 @@ namespace SteamDatabaseBackend
 {
     class FreeLicense : SteamHandler
     {
+        private bool CurrentlyUpdatingNames;
         private Regex PackageRegex;
 
         public FreeLicense(CallbackManager manager)
@@ -64,10 +65,17 @@ namespace SteamDatabaseBackend
 
         private void RefreshPackageNames()
         {
+            if (CurrentlyUpdatingNames)
+            {
+                return;
+            }
+
             string data;
 
             try
             {
+                CurrentlyUpdatingNames = true;
+
                 var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/licenses/");
 
                 using (var responseStream = response.GetResponseStream())
@@ -83,6 +91,10 @@ namespace SteamDatabaseBackend
                 Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
 
                 return;
+            }
+            finally
+            {
+                CurrentlyUpdatingNames = false;
             }
 
             var matches = PackageRegex.Matches(data);
