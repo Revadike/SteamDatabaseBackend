@@ -213,25 +213,28 @@ namespace SteamDatabaseBackend
                 {
                     return Utils.StringToByteArray(currentDecryptionKey);
                 }
+            }
 
-                var callback = await Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
+            var callback = await Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
 
-                if (callback.Result != EResult.OK)
+            if (callback.Result != EResult.OK)
+            {
+                if (callback.Result != EResult.AccessDenied)
                 {
-                    if (callback.Result != EResult.AccessDenied)
-                    {
-                        Log.WriteError("Depot Processor", "No access to depot {0} ({1})", depotID, callback.Result);
-                    }
-
-                    return null;
+                    Log.WriteError("Depot Processor", "No access to depot {0} ({1})", depotID, callback.Result);
                 }
 
-                Log.WriteDebug("Depot Downloader", "Got a new depot key for depot {0}", depotID);
-
-                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
-
-                return callback.DepotKey;
+                return null;
             }
+
+            Log.WriteDebug("Depot Downloader", "Got a new depot key for depot {0}", depotID);
+
+            using (var db = Database.GetConnection())
+            {
+                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
+            }
+
+            return callback.DepotKey;
         }
 
         private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(uint depotID)
@@ -296,7 +299,7 @@ namespace SteamDatabaseBackend
 
                 var cdnToken = await GetCDNAuthToken(depot.DepotID);
 
-                if (depot.DepotKey == null)
+                if (cdnToken.Token == null)
                 {
                     RemoveLock(depot.DepotID);
 
