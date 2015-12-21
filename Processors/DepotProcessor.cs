@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
             DepotLocks = new Dictionary<uint, byte>();
 
             DepotThreadPool = new SmartThreadPool();
-            DepotThreadPool.Concurrency = Settings.IsFullRun == 2 ? 15 : 5;
+            DepotThreadPool.Concurrency = Settings.Current.FullRun == 2 ? 15 : 5;
             DepotThreadPool.Name = "Depot Thread Pool";
 
             CDNClient = new CDNClient(client);
