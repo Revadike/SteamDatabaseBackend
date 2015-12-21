@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Timers;
 using Dapper;
 using Timer = System.Timers.Timer;
@@ -126,29 +125,16 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.IsRunning = false;
 
-            var timeout = TimeSpan.FromSeconds(30);
-
-            var count = PICSProductInfo.ProcessedApps.Count;
-
-            if (count > 0)
-            {
-                Log.WriteInfo("Bootstrapper", "{0} app tasks left, waiting", count);
-
-                Task.WaitAll(PICSProductInfo.ProcessedApps.Values.ToArray(), timeout);
-            }
-
-            count = PICSProductInfo.ProcessedSubs.Count;
-
-            if (count > 0)
-            {
-                Log.WriteInfo("Bootstrapper", "{0} package tasks left, waiting", count);
-
-                Task.WaitAll(PICSProductInfo.ProcessedSubs.Values.ToArray(), timeout);
-            }
-
             Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
 
-            try { Steam.Instance.Client.Disconnect(); } catch { }
+            try
+            {
+                Steam.Instance.Client.Disconnect();
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Bootstrapper", "{0}", e);
+            }
 
             if (Settings.Current.IRC.Enabled)
             {
@@ -165,7 +151,7 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo("Bootstrapper", "Joining thread {0}", thread.Name);
 
-                    thread.Join(timeout);
+                    thread.Join(TimeSpan.FromSeconds(5));
                 }
             }
 

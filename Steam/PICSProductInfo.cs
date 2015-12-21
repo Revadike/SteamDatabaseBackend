@@ -4,22 +4,28 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+using Amib.Threading;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class PICSProductInfo : SteamHandler
     {
-        public static Dictionary<uint, Task> ProcessedApps { get; private set; }
-        public static Dictionary<uint, Task> ProcessedSubs { get; private set; }
+        private static readonly Dictionary<uint, IWorkItemResult> ProcessedApps;
+        private static readonly Dictionary<uint, IWorkItemResult> ProcessedSubs;
+        private static readonly SmartThreadPool ProcessorThreadPool;
 
         static PICSProductInfo()
         {
-            ProcessedApps = new Dictionary<uint, Task>();
-            ProcessedSubs = new Dictionary<uint, Task>();
+            ProcessedApps = new Dictionary<uint, IWorkItemResult>();
+            ProcessedSubs = new Dictionary<uint, IWorkItemResult>();
+
+            ProcessorThreadPool = new SmartThreadPool();
+            ProcessorThreadPool.Concurrency = 50;
+            ProcessorThreadPool.Name = "App/Sub Thread Pool";
         }
 
         public PICSProductInfo(CallbackManager manager)
@@ -41,31 +47,48 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", app.Value == null ? "Unknown " : "", app.Key);
 
-                Task mostRecentItem;
+                IWorkItemResult mostRecentItem;
 
                 lock (ProcessedApps)
                 {
                     ProcessedApps.TryGetValue(app.Key, out mostRecentItem);
                 }
 
-                var workerItem = TaskManager.Run(async delegate
+                var workerItem = ProcessorThreadPool.QueueWorkItem(delegate
                 {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    try
                     {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", app.Key);
-
-                        await mostRecentItem;
-                    }
-
-                    using (var processor = new AppProcessor(app.Key))
-                    {
-                        if (app.Value == null)
+                        if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
-                            processor.ProcessUnknown();
+                            Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", app.Key);
+
+                            SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                         }
-                        else
+
+                        using (var processor = new AppProcessor(app.Key))
                         {
-                            processor.Process(app.Value);
+                            if (app.Value == null)
+                            {
+                                processor.ProcessUnknown();
+                            }
+                            else
+                            {
+                                processor.Process(app.Value);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteError("PICSProductInfo", "App {0} faulted: {1}", app.Key, e);
+                    }
+                    finally
+                    {
+                        lock (ProcessedApps)
+                        {
+                            if (ProcessedApps.TryGetValue(app.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                            {
+                                ProcessedApps.Remove(app.Key);
+                            }
                         }
                     }
                 });
@@ -75,39 +98,10 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-
                 lock (ProcessedApps)
                 {
                     ProcessedApps[app.Key] = workerItem;
                 }
-
-                workerItem.ContinueWith(task =>
-                {
-                    lock (ProcessedApps)
-                    {
-                        if (ProcessedApps.TryGetValue(app.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
-                        {
-                            ProcessedApps.Remove(app.Key);
-                        }
-                    }
-                });
-
-                workerItem.ContinueWith(task =>
-                {
-                    Log.WriteError("PICSProductInfo", "App {0} faulted, trying again", app.Key);
-
-                    using (var processor = new AppProcessor(app.Key))
-                    {
-                        if (app.Value == null)
-                        {
-                            processor.ProcessUnknown();
-                        }
-                        else
-                        {
-                            processor.Process(app.Value);
-                        }
-                    }
-                }, TaskContinuationOptions.OnlyOnFaulted);
             }
 
             foreach (var workaround in packages)
@@ -116,31 +110,48 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", package.Value == null ? "Unknown " : "", package.Key);
 
-                Task mostRecentItem;
+                IWorkItemResult mostRecentItem;
 
                 lock (ProcessedSubs)
                 {
                     ProcessedSubs.TryGetValue(package.Key, out mostRecentItem);
                 }
 
-                var workerItem = TaskManager.Run(async delegate
+                var workerItem = ProcessorThreadPool.QueueWorkItem(delegate
                 {
-                    if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                    try
                     {
-                        Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", package.Key);
-
-                        await mostRecentItem;
-                    }
-
-                    using (var processor = new SubProcessor(package.Key))
-                    {
-                        if (package.Value == null)
+                        if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
-                            processor.ProcessUnknown();
+                            Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", package.Key);
+
+                            SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
                         }
-                        else
+
+                        using (var processor = new SubProcessor(package.Key))
                         {
-                            processor.Process(package.Value);
+                            if (package.Value == null)
+                            {
+                                processor.ProcessUnknown();
+                            }
+                            else
+                            {
+                                processor.Process(package.Value);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.WriteError("PICSProductInfo", "Package {0} faulted: {1}", package.Key, e);
+                    }
+                    finally
+                    {
+                        lock (ProcessedSubs)
+                        {
+                            if (ProcessedSubs.TryGetValue(package.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
+                            {
+                                ProcessedSubs.Remove(package.Key);
+                            }
                         }
                     }
                 });
@@ -154,34 +165,6 @@ namespace SteamDatabaseBackend
                 {
                     ProcessedSubs[package.Key] = workerItem;
                 }
-
-                workerItem.ContinueWith(task =>
-                {
-                    lock (ProcessedSubs)
-                    {
-                        if (ProcessedSubs.TryGetValue(package.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
-                        {
-                            ProcessedSubs.Remove(package.Key);
-                        }
-                    }
-                });
-
-                workerItem.ContinueWith(task =>
-                {
-                    Log.WriteError("PICSProductInfo", "Package {0} faulted, trying again", package.Key);
-
-                    using (var processor = new SubProcessor(package.Key))
-                    {
-                        if (package.Value == null)
-                        {
-                            processor.ProcessUnknown();
-                        }
-                        else
-                        {
-                            processor.Process(package.Value);
-                        }
-                    }
-                }, TaskContinuationOptions.OnlyOnFaulted);
             }
         }
     }
