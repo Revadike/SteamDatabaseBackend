@@ -203,8 +203,6 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("CommandHandler", "Exception while executing a command: {0}\n{1}", e.Message, e.StackTrace);
-
                 commandData.Reply("Exception: {0}", e.Message);
 
                 ErrorReporter.Notify(e);

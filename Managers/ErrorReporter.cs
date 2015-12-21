@@ -28,6 +28,8 @@ namespace SteamDatabaseBackend
 
         public static void Notify(Exception e)
         {
+            Log.WriteError("Caught Exception", "{0}", e);
+
             if (Client != null)
             {
                 Client.Notify(e, Severity.Error);
