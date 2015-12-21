@@ -30,15 +30,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var count = PICSProductInfo.ProcessedSubs.Count;
-
-            if (count > 100)
-            {
-                command.Reply("There are currently {0} packages awaiting to be processed, try again later.", count);
-
-                return;
-            }
-
             var job = await Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
             var callback = job.Results.First(x => !x.ResponsePending);
 

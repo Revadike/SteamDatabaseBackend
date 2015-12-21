@@ -31,15 +31,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var count = PICSProductInfo.ProcessedApps.Count;
-
-            if (count > 100)
-            {
-                command.Reply("There are currently {0} apps awaiting to be processed, try again later.", count);
-
-                return;
-            }
-
             uint appID;
             string name;
 
