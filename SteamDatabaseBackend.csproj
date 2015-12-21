@@ -130,6 +130,7 @@
     <Compile Include="Util\LocalConfig.cs" />
     <Compile Include="Util\JsonConverters.cs" />
     <Compile Include="IRC\Commands\GID.cs" />
+    <Compile Include="Util\FullRunState.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

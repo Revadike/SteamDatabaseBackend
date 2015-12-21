@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
                 // [crashing intensifies]
             }
 
-            if (Current.FullRun > 0)
+            if (Current.FullRun != FullRunState.None)
             {
                 IsFullRun = true;
 

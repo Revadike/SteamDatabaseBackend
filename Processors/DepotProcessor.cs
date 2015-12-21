@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
             DepotLocks = new Dictionary<uint, byte>();
 
             DepotThreadPool = new SmartThreadPool();
-            DepotThreadPool.Concurrency = Settings.Current.FullRun == 2 ? 15 : 5;
+            DepotThreadPool.Concurrency = Settings.Current.FullRun == FullRunState.WithForcedDepots ? 15 : 5;
             DepotThreadPool.Name = "Depot Thread Pool";
 
             CDNClient = new CDNClient(client);
@@ -148,7 +148,7 @@ namespace SteamDatabaseBackend
                             continue;
                         }
 
-                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun < 2)
+                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun <= FullRunState.Normal)
                         {
                             // Update depot name if changed
                             if (!request.DepotName.Equals(dbDepot.Name))
@@ -181,7 +181,7 @@ namespace SteamDatabaseBackend
                         MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
-                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun > 1)
+                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun >= FullRunState.WithForcedDepots)
                     {
                         lock (DepotLocks)
                         {

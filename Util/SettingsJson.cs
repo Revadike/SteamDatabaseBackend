@@ -106,7 +106,7 @@ namespace SteamDatabaseBackend
         public string BugsnagApiKey;
 
         [JsonProperty(Required = Required.Always)]
-        public uint FullRun;
+        public FullRunState FullRun;
 
         [JsonProperty(Required = Required.Always)]
         public bool SteamKitDebug;
