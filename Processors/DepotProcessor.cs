@@ -5,13 +5,13 @@
  */
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Amib.Threading;
 using Dapper;
 using SteamKit2;
 
@@ -32,6 +32,7 @@ namespace SteamDatabaseBackend
             public byte[] DepotKey;
         }
 
+        private SmartThreadPool DepotThreadPool;
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly Dictionary<uint, byte> DepotLocks;
@@ -44,6 +45,10 @@ namespace SteamDatabaseBackend
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
             DepotLocks = new Dictionary<uint, byte>();
+
+            DepotThreadPool = new SmartThreadPool();
+            DepotThreadPool.Concurrency = Settings.IsFullRun == 2 ? 15 : 5;
+            DepotThreadPool.Name = "Depot Thread Pool";
 
             CDNClient = new CDNClient(client);
 
@@ -196,10 +201,22 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
-                TaskManager.Run(async () =>
+                DepotThreadPool.QueueWorkItem(async () =>
                 {
-                    await DownloadDepots(depotsToDownload);
-                }, TaskCreationOptions.LongRunning);
+                    try
+                    {
+                        await DownloadDepots(depotsToDownload);
+                    }
+                    catch (Exception e)
+                    {
+                        ErrorReporter.Notify(e);
+                    }
+
+                    foreach (var depot in depotsToDownload)
+                    {
+                        RemoveLock(depot.DepotID);
+                    }
+                });
             }
         }
 
@@ -215,7 +232,21 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var callback = await Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
+            var task = Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
+            task.Timeout = TimeSpan.FromMinutes(1);
+
+            SteamApps.DepotKeyCallback callback;
+
+            try
+            {
+                callback = await task;
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteError("Depot Processor", "Decryption key timed out for {0}", depotID);
+
+                return null;
+            }
 
             if (callback.Result != EResult.OK)
             {
@@ -262,7 +293,21 @@ namespace SteamDatabaseBackend
                 Server = GetContentServer()
             };
 
-            var tokenCallback = await Steam.Instance.Apps.GetCDNAuthToken(depotID, newToken.Server);
+            var task = Steam.Instance.Apps.GetCDNAuthToken(depotID, newToken.Server);
+            task.Timeout = TimeSpan.FromMinutes(1);
+
+            SteamApps.CDNAuthTokenCallback tokenCallback;
+
+            try
+            {
+                tokenCallback = await task;
+            }
+            catch (TaskCanceledException)
+            {
+                Log.WriteError("Depot Processor", "CDN auth token timed out for {0}", depotID);
+
+                return null;
+            }
 
             if (tokenCallback.Result != EResult.OK)
             {
@@ -299,7 +344,7 @@ namespace SteamDatabaseBackend
 
                 var cdnToken = await GetCDNAuthToken(depot.DepotID);
 
-                if (cdnToken.Token == null)
+                if (cdnToken == null)
                 {
                     RemoveLock(depot.DepotID);
 
@@ -586,9 +631,10 @@ namespace SteamDatabaseBackend
         {
             lock (DepotLocks)
             {
-                DepotLocks.Remove(depotID);
-
-                Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
+                if (DepotLocks.Remove(depotID))
+                {
+                    Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
+                }
             }
         }
 
