@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Amib.Threading;
+using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -77,6 +78,12 @@ namespace SteamDatabaseBackend
                             }
                         }
                     }
+                    catch (MySqlException e)
+                    {
+                        Log.WriteError("PICSProductInfo", "App {0} faulted: {1}", app.Key, e);
+
+                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(app.Key, null));
+                    }
                     catch (Exception e)
                     {
                         Log.WriteError("PICSProductInfo", "App {0} faulted: {1}", app.Key, e);
@@ -139,6 +146,12 @@ namespace SteamDatabaseBackend
                                 processor.Process(package.Value);
                             }
                         }
+                    }
+                    catch (MySqlException e)
+                    {
+                        Log.WriteError("PICSProductInfo", "Package {0} faulted: {1}", package.Key, e);
+
+                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, package.Key, false, false));
                     }
                     catch (Exception e)
                     {
