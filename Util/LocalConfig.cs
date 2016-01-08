@@ -44,9 +44,6 @@ namespace SteamDatabaseBackend
             [JsonProperty]
             public Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; } 
 
-            [JsonProperty]
-            public IPEndPoint[] ServerList { get; set; } 
-
             public LocalConfigJson()
             {
                 CDNAuthTokens = new Dictionary<uint, CDNAuthToken>();
@@ -63,12 +60,12 @@ namespace SteamDatabaseBackend
 
         public static void Load()
         {
+            LoadServers();
+
             var path = GetPath();
 
             if (!File.Exists(path))
             {
-                LoadServers();
-
                 return;
             }
 
@@ -78,18 +75,6 @@ namespace SteamDatabaseBackend
             Sentry = current.Sentry;
             SentryFileName = current.SentryFileName;
             CDNAuthTokens = current.CDNAuthTokens;
-
-            if (current.ServerList.Length > 0)
-            {
-                foreach (var endPoint in current.ServerList)
-                {
-                    CMClient.Servers.TryAdd(endPoint);
-                }
-            }
-            else
-            {
-                LoadServers();
-            }
         }
 
         public static void Save()
@@ -98,7 +83,6 @@ namespace SteamDatabaseBackend
 
             var current = new LocalConfigJson
             {
-                ServerList = CMClient.Servers.GetAllEndPoints(),
                 CellID = CellID,
                 Sentry = Sentry,
                 SentryFileName = SentryFileName,
