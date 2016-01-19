@@ -175,8 +175,6 @@ namespace SteamDatabaseBackend
             else
             {
                 message += string.Format(" {0}(version changed from {1} to {2})", Colors.DARKGRAY, info.Version, version);
-
-                IRC.Instance.SendMain(message);
             }
 
             IRC.Instance.SendAnnounce(message);
@@ -193,7 +191,13 @@ namespace SteamDatabaseBackend
 
             if (info.SchemaVersion != 0 && info.SchemaVersion != msg.item_schema_version)
             {
-                IRC.Instance.SendMain("{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url);
+                var message = string.Format(
+                    "{0}{1}{2} item schema updated: {3}{4}{5} -{6} {7}",
+                    Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.DARKGRAY, msg.item_schema_version.ToString("X4"), Colors.NORMAL, Colors.DARKBLUE, msg.items_game_url
+                );
+
+                IRC.Instance.SendMain(message);
+                IRC.Instance.SendAnnounce(message);
             }
 
             info.SchemaVersion = msg.item_schema_version;
@@ -205,7 +209,7 @@ namespace SteamDatabaseBackend
 
             var info = GetSessionInfo(appID);
 
-            IRC.Instance.SendMain("{0}{1}{2} client version changed:{3} {4} {5}(from {6})", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, msg.client_version, Colors.DARKGRAY, info.Version);
+            IRC.Instance.SendAnnounce("{0}{1}{2} client version changed:{3} {4} {5}(from {6})", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, msg.client_version, Colors.DARKGRAY, info.Version);
 
             info.Version = msg.client_version;
         }
@@ -214,7 +218,10 @@ namespace SteamDatabaseBackend
         {
             var msg = new ClientGCMsgProtobuf<CMsgSystemBroadcast>(packetMsg).Body;
 
-            IRC.Instance.SendMain("{0}{1}{2} system message:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.message);
+            var message = string.Format("{0}{1}{2} system message:{3} {4}", Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL, Colors.OLIVE, msg.message);
+
+            IRC.Instance.SendMain(message);
+            IRC.Instance.SendAnnounce(message);
         }
 
         private void OnConnectionStatus(uint appID, IPacketGCMsg packetMsg)
@@ -245,12 +252,15 @@ namespace SteamDatabaseBackend
 
             var msg = new ClientGCMsgProtobuf<CMsgTFGoldenWrenchBroadcast>(packetMsg).Body;
 
-            IRC.Instance.SendMain("{0}{1}{2} item notification: {3}{4}{5} has {6} Golden Wrench no. {7}{8}{9}!",
+            var message = string.Format("{0}{1}{2} item notification: {3}{4}{5} has {6} Golden Wrench no. {7}{8}{9}!",
                 Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
                 Colors.BLUE, msg.user_name, Colors.NORMAL,
                 msg.deleted ? "destroyed" : "found",
                 Colors.OLIVE, msg.wrench_number, Colors.NORMAL
             );
+
+            IRC.Instance.SendMain(message);
+            IRC.Instance.SendAnnounce(message);
         }
 
         private void OnItemBroadcast(uint appID, IPacketGCMsg packetMsg)
@@ -263,12 +273,15 @@ namespace SteamDatabaseBackend
 
             var msg = new ClientGCMsgProtobuf<CMsgGCTFSpecificItemBroadcast>(packetMsg).Body;
 
-            IRC.Instance.SendMain("{0}{1}{2} item notification: {3}{4}{5} {6} {7}{8}{9}!",
+            var message = string.Format("{0}{1}{2} item notification: {3}{4}{5} {6} {7}{8}{9}!",
                 Colors.BLUE, Steam.GetAppName(appID), Colors.NORMAL,
                 Colors.BLUE, msg.user_name, Colors.NORMAL,
                 msg.was_destruction ? "has destroyed their" : "just received a",
                 Colors.OLIVE, GetTF2ItemName(msg.item_def_index), Colors.NORMAL
             );
+
+            IRC.Instance.SendMain(message);
+            IRC.Instance.SendAnnounce(message);
         }
 
         private SessionInfo GetSessionInfo(uint appID)
@@ -305,7 +318,25 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                itemName = schema["items"][itemDefIndex.ToString()]["name"].AsString();
+                itemName = schema["items"][itemDefIndex.ToString()]["item_name"].AsString();
+
+                file = Path.Combine(Application.Path, "files", "tf", "tf", "resource", "tf_english.txt");
+
+                schema = KeyValue.LoadAsText(file);
+
+                if (schema == null)
+                {
+                    Log.WriteWarn("Game Coordinator", "Unable to load TF2 language");
+                }
+                else
+                {
+                    var token = schema["lang"]["Tokens"][itemName.TrimStart('#')];
+
+                    if (token != null)
+                    {
+                        itemName = token.AsString();
+                    }
+                }
             }
 
             return itemName ?? string.Format("Item #{0}", itemDefIndex);
