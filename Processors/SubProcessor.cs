@@ -47,9 +47,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.IsFullRun)
             {
-#if DEBUG
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
-#endif
 
                 DbConnection.Execute("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
                 DbConnection.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, productInfo.ChangeNumber });
