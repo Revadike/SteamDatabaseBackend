@@ -17,7 +17,6 @@ namespace SteamDatabaseBackend
         public PlayersCommand()
         {
             Trigger = "players";
-            IsSteamCommand = true;
         }
 
         public override async Task OnCommand(CommandArguments command)
@@ -80,7 +79,7 @@ namespace SteamDatabaseBackend
 
                     var response = (HttpWebResponse)e.Response;
 
-                    command.Reply("Unable to request player count due to a web failure: {0}{1}", Colors.RED, response.StatusDescription);
+                    command.Reply("Unable to request player count: {0}{1}", Colors.RED, response.StatusDescription);
 
                     return;
                 }
