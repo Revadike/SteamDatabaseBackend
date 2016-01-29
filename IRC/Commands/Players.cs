@@ -4,8 +4,6 @@
  * found in the LICENSE file.
  */
 
-using System;
-using System.Net;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -17,12 +15,11 @@ namespace SteamDatabaseBackend
         public PlayersCommand()
         {
             Trigger = "players";
+            IsSteamCommand = true;
         }
 
         public override async Task OnCommand(CommandArguments command)
         {
-            await Task.Yield();
-
             if (command.Message.Length == 0)
             {
                 command.Reply("Usage:{0} players <appid or partial game name>", Colors.OLIVE);
@@ -58,38 +55,11 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            KeyValue result;
+            var callback = await Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
 
-            using (dynamic userStats = WebAPI.GetInterface("ISteamUserStats"))
+            if (callback.Result != EResult.OK)
             {
-                userStats.Timeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
-
-                try
-                {
-                    result = userStats.GetNumberOfCurrentPlayers(
-                        appid: appID
-                    );
-                }
-                catch (WebException e)
-                {
-                    if (e.Status == WebExceptionStatus.Timeout)
-                    {
-                        throw new TaskCanceledException();
-                    }
-
-                    var response = (HttpWebResponse)e.Response;
-
-                    command.Reply("Unable to request player count: {0}{1}", Colors.RED, response.StatusDescription);
-
-                    return;
-                }
-            }
-
-            var eResult = (EResult)result["result"].AsInteger();
-
-            if (eResult != EResult.OK)
-            {
-                command.Reply("Unable to request player count: {0}{1}", Colors.RED, eResult);
+                command.Reply("Unable to request player count: {0}{1}", Colors.RED, callback.Result);
 
                 return;
             }
@@ -128,7 +98,7 @@ namespace SteamDatabaseBackend
                 "People {0} {1}{2}{3} right now: {4}{5:N0}{6} -{7} {8}",
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
-                Colors.OLIVE, result["player_count"].AsInteger(), Colors.NORMAL,
+                Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                 Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
             );
         }
