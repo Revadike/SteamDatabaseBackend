@@ -195,11 +195,11 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                commandData.Reply("Your command timed out.");
+                commandData.Reply("Your {0}{1}{2} command timed out.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
             }
             catch (AsyncJobFailedException)
             {
-                commandData.Reply("Steam says this job failed, unable to execute your command.");
+                commandData.Reply("Steam says this job failed, unable to execute your {0}{1}{2} command.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
             }
             catch (Exception e)
             {
