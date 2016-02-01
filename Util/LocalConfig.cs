@@ -109,12 +109,10 @@ namespace SteamDatabaseBackend
 
         private static JsonSerializerSettings GetSettings()
         {
-            var settings = new JsonSerializerSettings();
-            settings.Converters.Add(new JsonConverters.IPAddressConverter());
-            settings.Converters.Add(new JsonConverters.IPEndPointConverter());
-            settings.Formatting = Formatting.Indented;
-
-            return settings;
+            return new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented
+            };
         }
 
         private static string GetPath()
