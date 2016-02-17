@@ -387,7 +387,10 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            IRC.Instance.SendSteamLUG(string.Format("[oslist][{0}] {1} now lists Linux{2} - {3}", appType, name, LinkExpander.GetFormattedPrices(AppID), SteamDB.GetAppURL(AppID, "history")));
+            IRC.Instance.SendSteamLUG(string.Format(
+                "[oslist][{0}] {1} now lists Linux{2} - {3} - https://store.steampowered.com/app/{4}/",
+                appType, name, LinkExpander.GetFormattedPrices(AppID), SteamDB.GetAppURL(AppID, "history"), AppID
+            ));
         }
     }
 }
