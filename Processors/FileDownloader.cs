@@ -12,6 +12,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
 
@@ -302,16 +303,22 @@ namespace SteamDatabaseBackend
                 }
             });
 
-            if (filesUpdated)
+            if (filesAnyFailed)
             {
-                if (filesAnyFailed)
+                using (var db = Database.GetConnection())
                 {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
-                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
-
-                    return EResult.Fail;
+                    // Mark this depot for redownload
+                    db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { job.DepotID });
                 }
 
+                IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
+                    Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
+
+                return EResult.Fail;
+            }
+
+            if (filesUpdated)
+            {
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
 
                 return EResult.OK;
