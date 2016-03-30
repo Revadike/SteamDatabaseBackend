@@ -103,7 +103,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.GetConnection())
             {
-                prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'it')", new { AppID = appID }).ToList();
+                prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'eu')", new { AppID = appID }).ToList();
             }
 
             if (prices.Any())
