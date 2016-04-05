@@ -57,13 +57,6 @@ namespace SteamDatabaseBackend
 
             var callback = await Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
 
-            if (callback.Result != EResult.OK)
-            {
-                command.Reply("Unable to request player count: {0}{1}", Colors.RED, callback.Result);
-
-                return;
-            }
-
             if (appID == 0)
             {
                 appID = 753;
@@ -71,6 +64,13 @@ namespace SteamDatabaseBackend
 
             string appType, type = "playing";
             name = Steam.GetAppName(appID, out appType);
+
+            if (callback.Result != EResult.OK)
+            {
+                command.Reply("Unable to request player count for {0}{1}{2}: {3}{4}", Colors.BLUE, name, Colors.NORMAL, Colors.RED, callback.Result);
+
+                return;
+            }
 
             switch (appType)
             {
