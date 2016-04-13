@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
             {
                 case "uk": return string.Format("£{0:0.00}{1}", cents, discount);
                 case "us": return string.Format("${0:0.00}{1}", cents, discount);
-                case "it": return string.Format("{0:0.00}€{1}", cents, discount).Replace('.', ',').Replace(",00", ",--");
+                case "eu": return string.Format("{0:0.00}€{1}", cents, discount).Replace('.', ',').Replace(",00", ",--");
             }
 
             return string.Format("{1}: {0}", cents, Country);
