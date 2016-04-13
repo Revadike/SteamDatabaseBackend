@@ -38,9 +38,10 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                var appType = string.Empty;
                 var id = uint.Parse(match.Groups["id"].Value);
                 var isPackage = match.Groups["type"].Value == "sub";
-                var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id);
+                var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id, out appType);
 
                 if (command.Message.Contains(name))
                 {
@@ -56,7 +57,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                if (!isPackage && command.Recipient == "#steamlug")
+                if (!isPackage && command.Recipient == "#steamlug" && (appType == "Game" || appType == "Application"))
                 {
                     using (var db = Database.GetConnection())
                     {
