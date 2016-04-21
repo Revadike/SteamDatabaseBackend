@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
         // To keep our colors somewhat consistent, only used colors are uncommented
         public const char NORMAL = '\xf';
         //public static readonly string WHITE = IrcConstants.IrcColor + "00"; // white is evil
-        //public static readonly string BLACK = IrcConstants.IrcColor + "01"; // black is evi, too
+        //public static readonly string BLACK = IrcConstants.IrcColor + "01"; // black is evil, too
         public static readonly string DARKBLUE = IrcConstants.IrcColor + "02";
         //public static readonly string DARKGREEN = IrcConstants.IrcColor + "03";
         public static readonly string RED = IrcConstants.IrcColor + "04";
