@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -66,7 +67,7 @@ namespace SteamDatabaseBackend
                     appType = data.AppTypeString;
                 }
 
-                if (command.Message.Contains(name))
+                if (command.Message.IndexOf(name, StringComparison.CurrentCultureIgnoreCase) >= 0)
                 {
                     continue;
                 }
