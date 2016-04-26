@@ -41,7 +41,30 @@ namespace SteamDatabaseBackend
                 var appType = string.Empty;
                 var id = uint.Parse(match.Groups["id"].Value);
                 var isPackage = match.Groups["type"].Value == "sub";
-                var name = isPackage ? Steam.GetPackageName(id) : Steam.GetAppName(id, out appType);
+                string name;
+
+                if (isPackage)
+                {
+                    name = Steam.GetPackageName(id);
+                }
+                else
+                {
+                    App data;
+
+                    using (var db = Database.GetConnection())
+                    {
+                        data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = id }).SingleOrDefault();
+                    }
+
+                    if (data.AppID == 0)
+                    {
+                        continue;
+                    }
+
+                    name = string.IsNullOrEmpty(data.LastKnownName) ? data.Name : data.LastKnownName;
+                    name = Utils.RemoveControlCharacters(name);
+                    appType = data.AppTypeString;
+                }
 
                 if (command.Message.Contains(name))
                 {
@@ -84,7 +107,7 @@ namespace SteamDatabaseBackend
                     string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
                         Colors.OLIVE,
                         Colors.NORMAL,
-                        isPackage ? "Package" : "App",
+                        isPackage ? "Package" : appType,
                         id,
                         Colors.BLUE,
                         name,

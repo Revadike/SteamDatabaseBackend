@@ -132,7 +132,7 @@ namespace SteamDatabaseBackend
             string name     = Utils.RemoveControlCharacters(data.Name);
             string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
-            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast))
+            if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase))
             {
                 return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
             }
@@ -161,7 +161,7 @@ namespace SteamDatabaseBackend
                 return name;
             }
 
-            if (!name.Equals(nameLast) && !name.StartsWith("Steam Sub ", StringComparison.Ordinal))
+            if (!name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase) && !name.StartsWith("Steam Sub ", StringComparison.Ordinal))
             {
                 return string.Format("{0} {1}({2}){3}", nameLast, Colors.DARKGRAY, name, Colors.NORMAL);
             }
