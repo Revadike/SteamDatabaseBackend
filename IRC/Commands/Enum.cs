@@ -39,15 +39,14 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var args = command.Message.Split(' ');
-
-            if (args.Length < 1)
+            if (command.Message.Length == 0)
             {
                 command.Reply("Usage:{0} enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
 
                 return;
             }
 
+            var args = command.Message.Split(' ');
             var enumType = args[0].Replace("SteamKit2.", "");
 
             var matchingEnumType = SteamKitEnums
