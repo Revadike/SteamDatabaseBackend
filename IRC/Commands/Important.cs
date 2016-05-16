@@ -172,73 +172,10 @@ namespace SteamDatabaseBackend
                         }
 
                         break;
-
-                    case "queue":
-                        if (count < 3)
-                        {
-                            break;
-                        }
-
-                        if (!uint.TryParse(s[2], out id))
-                        {
-                            break;
-                        }
-
-                        string name;
-
-                        switch (s[1])
-                        {
-                            case "app":
-                                using (var db = Database.GetConnection())
-                                {
-                                    name = db.ExecuteScalar<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
-                                }
-                                    
-                                if (!string.IsNullOrEmpty(name))
-                                {
-                                    StoreQueue.AddAppToQueue(id);
-
-                                    command.Reply("App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
-
-                                    return;
-                                }
-
-                                command.Reply("This app is not in the database.");
-
-                                return;
-
-                            case "sub":
-                                if (id == 0)
-                                {
-                                    command.Reply("Sub 0 can not be queued.");
-
-                                    return;
-                                }
-
-                                using (var db = Database.GetConnection())
-                                {
-                                    name = db.ExecuteScalar<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
-                                }
-                                    
-                                if (!string.IsNullOrEmpty(name))
-                                {
-                                    StoreQueue.AddPackageToQueue(id);
-
-                                    command.Reply("Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
-
-                                    return;
-                                }
-
-                                command.Reply("This package is not in the database.");
-
-                                return;
-                        }
-
-                        break;
                 }
             }
 
-            command.Reply("Usage:{0} important reload {1}or{2} important <add/remove/queue> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
+            command.Reply("Usage:{0} important reload {1}or{2} important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
         }
     }
 }

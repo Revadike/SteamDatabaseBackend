@@ -37,6 +37,7 @@ namespace SteamDatabaseBackend
                 new EnumCommand(),
                 new ServersCommand(),
                 new BinariesCommand(),
+                new QueueCommand(),
                 new ImportantCommand(),
                 new ReloginCommand(),
             };
