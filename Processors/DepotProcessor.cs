@@ -437,11 +437,11 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks);
 
+            Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count());
+
             // TODO: use ContinueWith on tasks
             if (!anyFilesDownloaded)
             {
-                Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count());
-
                 foreach (var depot in depots)
                 {
                     RemoveLock(depot.DepotID);
@@ -449,8 +449,6 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-
-            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count());
 
             if (!File.Exists(UpdateScript))
             {
