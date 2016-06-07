@@ -313,18 +313,19 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
                     Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
-
-                return EResult.Fail;
             }
-
-            if (filesUpdated)
+            else if (filesUpdated)
             {
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
 
-                return EResult.OK;
+                job.Result = EResult.OK;
+            }
+            else
+            {
+                job.Result = EResult.Ignored;
             }
 
-            return EResult.Ignored;
+            return job.Result;
         }
 
         private static bool IsFileNameMatching(uint depotID, string fileName)

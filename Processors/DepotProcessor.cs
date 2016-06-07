@@ -30,6 +30,7 @@ namespace SteamDatabaseBackend
             public string CDNToken;
             public string Server;
             public byte[] DepotKey;
+            public EResult Result = EResult.Fail;
         }
 
         private SmartThreadPool DepotThreadPool;
@@ -324,7 +325,7 @@ namespace SteamDatabaseBackend
             return newToken;
         }
 
-        private async Task DownloadDepots(IEnumerable<ManifestJob> depots)
+        private async Task DownloadDepots(List<ManifestJob> depots)
         {
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count(), DepotLocks.Count);
 
@@ -439,7 +440,7 @@ namespace SteamDatabaseBackend
             // TODO: use ContinueWith on tasks
             if (!anyFilesDownloaded)
             {
-                Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count());
+                Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count());
 
                 foreach (var depot in depots)
                 {
@@ -449,11 +450,13 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var canUpdate = processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored) && File.Exists(UpdateScript);
+            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads", depots.Count());
 
-#if true
-            Log.WriteDebug("Depot Downloader", "Tasks awaited for {0} depot downloads (will run script: {1})", depots.Count(), canUpdate);
-#endif
+            if (!File.Exists(UpdateScript))
+            {
+                return;
+            }
+
             bool lockTaken = false;
 
             try
@@ -462,8 +465,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var depot in depots)
                 {
-                    // TODO: this only needs to run if any downloaded files changed
-                    if (canUpdate && FileDownloader.IsImportantDepot(depot.DepotID))
+                    if (depot.Result == EResult.OK)
                     {
                         RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
                     }
@@ -471,7 +473,8 @@ namespace SteamDatabaseBackend
                     RemoveLock(depot.DepotID);
                 }
 
-                if (canUpdate)
+                // Only commit changes if all depots downloaded
+                if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
                     RunUpdateScript("0");
                 }
