@@ -17,7 +17,7 @@ namespace SteamDatabaseBackend
     {
         private static readonly Dictionary<uint, IWorkItemResult> ProcessedApps;
         private static readonly Dictionary<uint, IWorkItemResult> ProcessedSubs;
-        private static readonly SmartThreadPool ProcessorThreadPool;
+        public static SmartThreadPool ProcessorThreadPool { get; private set; }
 
         static PICSProductInfo()
         {

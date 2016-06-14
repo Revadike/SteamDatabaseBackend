@@ -98,21 +98,28 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("PICSChanges", "Requesting info for {0} apps and {1} packages", appIDs.Count(), packageIDs.Count());
 
+            const int size = 100;
+
             // Horribly unoptimized mess, but it's a full run so whatever
             while (appIDs.Any())
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs.Take(500), Enumerable.Empty<uint>()));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs.Take(size), Enumerable.Empty<uint>()));
 
-                appIDs = appIDs.Skip(500).ToList();
+                appIDs = appIDs.Skip(size).ToList();
+            }
+
+            if (Settings.Current.FullRun == FullRunState.WithForcedDepots)
+            {
+                return;
             }
 
             var packages = packageIDs.Select(package => Utils.NewPICSRequest(package));
 
             while (packages.Any())
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages.Take(500)));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages.Take(size)));
 
-                packages = packages.Skip(500).ToList();
+                packages = packages.Skip(size).ToList();
             }
         }
 

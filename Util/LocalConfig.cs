@@ -89,7 +89,12 @@ namespace SteamDatabaseBackend
                 CDNAuthTokens = CDNAuthTokens,
             };
 
-            var json = JsonConvert.SerializeObject(current, GetSettings());
+            string json;
+
+            lock (CDNAuthTokens)
+            {
+                json = JsonConvert.SerializeObject(current, GetSettings());
+            }
 
             File.WriteAllText(GetPath(), json);
         }

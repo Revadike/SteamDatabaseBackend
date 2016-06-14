@@ -33,7 +33,6 @@ namespace SteamDatabaseBackend
             public EResult Result = EResult.Fail;
         }
 
-        private SmartThreadPool DepotThreadPool;
         private readonly CDNClient CDNClient;
         private readonly List<string> CDNServers;
         private readonly Dictionary<uint, byte> DepotLocks;
@@ -46,10 +45,6 @@ namespace SteamDatabaseBackend
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
             DepotLocks = new Dictionary<uint, byte>();
-
-            DepotThreadPool = new SmartThreadPool();
-            DepotThreadPool.Concurrency = Settings.Current.FullRun == FullRunState.WithForcedDepots ? 15 : 5;
-            DepotThreadPool.Name = "Depot Thread Pool";
 
             CDNClient = new CDNClient(client);
 
@@ -186,6 +181,13 @@ namespace SteamDatabaseBackend
                     {
                         lock (DepotLocks)
                         {
+                            // This doesn't really save us from concurrency issues
+                            if (DepotLocks.ContainsKey(request.DepotID))
+                            {
+                                Log.WriteWarn("Depot Processor", "Depot {0} was locked in another thread", request.DepotID);
+                                continue;
+                            }
+
                             DepotLocks.Add(request.DepotID, 1);
                         }
 
@@ -202,7 +204,7 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
-                DepotThreadPool.QueueWorkItem(async () =>
+                PICSProductInfo.ProcessorThreadPool.QueueWorkItem(async () =>
                 {
                     try
                     {
@@ -234,7 +236,7 @@ namespace SteamDatabaseBackend
             }
 
             var task = Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
-            task.Timeout = TimeSpan.FromMinutes(1);
+            task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.DepotKeyCallback callback;
 
@@ -295,7 +297,7 @@ namespace SteamDatabaseBackend
             };
 
             var task = Steam.Instance.Apps.GetCDNAuthToken(depotID, newToken.Server);
-            task.Timeout = TimeSpan.FromMinutes(1);
+            task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.CDNAuthTokenCallback tokenCallback;
 

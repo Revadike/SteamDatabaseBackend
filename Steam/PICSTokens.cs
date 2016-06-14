@@ -47,12 +47,7 @@ namespace SteamDatabaseBackend
 
         private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
-            if (!JobManager.TryRemoveJob(callback.JobID))
-            {
-                Log.WriteDebug("PICSTokens", "Got tokens, but we had no job");
-
-                return;
-            }
+            JobManager.TryRemoveJob(callback.JobID);
 
             Log.WriteDebug("PICSTokens", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
 
