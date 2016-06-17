@@ -52,7 +52,11 @@ namespace SteamDatabaseBackend
 
                     var data = await webClient.DownloadStringTaskAsync("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/");
                     dynamic json = JsonConvert.DeserializeObject(data);
-                    appID = json.hits[0].objectID; // I'm sure this is safe
+
+                    if (json.hits != null && json.hits.Count > 0)
+                    {
+                        appID = json.hits[0].objectID;
+                    }
                 }
 
                 if (appID == 0)

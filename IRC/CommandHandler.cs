@@ -204,9 +204,9 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                commandData.Reply("Exception: {0}", e.Message);
-
                 ErrorReporter.Notify(e);
+
+                commandData.Reply("Exception: {0}", e.Message);
             }
         }
     }
