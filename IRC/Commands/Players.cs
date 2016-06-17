@@ -4,8 +4,11 @@
  * found in the LICENSE file.
  */
 
+using System;
+using System.Net;
 using System.Threading.Tasks;
 using Dapper;
+using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -35,16 +38,37 @@ namespace SteamDatabaseBackend
             {
                 name = command.Message;
 
-                if (!Utils.ConvertUserInputToSQLSearch(ref name))
+                using (var webClient = new WebClient())
                 {
-                    command.Reply("Your request is invalid or too short.");
+                    webClient.QueryString.Add("x-algolia-application-id", "94HE6YATEI");
+                    webClient.QueryString.Add("x-algolia-api-key", "2414d3366df67739fe6e73dad3f51a43");
+                    webClient.QueryString.Add("hitsPerPage", "1");
+                    webClient.QueryString.Add("attributesToHighlight", "null");
+                    webClient.QueryString.Add("attributesToSnippet", "null");
+                    webClient.QueryString.Add("attributesToRetrieve", "[\"objectID\"]");
+                    webClient.QueryString.Add("facetFilters", "[[\"appType:Game\",\"appType:Application\"]]");
+                    webClient.QueryString.Add("advancedSyntax", "true");
+                    webClient.QueryString.Add("query", name);
 
-                    return;
+                    var data = await webClient.DownloadStringTaskAsync("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/");
+                    dynamic json = JsonConvert.DeserializeObject(data);
+                    appID = json.hits[0].objectID; // I'm sure this is safe
                 }
 
-                using (var db = Database.GetConnection())
+                if (appID == 0)
                 {
-                    appID = db.ExecuteScalar<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+
+                    if (!Utils.ConvertUserInputToSQLSearch(ref name))
+                    {
+                        command.Reply ("Your request is invalid or too short.");
+
+                        return;
+                    }
+
+                    using (var db = Database.GetConnection())
+                    {
+                        appID = db.ExecuteScalar<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+                    }
                 }
 
                 if (appID == 0)
