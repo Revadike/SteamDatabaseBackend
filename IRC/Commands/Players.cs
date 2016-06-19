@@ -26,7 +26,6 @@ namespace SteamDatabaseBackend
             if (command.Message.Length == 0)
             {
                 command.Reply("Usage:{0} players <appid or partial game name>", Colors.OLIVE);
-                command.Notice("Use {0}^{1} and {2}${3} just like in regex to narrow down your match, e.g:{4} !players Portal$", Colors.BLUE, Colors.NORMAL, Colors.BLUE, Colors.NORMAL, Colors.OLIVE);
 
                 return;
             }
