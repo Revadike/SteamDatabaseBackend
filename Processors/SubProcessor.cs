@@ -330,7 +330,7 @@ namespace SteamDatabaseBackend
                         return false;
                     }
 
-                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4})", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName);
+                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetPackageURL(SubID, "history"));
                 }
 
                 DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });

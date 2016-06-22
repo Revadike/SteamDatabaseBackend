@@ -87,7 +87,7 @@ namespace SteamDatabaseBackend
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
-                    IRC.Instance.SendOps("New app type: {0}{1}{2} for app {3}{4}{5}", Colors.BLUE, currentType, Colors.NORMAL, Colors.BLUE, AppID, Colors.NORMAL);
+                    IRC.Instance.SendOps("New app type: {0}{1}{2} - {3}", Colors.BLUE, currentType, Colors.NORMAL, SteamDB.GetAppURL(AppID, "history"));
 
                     newAppType = DbConnection.ExecuteScalar<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                 }
@@ -301,7 +301,7 @@ namespace SteamDatabaseBackend
                         return false;
                     }
 
-                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4})", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName);
+                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetAppURL(AppID, "history"));
                 }
 
                 DbConnection.Execute("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
