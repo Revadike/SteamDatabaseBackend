@@ -22,7 +22,6 @@ namespace SteamDatabaseBackend
         public class ManifestJob
         {
             public uint ChangeNumber;
-            public uint ParentAppID;
             public uint DepotID;
             public int BuildID;
             public ulong ManifestID;
@@ -74,7 +73,6 @@ namespace SteamDatabaseBackend
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
-                    ParentAppID  = appID,
                     DepotName    = depot["name"].AsString()
                 };
 
@@ -196,7 +194,7 @@ namespace SteamDatabaseBackend
 #if DEBUG
                     else
                     {
-                        Log.WriteDebug("Depot Processor", "Skipping depot {0} from app {1} because we don't own it", request.DepotID, request.ParentAppID);
+                        Log.WriteDebug("Depot Processor", "Skipping depot {0} from app {1} because we don't own it", request.DepotID, appID);
                     }
 #endif
                 }
@@ -208,7 +206,7 @@ namespace SteamDatabaseBackend
                 {
                     try
                     {
-                        await DownloadDepots(depotsToDownload);
+                        await DownloadDepots(appID, depotsToDownload);
                     }
                     catch (Exception e)
                     {
@@ -327,7 +325,7 @@ namespace SteamDatabaseBackend
             return newToken;
         }
 
-        private async Task DownloadDepots(List<ManifestJob> depots)
+        private async Task DownloadDepots(uint appID, List<ManifestJob> depots)
         {
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count(), DepotLocks.Count);
 
@@ -336,7 +334,7 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in depots)
             {
-                depot.DepotKey = await GetDepotDecryptionKey(depot.DepotID, depot.ParentAppID);
+                depot.DepotKey = await GetDepotDecryptionKey(depot.DepotID, appID);
 
                 if (depot.DepotKey == null)
                 {
@@ -394,7 +392,7 @@ namespace SteamDatabaseBackend
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
                     {
                         IRC.Instance.SendOps("{0}[{1}]{2} Failed to download depot {3} manifest ({4}: {5})",
-                            Colors.OLIVE, Steam.GetAppName(depot.ParentAppID), Colors.NORMAL, depot.DepotID, depot.Server, lastError);
+                            Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, depot.DepotID, depot.Server, lastError);
                     }
 
                     continue;
@@ -419,7 +417,7 @@ namespace SteamDatabaseBackend
                 {
                     task = TaskManager.Run(() =>
                     {
-                        var result = FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
+                        var result = FileDownloader.DownloadFilesFromDepot(appID, depot, depotManifest);
 
                         if (result == EResult.OK)
                         {
@@ -451,7 +449,19 @@ namespace SteamDatabaseBackend
             {
                 foreach (var depot in depots)
                 {
+                    anyFilesDownloaded |= FileDownloader.IsImportantDepot(depot.DepotID);
+
                     RemoveLock(depot.DepotID);
+                }
+
+                if (anyFilesDownloaded)
+                {
+                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because all {3} depots failed",
+                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
+                        depots.Count()
+                    );
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
                 }
 
                 return;
@@ -482,6 +492,15 @@ namespace SteamDatabaseBackend
                 if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
                     RunUpdateScript("0");
+                }
+                else
+                {
+                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because {3} depots failed",
+                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
+                        depots.Count(x => x.Result != EResult.OK && x.Result != EResult.Ignored)
+                    );
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
                 }
             }
             finally

@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
         /*
          * Here be dragons.
          */
-        public static EResult DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
+        public static EResult DownloadFilesFromDepot(uint appID, DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
@@ -261,7 +261,7 @@ namespace SteamDatabaseBackend
 
                 if (file.FileHash.SequenceEqual(checksum))
                 {
-                    Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(job.ParentAppID));
+                    Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID));
 
                     hashes[file.FileName] = checksum;
 
@@ -294,7 +294,7 @@ namespace SteamDatabaseBackend
                     filesAnyFailed = true;
 
                     IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})",
-                        Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL, file.FileName, count, chunks.Count, lastError);
+                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, file.FileName, count, chunks.Count, lastError);
 
                     Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
                         file.FileName, count, chunks.Count, job.Server, lastError);
@@ -312,7 +312,7 @@ namespace SteamDatabaseBackend
                 }
 
                 IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
-                    Colors.OLIVE, Steam.GetAppName(job.ParentAppID), Colors.NORMAL);
+                    Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL);
             }
             else if (filesUpdated)
             {
