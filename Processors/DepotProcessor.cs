@@ -404,7 +404,12 @@ namespace SteamDatabaseBackend
                 {
                     using (var db = Database.GetConnection())
                     {
-                        return ProcessDepotAfterDownload(db, depot, depotManifest);
+                        using (var transaction = db.BeginTransaction())
+                        {
+                            var result = ProcessDepotAfterDownload(db, depot, depotManifest);
+                            transaction.Commit();
+                            return result;
+                        }
                     }
                 });
 
