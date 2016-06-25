@@ -31,9 +31,9 @@ namespace SteamDatabaseBackend
             }
 
             var job = await Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
-            var callback = job.Results.First(x => !x.ResponsePending);
+            var callback = job.Results.FirstOrDefault(x => x.Packages.ContainsKey(subID));
 
-            if (!callback.Packages.ContainsKey(subID))
+            if (callback == null)
             {
                 command.Reply("Unknown SubID: {0}{1}{2}", Colors.BLUE, subID, LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty);
 

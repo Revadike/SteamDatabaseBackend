@@ -71,9 +71,9 @@ namespace SteamDatabaseBackend
             }
 
             var job = await Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
-            var callback = job.Results.First(x => !x.ResponsePending);
+            var callback = job.Results.FirstOrDefault(x => x.Apps.ContainsKey(appID));
 
-            if (!callback.Apps.ContainsKey(appID))
+            if (callback == null)
             {
                 command.Reply("Unknown AppID: {0}{1}{2}", Colors.BLUE, appID, LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty);
 
