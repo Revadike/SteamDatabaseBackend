@@ -449,19 +449,7 @@ namespace SteamDatabaseBackend
             {
                 foreach (var depot in depots)
                 {
-                    anyFilesDownloaded |= FileDownloader.IsImportantDepot(depot.DepotID);
-
                     RemoveLock(depot.DepotID);
-                }
-
-                if (anyFilesDownloaded)
-                {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because all {3} depots failed",
-                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
-                        depots.Count()
-                    );
-
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
                 }
 
                 return;
@@ -495,7 +483,9 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because {3} depots failed",
+                    Log.WriteDebug("Depot Processor", "Reprocessing the app {1} because some files failed to download", appID);
+
+                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because some files in {3} depots failed",
                         Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
                         depots.Count(x => x.Result != EResult.OK && x.Result != EResult.Ignored)
                     );
