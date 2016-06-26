@@ -483,7 +483,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    Log.WriteDebug("Depot Processor", "Reprocessing the app {1} because some files failed to download", appID);
+                    Log.WriteDebug("Depot Processor", "Reprocessing the app {0} because some files failed to download", appID);
 
                     IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because some files in {3} depots failed",
                         Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
