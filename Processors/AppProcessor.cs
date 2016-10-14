@@ -63,6 +63,8 @@ namespace SteamDatabaseBackend
                 DbConnection.Execute("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, productInfo.ChangeNumber });
             }
 
+            ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
+
             var app = DbConnection.Query<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID }).SingleOrDefault();
 
             var newAppName = productInfo.KeyValues["common"]["name"].AsString();
@@ -115,7 +117,7 @@ namespace SteamDatabaseBackend
                         );
                     }
 
-                    if ((newAppType > 9 && newAppType != 13) || Triggers.Any(newAppName.Contains))
+                    if ((newAppType > 9 && newAppType != 13 && newAppType != 17) || Triggers.Any(newAppName.Contains))
                     {
                         IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
                             currentType,
@@ -149,25 +151,16 @@ namespace SteamDatabaseBackend
             {
                 string sectionName = section.Name.ToLower();
 
-                if (sectionName == "appid" || sectionName == "public_only")
+                if (sectionName == "appid" || sectionName == "public_only" || sectionName == "change_number")
                 {
                     continue;
                 }
 
-                if (sectionName == "change_number") // Carefully handle change_number
+                if (sectionName == "common" || sectionName == "extended")
                 {
-                    sectionName = "root_change_number";
-
-                    // TODO: Remove this key, move it to Apps table itself
-                    ProcessKey(sectionName, "change_number", productInfo.ChangeNumber.ToString()); //section.AsString());
-                }
-                else if (sectionName == "common" || sectionName == "extended")
-                {
-                    string keyName;
-
-                    foreach (KeyValue keyvalue in section.Children)
+                    foreach (var keyvalue in section.Children)
                     {
-                        keyName = string.Format("{0}_{1}", sectionName, keyvalue.Name);
+                        var keyName = string.Format("{0}_{1}", sectionName, keyvalue.Name);
 
                         if (keyName.Equals("common_type") || keyName.Equals("common_gameid") || keyName.Equals("common_name") || keyName.Equals("extended_order"))
                         {
@@ -195,19 +188,16 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
-           
-            foreach (var data in CurrentData.Values)
+
+            foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
             {
-                if (!data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal))
+                DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
+
+                MakeHistory("removed_key", data.Key, data.Value);
+
+                if (newAppName != null && data.KeyName.Equals("common_section_type") && data.Value.Equals("ownersonly"))
                 {
-                    DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
-
-                    MakeHistory("removed_key", data.Key, data.Value);
-
-                    if (newAppName != null && data.Key.Equals("common_section_type") && data.Value.Equals("ownersonly"))
-                    {
-                        IRC.Instance.SendMain("Removed ownersonly from: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
-                    }
+                    IRC.Instance.SendMain("Removed ownersonly from: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
                 }
             }
 

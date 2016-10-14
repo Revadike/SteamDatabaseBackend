@@ -53,6 +53,8 @@ namespace SteamDatabaseBackend
                 DbConnection.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, productInfo.ChangeNumber });
             }
 
+            ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
+
             var appAddedToThisPackage = false;
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
             var newPackageName = productInfo.KeyValues["name"].AsString();
@@ -92,7 +94,7 @@ namespace SteamDatabaseBackend
             {
                 string sectionName = section.Name.ToLower();
 
-                if (string.IsNullOrEmpty(sectionName) || sectionName.Equals("packageid") || sectionName.Equals("name"))
+                if (string.IsNullOrEmpty(sectionName) || sectionName.Equals("packageid") || sectionName.Equals("changenumber") || sectionName.Equals("name"))
                 {
                     // Ignore common keys
                     continue;
@@ -170,11 +172,9 @@ namespace SteamDatabaseBackend
                 }
                 else if (sectionName.Equals("extended"))
                 {
-                    string keyName;
-
                     foreach (var children in section.Children)
                     {
-                        keyName = string.Format("{0}_{1}", sectionName, children.Name);
+                        var keyName = string.Format("{0}_{1}", sectionName, children.Name);
 
                         if (children.Children.Count > 0)
                         {
@@ -200,14 +200,11 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var data in CurrentData.Values)
+            foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
             {
-                if (!data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal))
-                {
-                    DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
+                DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
 
-                    MakeHistory("removed_key", data.Key, data.Value);
-                }
+                MakeHistory("removed_key", data.Key, data.Value);
             }
 
             var appsRemoved = apps.Any();
