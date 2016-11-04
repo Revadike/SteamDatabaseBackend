@@ -64,17 +64,26 @@ namespace SteamDatabaseBackend
 
             var path = GetPath();
 
-            if (!File.Exists(path))
-            {
-                return;
-            }
+            LocalConfigJson current;
 
-            var current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path), GetSettings());
+            if (File.Exists(path))
+            {
+                current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path), GetSettings());
+            }
+            else
+            {
+                current = new LocalConfigJson();
+            }
 
             CellID = current.CellID;
             Sentry = current.Sentry;
             SentryFileName = current.SentryFileName;
             CDNAuthTokens = current.CDNAuthTokens;
+
+            if (!File.Exists(path))
+            {
+                Save();
+            }
         }
 
         public static void Save()
