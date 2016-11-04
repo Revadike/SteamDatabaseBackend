@@ -10,7 +10,7 @@ namespace SteamDatabaseBackend
 {
     static class Log
     {
-        private const string LOG_DIRECTORY = "logs";
+        private static string LogDirectoryPath;
 
         private enum Category
         {
@@ -39,14 +39,14 @@ namespace SteamDatabaseBackend
 
             try
             {
-                string logsDir = Path.Combine(Application.Path, LOG_DIRECTORY);
-                Directory.CreateDirectory(logsDir);
+                LogDirectoryPath = Path.Combine(Application.Path, "logs");
+                Directory.CreateDirectory(LogDirectoryPath);
             }
             catch (Exception ex)
             {
                 Settings.Current.LogToFile = false;
 
-                Console.WriteLine("ERROR: Unable to create logs directory: {0}", ex.Message);
+                WriteError("Unable to create logs directory: {0}", ex.Message);
             }
         }
 
@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
         {
             string logFile = string.Format("{0}.log", DateTime.Now.ToString("MMMM_dd_yyyy"));
 
-            return Path.Combine(Application.Path, LOG_DIRECTORY, logFile);
+            return Path.Combine(LogDirectoryPath, logFile);
         }
     }
 }

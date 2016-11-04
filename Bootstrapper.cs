@@ -18,30 +18,26 @@ namespace SteamDatabaseBackend
 
         public static void Main()
         {
+            AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
+
             Console.Title = "Steam Database";
 
             var version = FileVersionInfo.GetVersionInfo(typeof(Steam).Assembly.Location);
 
             ProductVersion = version.ProductVersion;
 
+            // Load settings file before logging as it can be enabled in settings
+            Settings.Load();
+
             Log.WriteInfo("Bootstrapper", "Steam Database, built from commit: {0}", ProductVersion);
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
-            try
-            {
-                // Just create deepest folder we will use in the app
-                string filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
-                Directory.CreateDirectory(filesDir);
+            // Just create deepest folder we will use in the app
+            var filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
+            Directory.CreateDirectory(filesDir);
 
-                Settings.Load();
-                LocalConfig.Load();
-            }
-            catch (Exception e)
-            {
-                Log.WriteError("Settings", "{0}", e.Message);
-
-                return;
-            }
+            Settings.Initialize();
+            LocalConfig.Load();
 
             ErrorReporter.Init(Settings.Current.BugsnagApiKey);
 
@@ -50,8 +46,6 @@ namespace SteamDatabaseBackend
                 DebugLog.AddListener(new Log.SteamKitLogger());
                 DebugLog.Enabled = true;
             }
-
-            AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
 
             Console.CancelKeyPress += OnCancelKey;
 
@@ -81,7 +75,7 @@ namespace SteamDatabaseBackend
             var parentException = args.ExceptionObject as Exception;
             var e = parentException.InnerException ?? parentException;
 
-            Log.WriteError("Unhandled Exception", "{0}\n{1}", e.Message, e.StackTrace);
+            Log.WriteError("Unhandled Exception", "{0}{1}{2}", e.Message, Environment.NewLine, e.StackTrace);
 
             if (args.IsTerminating)
             {

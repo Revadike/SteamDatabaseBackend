@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
             public string Server;
 
             [JsonProperty(Required = Required.Always)]
-            public List<string> Admins;
+            public List<string> Admins = new List<string>();
 
             [JsonProperty(Required = Required.Always)]
             public int Port;
@@ -57,7 +57,7 @@ namespace SteamDatabaseBackend
             public char CommandPrefix;
 
             [JsonProperty(Required = Required.Always)]
-            public IrcChannelsJson Channel;
+            public IrcChannelsJson Channel = new IrcChannelsJson();
 
             [JsonProperty(Required = Required.Always)]
             public string PrioritySendPrefix;
@@ -76,22 +76,22 @@ namespace SteamDatabaseBackend
         }
 
         [JsonProperty(Required = Required.Always)]
-        public List<ulong> SteamAdmins;
+        public List<ulong> SteamAdmins = new List<ulong>();
 
         [JsonProperty(Required = Required.Always)]
-        public List<ulong> ChatRooms;
+        public List<ulong> ChatRooms = new List<ulong>();
 
         [JsonProperty(Required = Required.Always)]
-        public List<uint> GameCoordinatorIdlers;
+        public List<uint> GameCoordinatorIdlers = new List<uint>();
 
         [JsonProperty(Required = Required.Always)]
-        public SteamJson Steam;
+        public SteamJson Steam = new SteamJson();
 
         [JsonProperty(Required = Required.Always)]
-        public IrcJson IRC;
+        public IrcJson IRC = new IrcJson();
 
         [JsonProperty(Required = Required.Always)]
-        public List<Uri> RssFeeds;
+        public List<Uri> RssFeeds = new List<Uri>();
 
         [JsonProperty(Required = Required.Always)]
         public Uri BaseURL;

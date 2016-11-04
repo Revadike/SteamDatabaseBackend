@@ -16,7 +16,7 @@ namespace SteamDatabaseBackend
 {
     static class Application
     {
-        private static readonly List<Thread> Threads;
+        private static List<Thread> Threads;
 
         private static RSS RssReader;
 
@@ -30,26 +30,29 @@ namespace SteamDatabaseBackend
         static Application()
         {
             Path = System.IO.Path.GetDirectoryName(typeof(Bootstrapper).Assembly.Location);
-
-            ImportantApps = new Dictionary<uint, List<string>>();
-            ImportantSubs = new Dictionary<uint, byte>();
-
-            Threads = new List<Thread>();
-
-            ChangelistTimer = new Timer();
-            ChangelistTimer.Elapsed += Tick;
-            ChangelistTimer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
         }
 
         public static void Init()
         {
+            ImportantApps = new Dictionary<uint, List<string>>();
+            ImportantSubs = new Dictionary<uint, byte>();
+
             ReloadImportant();
 
-            var thread = new Thread(Steam.Instance.Tick);
-            thread.Name = "Steam";
+            ChangelistTimer = new Timer();
+            ChangelistTimer.Elapsed += Tick;
+            ChangelistTimer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
+
+            var thread = new Thread(Steam.Instance.Tick)
+            {
+                Name = "Steam"
+            };
             thread.Start();
 
-            Threads.Add(thread);
+            Threads = new List<Thread>
+            {
+                thread
+            };
 
             if (Settings.IsFullRun)
             {
@@ -119,16 +122,21 @@ namespace SteamDatabaseBackend
 
         public static void Cleanup()
         {
+            // If threads is null, app was not yet initialized and there is nothing to cleanup
+            if (Threads == null)
+            {
+                return;
+            }
+
             Log.WriteInfo("Bootstrapper", "Exiting...");
 
             ChangelistTimer.Stop();
 
-            Steam.Instance.IsRunning = false;
-
-            Log.WriteInfo("Bootstrapper", "Disconnecting from Steam");
+            Log.WriteInfo("Bootstrapper", "Disconnecting from Steam...");
 
             try
             {
+                Steam.Instance.IsRunning = false;
                 Steam.Instance.Client.Disconnect();
             }
             catch (Exception e)
@@ -138,22 +146,21 @@ namespace SteamDatabaseBackend
 
             if (Settings.Current.IRC.Enabled)
             {
-                Log.WriteInfo("Bootstrapper", "Closing IRC connection");
+                Log.WriteInfo("Bootstrapper", "Closing IRC connection...");
 
                 RssReader.Timer.Stop();
 
                 IRC.Instance.Close();
             }
 
-            foreach (var thread in Threads)
+            foreach (var thread in Threads.Where(thread => thread.ThreadState == ThreadState.Running))
             {
-                if (thread.ThreadState == ThreadState.Running)
-                {
-                    Log.WriteInfo("Bootstrapper", "Joining thread {0}", thread.Name);
+                Log.WriteInfo("Bootstrapper", "Joining thread {0}...", thread.Name);
 
-                    thread.Join(TimeSpan.FromSeconds(5));
-                }
+                thread.Join(TimeSpan.FromSeconds(5));
             }
+
+            Log.WriteInfo("Bootstrapper", "Truncating GC table...");
 
             using (var db = Database.GetConnection())
             {

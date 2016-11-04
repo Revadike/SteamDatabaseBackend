@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -29,11 +30,14 @@ namespace SteamDatabaseBackend
 
             if (!File.Exists(settingsFile))
             {
-                throw new FileNotFoundException("Settings file not found, must be in settings.json");
+                throw new FileNotFoundException("settings.json file does not exist. Rename and edit settings.json.default file.");
             }
 
-            _current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+            _current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
+        }
 
+        public static void Initialize()
+        {
             if (string.IsNullOrWhiteSpace(Current.Steam.Username) || string.IsNullOrWhiteSpace(Current.Steam.Password))
             {
                 throw new InvalidDataException("Missing Steam credentials in settings file");
