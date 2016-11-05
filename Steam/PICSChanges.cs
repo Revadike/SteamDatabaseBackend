@@ -70,15 +70,35 @@ namespace SteamDatabaseBackend
 
         public void PerformSync()
         {
-            Log.WriteInfo("PICSChanges", "Doing a full run on all apps and packages in the database.");
-
             IEnumerable<uint> apps;
             IEnumerable<uint> packages;
 
             using (var db = Database.GetConnection())
             {
-                apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC");
-                packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC");
+                if (Settings.Current.FullRun == FullRunState.Enumerate)
+                {
+                    var lastAppID = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC LIMIT 1");
+                    var lastSubID = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
+
+                    // TODO: Tempo hack due to appid 2032727
+                    if (lastAppID > 1000000)
+                    {
+                        lastAppID = 1000000;
+                    }
+
+                    Log.WriteInfo("PICSChanges", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
+
+                    // greatest code you've ever seen
+                    apps = Enumerable.Range(0, lastAppID).Select(i => (uint)i);
+                    packages = Enumerable.Range(0, lastSubID).Select(i => (uint)i);
+                }
+                else
+                {
+                    Log.WriteInfo("PICSChanges", "Doing a full run on all apps and packages in the database.");
+
+                    apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC");
+                    packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC");
+                }
             }
 
             RequestUpdateForList(apps, packages);

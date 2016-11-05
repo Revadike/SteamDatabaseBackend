@@ -175,8 +175,8 @@ namespace SteamDatabaseBackend
                         MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
-                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun >= FullRunState.WithForcedDepots)
-                    {
+                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun == FullRunState.WithForcedDepots || Settings.Current.FullRun == FullRunState.ImportantOnly)
+                    { 
                         lock (DepotLocks)
                         {
                             // This doesn't really save us from concurrency issues

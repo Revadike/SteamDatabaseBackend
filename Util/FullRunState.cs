@@ -12,5 +12,6 @@ namespace SteamDatabaseBackend
         Normal = 1,
         WithForcedDepots = 2,
         ImportantOnly = 3,
+        Enumerate = 4,
     }
 }
