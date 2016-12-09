@@ -110,7 +110,7 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            GameCoordinator.UpdateStatus(0, callback.Result.ToString());
+            GameCoordinator.UpdateStatus(0, Settings.IsFullRun ? string.Format("Full Run ({0})", Settings.Current.FullRun) : callback.Result.ToString());
 
             if (callback.Result == EResult.AccountLogonDenied)
             {
