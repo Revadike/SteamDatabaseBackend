@@ -76,7 +76,7 @@ namespace SteamDatabaseBackend
 
         public static string GetAppDownloadFolder(uint appID)
         {
-            return DownloadFolders[appID] ?? null;
+            return DownloadFolders.ContainsKey(appID) ? DownloadFolders[appID] : null;
         }
 
         public static bool IsImportantDepot(uint depotID)
