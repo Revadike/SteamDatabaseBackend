@@ -479,7 +479,10 @@ namespace SteamDatabaseBackend
                 // Only commit changes if all depots downloaded
                 if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
-                    RunUpdateScript("0");
+                    if (!RunUpdateScript(appID))
+                    {
+                        RunUpdateScript("0");
+                    }
                 }
                 else
                 {
@@ -512,6 +515,33 @@ namespace SteamDatabaseBackend
             };
             process.Start();
             process.WaitForExit(120000);
+        }
+
+        private bool RunUpdateScript(uint appID)
+        {
+            var downloadFolder = FileDownloader.GetAppDownloadFolder(appID);
+
+            if (downloadFolder == null)
+            {
+                return false;
+            }
+
+            var updateScript = Path.Combine(Application.Path, "files", downloadFolder, "update.sh");
+
+            if(!File.Exists(updateScript))
+            {
+                return false;
+            }
+
+            var process = new System.Diagnostics.Process();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = updateScript
+            };
+            process.Start();
+            process.WaitForExit(120000);
+
+            return true;
         }
 
         private EResult ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)

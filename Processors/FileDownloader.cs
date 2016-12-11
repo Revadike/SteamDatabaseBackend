@@ -74,6 +74,11 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public static string GetAppDownloadFolder(uint appID)
+        {
+            return DownloadFolders[appID] ?? null;
+        }
+
         public static bool IsImportantDepot(uint depotID)
         {
             return Files.ContainsKey(depotID);
