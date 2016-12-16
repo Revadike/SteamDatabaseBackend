@@ -370,7 +370,7 @@ namespace SteamDatabaseBackend
                     }
                     catch (Exception e)
                     {
-                        Log.WriteWarn("Depot Downloader", "{0} Manifest download failed: {1} - {2}", depot.DepotID, e.GetType(), e.Message);
+                        Log.WriteWarn("Depot Downloader", "[{0}] Manifest download failed: {1} - {2}", depot.DepotID, e.GetType(), e.Message);
 
                         lastError = e.Message;
                     }
@@ -488,9 +488,8 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteDebug("Depot Processor", "Reprocessing the app {0} because some files failed to download", appID);
 
-                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app because some files in {3} depots failed",
-                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL,
-                        depots.Count(x => x.Result != EResult.OK && x.Result != EResult.Ignored)
+                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app due to download failures",
+                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL
                     );
 
                     JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));

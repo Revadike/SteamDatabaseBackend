@@ -92,6 +92,7 @@ namespace SteamDatabaseBackend
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var filesUpdated = false;
             var filesAnyFailed = false;
+            var fileCount = 0;
 
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
             var hashes = new Dictionary<string, byte[]>();
@@ -266,7 +267,7 @@ namespace SteamDatabaseBackend
 
                 if (file.FileHash.SequenceEqual(checksum))
                 {
-                    Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID));
+                    Log.WriteInfo("FileDownloader", "[{2}/{3}] Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID), ++fileCount, files.Count);
 
                     hashes[file.FileName] = checksum;
 
@@ -298,10 +299,10 @@ namespace SteamDatabaseBackend
                 {
                     filesAnyFailed = true;
 
-                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to download {3}: Only {4} out of {5} chunks downloaded ({6})",
-                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, file.FileName, count, chunks.Count, lastError);
+                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
+                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, file.FileName);
 
-                    Log.WriteError("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
+                    Log.WriteWarn("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
                         file.FileName, count, chunks.Count, job.Server, lastError);
 
                     File.Delete(downloadPath);
