@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                "People {0} {1}{2}{3} right now: {4}{5:N0}{6} -{7} {8}",
+                "{4}{5:N0}{6} people {0} {1}{2}{3} -{7} {8}",
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
                 Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
