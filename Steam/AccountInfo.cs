@@ -25,15 +25,7 @@ namespace SteamDatabaseBackend
 
         public static void Sync()
         {
-            Steam.Instance.Friends.SetPersonaState(EPersonaState.Busy);
-
-            foreach (var chatRoom in Settings.Current.ChatRooms)
-            {
-                Steam.Instance.Friends.JoinChat(chatRoom);
-            }
-
             var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayedNoDataBlob);
-
             clientMsg.Body.games_played.AddRange(
                 Settings.Current.GameCoordinatorIdlers.Select(appID => new CMsgClientGamesPlayed.GamePlayed
                 {
@@ -42,7 +34,20 @@ namespace SteamDatabaseBackend
                 })
             );
 
-            Steam.Instance.Client.Send( clientMsg );
+            Steam.Instance.Client.Send(clientMsg);
+
+            //Steam.Instance.Friends.SetPersonaState(EPersonaState.Busy);
+            var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus);
+            stateMsg.Body.persona_state = (uint)EPersonaState.Online;
+            stateMsg.Body.persona_state_flags = uint.MaxValue;
+            stateMsg.Body.player_name = Steam.Instance.Friends.GetPersonaName();
+
+            Steam.Instance.Client.Send(stateMsg);
+
+            foreach(var chatRoom in Settings.Current.ChatRooms)
+            {
+                Steam.Instance.Friends.JoinChat(chatRoom);
+            }
         }
     }
 }
