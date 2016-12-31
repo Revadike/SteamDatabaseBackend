@@ -49,9 +49,16 @@ namespace SteamDatabaseBackend
             };
             thread.Start();
 
+            var anonThread = new Thread(Steam.Anonymous.Tick)
+            {
+                Name = "SteamAnonymous"
+            };
+            anonThread.Start();
+
             Threads = new List<Thread>
             {
-                thread
+                thread,
+                anonThread,
             };
 
             if (Settings.IsFullRun)
@@ -138,6 +145,9 @@ namespace SteamDatabaseBackend
             {
                 Steam.Instance.IsRunning = false;
                 Steam.Instance.Client.Disconnect();
+
+                Steam.Anonymous.IsRunning = false;
+                Steam.Anonymous.Client.Disconnect();
             }
             catch (Exception e)
             {

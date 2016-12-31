@@ -141,6 +141,7 @@
     <Compile Include="IRC\Commands\GID.cs" />
     <Compile Include="Util\FullRunState.cs" />
     <Compile Include="IRC\Commands\Queue.cs" />
+    <Compile Include="Steam\SteamAnonymous.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

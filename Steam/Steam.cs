@@ -16,6 +16,9 @@ namespace SteamDatabaseBackend
         private static Steam _instance = new Steam();
         public static Steam Instance { get { return _instance; } }
 
+        private static SteamAnonymous _anonymous = new SteamAnonymous();
+        public static SteamAnonymous Anonymous { get { return _anonymous; } }
+
         public SteamClient Client { get; private set; }
         public SteamUser User { get; private set; }
         public SteamApps Apps { get; private set; }

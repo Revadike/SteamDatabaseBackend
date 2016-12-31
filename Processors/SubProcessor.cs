@@ -262,6 +262,12 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(productInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
             }
+
+            // Maintain a list of anonymous content
+            if (appAddedToThisPackage)
+            {
+                LicenseList.RefreshAnonymous();
+            }
         }
 
         public void ProcessUnknown()

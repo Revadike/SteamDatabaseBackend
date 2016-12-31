@@ -15,7 +15,7 @@ namespace SteamDatabaseBackend
 {
     class Connection : SteamHandler
     {
-        private const uint RETRY_DELAY = 15;
+        public const uint RETRY_DELAY = 15;
 
         public static DateTime LastSuccessfulLogin;
 

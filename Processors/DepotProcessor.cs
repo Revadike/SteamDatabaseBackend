@@ -30,6 +30,7 @@ namespace SteamDatabaseBackend
             public string Server;
             public byte[] DepotKey;
             public EResult Result = EResult.Fail;
+            public bool Anonymous;
         }
 
         private readonly CDNClient CDNClient;
@@ -175,8 +176,20 @@ namespace SteamDatabaseBackend
                         MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
-                    if (LicenseList.OwnedApps.ContainsKey(request.DepotID) || Settings.Current.FullRun == FullRunState.WithForcedDepots || Settings.Current.FullRun == FullRunState.ImportantOnly)
-                    { 
+                    var owned = LicenseList.OwnedApps.ContainsKey(request.DepotID);
+
+                    if (!owned)
+                    {
+                        request.Anonymous = owned = LicenseList.AnonymousApps.ContainsKey(request.DepotID);
+
+                        if (owned)
+                        {
+                            Log.WriteWarn("Depot Processor", "Will download depot {0} using anonymous account", request.DepotID);
+                        }
+                    }
+
+                    if (owned || Settings.Current.FullRun == FullRunState.WithForcedDepots || Settings.Current.FullRun == FullRunState.ImportantOnly)
+                    {
                         lock (DepotLocks)
                         {
                             // This doesn't really save us from concurrency issues
@@ -221,7 +234,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task<byte[]> GetDepotDecryptionKey(uint depotID, uint appID)
+        private async Task<byte[]> GetDepotDecryptionKey(SteamApps instance, uint depotID, uint appID)
         {
             using (var db = Database.GetConnection())
             {
@@ -233,7 +246,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var task = Steam.Instance.Apps.GetDepotDecryptionKey(depotID, appID);
+            var task = instance.GetDepotDecryptionKey(depotID, appID);
             task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.DepotKeyCallback callback;
@@ -269,7 +282,7 @@ namespace SteamDatabaseBackend
             return callback.DepotKey;
         }
 
-        private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(uint depotID)
+        private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(SteamApps instance, uint depotID)
         {
             if (LocalConfig.CDNAuthTokens.ContainsKey(depotID))
             {
@@ -294,7 +307,7 @@ namespace SteamDatabaseBackend
                 Server = GetContentServer()
             };
 
-            var task = Steam.Instance.Apps.GetCDNAuthToken(depotID, newToken.Server);
+            var task = instance.GetCDNAuthToken(depotID, newToken.Server);
             task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.CDNAuthTokenCallback tokenCallback;
@@ -309,6 +322,10 @@ namespace SteamDatabaseBackend
 
                 return null;
             }
+
+#if DEBUG
+            Log.WriteDebug("Depot Downloader", "Token for depot {0} result: {1}", depotID, tokenCallback.Result);
+#endif
 
             if (tokenCallback.Result != EResult.OK)
             {
@@ -334,7 +351,9 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in depots)
             {
-                depot.DepotKey = await GetDepotDecryptionKey(depot.DepotID, appID);
+                var instance = depot.Anonymous ? Steam.Anonymous.Apps : Steam.Instance.Apps;
+
+                depot.DepotKey = await GetDepotDecryptionKey(instance, depot.DepotID, appID);
 
                 if (depot.DepotKey == null)
                 {
@@ -343,7 +362,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                var cdnToken = await GetCDNAuthToken(depot.DepotID);
+                var cdnToken = await GetCDNAuthToken(instance, depot.DepotID);
 
                 if (cdnToken == null)
                 {

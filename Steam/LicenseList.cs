@@ -15,11 +15,26 @@ namespace SteamDatabaseBackend
     {
         public static Dictionary<uint, byte> OwnedApps { get; private set; }
         public static Dictionary<uint, byte> OwnedSubs { get; private set; }
+        public static Dictionary<uint, byte> AnonymousApps { get; private set; }
 
         static LicenseList()
         {
             OwnedApps = new Dictionary<uint, byte>();
             OwnedSubs = new Dictionary<uint, byte>();
+
+            RefreshAnonymous();
+        }
+
+        public static void RefreshAnonymous()
+        {
+            using (var db = Database.GetConnection())
+            {
+                AnonymousApps = db
+                    .Query("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = 17906")
+                    .ToDictionary(x => (uint)x.AppID, x => (byte)1);
+            }
+
+            Log.WriteDebug("LicenseList", "Loaded {0} anonymous apps", AnonymousApps.Count);
         }
 
         public LicenseList(CallbackManager manager)
