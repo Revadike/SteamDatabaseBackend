@@ -21,6 +21,14 @@ namespace SteamDatabaseBackend
     {
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
 
+        public static int JobsCount
+        {
+            get
+            {
+                return Jobs.Count;
+            }
+        }
+
         public static void AddJob(Func<JobID> action)
         {
             var jobID = action();

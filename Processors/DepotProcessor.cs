@@ -40,6 +40,14 @@ namespace SteamDatabaseBackend
         private SpinLock UpdateScriptLock;
         private bool SaveLocalConfig;
 
+        public int DepotLocksCount
+        {
+            get
+            {
+                return DepotLocks.Count;
+            }
+        }
+
         public DepotProcessor(SteamClient client)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");

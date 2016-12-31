@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
 
@@ -64,7 +65,7 @@ namespace SteamDatabaseBackend
             if (PreviousChangeNumber == 0)
             {
                 Log.WriteWarn("PICSChanges", "Looks like there are no changelists in the database.");
-                Log.WriteWarn("PICSChanges", "If you want to fill up your database first, restart with \"FullRun\" setting set to 1.");
+                Log.WriteWarn("PICSChanges", "If you want to fill up your database first, restart with \"FullRun\" setting set to {1}.", (int)FullRunState.Enumerate);
             }
         }
 
@@ -86,7 +87,7 @@ namespace SteamDatabaseBackend
                         lastAppID = 1000000;
                     }
 
-                    Log.WriteInfo("PICSChanges", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
+                    Log.WriteInfo("Full Run", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
 
                     // greatest code you've ever seen
                     apps = Enumerable.Range(0, lastAppID).Select(i => (uint)i);
@@ -94,14 +95,14 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    Log.WriteInfo("PICSChanges", "Doing a full run on all apps and packages in the database.");
+                    Log.WriteInfo("Full Run", "Doing a full run on all apps and packages in the database.");
 
                     apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC");
                     packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC");
                 }
             }
 
-            RequestUpdateForList(apps, packages);
+            TaskManager.Run(() => RequestUpdateForList(apps, packages));
         }
 
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
@@ -111,12 +112,22 @@ namespace SteamDatabaseBackend
             var apps = callback.AppChanges.Keys;
             var packages = callback.PackageChanges.Keys;
 
-            RequestUpdateForList(apps, packages);
+            TaskManager.Run(() => RequestUpdateForList(apps, packages));
         }
 
-        private void RequestUpdateForList(IEnumerable<uint> appIDs, IEnumerable<uint> packageIDs)
+        private bool IsBusy()
         {
-            Log.WriteInfo("PICSChanges", "Requesting info for {0} apps and {1} packages", appIDs.Count(), packageIDs.Count());
+            Log.WriteInfo("Full Run", "Jobs: {0} - Processor work: {1} - Depot locks: {2}",
+                              JobManager.JobsCount,
+                              PICSProductInfo.ProcessorThreadPool.CurrentWorkItemsCount,
+                              Steam.Instance.DepotProcessor.DepotLocksCount);
+
+            return !PICSProductInfo.ProcessorThreadPool.IsIdle || JobManager.JobsCount > 0 || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
+        }
+
+        private async void RequestUpdateForList(IEnumerable<uint> appIDs, IEnumerable<uint> packageIDs)
+        {
+            Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count(), packageIDs.Count());
 
             const int size = 100;
 
@@ -126,6 +137,12 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs.Take(size), Enumerable.Empty<uint>()));
 
                 appIDs = appIDs.Skip(size).ToList();
+
+                do
+                {
+                    await Task.Delay(1000);
+                }
+                while (IsBusy());
             }
 
             if (Settings.Current.FullRun == FullRunState.WithForcedDepots)
@@ -140,6 +157,12 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages.Take(size)));
 
                 packages = packages.Skip(size).ToList();
+
+                do
+                {
+                    await Task.Delay(1000);
+                }
+                while (IsBusy());
             }
         }
 
