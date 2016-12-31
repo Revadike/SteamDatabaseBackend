@@ -264,7 +264,7 @@ namespace SteamDatabaseBackend
             }
 
             // Maintain a list of anonymous content
-            if (appAddedToThisPackage)
+            if (appAddedToThisPackage && SubID == 17906)
             {
                 LicenseList.RefreshAnonymous();
             }
