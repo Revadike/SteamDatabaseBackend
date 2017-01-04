@@ -82,8 +82,8 @@ namespace SteamDatabaseBackend
 
                 using (var db = Database.GetConnection())
                 {
-                    db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`, `CommunityID`) VALUES(@AppID, @Token, @CommunityID)",
-                        new { AppID = id, Token = accessToken, CommunityID = Steam.Instance.Client.SteamID.ConvertToUInt64() }
+                    db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
+                        new { AppID = id, Token = accessToken }
                     );
                 }
             }
