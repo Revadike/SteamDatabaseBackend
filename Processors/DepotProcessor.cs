@@ -290,7 +290,7 @@ namespace SteamDatabaseBackend
             return callback.DepotKey;
         }
 
-        private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(SteamApps instance, uint depotID)
+        private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(SteamApps instance, uint appID, uint depotID)
         {
             if (LocalConfig.CDNAuthTokens.ContainsKey(depotID))
             {
@@ -315,7 +315,7 @@ namespace SteamDatabaseBackend
                 Server = GetContentServer()
             };
 
-            var task = instance.GetCDNAuthToken(depotID, newToken.Server);
+            var task = instance.GetCDNAuthToken(appID, depotID, newToken.Server);
             task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.CDNAuthTokenCallback tokenCallback;
@@ -370,7 +370,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                var cdnToken = await GetCDNAuthToken(instance, depot.DepotID);
+                var cdnToken = await GetCDNAuthToken(instance, appID, depot.DepotID);
 
                 if (cdnToken == null)
                 {
@@ -414,12 +414,12 @@ namespace SteamDatabaseBackend
                 {
                     RemoveLock(depot.DepotID);
 
-                    Log.WriteError("Depot Processor", "Failed to download depot manifest for depot {0} ({1}: {2})", depot.DepotID, depot.Server, lastError);
+                    Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3})", appID, depot.DepotID, depot.Server, lastError);
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
                     {
-                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download depot {3} manifest ({4}: {5})",
-                            Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, depot.DepotID, depot.Server, lastError);
+                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download app {3} depot {4} manifest ({5}: {6})",
+                            Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, appID, depot.DepotID, depot.Server, lastError);
                     }
 
                     continue;
