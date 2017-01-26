@@ -65,7 +65,7 @@ namespace SteamDatabaseBackend
             if (PreviousChangeNumber == 0)
             {
                 Log.WriteWarn("PICSChanges", "Looks like there are no changelists in the database.");
-                Log.WriteWarn("PICSChanges", "If you want to fill up your database first, restart with \"FullRun\" setting set to {1}.", (int)FullRunState.Enumerate);
+                Log.WriteWarn("PICSChanges", "If you want to fill up your database first, restart with \"FullRun\" setting set to {0}.", (int)FullRunState.Enumerate);
             }
         }
 
