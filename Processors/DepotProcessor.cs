@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public DepotProcessor(SteamClient client)
+        public DepotProcessor(SteamClient client, CallbackManager manager)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
@@ -58,12 +58,33 @@ namespace SteamDatabaseBackend
 
             FileDownloader.SetCDNClient(CDNClient);
 
-            CDNServers = new List<string>
+            manager.Subscribe<SteamClient.ServerListCallback>(OnServerList);
+
+            CDNServers = new List<string>();
+        }
+
+        private void OnServerList(SteamClient.ServerListCallback callback)
+        {
+            var serverList = new List<CDNClient.Server>();
+
+            try
             {
-                "cdn.level3.cs.steampowered.com",
-                "cdn.akamai.cs.steampowered.com",
-                "cdn.highwinds.cs.steampowered.com"
-            };
+                serverList = CDNClient.FetchServerList();
+            }
+            catch (Exception e)
+            {
+                Log.WriteError("Depot Downloader", "Exception retrieving server list: {0}", e.Message);
+                return;
+            }
+
+            foreach (var server in serverList)
+            {
+                if (server.Type == "CDN")
+                {
+                    Log.WriteDebug("Depot Downloader", "Adding server as CDN: {0}", server.Host);
+                    CDNServers.Add(server.Host);
+                }
+            }
         }
 
         public void Process(uint appID, uint changeNumber, KeyValue depots)
