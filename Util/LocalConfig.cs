@@ -118,9 +118,11 @@ namespace SteamDatabaseBackend
             var loadServersTask = SteamDirectory.Initialize(CellID);
             loadServersTask.Wait();
 
+            TaskManager.RegisterErrorHandler(loadServersTask);
+
             if (loadServersTask.IsFaulted)
             {
-                throw loadServersTask.Exception;
+                Environment.Exit(1);
             }
         }
 
