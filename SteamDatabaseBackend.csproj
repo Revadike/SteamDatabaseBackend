@@ -67,7 +67,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="SteamKit2">
-      <HintPath>packages\SteamKit2.1.8.1-citest\lib\net45\SteamKit2.dll</HintPath>
+      <HintPath>packages\SteamKit2.1.8.1\lib\net45\SteamKit2.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
