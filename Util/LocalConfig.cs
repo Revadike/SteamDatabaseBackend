@@ -60,8 +60,6 @@ namespace SteamDatabaseBackend
 
         public static void Load()
         {
-            LoadServers();
-
             var path = GetPath();
 
             LocalConfigJson current;
@@ -87,6 +85,8 @@ namespace SteamDatabaseBackend
             {
                 Save();
             }
+
+            LoadServers();
         }
 
         public static void Save()
@@ -116,9 +116,10 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Steam", "Loading Steam servers...");
 
             var loadServersTask = SteamDirectory.Initialize(CellID);
-            loadServersTask.Wait();
 
             TaskManager.RegisterErrorHandler(loadServersTask);
+
+            loadServersTask.Wait();
 
             if (loadServersTask.IsFaulted)
             {
