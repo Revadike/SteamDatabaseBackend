@@ -6,6 +6,7 @@
 
 using System;
 using System.IO;
+using Dapper;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -46,7 +47,8 @@ namespace SteamDatabaseBackend
             // Test database connection, it will throw if connection is unable to be made
             using (var connection = Database.GetConnection())
             {
-                // [crashing intensifies]
+                // Clear GC status table while we're at it
+                connection.Execute("DELETE FROM `GC`");
             }
 
             if (Current.FullRun != FullRunState.None)
