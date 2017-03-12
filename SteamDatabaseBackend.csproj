@@ -1,173 +1,30 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
-    <ProjectGuid>{1FDF0684-CAEF-4290-80C0-D86515063DB5}</ProjectGuid>
+    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <RootNamespace>SteamDatabaseBackend</RootNamespace>
-    <AssemblyName>SteamDatabaseBackend</AssemblyName>
-    <StartupObject>SteamDatabaseBackend.Bootstrapper</StartupObject>
-    <CodePage>65001</CodePage>
-    <UseMSBuildEngine>False</UseMSBuildEngine>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <TargetFrameworkProfile />
-    <ApplicationManifest>SteamAnonymous.manifest</ApplicationManifest>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <PlatformTarget>x64</PlatformTarget>
-    <OutputPath>bin\Release\</OutputPath>
-    <Optimize>true</Optimize>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <PlatformTarget>x64</PlatformTarget>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <WarningLevel>4</WarningLevel>
-    <Optimize>false</Optimize>
+    <Authors>Steam Database</Authors>
+    <Description>The application that keeps SteamDB up to date with the latest changes</Description>
+    <RepositoryUrl>https://github.com/SteamDatabase/SteamDatabaseBackend</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseUrl>https://github.com/SteamDatabase/SteamDatabaseBackend/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NetIrc2, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\NetIrc2.1.0.0.0\lib\NetIrc2.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
-      <HintPath>packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="SmartThreadPool, Version=2.2.4.0, Culture=neutral, PublicKeyToken=1126fe8b671e8a79, processorArchitecture=MSIL">
-      <HintPath>packages\SmartThreadPool.dll.2.2.4\lib\net45\SmartThreadPool.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Core" />
+    <PackageReference Include="Dapper" Version="1.50.2" />
+    <PackageReference Include="MySqlConnector" Version="0.22.0" />
+    <PackageReference Include="NetIrc2" Version="1.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="SmartThreadPool.dll" Version="2.2.4" />
+    <PackageReference Include="SteamKit2" Version="2.0.0-Alpha4" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="SteamKit2">
-      <HintPath>packages\SteamKit2.1.8.3\lib\net45\SteamKit2.dll</HintPath>
-    </Reference>
-    <Reference Include="MySqlConnector">
-      <HintPath>packages\MySqlConnector.0.22.0\lib\net451\MySqlConnector.dll</HintPath>
-    </Reference>
-    <Reference Include="Dapper">
-      <HintPath>packages\Dapper.1.50.2\lib\net451\Dapper.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Buffers">
-      <HintPath>packages\System.Buffers.4.3.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation">
-      <HintPath>packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions">
-      <HintPath>packages\System.Threading.Tasks.Extensions.4.3.0\lib\portable-net45+win8+wp8+wpa81\System.Threading.Tasks.Extensions.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IRC\Color.cs" />
-    <Compile Include="IRC\CommandHandler.cs" />
-    <Compile Include="IRC\IRC.cs" />
-    <Compile Include="Processors\SubProcessor.cs" />
-    <Compile Include="Processors\AppProcessor.cs" />
-    <Compile Include="Util\SteamDB.cs" />
-    <Compile Include="Util\Log.cs" />
-    <Compile Include="Util\Settings.cs" />
-    <Compile Include="Processors\DepotProcessor.cs" />
-    <Compile Include="Processors\GameCoordinator.cs" />
-    <Compile Include="Util\Utils.cs" />
-    <Compile Include="Util\SettingsJson.cs" />
-    <Compile Include="IRC\Commands\Help.cs" />
-    <Compile Include="IRC\Command.cs" />
-    <Compile Include="IRC\Commands\Blog.cs" />
-    <Compile Include="IRC\Commands\App.cs" />
-    <Compile Include="IRC\Commands\Package.cs" />
-    <Compile Include="IRC\Commands\Players.cs" />
-    <Compile Include="IRC\Commands\Binaries.cs" />
-    <Compile Include="IRC\Commands\Relogin.cs" />
-    <Compile Include="IRC\Commands\Important.cs" />
-    <Compile Include="IRC\Commands\Enum.cs" />
-    <Compile Include="Steam\AccountInfo.cs" />
-    <Compile Include="Steam\ClanState.cs" />
-    <Compile Include="Steam\ChatMemberInfo.cs" />
-    <Compile Include="Steam\PICSChanges.cs" />
-    <Compile Include="Steam\FreeLicense.cs" />
-    <Compile Include="Steam\PICSTokens.cs" />
-    <Compile Include="Util\SteamHandler.cs" />
-    <Compile Include="Steam\PICSProductInfo.cs" />
-    <Compile Include="Application.cs" />
-    <Compile Include="Steam\Steam.cs" />
-    <Compile Include="Steam\Connection.cs" />
-    <Compile Include="Steam\LicenseList.cs" />
-    <Compile Include="IRC\Commands\SteamID.cs" />
-    <Compile Include="Processors\FileDownloader.cs" />
-    <Compile Include="Bootstrapper.cs" />
-    <Compile Include="Managers\StoreQueue.cs" />
-    <Compile Include="Managers\Watchdog.cs" />
-    <Compile Include="Managers\ErrorReporter.cs" />
-    <Compile Include="Managers\TaskManager.cs" />
-    <Compile Include="Managers\JobManager.cs" />
-    <Compile Include="Database\Database.cs" />
-    <Compile Include="Database\App.cs" />
-    <Compile Include="Database\Package.cs" />
-    <Compile Include="Database\Changelist.cs" />
-    <Compile Include="Database\BlogPost.cs" />
-    <Compile Include="Database\StoreUpdateQueue.cs" />
-    <Compile Include="Database\Important.cs" />
-    <Compile Include="Database\Depot.cs" />
-    <Compile Include="Database\DepotFile.cs" />
-    <Compile Include="Database\PackageApp.cs" />
-    <Compile Include="Database\PICSInfo.cs" />
-    <Compile Include="Database\PICSHistory.cs" />
-    <Compile Include="Database\DepotHistory.cs" />
-    <Compile Include="Steam\WebAuth.cs" />
-    <Compile Include="Util\WebHelpers.cs" />
-    <Compile Include="IRC\RSS.cs" />
-    <Compile Include="IRC\Commands\PubFile.cs" />
-    <Compile Include="IRC\Commands\UGC.cs" />
-    <Compile Include="IRC\LinkExpander.cs" />
-    <Compile Include="Database\Price.cs" />
-    <Compile Include="IRC\Commands\Servers.cs" />
-    <Compile Include="Steam\ReadMachineAuth.cs" />
-    <Compile Include="Util\LocalConfig.cs" />
-    <Compile Include="IRC\Commands\GID.cs" />
-    <Compile Include="Util\FullRunState.cs" />
-    <Compile Include="IRC\Commands\Queue.cs" />
-    <Compile Include="Steam\SteamAnonymous.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="settings.json">
+    <None Update="settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="settings.json.default" />
-    <None Include="app.config" />
+    <None Update="settings.json.default">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
-  <ProjectExtensions>
-    <MonoDevelop>
-      <Properties>
-        <Policies>
-          <TextStylePolicy FileWidth="80" TabWidth="4" TabsToSpaces="True" IndentWidth="4" RemoveTrailingWhitespace="True" NoTabsAfterNonTabs="False" EolMarker="Native" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
-          <TextStylePolicy inheritsSet="null" scope="application/config+xml" />
-          <XmlFormattingPolicy inheritsSet="null" scope="application/config+xml" />
-          <TextStylePolicy inheritsSet="null" scope="application/xml" />
-          <XmlFormattingPolicy inheritsSet="Mono" inheritsScope="application/xml" scope="application/xml">
-            <DefaultFormat OmitXmlDeclaration="False" NewLineChars="&#xA;" IndentContent="True" ContentIndentString="&#x9;" AttributesInNewLine="False" MaxAttributesPerLine="10" AttributesIndentString="&#x9;" WrapAttributes="False" AlignAttributes="False" AlignAttributeValues="False" QuoteChar="&quot;" SpacesBeforeAssignment="0" SpacesAfterAssignment="0" EmptyLinesBeforeStart="0" EmptyLinesAfterStart="0" EmptyLinesBeforeEnd="0" EmptyLinesAfterEnd="0" />
-          </XmlFormattingPolicy>
-          <StandardHeader Text="" IncludeInNewFiles="False" />
-          <TextStylePolicy inheritsSet="null" scope="application/json" />
-        </Policies>
-      </Properties>
-    </MonoDevelop>
-  </ProjectExtensions>
 </Project>

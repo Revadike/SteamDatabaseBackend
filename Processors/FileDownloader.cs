@@ -320,7 +320,7 @@ namespace SteamDatabaseBackend
             {
                 try
                 {
-                    var chunkData = CDNClient.DownloadDepotChunk(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey);
+                    var chunkData = CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey).Result;
 
                     using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
                     {
