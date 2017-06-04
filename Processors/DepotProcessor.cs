@@ -135,6 +135,11 @@ namespace SteamDatabaseBackend
 
                     request.BuildID = branch["build"].AsInteger();
                 }
+                // SteamVR trickery
+                else if (appID == 250820)
+                {
+                    request.BuildID = depots["branches"][depots["branches"]["beta"]["buildid"].AsInteger() > depots["branches"]["public"]["buildid"].AsInteger() ? "beta" : "public"]["buildid"].AsInteger();
+                }
                 else
                 {
                     request.BuildID = depots["branches"]["public"]["buildid"].AsInteger();
