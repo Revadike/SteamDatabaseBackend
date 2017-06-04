@@ -118,8 +118,16 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                // SteamVR trickery
+                if (appID == 250820 && depot["manifests"]["beta"].Value != null)
+                {
+                    var branch = depots["branches"]["beta"]["buildid"].AsInteger() > depots["branches"]["public"]["buildid"].AsInteger() ? "beta" : "public";
+
+                    request.BuildID = depots["branches"][branch]["buildid"].AsInteger();
+                    request.ManifestID = ulong.Parse(depot["manifests"][branch].Value);
+                }
                 // If there is no public manifest for this depot, it still could have some sort of open beta
-                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
+                else if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
                 {
                     var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
 
@@ -136,11 +144,6 @@ namespace SteamDatabaseBackend
                     Log.WriteDebug("Depot Downloader", "Depot {0} (from {1}) has no public branch, but there is another one", request.DepotID, appID);
 
                     request.BuildID = depots["branches"][branch.Name]["buildid"].AsInteger();
-                }
-                // SteamVR trickery
-                else if (appID == 250820)
-                {
-                    request.BuildID = depots["branches"][depots["branches"]["beta"]["buildid"].AsInteger() > depots["branches"]["public"]["buildid"].AsInteger() ? "beta" : "public"]["buildid"].AsInteger();
                 }
                 else
                 {
