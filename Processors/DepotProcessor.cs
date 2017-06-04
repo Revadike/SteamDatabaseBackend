@@ -133,7 +133,9 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    request.BuildID = branch["build"].AsInteger();
+                    Log.WriteDebug("Depot Downloader", "Depot {0} (from {1}) has no public branch, but there is another one", request.DepotID, appID);
+
+                    request.BuildID = depots["branches"][branch.Name]["buildid"].AsInteger();
                 }
                 // SteamVR trickery
                 else if (appID == 250820)
