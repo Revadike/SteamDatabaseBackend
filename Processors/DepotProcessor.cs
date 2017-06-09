@@ -69,7 +69,7 @@ namespace SteamDatabaseBackend
 
             try
             {
-                serverList = CDNClient.FetchServerList();
+                serverList = CDNClient.FetchServerList(maxServers: 30);
             }
             catch (Exception e)
             {
@@ -79,7 +79,8 @@ namespace SteamDatabaseBackend
 
             foreach (var server in serverList)
             {
-                if (server.Type == "CDN")
+                // akamai.cdn.steampipe.steamcontent.com returns 404 Not Found unnecessarily
+                if (server.Type == "CDN" && !server.Host.Contains("cdn."))
                 {
                     Log.WriteDebug("Depot Downloader", "Adding server as CDN: {0}", server.Host);
                     CDNServers.Add(server.Host);
