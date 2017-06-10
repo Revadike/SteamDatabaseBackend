@@ -5,35 +5,16 @@
  */
 
 using System;
-using Bugsnag;
-using Bugsnag.Clients;
 
 namespace SteamDatabaseBackend
 {
     static class ErrorReporter
     {
-        private static BaseClient Client;
-
-        public static void Init(string apiKey)
-        {
-            if (string.IsNullOrEmpty(apiKey))
-            {
-                Log.WriteWarn("Error Reporter", "API key is empty, errors will not be sent to Bugsnag.");
-
-                return;
-            }
-
-            Client = new BaseClient(apiKey);
-        }
-
         public static void Notify(Exception e)
         {
             Log.WriteError("Caught Exception", "{0}", e);
 
-            if (Client != null)
-            {
-                Client.Notify(e, Severity.Error);
-            }
+            IRC.Instance.SendOps("Backend Exception: {0}", e.Message);
         }
     }
 }

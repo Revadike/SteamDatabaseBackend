@@ -39,8 +39,6 @@ namespace SteamDatabaseBackend
             Settings.Initialize();
             LocalConfig.Load();
 
-            ErrorReporter.Init(Settings.Current.BugsnagApiKey);
-
             if (Settings.Current.SteamKitDebug)
             {
                 DebugLog.AddListener(new Log.SteamKitLogger());
