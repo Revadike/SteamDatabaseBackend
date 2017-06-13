@@ -163,6 +163,14 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.GetConnection())
             {
+                var firstRequest = requests.First();
+                db.Execute( @"INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
+                new {
+                    firstRequest.BuildID,
+                    firstRequest.ChangeNumber,
+                    appID
+                });
+
                 var dbDepots = db.Query<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) })
                     .ToDictionary(x => x.DepotID, x => x);
 
