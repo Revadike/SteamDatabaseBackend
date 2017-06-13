@@ -538,7 +538,7 @@ namespace SteamDatabaseBackend
                 // Only commit changes if all depots downloaded
                 if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
-                    if (!RunUpdateScript(appID))
+                    if (!RunUpdateScript(appID, depots.First().BuildID))
                     {
                         RunUpdateScript("0");
                     }
@@ -575,7 +575,7 @@ namespace SteamDatabaseBackend
             process.WaitForExit(120000);
         }
 
-        private bool RunUpdateScript(uint appID)
+        private bool RunUpdateScript(uint appID, int buildID)
         {
             var downloadFolder = FileDownloader.GetAppDownloadFolder(appID);
 
@@ -594,7 +594,8 @@ namespace SteamDatabaseBackend
             var process = new System.Diagnostics.Process();
             process.StartInfo = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = updateScript
+                FileName = updateScript,
+                Arguments = buildID.ToString()
             };
             process.Start();
             process.WaitForExit(120000);
