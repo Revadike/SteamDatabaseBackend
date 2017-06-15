@@ -67,5 +67,10 @@ namespace SteamDatabaseBackend
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
         }
+
+        public static string GetPatchnotesURL(uint buildID)
+        {
+        	return new Uri(Settings.Current.BaseURL, string.Format("/patchnotes/{0}/", buildID)).AbsoluteUri;
+        }
     }
 }
