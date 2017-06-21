@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
                                 continue;
                             }
 
-                            if (DateTime.UtcNow > build.Date.AddMinutes(10))
+                            if (DateTime.UtcNow > build.Date.AddMinutes(60))
                             {
                                 Log.WriteDebug("RSS", "Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
                                 IRC.Instance.SendOps("Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
