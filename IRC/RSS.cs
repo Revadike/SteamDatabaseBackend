@@ -142,7 +142,7 @@ namespace SteamDatabaseBackend
                             // add source
                             item.Content = string.Format("Via [{0}]({1}):\n\n{2}", appID == 730 ? "CS:GO Blog" : "the Steam Store", item.Link, item.Content);
 
-                            Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}", build.AppID, build.BuildID);
+                            Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
 
                             db.Execute(
                                 "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
