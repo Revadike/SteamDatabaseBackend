@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
             ProcessedSubs = new Dictionary<uint, IWorkItemResult>();
 
             ProcessorThreadPool = new SmartThreadPool();
-            ProcessorThreadPool.Concurrency = 50;
+            ProcessorThreadPool.Concurrency = 20;
             ProcessorThreadPool.Name = "App/Sub Thread Pool";
         }
 
