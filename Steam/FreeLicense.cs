@@ -54,7 +54,7 @@ namespace SteamDatabaseBackend
 
                     foreach (var subID in packageIDs)
                     {
-                        IRC.Instance.SendMain("New free license granted: {0}{1}{2} -{3} {4}",
+                        IRC.Instance.SendAnnounce("New free license granted: {0}{1}{2} -{3} {4}",
                             Colors.BLUE, Steam.GetPackageName(subID), Colors.NORMAL,
                             Colors.DARKBLUE, SteamDB.GetPackageURL(subID)
                         );
