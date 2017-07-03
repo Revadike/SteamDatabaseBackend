@@ -13,7 +13,6 @@ namespace SteamDatabaseBackend
 {
     static class Bootstrapper
     {
-        public static string ProductVersion;
         private static bool CleaningUp;
 
         public static void Main()
@@ -21,15 +20,10 @@ namespace SteamDatabaseBackend
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
 
             Console.Title = "Steam Database";
-
-            var version = FileVersionInfo.GetVersionInfo(typeof(Steam).Assembly.Location);
-
-            ProductVersion = version.ProductVersion;
-
+            
             // Load settings file before logging as it can be enabled in settings
             Settings.Load();
-
-            Log.WriteInfo("Bootstrapper", "Steam Database, built from commit: {0}", ProductVersion);
+            
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             // Just create deepest folder we will use in the app

@@ -98,11 +98,6 @@ namespace SteamDatabaseBackend
             Client.Join(Settings.Current.IRC.Channel.Ops);
             Client.Join(Settings.Current.IRC.Channel.Main);
             Client.Join(Settings.Current.IRC.Channel.Announce);
-
-            if (Bootstrapper.ProductVersion != "master")
-            {
-                SendEmoteAnnounce("started, built from https://github.com/SteamDatabase/SteamDatabaseBackend/commit/{0}", Bootstrapper.ProductVersion);
-            }
         }
 
         private void OnDisconnected(object sender, EventArgs e)
