@@ -5,16 +5,22 @@
  */
 
 using System;
+using System.Diagnostics;
 
 namespace SteamDatabaseBackend
 {
     static class ErrorReporter
     {
-        public static void Notify(Exception e)
+        public static void Notify(string component, Exception e)
         {
-            Log.WriteError("Caught Exception", "{0}", e);
+            Log.WriteError(component, "Exception: {0}", e);
 
-            IRC.Instance.SendOps("Backend Exception: {0}", e.Message);
+            var frame = (new StackTrace(e, true)).GetFrame(0);
+            
+            IRC.Instance.SendOps("{0}[{1} Exception @{2}]{3} {4} {5}({6}#L{7})",
+                Colors.OLIVE, component, frame.GetMethod(), Colors.NORMAL,
+                e.Message, Colors.DARKGRAY, frame.GetFileName(), frame.GetFileLineNumber()
+            );
         }
     }
 }

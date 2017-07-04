@@ -151,7 +151,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Bootstrapper", "{0}", e);
+                ErrorReporter.Notify("Bootstrapper", e);
             }
 
             if (Settings.Current.IRC.Enabled)

@@ -204,7 +204,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                ErrorReporter.Notify(e);
+                ErrorReporter.Notify("IRC", e);
 
                 commandData.Reply("Exception: {0}", e.Message);
             }

@@ -73,7 +73,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("Depot Downloader", "Exception retrieving server list: {0}", e.Message);
+                ErrorReporter.Notify("Depot Downloader", e);
                 return;
             }
 
@@ -271,7 +271,7 @@ namespace SteamDatabaseBackend
                     }
                     catch (Exception e)
                     {
-                        ErrorReporter.Notify(e);
+                        ErrorReporter.Notify("Depot Processor", e);
                     }
 
                     foreach (var depot in depotsToDownload)
@@ -625,7 +625,7 @@ namespace SteamDatabaseBackend
                 // safe guard
                 if (name.Length > 255)
                 {
-                    ErrorReporter.Notify(new OverflowException(string.Format("File \"{0}\" in depot {1} is too long", name, request.DepotID)));
+                    ErrorReporter.Notify("Depot Processor", new OverflowException(string.Format("File \"{0}\" in depot {1} is too long", name, request.DepotID)));
 
                     continue;
                 }

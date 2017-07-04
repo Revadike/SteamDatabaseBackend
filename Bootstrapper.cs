@@ -71,15 +71,26 @@ namespace SteamDatabaseBackend
         private static void OnSillyCrashHandler(object sender, UnhandledExceptionEventArgs args)
         {
             var parentException = args.ExceptionObject as Exception;
-            var e = parentException.InnerException ?? parentException;
 
-            Log.WriteError("Unhandled Exception", "{0}{1}{2}", e.Message, Environment.NewLine, e.StackTrace);
+            if (parentException is AggregateException aggregateException)
+            {
+                aggregateException.Flatten().Handle(e =>
+                {
+                    ErrorReporter.Notify("Bootstrapper", e);
 
+                    return false;
+                });
+            }
+            else
+            {
+                ErrorReporter.Notify("Bootstrapper", parentException);
+            }
+            
             if (args.IsTerminating)
             {
                 AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;
 
-                IRC.Instance.SendOps("I am literally about to crash, send help. ({0})", e.Message);
+                IRC.Instance.SendOps("💀🔫 Backend process is going to crash, send help.");
 
                 Application.Cleanup();
             }

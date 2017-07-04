@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("IRC", "Failed to connect: {0}\n{1}", e.Message, e.StackTrace);
+                ErrorReporter.Notify("IRC", e);
             }
         }
 
