@@ -9,9 +9,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Amib.Threading;
 using Dapper;
 using SteamKit2;
 
@@ -263,6 +263,11 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
+                if (FileDownloader.IsImportantDepot(appID) && !Settings.IsFullRun && !string.IsNullOrEmpty(Settings.Current.PatchnotesNotifyURL))
+                {
+                    Task.Run(() => NotifyPatchnote(appID, depotsToDownload.First().BuildID));
+                }
+
                 PICSProductInfo.ProcessorThreadPool.QueueWorkItem(async () =>
                 {
                     try
@@ -279,6 +284,21 @@ namespace SteamDatabaseBackend
                         RemoveLock(depot.DepotID);
                     }
                 });
+            }
+        }
+
+        private async Task<byte[]> NotifyPatchnote(uint appID, int buildID)
+        {
+            Log.WriteInfo("Depot Downloader", "Pinging patchnotes notify url for app {0} build {1}", appID, buildID);
+
+            using (var webClient = new WebClient())
+            {
+                return await webClient.DownloadDataTaskAsync(
+                    new Uri(Settings.Current.PatchnotesNotifyURL
+                        .Replace("{appid}", appID.ToString())
+                        .Replace("{buildid}", buildID.ToString())
+                    )
+                );
             }
         }
 
