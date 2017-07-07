@@ -51,116 +51,129 @@ namespace SteamDatabaseBackend
         {
             Parallel.ForEach(Settings.Current.RssFeeds, feed =>
             {
-                string feedTitle;
-                var rssItems = LoadRSS(feed, out feedTitle);
-
-                if (rssItems == null)
+                try
                 {
-                    return;
+                    ProcessFeed(feed);
                 }
-
-                using (var db = Database.GetConnection())
+                catch(Exception ex)
                 {
-                    var items = db.Query<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) }).ToDictionary(x => x.Link, x => (byte)1);
-
-                    var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
-
-                    foreach (var item in newItems)
-                    {
-                        Log.WriteInfo("RSS", "[{0}] {1}: {2}", feedTitle, item.Title, item.Link);
-
-                        IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
-
-                        db.Execute("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
-
-                        uint appID = 0;
-
-                        if (feedTitle == "Steam RSS News Feed")
-                        {
-                            if (item.Title.StartsWith("Dota 2 Update", StringComparison.Ordinal))
-                            {
-                                appID = 570;
-                            }
-                            else if (item.Title == "Team Fortress 2 Update Released")
-                            {
-                                appID = 440;
-                            }
-                            else if (item.Title == "Left 4 Dead 2 - Update")
-                            {
-                                appID = 550;
-                            }
-                            else if (item.Title == "Left 4 Dead - Update")
-                            {
-                                appID = 500;
-                            }
-                        }
-                        else if (feedTitle.Contains("Counter-Strike: Global Offensive") && item.Title.StartsWith("Release Notes", StringComparison.Ordinal))
-                        {
-                            appID = 730;
-
-                            // csgo changelog cleanup
-                            item.Content = item.Content.Replace("</p>", "\n");
-                            item.Content = new Regex("<p>\\[\\s*(.+)\\s*\\]", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "## $1");
-                        }
-
-                        if (appID > 0)
-                        {
-                            var build = db.Query<Build>(
-                                "SELECT `Builds`.`BuildID`, `Builds`.`ChangeID`, `Builds`.`AppID`, `Name`, `Changelists`.`Date`, LENGTH(`Official`) as `Official` FROM `Builds` " +
-                                "LEFT JOIN `Patchnotes` ON `Patchnotes`.`BuildID` = `Builds`.`BuildID` " +
-                                "JOIN `Apps` ON `Apps`.`AppID` = `Builds`.`AppID` " +
-                                "JOIN `Changelists` ON `Builds`.`ChangeID` = `Changelists`.`ChangeID` " +
-                                "WHERE `Builds`.`AppID` = @AppID ORDER BY `Builds`.`BuildID` DESC LIMIT 1",
-                                new { appID }
-                            ).SingleOrDefault();
-
-                            if (build == null)
-                            {
-                                continue;
-                            }
-
-                            if (DateTime.UtcNow > build.Date.AddMinutes(60))
-                            {
-                                Log.WriteDebug("RSS", "Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
-                                IRC.Instance.SendOps("Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
-                                continue;
-                            }
-
-                            if (build.Official > 0)
-                            {
-                                Log.WriteDebug("RSS", "Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
-                                IRC.Instance.SendOps("Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
-                                continue;
-                            }
-
-                            // breaks
-                            item.Content = new Regex(@"<br( \/)?>\r?\n?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "\n");
-
-                            // dashes (csgo mainly)
-                            item.Content = new Regex("^&#(8208|8209|8210|8211|8212|8213); ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
-
-                            // add source
-                            item.Content = string.Format("Via [{0}]({1}):\n\n{2}", appID == 730 ? "CS:GO Blog" : "the Steam Store", item.Link, item.Content);
-
-                            Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
-
-                            db.Execute(
-                                "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
-                                "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = 428396",
-                                new {
-                                    build.BuildID,
-                                    build.AppID,
-                                    build.ChangeID,
-                                    Date = build.Date.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss"),
-                                    item.Content
-                                }
-                            );
-
-                            IRC.Instance.SendMain("{0} patch notes posted -{1} {2}", Steam.GetAppName(build.AppID), Colors.DARKBLUE, SteamDB.GetPatchnotesURL(build.BuildID));
-                        }
-                    }
+                    ErrorReporter.Notify("RSS", ex);
                 }
             });
+        }
+
+        private static void ProcessFeed(Uri feed)
+        {
+            var rssItems = LoadRSS(feed, out string feedTitle);
+
+            if (rssItems == null)
+            {
+                return;
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                var items = db.Query<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) }).ToDictionary(x => x.Link, x => (byte)1);
+
+                var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
+
+                foreach (var item in newItems)
+                {
+                    Log.WriteInfo("RSS", "[{0}] {1}: {2}", feedTitle, item.Title, item.Link);
+
+                    IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
+
+                    db.Execute("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
+
+                    uint appID = 0;
+
+                    if (feedTitle == "Steam RSS News Feed")
+                    {
+                        if (item.Title.StartsWith("Dota 2 Update", StringComparison.Ordinal))
+                        {
+                            appID = 570;
+                        }
+                        else if (item.Title == "Team Fortress 2 Update Released")
+                        {
+                            appID = 440;
+                        }
+                        else if (item.Title == "Left 4 Dead 2 - Update")
+                        {
+                            appID = 550;
+                        }
+                        else if (item.Title == "Left 4 Dead - Update")
+                        {
+                            appID = 500;
+                        }
+                    }
+                    else if (feedTitle.Contains("Counter-Strike: Global Offensive") && item.Title.StartsWith("Release Notes", StringComparison.Ordinal))
+                    {
+                        appID = 730;
+
+                        // csgo changelog cleanup
+                        item.Content = item.Content.Replace("</p>", "\n");
+                        item.Content = new Regex("<p>\\[\\s*(.+)\\s*\\]", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "## $1");
+                        item.Content = item.Content.Replace("<p>", "");
+                    }
+
+                    if (appID > 0)
+                    {
+                        var build = db.Query<Build>(
+                            "SELECT `Builds`.`BuildID`, `Builds`.`ChangeID`, `Builds`.`AppID`, `Name`, `Changelists`.`Date`, LENGTH(`Official`) as `Official` FROM `Builds` " +
+                            "LEFT JOIN `Patchnotes` ON `Patchnotes`.`BuildID` = `Builds`.`BuildID` " +
+                            "JOIN `Apps` ON `Apps`.`AppID` = `Builds`.`AppID` " +
+                            "JOIN `Changelists` ON `Builds`.`ChangeID` = `Changelists`.`ChangeID` " +
+                            "WHERE `Builds`.`AppID` = @AppID ORDER BY `Builds`.`BuildID` DESC LIMIT 1",
+                            new { appID }
+                        ).SingleOrDefault();
+
+                        if (build == null)
+                        {
+                            continue;
+                        }
+
+                        if (DateTime.UtcNow > build.Date.AddMinutes(60))
+                        {
+                            Log.WriteDebug("RSS", "Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
+                            IRC.Instance.SendOps("Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
+                            continue;
+                        }
+
+                        if (build.Official > 0)
+                        {
+                            Log.WriteDebug("RSS", "Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
+                            IRC.Instance.SendOps("Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
+                            continue;
+                        }
+
+                        // breaks
+                        item.Content = new Regex(@"<br( \/)?>\r?\n?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "\n");
+
+                        // dashes (csgo mainly)
+                        item.Content = new Regex("^&#(8208|8209|8210|8211|8212|8213); ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
+
+                        // add source
+                        item.Content = string.Format("Via [{0}]({1}):\n\n{2}", appID == 730 ? "CS:GO Blog" : "the Steam Store", item.Link, item.Content);
+
+                        Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
+
+                        db.Execute(
+                            "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
+                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = 428396",
+                            new
+                            {
+                                build.BuildID,
+                                build.AppID,
+                                build.ChangeID,
+                                Date = build.Date.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss"),
+                                item.Content
+                            }
+                        );
+
+                        IRC.Instance.SendMain("{0} patch notes posted -{1} {2}", Steam.GetAppName(build.AppID), Colors.DARKBLUE, SteamDB.GetPatchnotesURL(build.BuildID));
+                    }
+                }
+            }
         }
 
         private static List<GenericFeedItem> LoadRSS(Uri url, out string feedTitle)
