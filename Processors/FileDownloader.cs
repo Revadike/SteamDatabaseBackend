@@ -207,7 +207,6 @@ namespace SteamDatabaseBackend
             {
                 fs.SetLength((long)file.TotalSize);
 
-                
                 if (finalPath.Exists && File.Exists(oldChunksFile))
                 {
                     var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(File.ReadAllText(oldChunksFile), JsonHandleAllReferences);
@@ -330,9 +329,9 @@ namespace SteamDatabaseBackend
 
                     return true;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    //
+                    Log.WriteWarn("FileDownloader", "{0} exception: {1}", downloadPath, e.Message);
                 }
 
                 Task.Delay(Utils.ExponentionalBackoff(i)).Wait();
