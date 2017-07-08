@@ -16,6 +16,8 @@ namespace SteamDatabaseBackend
 {
     static class LocalConfig
     {
+        public static JsonSerializerSettings JsonFormatted = new JsonSerializerSettings { Formatting = Formatting.Indented };
+
         [JsonObject(MemberSerialization.OptIn)]
         public class CDNAuthToken
         {
@@ -66,7 +68,7 @@ namespace SteamDatabaseBackend
 
             if (File.Exists(path))
             {
-                current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path), GetSettings());
+                current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path));
             }
             else
             {
@@ -105,7 +107,7 @@ namespace SteamDatabaseBackend
 
             lock (CDNAuthTokens)
             {
-                json = JsonConvert.SerializeObject(current, GetSettings());
+                json = JsonConvert.SerializeObject(current, JsonFormatted);
             }
 
             File.WriteAllText(GetPath(), json);
@@ -126,15 +128,7 @@ namespace SteamDatabaseBackend
                 Environment.Exit(1);
             }
         }
-
-        private static JsonSerializerSettings GetSettings()
-        {
-            return new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented
-            };
-        }
-
+        
         private static string GetPath()
         {
             return Path.Combine(Application.Path, "files", ".support", "localconfig.json");
