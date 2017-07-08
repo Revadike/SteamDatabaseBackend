@@ -95,6 +95,12 @@ namespace SteamDatabaseBackend
                     Console.Write(logLine);
                     Console.ResetColor();
                 }
+                else if (category == Category.WARN)
+                {
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write(logLine);
+                    Console.ResetColor();
+                }
                 else
                 {
                     Console.Write(logLine);
