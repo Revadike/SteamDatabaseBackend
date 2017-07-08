@@ -513,9 +513,7 @@ namespace SteamDatabaseBackend
 
                         return result;
                     }, TaskCreationOptions.LongRunning);
-
-                    TaskManager.RegisterErrorHandler(task);
-
+                    
                     processTasks.Add(task);
                 }
             }
