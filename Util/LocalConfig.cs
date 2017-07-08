@@ -78,10 +78,7 @@ namespace SteamDatabaseBackend
             CellID = current.CellID;
             Sentry = current.Sentry;
             SentryFileName = current.SentryFileName;
-
-            // Disabled for now, need new logic to deal with terrible CDN servers. Can't rely on cached ones! SAD!
-            //CDNAuthTokens = current.CDNAuthTokens; 
-            CDNAuthTokens = new Dictionary<uint, CDNAuthToken>();
+            CDNAuthTokens = current.CDNAuthTokens;
 
             if (!File.Exists(path))
             {
