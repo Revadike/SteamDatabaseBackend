@@ -527,7 +527,7 @@ namespace SteamDatabaseBackend
                 LocalConfig.Save();
             }
 
-            await Task.WhenAll(processTasks);
+            await Task.WhenAll(processTasks).ConfigureAwait(false);
 
             Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count());
 

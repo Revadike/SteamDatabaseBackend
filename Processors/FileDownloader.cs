@@ -129,7 +129,7 @@ namespace SteamDatabaseBackend
                         downloadedFiles++;
                     }
 
-                    if(fileState != EResult.SameAsPreviousValue)
+                    if (fileState != EResult.SameAsPreviousValue)
                     {
                         // Do not write progress info to log file
                         Console.WriteLine("{1} [{0,6:#00.00}%] {2} files left to download", downloadedFiles / (float)files.Count * 100.0f, job.DepotName, files.Count - downloadedFiles);
