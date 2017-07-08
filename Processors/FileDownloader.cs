@@ -13,7 +13,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
 
@@ -21,8 +20,9 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        public static JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
-        public static JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
+        private static JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
+        private static JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
+        private static SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
 
         private static Dictionary<uint, string> DownloadFolders;
         private static Dictionary<uint, Regex> Files;
@@ -91,7 +91,7 @@ namespace SteamDatabaseBackend
         /*
          * Here be dragons.
          */
-        public static EResult DownloadFilesFromDepot(uint appID, DepotProcessor.ManifestJob job, DepotManifest depotManifest)
+        public static async Task<EResult> DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var downloadState = EResult.Fail;
@@ -108,29 +108,46 @@ namespace SteamDatabaseBackend
                 hashes = new Dictionary<string, byte[]>();
             }
 
-            Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
+            Log.WriteInfo("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
-            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, async (file, state) =>
+            var downloadedFiles = 0;
+            var fileTasks = new Task[files.Count];
+
+            for (var i = 0; i < fileTasks.Length; i++)
             {
-                hashes.TryGetValue(file.FileName, out var hash);
-
-                var fileState = await DownloadFile(appID, job, file, hash);
-
-                if (fileState == EResult.OK)
+                var file = files[i];
+                fileTasks[i] = TaskManager.Run(async () =>
                 {
-                    hashes[file.FileName] = file.FileHash;
-                }
+                    hashes.TryGetValue(file.FileName, out var hash);
 
-                if (downloadState == EResult.DataCorruption)
-                {
-                    return;
-                }
+                    var fileState = await DownloadFile(job, file, hash);
 
-                if (fileState == EResult.OK || fileState == EResult.DataCorruption)
-                {
-                    downloadState = fileState;
-                }
-            });
+                    if (fileState == EResult.OK || fileState == EResult.SameAsPreviousValue)
+                    {
+                        hashes[file.FileName] = file.FileHash;
+
+                        downloadedFiles++;
+                    }
+
+                    if(fileState != EResult.SameAsPreviousValue)
+                    {
+                        // Do not write progress info to log file
+                        Console.WriteLine("{1} [{0,6:#00.00}%] {2} files left to download", downloadedFiles / (float)files.Count * 100.0f, job.DepotName, files.Count - downloadedFiles);
+                    }
+
+                    if (downloadState == EResult.DataCorruption)
+                    {
+                        return;
+                    }
+
+                    if (fileState == EResult.OK || fileState == EResult.DataCorruption)
+                    {
+                        downloadState = fileState;
+                    }
+                }).Unwrap();
+            }
+
+            await Task.WhenAll(fileTasks).ConfigureAwait(false);
 
             if (downloadState == EResult.OK)
             {
@@ -146,7 +163,7 @@ namespace SteamDatabaseBackend
             return job.Result;
         }
 
-        private static async Task<EResult> DownloadFile(uint appID, DepotProcessor.ManifestJob job, DepotManifest.FileData file, byte[] hash)
+        private static async Task<EResult> DownloadFile(DepotProcessor.ManifestJob job, DepotManifest.FileData file, byte[] hash)
         {
             var directory = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
             var finalPath = new FileInfo(Path.Combine(directory, Path.GetFileName(file.FileName)));
@@ -252,10 +269,9 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var count = neededChunks.Count;
+            var downloadedSize = file.TotalSize - (ulong)neededChunks.Sum(x => x.UncompressedLength);
             var chunkCancellation = new CancellationTokenSource();
-            var chunkSemaphore = new SemaphoreSlim(1);
-            var chunkTasks = new Task[count];
+            var chunkTasks = new Task[neededChunks.Count];
 
             for (var i = 0; i < chunkTasks.Length; i++)
             {
@@ -266,24 +282,27 @@ namespace SteamDatabaseBackend
 
                     try
                     {
-                        await chunkSemaphore.WaitAsync().ConfigureAwait(false);
+                        await ChunkDownloadingSemaphore.WaitAsync().ConfigureAwait(false);
 
                         var result = await DownloadChunk(job, chunk, downloadPath);
 
                         if (!result)
                         {
-                            Log.WriteWarn("FileDownloader", "Failed to download {0} ({1}/{2})", file.FileName, count, chunks.Count);
+                            Log.WriteWarn("FileDownloader", "Failed to download chunk for {0}", file.FileName);
 
                             chunkCancellation.Cancel();
                         }
                         else
                         {
-                            Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
+                            downloadedSize += chunk.UncompressedLength;
+
+                            // Do not write progress info to log file
+                            Console.WriteLine("{2} [{0,6:#00.00}%] {1}", downloadedSize / (float)file.TotalSize * 100.0f, file.FileName, job.DepotName);
                         }
                     }
                     finally
                     {
-                        chunkSemaphore.Release();
+                        ChunkDownloadingSemaphore.Release();
                     }
                 }).Unwrap();
             }
@@ -303,17 +322,16 @@ namespace SteamDatabaseBackend
             if (!file.FileHash.SequenceEqual(checksum))
             {
                 IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
-                    Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, file.FileName);
+                    Colors.OLIVE, job.DepotName, Colors.NORMAL, Colors.BLUE, file.FileName);
 
-                Log.WriteWarn("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3}",
-                    file.FileName, count, chunks.Count, job.Server);
+                Log.WriteWarn("FileDownloader", "Failed to download file {0} ({1})", file.FileName, job.Server);
 
                 downloadPath.Delete();
 
                 return EResult.DataCorruption;
             }
 
-            Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID));
+            Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, job.DepotName);
             
             finalPath.Delete();
 

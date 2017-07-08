@@ -478,9 +478,11 @@ namespace SteamDatabaseBackend
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
                     {
-                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download app {3} depot {4} manifest ({5}: {6})",
-                            Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, appID, depot.DepotID, depot.Server, lastError);
+                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download manifest ({3}: {4})",
+                            Colors.OLIVE, depot.DepotName, Colors.NORMAL, depot.Server, lastError);
                     }
+
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
 
                     continue;
                 }
@@ -502,9 +504,9 @@ namespace SteamDatabaseBackend
 
                 if (FileDownloader.IsImportantDepot(depot.DepotID))
                 {
-                    task = TaskManager.Run(() =>
+                    task = TaskManager.Run(async () =>
                     {
-                        var result = FileDownloader.DownloadFilesFromDepot(appID, depot, depotManifest);
+                        var result = await FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
 
                         if (result == EResult.OK)
                         {
@@ -512,7 +514,7 @@ namespace SteamDatabaseBackend
                         }
 
                         return result;
-                    }, TaskCreationOptions.LongRunning);
+                    }).Unwrap();
                     
                     processTasks.Add(task);
                 }
