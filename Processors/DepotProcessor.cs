@@ -457,8 +457,6 @@ namespace SteamDatabaseBackend
                     }
                     catch (Exception e)
                     {
-                        Log.WriteWarn("Depot Downloader", "[{0}] Manifest download failed: {1} - {2}", depot.DepotID, e.GetType(), e.Message);
-
                         lastError = e.Message;
                     }
 
@@ -472,6 +470,8 @@ namespace SteamDatabaseBackend
 
                 if (depotManifest == null)
                 {
+                    LocalConfig.CDNAuthTokens.Remove(depot.DepotID);
+
                     RemoveLock(depot.DepotID);
 
                     Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3})", appID, depot.DepotID, depot.Server, lastError);
@@ -556,6 +556,18 @@ namespace SteamDatabaseBackend
                     if (depot.Result == EResult.OK)
                     {
                         RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
+                    }
+                    else if(depot.Result != EResult.Ignored)
+                    {
+                        Log.WriteWarn("Depot Processor", "Dropping stored token for {0} due to download failures", depot.DepotID);
+
+                        LocalConfig.CDNAuthTokens.Remove(depot.DepotID);
+
+                        using (var db = Database.GetConnection())
+                        {
+                            // Mark this depot for redownload
+                            db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
+                        }
                     }
 
                     RemoveLock(depot.DepotID);

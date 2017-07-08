@@ -11,6 +11,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using Newtonsoft.Json;
@@ -109,9 +110,16 @@ namespace SteamDatabaseBackend
 
             Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
-            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state) =>
+            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, async (file, state) =>
             {
-                var fileState = DownloadFiles(appID, job, file, ref hashes);
+                hashes.TryGetValue(file.FileName, out var hash);
+
+                var fileState = await DownloadFile(appID, job, file, hash);
+
+                if (fileState == EResult.OK)
+                {
+                    hashes[file.FileName] = file.FileHash;
+                }
 
                 if (downloadState == EResult.DataCorruption)
                 {
@@ -124,18 +132,7 @@ namespace SteamDatabaseBackend
                 }
             });
 
-            if (downloadState == EResult.DataCorruption)
-            {
-                using (var db = Database.GetConnection())
-                {
-                    // Mark this depot for redownload
-                    db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { job.DepotID });
-                }
-
-                IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
-                    Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL);
-            }
-            else if (downloadState == EResult.OK)
+            if (downloadState == EResult.OK)
             {
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
 
@@ -149,7 +146,7 @@ namespace SteamDatabaseBackend
             return job.Result;
         }
 
-        private static EResult DownloadFiles(uint appID, DepotProcessor.ManifestJob job, DepotManifest.FileData file, ref Dictionary<string, byte[]> hashes)
+        private static async Task<EResult> DownloadFile(uint appID, DepotProcessor.ManifestJob job, DepotManifest.FileData file, byte[] hash)
         {
             var directory = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
             var finalPath = new FileInfo(Path.Combine(directory, Path.GetFileName(file.FileName)));
@@ -178,7 +175,7 @@ namespace SteamDatabaseBackend
                     return EResult.SameAsPreviousValue;
                 }
             }
-            else if (hashes.ContainsKey(file.FileName) && file.FileHash.SequenceEqual(hashes[file.FileName]))
+            else if (hash != null && file.FileHash.SequenceEqual(hash))
             {
 #if DEBUG
                 Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
@@ -190,8 +187,7 @@ namespace SteamDatabaseBackend
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
 
             Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, chunks.Count);
-
-            uint count = 0;
+            
             byte[] checksum;
             string oldChunksFile;
             var neededChunks = new List<DepotManifest.ChunkData>();
@@ -231,7 +227,7 @@ namespace SteamDatabaseBackend
                                     fs.Write(oldData, 0, oldData.Length);
 
 #if DEBUG
-                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, chunks.Count);
+                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading", file.FileName, chunk.Offset);
 #endif
                                 }
                                 else
@@ -256,19 +252,43 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
-            {
-                if (!DownloadFile(job, chunk, downloadPath))
-                {
-                    Log.WriteWarn("FileDownloader", "Failed to download {0} ({1}/{2})", file.FileName, count, chunks.Count);
+            var count = neededChunks.Count;
+            var chunkCancellation = new CancellationTokenSource();
+            var chunkSemaphore = new SemaphoreSlim(1);
+            var chunkTasks = new Task[count];
 
-                    state.Stop();
-                }
-                else
+            for (var i = 0; i < chunkTasks.Length; i++)
+            {
+                var chunk = neededChunks[i];
+                chunkTasks[i] = TaskManager.Run(async () =>
                 {
-                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
-                }
-            });
+                    chunkCancellation.Token.ThrowIfCancellationRequested();
+
+                    try
+                    {
+                        await chunkSemaphore.WaitAsync().ConfigureAwait(false);
+
+                        var result = await DownloadChunk(job, chunk, downloadPath);
+
+                        if (!result)
+                        {
+                            Log.WriteWarn("FileDownloader", "Failed to download {0} ({1}/{2})", file.FileName, count, chunks.Count);
+
+                            chunkCancellation.Cancel();
+                        }
+                        else
+                        {
+                            Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
+                        }
+                    }
+                    finally
+                    {
+                        chunkSemaphore.Release();
+                    }
+                }).Unwrap();
+            }
+
+            await Task.WhenAll(chunkTasks).ConfigureAwait(false);
 
             using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
@@ -294,9 +314,7 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID));
-
-            hashes[file.FileName] = checksum;
-
+            
             finalPath.Delete();
 
             downloadPath.MoveTo(finalPath.FullName);
@@ -313,28 +331,28 @@ namespace SteamDatabaseBackend
             return EResult.OK;
         }
 
-        private static bool DownloadFile(DepotProcessor.ManifestJob job, DepotManifest.ChunkData chunk, FileInfo downloadPath)
+        private static async Task<bool> DownloadChunk(DepotProcessor.ManifestJob job, DepotManifest.ChunkData chunk, FileInfo downloadPath)
         {
             for (var i = 0; i <= 5; i++)
             {
                 try
                 {
-                    var chunkData = CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey).Result;
+                    var chunkData = await CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey);
 
                     using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
                     {
                         fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                        fs.Write(chunkData.Data, 0, chunkData.Data.Length);
+                        await fs.WriteAsync(chunkData.Data, 0, chunkData.Data.Length);
                     }
 
                     return true;
                 }
                 catch (Exception e)
                 {
-                    Log.WriteWarn("FileDownloader", "{0} exception: {1}", downloadPath, e.Message);
+                    Log.WriteWarn("FileDownloader", "{0} exception: {1}", job.DepotID, e.Message);
                 }
 
-                Task.Delay(Utils.ExponentionalBackoff(i)).Wait();
+                await Task.Delay(Utils.ExponentionalBackoff(i));
             }
 
             return false;
