@@ -20,6 +20,9 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
+        public static JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
+        public static JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
+
         private static Dictionary<uint, string> DownloadFolders;
         private static Dictionary<uint, Regex> Files;
         private static CDNClient CDNClient;
@@ -48,7 +51,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            DownloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+            DownloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file), JsonErrorMissing);
 
             file = Path.Combine(Application.Path, "files", "files.json");
 
@@ -59,7 +62,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error });
+            var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), JsonErrorMissing);
 
             foreach (var depot in files)
             {
@@ -90,226 +93,38 @@ namespace SteamDatabaseBackend
         public static EResult DownloadFilesFromDepot(uint appID, DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
-            var filesUpdated = false;
-            var filesAnyFailed = false;
-            var fileCount = 0;
-
+            var downloadState = EResult.Fail;
+            
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
-            var hashes = new Dictionary<string, byte[]>();
+            Dictionary<string, byte[]> hashes;
 
             if (File.Exists(hashesFile))
             {
                 hashes = JsonConvert.DeserializeObject<Dictionary<string, byte[]>>(File.ReadAllText(hashesFile));
             }
+            else
+            {
+                hashes = new Dictionary<string, byte[]>();
+            }
 
             Log.WriteDebug("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
-            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state2) =>
+            Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = 2 }, (file, state) =>
             {
-                string directory    = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
-                string finalPath    = Path.Combine(directory, Path.GetFileName(file.FileName));
-                string downloadPath = Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".steamdb_tmp"));
+                var fileState = DownloadFiles(appID, job, file, ref hashes);
 
-                if (!Directory.Exists(directory))
+                if (downloadState == EResult.DataCorruption)
                 {
-                    Directory.CreateDirectory(directory);
-                }
-                else if (file.TotalSize == 0)
-                {
-                    if (File.Exists(finalPath))
-                    {
-                        var f = new FileInfo(finalPath);
-
-                        if(f.Length == 0)
-                        {
-#if DEBUG
-                            Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
-#endif
-
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        File.Create(finalPath);
-
-                        Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
-
-                        return;
-                    }
-                }
-                else if(hashes.ContainsKey(file.FileName) && file.FileHash.SequenceEqual(hashes[file.FileName]))
-                {
-#if DEBUG
-                    Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
-#endif
-
                     return;
                 }
 
-                var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
-
-                Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, chunks.Count);
-
-                uint count = 0;
-                byte[] checksum;
-                string lastError = "or checksum failed";
-                string oldChunksFile;
-
-                using (var sha = new SHA1Managed())
+                if (fileState == EResult.OK || fileState == EResult.DataCorruption)
                 {
-                    oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks",
-                        string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName))))
-                    );
-                }
-
-                using (var fs = File.Open(downloadPath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-                {
-                    fs.SetLength((long)file.TotalSize);
-
-                    var lockObject = new object();
-                    var neededChunks = new List<DepotManifest.ChunkData>();
-
-                    if (File.Exists(oldChunksFile) && File.Exists(finalPath))
-                    {
-                        var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(
-                                            File.ReadAllText(oldChunksFile),
-                                            new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All }
-                                        );
-
-                        using (var fsOld = File.Open(finalPath, FileMode.Open, FileAccess.Read))
-                        {
-                            foreach (var chunk in chunks)
-                            {
-                                var oldChunk = oldChunks.FirstOrDefault(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
-
-                                if (oldChunk != null)
-                                {
-                                    var oldData = new byte[oldChunk.UncompressedLength];
-                                    fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
-                                    fsOld.Read(oldData, 0, oldData.Length);
-
-                                    var existingChecksum = Utils.AdlerHash(oldData);
-
-                                    if (existingChecksum.SequenceEqual(chunk.Checksum))
-                                    {
-                                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                                        fs.Write(oldData, 0, oldData.Length);
-
-#if DEBUG
-                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, chunks.Count);
-#endif
-                                    }
-                                    else
-                                    {
-                                        neededChunks.Add(chunk);
-
-#if DEBUG
-                                        Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), but checksum differs", file.FileName, chunk.Offset);
-#endif
-                                    }
-                                }
-                                else
-                                {
-                                    neededChunks.Add(chunk);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        neededChunks = chunks;
-                    }
-
-                    Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
-                    {
-                        var downloaded = false;
-
-                        for (var i = 0; i <= 5; i++)
-                        {
-                            try
-                            {
-                                var chunkData = CDNClient.DownloadDepotChunk(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey);
-
-                                lock (lockObject)
-                                {
-                                    fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                                    fs.Write(chunkData.Data, 0, chunkData.Data.Length);
-
-                                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
-                                }
-
-                                downloaded = true;
-
-                                break;
-                            }
-                            catch (Exception e)
-                            {
-                                lastError = e.Message;
-                            }
-
-                            Task.Delay(Utils.ExponentionalBackoff(i)).Wait();
-                        }
-
-                        if (!downloaded)
-                        {
-                            state.Stop();
-                        }
-                    });
-
-                    fs.Seek(0, SeekOrigin.Begin);
-
-                    using (var sha = new SHA1Managed())
-                    {
-                        checksum = sha.ComputeHash(fs);
-                    }
-                }
-
-                if (file.FileHash.SequenceEqual(checksum))
-                {
-                    Log.WriteInfo("FileDownloader", "[{2}/{3}] Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID), ++fileCount, files.Count);
-
-                    hashes[file.FileName] = checksum;
-
-                    if (File.Exists(finalPath))
-                    {
-                        File.Delete(finalPath);
-                    }
-
-                    File.Move(downloadPath, finalPath);
-
-                    if (chunks.Count > 1)
-                    {
-                        File.WriteAllText(oldChunksFile,
-                            JsonConvert.SerializeObject(
-                                chunks,
-                                Formatting.None,
-                                new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All }
-                            )
-                        );
-                    }
-                    else if (File.Exists(oldChunksFile))
-                    {
-                        File.Delete(oldChunksFile);
-                    }
-
-                    filesUpdated = true;
-                }
-                else
-                {
-                    filesAnyFailed = true;
-
-                    IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
-                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, file.FileName);
-
-                    Log.WriteWarn("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3} ({4})",
-                        file.FileName, count, chunks.Count, job.Server, lastError);
-
-                    File.Delete(downloadPath);
+                    downloadState = fileState;
                 }
             });
 
-            if (filesAnyFailed)
+            if (downloadState == EResult.DataCorruption)
             {
                 using (var db = Database.GetConnection())
                 {
@@ -320,7 +135,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps("{0}[{1}]{2} Failed to download some files, not running update script to prevent broken diffs.",
                     Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL);
             }
-            else if (filesUpdated)
+            else if (downloadState == EResult.OK)
             {
                 File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
 
@@ -332,6 +147,198 @@ namespace SteamDatabaseBackend
             }
 
             return job.Result;
+        }
+
+        private static EResult DownloadFiles(uint appID, DepotProcessor.ManifestJob job, DepotManifest.FileData file, ref Dictionary<string, byte[]> hashes)
+        {
+            var directory = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
+            var finalPath = new FileInfo(Path.Combine(directory, Path.GetFileName(file.FileName)));
+            var downloadPath = new FileInfo(Path.Combine(Path.GetTempPath(), Path.ChangeExtension(Path.GetRandomFileName(), ".steamdb_tmp")));
+
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+            else if (file.TotalSize == 0)
+            {
+                if (!finalPath.Exists)
+                {
+                    finalPath.Create();
+
+                    Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
+
+                    return EResult.SameAsPreviousValue;
+                }
+                else if (finalPath.Length == 0)
+                {
+#if DEBUG
+                    Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
+#endif
+
+                    return EResult.SameAsPreviousValue;
+                }
+            }
+            else if (hashes.ContainsKey(file.FileName) && file.FileHash.SequenceEqual(hashes[file.FileName]))
+            {
+#if DEBUG
+                Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
+#endif
+
+                return EResult.SameAsPreviousValue;
+            }
+
+            var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
+
+            Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, chunks.Count);
+
+            uint count = 0;
+            byte[] checksum;
+            string oldChunksFile;
+            var neededChunks = new List<DepotManifest.ChunkData>();
+
+            using (var sha = SHA1.Create())
+            {
+                oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks",
+                    string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName))))
+                );
+            }
+
+            using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            {
+                fs.SetLength((long)file.TotalSize);
+
+                
+                if (finalPath.Exists && File.Exists(oldChunksFile))
+                {
+                    var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(File.ReadAllText(oldChunksFile), JsonHandleAllReferences);
+
+                    using (var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read))
+                    {
+                        foreach (var chunk in chunks)
+                        {
+                            var oldChunk = oldChunks.FirstOrDefault(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+
+                            if (oldChunk != null)
+                            {
+                                var oldData = new byte[oldChunk.UncompressedLength];
+                                fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
+                                fsOld.Read(oldData, 0, oldData.Length);
+
+                                var existingChecksum = Utils.AdlerHash(oldData);
+
+                                if (existingChecksum.SequenceEqual(chunk.Checksum))
+                                {
+                                    fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                                    fs.Write(oldData, 0, oldData.Length);
+
+#if DEBUG
+                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading ({2}/{3})", file.FileName, chunk.Offset, ++count, chunks.Count);
+#endif
+                                }
+                                else
+                                {
+                                    neededChunks.Add(chunk);
+
+#if DEBUG
+                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), but checksum differs", file.FileName, chunk.Offset);
+#endif
+                                }
+                            }
+                            else
+                            {
+                                neededChunks.Add(chunk);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    neededChunks = chunks;
+                }
+            }
+
+            Parallel.ForEach(neededChunks, new ParallelOptions { MaxDegreeOfParallelism = 3 }, (chunk, state) =>
+            {
+                if (!DownloadFile(job, chunk, downloadPath))
+                {
+                    Log.WriteWarn("FileDownloader", "Failed to download {0} ({1}/{2})", file.FileName, count, chunks.Count);
+
+                    state.Stop();
+                }
+                else
+                {
+                    Log.WriteDebug("FileDownloader", "Downloaded {0} ({1}/{2})", file.FileName, ++count, chunks.Count);
+                }
+            });
+
+            using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
+            {
+                fs.Seek(0, SeekOrigin.Begin);
+
+                using (var sha = SHA1.Create())
+                {
+                    checksum = sha.ComputeHash(fs);
+                }
+            }
+
+            if (!file.FileHash.SequenceEqual(checksum))
+            {
+                IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
+                    Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL, Colors.BLUE, file.FileName);
+
+                Log.WriteWarn("FileDownloader", "Failed to download {0}: Only {1} out of {2} chunks downloaded from {3}",
+                    file.FileName, count, chunks.Count, job.Server);
+
+                downloadPath.Delete();
+
+                return EResult.DataCorruption;
+            }
+
+            Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, Steam.GetAppName(appID));
+
+            hashes[file.FileName] = checksum;
+
+            finalPath.Delete();
+
+            downloadPath.MoveTo(finalPath.FullName);
+            
+            if (chunks.Count > 1)
+            {
+                File.WriteAllText(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences));
+            }
+            else if (File.Exists(oldChunksFile))
+            {
+                File.Delete(oldChunksFile);
+            }
+
+            return EResult.OK;
+        }
+
+        private static bool DownloadFile(DepotProcessor.ManifestJob job, DepotManifest.ChunkData chunk, FileInfo downloadPath)
+        {
+            for (var i = 0; i <= 5; i++)
+            {
+                try
+                {
+                    var chunkData = CDNClient.DownloadDepotChunk(job.DepotID, chunk, job.Server, job.CDNToken, job.DepotKey);
+
+                    using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+                    {
+                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                        fs.Write(chunkData.Data, 0, chunkData.Data.Length);
+                    }
+
+                    return true;
+                }
+                catch (Exception)
+                {
+                    //
+                }
+
+                Task.Delay(Utils.ExponentionalBackoff(i)).Wait();
+            }
+
+            return false;
         }
 
         private static bool IsFileNameMatching(uint depotID, string fileName)
