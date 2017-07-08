@@ -1,8 +1,19 @@
+sudo: required
+dist: trusty
+
 language: csharp
-sudo: false
+mono: none
+dotnet: 2.0.0-preview2-006497
+
 solution: SteamDatabaseBackend.sln
-before_install:
+
+install:
   - cp ./settings.json.default ./settings.json
+  - dotnet restore
+
+script:
+  - dotnet build
+
 notifications:
   email: false
   irc:
