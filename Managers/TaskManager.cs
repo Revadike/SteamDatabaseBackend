@@ -48,15 +48,17 @@ namespace SteamDatabaseBackend
 
 #if DEBUG
             Log.WriteDebug("Task Manager", "New task: {0}", t);
+#endif
 
             t.ContinueWith(task =>
             {
                 if (Tasks.TryRemove(task, out var value))
                 {
+#if DEBUG
                     Log.WriteDebug("Task Manager", "Removed task: {0} ({1} jobs left)", t, TasksCount);
+#endif
                 }
             });
-#endif
 
             t.ContinueWith(task =>
             {
