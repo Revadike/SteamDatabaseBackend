@@ -163,6 +163,10 @@ namespace SteamDatabaseBackend
                 IRC.Instance.Close();
             }
 
+            Log.WriteInfo("Bootstrapper", "Cancelling {0} tasks...", TaskManager.TasksCount);
+
+            TaskManager.CancelAllTasks();
+
             foreach (var thread in Threads.Where(thread => thread.ThreadState == ThreadState.Running))
             {
                 Log.WriteInfo("Bootstrapper", "Joining thread {0}...", thread.Name);
