@@ -102,7 +102,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            TaskManager.Run(() => RequestUpdateForList(apps, packages));
+            TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
         }
 
         private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
@@ -112,7 +112,7 @@ namespace SteamDatabaseBackend
             var apps = callback.AppChanges.Keys;
             var packages = callback.PackageChanges.Keys;
 
-            TaskManager.Run(() => RequestUpdateForList(apps, packages));
+            TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
         }
 
         private bool IsBusy()
@@ -193,18 +193,18 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                TaskManager.Run(() => HandleApps(callback));
+                TaskManager.RunAsync(() => HandleApps(callback));
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
 
-                TaskManager.Run(() => HandlePackages(callback));
-                TaskManager.Run(() => HandlePackagesChangelists(callback));
+                TaskManager.RunAsync(() => HandlePackages(callback));
+                TaskManager.RunAsync(() => HandlePackagesChangelists(callback));
             }
 
-            TaskManager.Run(() => SendChangelistsToIRC(callback));
+            TaskManager.RunAsync(() => SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }

@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
             return t;
         }
 
-        public static Task Run(Action action)
+        public static Task RunAsync(Action action)
         {
             var t = Task.Run(action, TaskCancellationToken.Token);
                 

@@ -48,7 +48,7 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
 
-                TaskManager.Run(() =>
+                TaskManager.RunAsync(() =>
                 {
                     RefreshPackageNames();
 
