@@ -265,10 +265,10 @@ namespace SteamDatabaseBackend
             {
                 if (FileDownloader.IsImportantDepot(appID) && !Settings.IsFullRun && !string.IsNullOrEmpty(Settings.Current.PatchnotesNotifyURL))
                 {
-                    Task.Run(() => NotifyPatchnote(appID, depotsToDownload.First().BuildID));
+                    TaskManager.Run(() => NotifyPatchnote(appID, depotsToDownload.First().BuildID));
                 }
 
-                PICSProductInfo.ProcessorThreadPool.QueueWorkItem(async () =>
+                TaskManager.Run(async () =>
                 {
                     try
                     {

@@ -7,7 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Amib.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SteamKit2;
 
@@ -15,19 +16,9 @@ namespace SteamDatabaseBackend
 {
     class PICSProductInfo : SteamHandler
     {
-        private static readonly Dictionary<uint, IWorkItemResult> ProcessedApps;
-        private static readonly Dictionary<uint, IWorkItemResult> ProcessedSubs;
-        public static SmartThreadPool ProcessorThreadPool { get; private set; }
-
-        static PICSProductInfo()
-        {
-            ProcessedApps = new Dictionary<uint, IWorkItemResult>();
-            ProcessedSubs = new Dictionary<uint, IWorkItemResult>();
-
-            ProcessorThreadPool = new SmartThreadPool();
-            ProcessorThreadPool.Concurrency = 20;
-            ProcessorThreadPool.Name = "App/Sub Thread Pool";
-        }
+        private static readonly Dictionary<uint, Task> ProcessedApps = new Dictionary<uint, Task>();
+        private static readonly Dictionary<uint, Task> ProcessedSubs = new Dictionary<uint, Task>();
+        private static readonly SemaphoreSlim ProcessorSemaphore = new SemaphoreSlim(15);
 
         public PICSProductInfo(CallbackManager manager)
             : base(manager)
@@ -48,22 +39,24 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", app.Value == null ? "Unknown " : "", app.Key);
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
 
                 lock (ProcessedApps)
                 {
                     ProcessedApps.TryGetValue(app.Key, out mostRecentItem);
                 }
 
-                var workerItem = ProcessorThreadPool.QueueWorkItem(delegate
+                var workerItem = TaskManager.Run(async () =>
                 {
                     try
                     {
+                        await ProcessorSemaphore.WaitAsync().ConfigureAwait(false);
+
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
                             Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", app.Key);
 
-                            SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                            await mostRecentItem.ConfigureAwait(false);
                         }
 
                         using (var processor = new AppProcessor(app.Key))
@@ -97,6 +90,8 @@ namespace SteamDatabaseBackend
                                 ProcessedApps.Remove(app.Key);
                             }
                         }
+
+                        ProcessorSemaphore.Release();
                     }
                 });
 
@@ -117,22 +112,24 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", package.Value == null ? "Unknown " : "", package.Key);
 
-                IWorkItemResult mostRecentItem;
+                Task mostRecentItem;
 
                 lock (ProcessedSubs)
                 {
                     ProcessedSubs.TryGetValue(package.Key, out mostRecentItem);
                 }
 
-                var workerItem = ProcessorThreadPool.QueueWorkItem(delegate
+                var workerItem = TaskManager.Run(async () =>
                 {
                     try
                     {
+                        await ProcessorSemaphore.WaitAsync().ConfigureAwait(false);
+
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
                             Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", package.Key);
 
-                            SmartThreadPool.WaitAll(new IWaitableResult[] { mostRecentItem });
+                            await mostRecentItem.ConfigureAwait(false);
                         }
 
                         using (var processor = new SubProcessor(package.Key))
@@ -166,6 +163,8 @@ namespace SteamDatabaseBackend
                                 ProcessedSubs.Remove(package.Key);
                             }
                         }
+
+                        ProcessorSemaphore.Release();
                     }
                 });
 
