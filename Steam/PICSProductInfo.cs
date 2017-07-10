@@ -73,13 +73,13 @@ namespace SteamDatabaseBackend
                     }
                     catch (MySqlException e)
                     {
-                        Log.WriteError("PICSProductInfo", "App {0} faulted: {1}", app.Key, e);
+                        ErrorReporter.Notify($"App {app.Key}", e);
 
                         JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(app.Key, null));
                     }
                     catch (Exception e)
                     {
-                        Log.WriteError("PICSProductInfo", "App {0} faulted: {1}", app.Key, e);
+                        ErrorReporter.Notify($"App {app.Key}", e);
                     }
                     finally
                     {
@@ -146,13 +146,13 @@ namespace SteamDatabaseBackend
                     }
                     catch (MySqlException e)
                     {
-                        Log.WriteError("PICSProductInfo", "Package {0} faulted: {1}", package.Key, e);
+                        ErrorReporter.Notify($"Package {package.Key}", e);
 
                         JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, package.Key, false, false));
                     }
                     catch (Exception e)
                     {
-                        Log.WriteError("PICSProductInfo", "Package {0} faulted: {1}", package.Key, e);
+                        ErrorReporter.Notify($"Package {package.Key}", e);
                     }
                     finally
                     {
