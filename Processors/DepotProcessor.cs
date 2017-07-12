@@ -34,8 +34,8 @@ namespace SteamDatabaseBackend
         }
 
         private readonly CDNClient CDNClient;
-        private readonly List<string> CDNServers;
         private readonly Dictionary<uint, byte> DepotLocks;
+        private List<string> CDNServers;
         private string UpdateScript;
         private SpinLock UpdateScriptLock;
         private bool SaveLocalConfig;
@@ -53,14 +53,12 @@ namespace SteamDatabaseBackend
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             UpdateScriptLock = new SpinLock();
             DepotLocks = new Dictionary<uint, byte>();
-
             CDNClient = new CDNClient(client);
+            CDNServers = new List<string>();
 
             FileDownloader.SetCDNClient(CDNClient);
 
             manager.Subscribe<SteamClient.ServerListCallback>(OnServerList);
-
-            CDNServers = new List<string>();
         }
 
         private async void OnServerList(SteamClient.ServerListCallback callback)
@@ -73,9 +71,15 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                ErrorReporter.Notify("Depot Downloader", e);
+                if (CDNServers.Count == 0)
+                {
+                    ErrorReporter.Notify("Depot Downloader", e);
+                }
+                
                 return;
             }
+
+            CDNServers = new List<string>();
 
             foreach (var server in serverList)
             {
