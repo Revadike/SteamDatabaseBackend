@@ -11,32 +11,7 @@ namespace SteamDatabaseBackend
         public uint ChangeID { get; set; }
         public uint Key { get; set; }
         public string Action { get; set; }
-
-        private string _oldValue = "";
-        private string _newValue = "";
-
-        public string OldValue
-        {
-            get
-            {
-                return _oldValue;
-            }
-            set
-            {
-                _oldValue = value;
-            }
-        }
-
-        public string NewValue
-        {
-            get
-            {
-                return _newValue;
-            }
-            set
-            {
-                _newValue = value;
-            }
-        }
+        public string OldValue { get; set; } = "";
+        public string NewValue { get; set; } = "";
     }
 }

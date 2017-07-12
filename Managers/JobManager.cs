@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -21,13 +20,7 @@ namespace SteamDatabaseBackend
     {
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
 
-        public static int JobsCount
-        {
-            get
-            {
-                return Jobs.Count;
-            }
-        }
+        public static int JobsCount => Jobs.Count;
 
         public static void AddJob(Func<JobID> action)
         {
@@ -61,9 +54,7 @@ namespace SteamDatabaseBackend
 
         public static bool TryRemoveJob(JobID jobID)
         {
-            JobAction job;
-
-            return TryRemoveJob(jobID, out job);
+            return TryRemoveJob(jobID, out _);
         }
 
         public static bool TryRemoveJob(JobID jobID, out JobAction job)

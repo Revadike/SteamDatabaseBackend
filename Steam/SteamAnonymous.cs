@@ -12,19 +12,21 @@ namespace SteamDatabaseBackend
 {
     class SteamAnonymous
     {
-        public readonly Timer ReconnectionTimer;
+        private readonly Timer ReconnectionTimer;
 
-        public SteamClient Client { get; private set; }
-        public SteamUser User { get; private set; }
-        public SteamApps Apps { get; private set; }
-        public CallbackManager CallbackManager { get; private set; }
+        public SteamClient Client { get; }
+        private SteamUser User { get; }
+        public SteamApps Apps { get; }
+        private CallbackManager CallbackManager { get; }
 
         public bool IsRunning { get; set; }
 
         public SteamAnonymous()
         {
-            ReconnectionTimer = new Timer();
-            ReconnectionTimer.AutoReset = false;
+            ReconnectionTimer = new Timer
+            {
+                AutoReset = false
+            };
             ReconnectionTimer.Elapsed += Reconnect;
             ReconnectionTimer.Interval = TimeSpan.FromSeconds(Connection.RETRY_DELAY).TotalMilliseconds;
 
@@ -52,7 +54,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Reconnect(object sender, ElapsedEventArgs e)
+        private void Reconnect(object sender, ElapsedEventArgs e)
         {
             if (Client.IsConnected)
             {

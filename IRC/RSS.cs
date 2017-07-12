@@ -24,7 +24,6 @@ namespace SteamDatabaseBackend
             public uint ChangeID { get; set; }
             public uint AppID { get; set; }
             public uint Official { get; set; }
-            public string Name { get; set; }
             public DateTime Date { get; set; }
         }
 
@@ -35,7 +34,7 @@ namespace SteamDatabaseBackend
             public string Content { get; set; }
         }
 
-        public Timer Timer { get; private set; }
+        public Timer Timer { get; }
 
         public RSS()
         {
@@ -119,7 +118,7 @@ namespace SteamDatabaseBackend
                     if (appID > 0)
                     {
                         var build = db.Query<Build>(
-                            "SELECT `Builds`.`BuildID`, `Builds`.`ChangeID`, `Builds`.`AppID`, `Name`, `Changelists`.`Date`, LENGTH(`Official`) as `Official` FROM `Builds` " +
+                            "SELECT `Builds`.`BuildID`, `Builds`.`ChangeID`, `Builds`.`AppID`, `Changelists`.`Date`, LENGTH(`Official`) as `Official` FROM `Builds` " +
                             "LEFT JOIN `Patchnotes` ON `Patchnotes`.`BuildID` = `Builds`.`BuildID` " +
                             "JOIN `Apps` ON `Apps`.`AppID` = `Builds`.`AppID` " +
                             "JOIN `Changelists` ON `Builds`.`ChangeID` = `Changelists`.`ChangeID` " +

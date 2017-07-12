@@ -36,17 +36,11 @@ namespace SteamDatabaseBackend
         private readonly CDNClient CDNClient;
         private readonly Dictionary<uint, byte> DepotLocks;
         private List<string> CDNServers;
-        private string UpdateScript;
+        private readonly string UpdateScript;
         private SpinLock UpdateScriptLock;
         private bool SaveLocalConfig;
 
-        public int DepotLocksCount
-        {
-            get
-            {
-                return DepotLocks.Count;
-            }
-        }
+        public int DepotLocksCount => DepotLocks.Count;
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
@@ -609,14 +603,16 @@ namespace SteamDatabaseBackend
 
         private void RunUpdateScript(string arg)
         {
-            var process = new System.Diagnostics.Process();
-            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            using (var process = new System.Diagnostics.Process())
             {
-                FileName = UpdateScript,
-                Arguments = arg,
-            };
-            process.Start();
-            process.WaitForExit(120000);
+                process.StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = UpdateScript,
+                    Arguments = arg,
+                };
+                process.Start();
+                process.WaitForExit(120000);
+            }
         }
 
         private bool RunUpdateScript(uint appID, int buildID)
@@ -635,15 +631,17 @@ namespace SteamDatabaseBackend
                 return false;
             }
 
-            var process = new System.Diagnostics.Process();
-            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            using (var process = new System.Diagnostics.Process())
             {
-                FileName = updateScript,
-                Arguments = buildID.ToString()
-            };
-            process.Start();
-            process.WaitForExit(120000);
-
+                process.StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = updateScript,
+                    Arguments = buildID.ToString()
+                };
+                process.Start();
+                process.WaitForExit(120000);
+            }
+            
             return true;
         }
 

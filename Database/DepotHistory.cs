@@ -12,19 +12,6 @@ namespace SteamDatabaseBackend
         public string Action { get; set; }
         public ulong OldValue { get; set; }
         public ulong NewValue { get; set; }
-
-        private string _file = "";
-
-        public string File
-        {
-            get
-            {
-                return _file;
-            }
-            set
-            {
-                _file = value;
-            }
-        }
+        public string File { get; set; } = "";
     }
 }

@@ -20,9 +20,9 @@ namespace SteamDatabaseBackend
 {
     static class FileDownloader
     {
-        private static JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
-        private static JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
-        private static SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
+        private static readonly JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
+        private static readonly JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
+        private static readonly SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
 
         private static Dictionary<uint, string> DownloadFolders;
         private static Dictionary<uint, Regex> Files;
@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in files)
             {
-                string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(x => ConvertFileMatch(x))));
+                string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(ConvertFileMatch)));
 
                 Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 
@@ -276,11 +276,11 @@ namespace SteamDatabaseBackend
                 var chunk = neededChunks[i];
                 chunkTasks[i] = TaskManager.Run(async () =>
                 {
-                    chunkCancellation.Token.ThrowIfCancellationRequested();
-
                     try
                     {
-                        await ChunkDownloadingSemaphore.WaitAsync().ConfigureAwait(false);
+                        chunkCancellation.Token.ThrowIfCancellationRequested();
+                        
+                        await ChunkDownloadingSemaphore.WaitAsync(chunkCancellation.Token).ConfigureAwait(false);
 
                         var result = await DownloadChunk(job, chunk, downloadPath);
 

@@ -7,7 +7,6 @@
 using System;
 using System.IO;
 using SteamKit2;
-using System.Diagnostics;
 
 namespace SteamDatabaseBackend
 {

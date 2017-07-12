@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dapper;
 

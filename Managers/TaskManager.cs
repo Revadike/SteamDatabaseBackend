@@ -16,13 +16,7 @@ namespace SteamDatabaseBackend
         private static readonly ConcurrentDictionary<Task, byte> Tasks = new ConcurrentDictionary<Task, byte>();
         private static readonly CancellationTokenSource TaskCancellationToken = new CancellationTokenSource();
 
-        public static int TasksCount
-        {
-            get
-            {
-                return Tasks.Count;
-            }
-        }
+        public static int TasksCount => Tasks.Count;
 
         public static Task<T> Run<T>(Func<T> function)
         {
@@ -52,7 +46,7 @@ namespace SteamDatabaseBackend
 
             t.ContinueWith(task =>
             {
-                if (Tasks.TryRemove(task, out var value))
+                if (Tasks.TryRemove(task, out _))
                 {
 #if DEBUG
                     Log.WriteDebug("Task Manager", "Removed task: {0} ({1} jobs left)", t, TasksCount);

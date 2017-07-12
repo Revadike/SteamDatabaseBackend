@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
     class FreeLicense : SteamHandler
     {
         private bool CurrentlyUpdatingNames;
-        private Regex PackageRegex;
+        private readonly Regex PackageRegex;
 
         public FreeLicense(CallbackManager manager)
             : base(manager)
@@ -121,7 +121,7 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
 
-                        db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.SubID, Name = newName });
+                        db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
 
                         db.Execute(
                             SubProcessor.GetHistoryQuery(),

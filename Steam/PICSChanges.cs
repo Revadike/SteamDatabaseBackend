@@ -150,7 +150,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var packages = packageIDs.Select(package => Utils.NewPICSRequest(package));
+            var packages = packageIDs.Select(Utils.NewPICSRequest);
 
             while (packages.Any())
             {
@@ -198,7 +198,7 @@ namespace SteamDatabaseBackend
 
             if (packageChangesCount > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(package => Utils.NewPICSRequest(package))));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
 
                 TaskManager.RunAsync(() => HandlePackages(callback));
                 TaskManager.RunAsync(() => HandlePackagesChangelists(callback));
@@ -233,7 +233,7 @@ namespace SteamDatabaseBackend
 
         private void HandlePackages(SteamApps.PICSChangesCallback callback)
         {
-            var ignoredPackages = new Dictionary<uint, byte>();
+            Dictionary<uint, byte> ignoredPackages;
 
             using (var db = Database.GetConnection())
             {
@@ -259,7 +259,9 @@ namespace SteamDatabaseBackend
                 ignoredPackages.Add(17906, 1);
             }
 
-            var subids = callback.PackageChanges.Values.Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x));
+            var subids = callback.PackageChanges.Values
+                .Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x))
+                .ToList();
 
             if (!subids.Any())
             {
@@ -306,12 +308,10 @@ namespace SteamDatabaseBackend
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
-            string appType;
-            string appName;
 
             foreach (var app in important)
             {
-                appName = Steam.GetAppName(app, out appType);
+                var appName = Steam.GetAppName(app, out var appType);
 
                 IRC.Instance.AnnounceImportantAppUpdate(app, "{0} update: {1}{2}{3} -{4} {5}",
                     appType,
@@ -393,7 +393,6 @@ namespace SteamDatabaseBackend
                 if (appCount > 0)
                 {
                     Dictionary<uint, App> apps;
-                    App data;
 
                     using (var db = Database.GetConnection())
                     {
@@ -402,7 +401,7 @@ namespace SteamDatabaseBackend
 
                     foreach (var app in changeList.Apps)
                     {
-                        apps.TryGetValue(app.ID, out data);
+                        apps.TryGetValue(app.ID, out var data);
 
                         IRC.Instance.SendAnnounce("  App: {0}{1}{2} - {3}{4}",
                             Colors.BLUE, app.ID, Colors.NORMAL,
@@ -415,8 +414,7 @@ namespace SteamDatabaseBackend
                 if (packageCount > 0)
                 {
                     Dictionary<uint, Package> packages;
-                    Package data;
-
+                    
                     using (var db = Database.GetConnection())
                     {
                         packages = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) }).ToDictionary(x => x.SubID, x => x);
@@ -424,7 +422,7 @@ namespace SteamDatabaseBackend
 
                     foreach (var package in changeList.Packages)
                     {
-                        packages.TryGetValue(package.ID, out data);
+                        packages.TryGetValue(package.ID, out var data);
 
                         IRC.Instance.SendAnnounce("  Package: {0}{1}{2} - {3}{4}",
                             Colors.BLUE, package.ID, Colors.NORMAL,

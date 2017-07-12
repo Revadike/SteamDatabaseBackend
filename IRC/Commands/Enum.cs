@@ -128,14 +128,12 @@ namespace SteamDatabaseBackend
             {
                 var definedFlags = new List<string>();
                 ulong flags = Convert.ToUInt64(enumValue);
-                ulong flag = 0;
                 ulong i = 0;
                 int currentFlag = -1;
-                object flagObject;
 
                 while (i < flags)
                 {
-                    flag = (1UL << ++currentFlag);
+                    var flag = (1UL << ++currentFlag);
 
                     i += flag;
 
@@ -144,7 +142,7 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    flagObject = Enum.ToObject(typeof(TEnum), flag);
+                    var flagObject = Enum.ToObject(typeof(TEnum), flag);
 
                     if (Enum.IsDefined(typeof(TEnum), flagObject))
                     {
@@ -174,18 +172,9 @@ namespace SteamDatabaseBackend
             // ideally we'd want something like http://stackoverflow.com/a/28943180/139147
             // but bringing in codedom is probably like using a sledgehammer to open a sliding glass door
 
-            string fullName = type.FullName;
-
-            if (fullName == null)
-            {
-                return fullName;
-            }
-
-            fullName = fullName
+            return type.FullName?
                 .Replace('+', '.')
                 .Replace("SteamKit2.", "");
-
-            return fullName;
         }
     }
 }

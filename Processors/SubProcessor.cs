@@ -299,13 +299,13 @@ namespace SteamDatabaseBackend
             DbConnection.Execute("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
         }
 
-        private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
+        private void ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             if (keyName.Length > 90)
             {
                 Log.WriteError("Sub Processor", "Key {0} for SubID {1} is too long, not inserting info.", keyName, SubID);
 
-                return false;
+                return;
             }
 
             // All keys in PICS are supposed to be lower case.
@@ -330,7 +330,7 @@ namespace SteamDatabaseBackend
                         // We can't insert anything because key wasn't created
                         Log.WriteError("Sub Processor", "Failed to create key {0} for SubID {1}, not inserting info.", keyName, SubID);
 
-                        return false;
+                        return;
                     }
 
                     IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetPackageURL(SubID, "history"));
@@ -339,7 +339,7 @@ namespace SteamDatabaseBackend
                 DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });
                 MakeHistory("created_key", key, string.Empty, value);
 
-                return true;
+                return;
             }
 
             var data = CurrentData[keyName];
@@ -348,22 +348,20 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteWarn("Sub Processor", "Duplicate key {0} in SubID {1}", keyName, SubID);
 
-                return false;
+                return;
             }
 
             data.Processed = true;
 
             CurrentData[keyName] = data;
 
-            if (!data.Value.Equals(value))
+            if (data.Value.Equals(value))
             {
-                DbConnection.Execute("UPDATE `SubsInfo` SET `Value` = @Value WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, Key = data.Key, Value = value });
-                MakeHistory("modified_key", data.Key, data.Value, value);
-
-                return true;
+                return;
             }
-
-            return false;
+            
+            DbConnection.Execute("UPDATE `SubsInfo` SET `Value` = @Value WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key, Value = value });
+            MakeHistory("modified_key", data.Key, data.Value, value);
         }
 
         private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")

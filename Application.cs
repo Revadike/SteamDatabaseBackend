@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
-        public static string Path { get; private set; }
+        public static string Path { get; }
 
         static Application()
         {
@@ -74,8 +74,10 @@ namespace SteamDatabaseBackend
             {
                 RssReader = new RSS();
 
-                thread = new Thread(IRC.Instance.Connect);
-                thread.Name = "IRC";
+                thread = new Thread(IRC.Instance.Connect)
+                {
+                    Name = "IRC"
+                };
                 thread.Start();
 
                 Threads.Add(thread);

@@ -96,8 +96,8 @@ namespace SteamDatabaseBackend
                     title = title.Substring(0, 49) + "…";
                 }
 
-                var votesUp = details.vote_data != null ? details.vote_data.votes_up : 0;
-                var votesDown = details.vote_data != null ? details.vote_data.votes_down : 0;
+                var votesUp = details.vote_data?.votes_up ?? 0;
+                var votesDown = details.vote_data?.votes_down ?? 0;
 
                 if (command.CommandType == ECommandType.SteamChatRoom)
                 {

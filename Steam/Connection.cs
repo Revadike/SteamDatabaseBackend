@@ -26,8 +26,10 @@ namespace SteamDatabaseBackend
         public Connection(CallbackManager manager)
             : base(manager)
         {
-            ReconnectionTimer = new Timer();
-            ReconnectionTimer.AutoReset = false;
+            ReconnectionTimer = new Timer
+            {
+                AutoReset = false
+            };
             ReconnectionTimer.Elapsed += Reconnect;
             ReconnectionTimer.Interval = TimeSpan.FromSeconds(RETRY_DELAY).TotalMilliseconds;
 
@@ -116,13 +118,8 @@ namespace SteamDatabaseBackend
             {
                 Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
 
-                AuthCode = Console.ReadLine();
-
-                if (AuthCode != null)
-                {
-                    AuthCode = AuthCode.Trim();
-                }
-
+                AuthCode = Console.ReadLine()?.Trim();
+                
                 return;
             }
 

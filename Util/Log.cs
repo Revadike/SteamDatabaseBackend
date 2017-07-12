@@ -10,7 +10,7 @@ namespace SteamDatabaseBackend
 {
     static class Log
     {
-        private static string LogDirectoryPath;
+        private static readonly string LogDirectoryPath;
 
         private enum Category
         {

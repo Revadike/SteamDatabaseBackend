@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("PICSTokens", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
 
             var apps = callback.AppTokensDenied
-                .Select(app => Utils.NewPICSRequest(app))
+                .Select(Utils.NewPICSRequest)
                 .Concat(callback.AppTokens.Select(app => Utils.NewPICSRequest(app.Key, app.Value)));
             
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));

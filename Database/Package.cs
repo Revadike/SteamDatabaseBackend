@@ -9,7 +9,6 @@ namespace SteamDatabaseBackend
     {
         public uint SubID { get; set; }
         public string Name { get; set; }
-        public string StoreName { get; set; }
         public string LastKnownName { get; set; }
     }
 }

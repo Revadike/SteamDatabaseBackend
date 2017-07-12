@@ -30,10 +30,7 @@ namespace SteamDatabaseBackend
             private GCConnectionStatus _status;
             public GCConnectionStatus Status
             {
-                get
-                {
-                    return _status;
-                }
+                get => _status;
                 set
                 {
                     if (value != _status)
@@ -75,8 +72,10 @@ namespace SteamDatabaseBackend
 
             SteamGameCoordinator = steamClient.GetHandler<SteamGameCoordinator>();
 
-            SessionTimer = new Timer();
-            SessionTimer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
+            SessionTimer = new Timer
+            {
+                Interval = TimeSpan.FromSeconds(30).TotalMilliseconds
+            };
             SessionTimer.Elapsed += OnSessionTick;
             SessionTimer.Start();
 
@@ -147,7 +146,7 @@ namespace SteamDatabaseBackend
 
         private void OnWelcome(uint appID, IPacketGCMsg packetMsg)
         {
-            uint version = 0;
+            uint version;
 
             switch (appID)
             {

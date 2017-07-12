@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
 
             WebAPIUserNonce = callback.WebAPIUserNonce;
 
-            TaskManager.Run(() => AuthenticateUser());
+            TaskManager.RunAsync(() => AuthenticateUser());
         }
 
         private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
             // 32 byte random blob of data
             var sessionKey = CryptoHelper.GenerateRandomBlock(32);
 
-            byte[] encryptedSessionKey = null;
+            byte[] encryptedSessionKey;
 
             // ... which is then encrypted with RSA using the Steam system's public key
             using (var rsa = new RSACrypto(KeyDictionary.GetPublicKey(Steam.Instance.Client.ConnectedUniverse)))
@@ -141,7 +141,7 @@ namespace SteamDatabaseBackend
 
                 response = request.GetResponse() as HttpWebResponse;
 
-                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
+                if (response == null || response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
                 {
                     IsAuthorized = false;
 

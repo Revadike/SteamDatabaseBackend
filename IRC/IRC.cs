@@ -14,31 +14,24 @@ namespace SteamDatabaseBackend
 {
     class IRC
     {
-        private static IRC _instance = new IRC();
-
-        public static IRC Instance { get { return _instance; } }
+        public static IRC Instance { get; } = new IRC();
 
         private readonly IrcClient Client;
         private bool Disconnecting;
 
-        public bool IsConnected
-        {
-            get
-            {
-                return Client.IsConnected;
-            }
-        }
+        public bool IsConnected => Client.IsConnected;
 
-        public IRC()
+        private IRC()
         {
             if (!Settings.Current.IRC.Enabled)
             {
                 return;
             }
 
-            Client = new IrcClient();
-
-            Client.ClientVersion = "Steam Database -- https://github.com/SteamDatabase/SteamDatabaseBackend";
+            Client = new IrcClient
+            {
+                ClientVersion = "Steam Database -- https://github.com/SteamDatabase/SteamDatabaseBackend"
+            };
 
             Client.Connected += OnConnected;
             Client.Closed += OnDisconnected;
@@ -53,9 +46,11 @@ namespace SteamDatabaseBackend
 
                 if (Settings.Current.IRC.Ssl)
                 {
-                    options = new IrcClientConnectionOptions();
-                    options.Ssl = true;
-                    options.SslHostname = Settings.Current.IRC.Server;
+                    options = new IrcClientConnectionOptions
+                    {
+                        Ssl = true,
+                        SslHostname = Settings.Current.IRC.Server
+                    };
 
                     if (Settings.Current.IRC.SslAcceptInvalid)
                     {

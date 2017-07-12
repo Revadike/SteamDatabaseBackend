@@ -13,18 +13,10 @@ namespace SteamDatabaseBackend
 {
     static class Settings
     {
-        private static SettingsJson _current = new SettingsJson();
-
+        public static SettingsJson Current { get; private set; } = new SettingsJson();
+        
         public static bool IsFullRun { get; private set; }
-
-        public static SettingsJson Current
-        {
-            get
-            {
-                return _current;
-            }
-        }
-
+        
         public static void Load()
         {
             string settingsFile = Path.Combine(Application.Path, "settings.json");
@@ -34,7 +26,7 @@ namespace SteamDatabaseBackend
                 throw new FileNotFoundException("settings.json file does not exist. Rename and edit settings.json.default file.");
             }
 
-            _current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
+            Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
         }
 
         public static void Initialize()

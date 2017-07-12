@@ -33,10 +33,10 @@ namespace SteamDatabaseBackend
 
             var s = command.Message.Split(' ');
             var count = s.Length;
-            uint id;
 
             if (count > 0)
             {
+                uint id;
                 switch (s[0])
                 {
                     case "reload":

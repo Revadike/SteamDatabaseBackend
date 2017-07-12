@@ -33,9 +33,9 @@ namespace SteamDatabaseBackend
         {
             var encoded = new StringBuilder( input.Length * 2 );
 
-            for ( int i = 0 ; i < input.Length ; i++ )
+            foreach (var t in input)
             {
-                char inch = ( char )input[ i ];
+                var inch = (char)t;
 
                 if ( IsUrlSafeChar( inch ) )
                 {
@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    encoded.AppendFormat( "%{0:X2}", input[ i ] );
+                    encoded.AppendFormat( "%{0:X2}", t );
                 }
             }
 

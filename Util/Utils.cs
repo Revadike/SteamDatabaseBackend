@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
 {
     static class Utils
     {
-        private static Random RandomGenerator = new Random();
+        private static readonly Random RandomGenerator = new Random();
 
         // Adapted from http://stackoverflow.com/a/13503860/139147
         // Mono doesn't really like method extensions
@@ -76,9 +76,9 @@ namespace SteamDatabaseBackend
         public static byte[] AdlerHash(byte[] input)
         {
             uint a = 0, b = 0;
-            for (int i = 0; i < input.Length; i++)
+            foreach (var t in input)
             {
-                a = (a + input[i]) % 65521;
+                a = (a + t) % 65521;
                 b = (b + a) % 65521;
             }
             return BitConverter.GetBytes(a | (b << 16));

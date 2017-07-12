@@ -7,16 +7,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using Newtonsoft.Json;
 using SteamKit2;
-using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
     static class LocalConfig
     {
-        public static JsonSerializerSettings JsonFormatted = new JsonSerializerSettings { Formatting = Formatting.Indented };
+        private static readonly JsonSerializerSettings JsonFormatted = new JsonSerializerSettings { Formatting = Formatting.Indented };
 
         [JsonObject(MemberSerialization.OptIn)]
         public class CDNAuthToken

@@ -328,7 +328,7 @@ namespace SteamDatabaseBackend
 
             if (!data.Value.Equals(value))
             {
-                DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, Key = data.Key, Value = value });
+                DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key, Value = value });
                 MakeHistory("modified_key", data.Key, data.Value, value);
 
                 if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))

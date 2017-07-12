@@ -13,25 +13,22 @@ namespace SteamDatabaseBackend
 {
     class Steam
     {
-        private static Steam _instance = new Steam();
-        public static Steam Instance { get { return _instance; } }
+        public static Steam Instance { get; } = new Steam();
+        public static SteamAnonymous Anonymous { get; } = new SteamAnonymous();
 
-        private static SteamAnonymous _anonymous = new SteamAnonymous();
-        public static SteamAnonymous Anonymous { get { return _anonymous; } }
+        public SteamClient Client { get; }
+        public SteamUser User { get; }
+        public SteamApps Apps { get; }
+        public SteamFriends Friends { get; }
+        public SteamUserStats UserStats { get; }
+        public CallbackManager CallbackManager { get; }
 
-        public SteamClient Client { get; private set; }
-        public SteamUser User { get; private set; }
-        public SteamApps Apps { get; private set; }
-        public SteamFriends Friends { get; private set; }
-        public SteamUserStats UserStats { get; private set; }
-        public CallbackManager CallbackManager { get; private set; }
-
-        public PICSChanges PICSChanges { get; private set; }
-        public DepotProcessor DepotProcessor { get; private set; }
+        public PICSChanges PICSChanges { get; }
+        public DepotProcessor DepotProcessor { get; }
 
         public bool IsRunning { get; set; }
 
-        public Steam()
+        private Steam()
         {
             Client = new SteamClient();
 
