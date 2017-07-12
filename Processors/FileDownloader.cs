@@ -201,20 +201,16 @@ namespace SteamDatabaseBackend
                 return EResult.SameAsPreviousValue;
             }
 
-            var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
-
-            Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} chunks)", file.FileName, file.TotalSize, chunks.Count);
-            
             byte[] checksum;
-            string oldChunksFile;
-            var neededChunks = new List<DepotManifest.ChunkData>();
 
             using (var sha = SHA1.Create())
             {
-                oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks",
-                    string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName))))
-                );
+                checksum = sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName));
             }
+            
+            var neededChunks = new List<DepotManifest.ChunkData>();
+            var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
+            var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(checksum)));
 
             using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
@@ -272,6 +268,8 @@ namespace SteamDatabaseBackend
             var downloadedSize = file.TotalSize - (ulong)neededChunks.Sum(x => x.UncompressedLength);
             var chunkCancellation = new CancellationTokenSource();
             var chunkTasks = new Task[neededChunks.Count];
+
+            Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} out of {3} chunks)", file.FileName, downloadedSize, neededChunks.Count, chunks.Count);
 
             for (var i = 0; i < chunkTasks.Length; i++)
             {
