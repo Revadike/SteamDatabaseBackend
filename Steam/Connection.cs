@@ -84,8 +84,8 @@ namespace SteamDatabaseBackend
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
                 CellID = LocalConfig.CellID,
-                AuthCode = IsTwoFactor ? string.Empty : AuthCode,
-                TwoFactorCode = IsTwoFactor ? AuthCode : string.Empty,
+                AuthCode = IsTwoFactor ? null : AuthCode,
+                TwoFactorCode = IsTwoFactor ? AuthCode : null,
                 SentryFileHash = sentryHash
             });
         }
