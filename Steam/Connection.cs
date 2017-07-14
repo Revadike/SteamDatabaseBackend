@@ -22,6 +22,7 @@ namespace SteamDatabaseBackend
         public readonly Timer ReconnectionTimer;
 
         private string AuthCode;
+        private bool IsTwoFactor;
 
         public Connection(CallbackManager manager)
             : base(manager)
@@ -83,7 +84,8 @@ namespace SteamDatabaseBackend
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
                 CellID = LocalConfig.CellID,
-                AuthCode = AuthCode,
+                AuthCode = IsTwoFactor ? string.Empty : AuthCode,
+                TwoFactorCode = IsTwoFactor ? AuthCode : string.Empty,
                 SentryFileHash = sentryHash
             });
         }
@@ -118,6 +120,16 @@ namespace SteamDatabaseBackend
             {
                 Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
 
+                IsTwoFactor = false;
+                AuthCode = Console.ReadLine()?.Trim();
+                
+                return;
+            }
+            else if (callback.Result == EResult.AccountLoginDeniedNeedTwoFactor)
+            {
+                Console.Write("STEAM GUARD! Please enter your 2 factor auth code from your authenticator app: ");
+                
+                IsTwoFactor = true;
                 AuthCode = Console.ReadLine()?.Trim();
                 
                 return;
