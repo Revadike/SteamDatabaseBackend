@@ -15,7 +15,8 @@ namespace SteamDatabaseBackend
         {
             Log.WriteError(component, "Exception: {0}", e);
 
-            var frame = (new StackTrace(e, true)).GetFrame(0);
+            var stacktrace = new StackTrace(e, true);
+            var frame = stacktrace.GetFrame(stacktrace.FrameCount - 1);
             
             IRC.Instance.SendOps("{0}[{1} Exception @{2}]{3} {4} {5}({6}#L{7})",
                 Colors.OLIVE, component, frame.GetMethod(), Colors.NORMAL,
