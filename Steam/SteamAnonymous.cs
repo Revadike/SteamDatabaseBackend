@@ -29,8 +29,8 @@ namespace SteamDatabaseBackend
             };
             ReconnectionTimer.Elapsed += Reconnect;
             ReconnectionTimer.Interval = TimeSpan.FromSeconds(Connection.RETRY_DELAY).TotalMilliseconds;
-
-            Client = new SteamClient();
+            
+            Client = new SteamClient(Steam.Configuration);
             User = Client.GetHandler<SteamUser>();
             Apps = Client.GetHandler<SteamApps>();
 
@@ -70,13 +70,6 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
-            if (callback.Result != EResult.OK)
-            {
-                Log.WriteInfo("SteamAnonymous", "Could not connect: {0}", callback.Result);
-
-                return;
-            }
-
             Log.WriteInfo("SteamAnonymous", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
 
             User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails

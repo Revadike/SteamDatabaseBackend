@@ -57,17 +57,6 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
-            if (callback.Result != EResult.OK)
-            {
-                GameCoordinator.UpdateStatus(0, callback.Result.ToString());
-
-                IRC.Instance.SendEmoteAnnounce("failed to connect: {0}", callback.Result);
-
-                Log.WriteInfo("Steam", "Could not connect: {0}", callback.Result);
-
-                return;
-            }
-
             GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
 
             Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
@@ -151,9 +140,6 @@ namespace SteamDatabaseBackend
                 Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.CellID, cellId);
 
                 LocalConfig.CellID = cellId;
-
-                // TODO: is this really needed?
-                LocalConfig.LoadServers();
 
                 LocalConfig.Save();
             }
