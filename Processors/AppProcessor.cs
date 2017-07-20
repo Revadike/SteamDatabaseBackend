@@ -9,12 +9,14 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using Dapper;
+using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class AppProcessor : IDisposable
     {
+        public const string HistoryQuery = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`, `Diff`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue, @Diff)";
         private static readonly string[] Triggers =
         {
             "Valve",
@@ -170,7 +172,7 @@ namespace SteamDatabaseBackend
 
                         if (keyvalue.Children.Count > 0)
                         {
-                            ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), true);
+                            ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), keyvalue);
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
                         {
@@ -182,7 +184,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    if (ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true) && sectionName.Equals("root_depots"))
+                    if (ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName.Equals("root_depots"))
                     {
                         DbConnection.Execute("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
                     }
@@ -233,7 +235,7 @@ namespace SteamDatabaseBackend
 
             if (data.Any())
             {
-                DbConnection.Execute(GetHistoryQuery(), data.Select(x => new PICSHistory
+                DbConnection.Execute(HistoryQuery, data.Select(x => new PICSHistory
                 {
                     ID       = AppID,
                     ChangeID = ChangeNumber,
@@ -245,7 +247,7 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(name) && !name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
             {
-                DbConnection.Execute(GetHistoryQuery(), new PICSHistory
+                DbConnection.Execute(HistoryQuery, new PICSHistory
                 {
                     ID       = AppID,
                     ChangeID = ChangeNumber,
@@ -259,7 +261,7 @@ namespace SteamDatabaseBackend
             DbConnection.Execute("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
         }
 
-        private bool ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
+        private bool ProcessKey(string keyName, string displayName, string value, KeyValue newKv = null)
         {
             if (keyName.Length > 90)
             {
@@ -277,7 +279,7 @@ namespace SteamDatabaseBackend
 
                 if (key == 0)
                 {
-                    var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
+                    var type = newKv != null ? 86 : 0; // 86 is a hardcoded const for the website
 
                     DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
 
@@ -326,38 +328,59 @@ namespace SteamDatabaseBackend
 
             CurrentData[keyName] = data;
 
-            if (!data.Value.Equals(value))
+            if (data.Value.Equals(value))
             {
-                DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key, Value = value });
+                return false;
+            }
+            
+            DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key, Value = value });
+
+            if (newKv != null)
+            {
+                MakeHistoryForJson(data.Key, data.Value, value, newKv);
+            }
+            else
+            {
                 MakeHistory("modified_key", data.Key, data.Value, value);
-
-                if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
-                {
-                    PrintLinux();
-                }
-
-                return true;
+            }
+            
+            if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
+            {
+                PrintLinux();
             }
 
-            return false;
+            return true;
         }
-
-        public static string GetHistoryQuery()
+        
+        private void MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
         {
-            return "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
-        }
-
-        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
-        {
-            DbConnection.Execute(GetHistoryQuery(),
+            var diff = JsonConvert.SerializeObject(DiffKeyValues.Diff(oldValue, newKv));
+                
+            DbConnection.Execute(HistoryQuery,
                 new PICSHistory
                 {
                     ID       = AppID,
                     ChangeID = ChangeNumber,
-                    Key      = keyNameID,
+                    Key      = keyNameId,
                     OldValue = oldValue,
                     NewValue = newValue,
-                    Action   = action
+                    Diff     = diff,
+                    Action   = "modified_key"
+                }
+            );
+        }
+
+        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
+        {
+            DbConnection.Execute(HistoryQuery,
+                new PICSHistory
+                {
+                    ID = AppID,
+                    ChangeID = ChangeNumber,
+                    Key = keyNameID,
+                    OldValue = oldValue,
+                    NewValue = newValue,
+                    Action = action
                 }
             );
         }

@@ -138,7 +138,7 @@ namespace SteamDatabaseBackend
 
                             if (isAppSection)
                             {
-                                DbConnection.Execute(AppProcessor.GetHistoryQuery(),
+                                DbConnection.Execute(AppProcessor.HistoryQuery,
                                     new PICSHistory
                                     {
                                         ID       = appID,
@@ -221,7 +221,7 @@ namespace SteamDatabaseBackend
 
                 if (isAppSection)
                 {
-                    DbConnection.Execute(AppProcessor.GetHistoryQuery(),
+                    DbConnection.Execute(AppProcessor.HistoryQuery,
                         new PICSHistory
                         {
                             ID       = app.Key,
