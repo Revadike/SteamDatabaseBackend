@@ -500,22 +500,33 @@ namespace SteamDatabaseBackend
 
                 processTasks.Add(task);
 
-                if (FileDownloader.IsImportantDepot(depot.DepotID))
+                if (!FileDownloader.IsImportantDepot(depot.DepotID))
                 {
-                    task = TaskManager.Run(async () =>
+                    continue;
+                }
+                
+                task = TaskManager.Run(async () =>
+                {
+                    var result = EResult.Fail;
+                        
+                    try
                     {
-                        var result = await FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
+                        result = await FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
 
                         if (result == EResult.OK)
                         {
                             anyFilesDownloaded = true;
                         }
-
-                        return result;
-                    }).Unwrap();
-                    
-                    processTasks.Add(task);
-                }
+                    }
+                    catch (Exception e)
+                    {
+                        ErrorReporter.Notify($"Depot Processor {depot.DepotID}", e);
+                    }
+                        
+                    return result;
+                }).Unwrap();
+                
+                processTasks.Add(task);
             }
 
             if (SaveLocalConfig)
