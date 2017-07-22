@@ -30,10 +30,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            uint appID;
             string name;
 
-            if (!uint.TryParse(command.Message, out appID))
+            if (!uint.TryParse(command.Message, out var appID))
             {
                 name = command.Message;
 
@@ -89,14 +88,23 @@ namespace SteamDatabaseBackend
                 appID = 753;
             }
 
-            string appType, type = "playing";
-            name = Steam.GetAppName(appID, out appType);
+            var type = "playing";
+            var players = callback.NumPlayers;
+            name = Steam.GetAppName(appID, out var appType);
 
             if (callback.Result != EResult.OK)
             {
-                command.Reply("Unable to request player count for {0}{1}{2}: {3}{4}", Colors.BLUE, name, Colors.NORMAL, Colors.RED, callback.Result);
+                using (var db = Database.GetConnection())
+                {
+                    players = db.ExecuteScalar<uint>("SELECT `CurrentPlayers` FROM `OnlineStats` WHERE `AppID` = @AppID", new { AppID = appID });
+                }
 
-                return;
+                if (players == 0)
+                {
+                    command.Reply("Unable to request player count for {0}{1}{2}: {3}{4}", Colors.BLUE, name, Colors.NORMAL, Colors.RED, callback.Result);
+
+                    return;
+                }
             }
 
             switch (appType)
@@ -122,10 +130,11 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                "{4}{5:N0}{6} people {0} {1}{2}{3} -{7} {8}",
+                "{0}{1:N0}{2} people {3} {4}{5}{6}{7} -{8} {9}",
+                Colors.OLIVE, players, Colors.NORMAL,
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
-                Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
+                callback.Result != EResult.OK ? $" {Colors.RED}({callback.Result}){Colors.NORMAL}" : "",
                 Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
             );
         }
