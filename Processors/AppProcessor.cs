@@ -362,8 +362,6 @@ namespace SteamDatabaseBackend
                     ID       = AppID,
                     ChangeID = ChangeNumber,
                     Key      = keyNameId,
-                    OldValue = oldValue,
-                    NewValue = newValue,
                     Diff     = diff,
                     Action   = "modified_key"
                 }
