@@ -104,6 +104,10 @@ namespace SteamDatabaseBackend
                         {
                             appID = 500;
                         }
+                        else if (item.Title == "Portal 2 - Update")
+                        {
+                            appID = 620;
+                        }
                     }
                     else if (feedTitle.Contains("Counter-Strike: Global Offensive") && item.Title.StartsWith("Release Notes", StringComparison.Ordinal))
                     {
