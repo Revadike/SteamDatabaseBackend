@@ -5,9 +5,11 @@
  */
 
 using System;
+using System.IO;
 using System.Linq;
 using Dapper;
 using SteamKit2;
+using SteamKit2.Discovery;
 
 namespace SteamDatabaseBackend
 {
@@ -33,6 +35,7 @@ namespace SteamDatabaseBackend
         {
             Configuration = new SteamConfiguration
             {
+                ServerListProvider = new FileStorageServerListProvider(Path.Combine(Application.Path, "files", ".support", "servers.bin")),
                 CellID = LocalConfig.CellID,
                 ProtocolTypes = ProtocolTypes.Tcp
             };
