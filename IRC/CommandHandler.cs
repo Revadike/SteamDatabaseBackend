@@ -97,14 +97,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (command.IsAdminCommand)
-            {
-                var ident = string.Format("{0}@{1}", e.Sender.Username, e.Sender.Hostname);
+            var ident = string.Format("{0}@{1}", e.Sender.Username, e.Sender.Hostname);
+            commandData.IsUserAdmin = Settings.Current.IRC.Admins.Contains(ident);
 
-                if (!Settings.Current.IRC.Admins.Contains(ident))
-                {
-                    return;
-                }
+            if (command.IsAdminCommand && !commandData.IsUserAdmin)
+            {
+                return;
             }
 
             Log.WriteInfo("CommandHandler", "Handling IRC command \"{0}\" for {1}", message, commandData);
@@ -177,8 +175,9 @@ namespace SteamDatabaseBackend
             }
 
             commandData.Message = i == -1 ? string.Empty : message.Substring(i).Trim();
+            commandData.IsUserAdmin = Settings.Current.SteamAdmins.Contains(commandData.SenderID.ConvertToUInt64());
 
-            if (command.IsAdminCommand && !Settings.Current.SteamAdmins.Contains(commandData.SenderID.ConvertToUInt64()))
+            if (command.IsAdminCommand && !commandData.IsUserAdmin)
             {
                 commandData.Reply("You're not an admin!");
 

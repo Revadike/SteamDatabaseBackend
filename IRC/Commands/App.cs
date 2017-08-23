@@ -31,10 +31,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            uint appID;
             string name;
 
-            if (!uint.TryParse(command.Message, out appID))
+            if (!uint.TryParse(command.Message, out var appID))
             {
                 name = command.Message;
 
@@ -100,6 +99,11 @@ namespace SteamDatabaseBackend
                 info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                 LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
             );
+
+            if (command.IsUserAdmin && LicenseList.OwnedApps.ContainsKey(info.ID))
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(info.ID));
+            }
         }
     }
 }
