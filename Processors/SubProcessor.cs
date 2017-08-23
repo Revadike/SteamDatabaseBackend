@@ -249,8 +249,10 @@ namespace SteamDatabaseBackend
             {
                 LicenseList.RefreshApps();
             }
+            
+            var billingType = (EBillingType)productInfo.KeyValues["billingtype"].AsInteger();
 
-            if (productInfo.KeyValues["billingtype"].AsInteger() == 12 && !packageOwned) // 12 == free on demand
+            if (!packageOwned && (billingType == EBillingType.FreeOnDemand || (billingType == EBillingType.NoCost && SubID != 17906)))
             {
                 Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
 
