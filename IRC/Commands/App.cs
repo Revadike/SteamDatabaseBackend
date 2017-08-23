@@ -100,7 +100,7 @@ namespace SteamDatabaseBackend
                 LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
             );
 
-            if (command.IsUserAdmin && LicenseList.OwnedApps.ContainsKey(info.ID))
+            if (command.IsUserAdmin && !LicenseList.OwnedApps.ContainsKey(info.ID))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(info.ID));
             }
