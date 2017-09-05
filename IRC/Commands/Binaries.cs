@@ -48,6 +48,10 @@ namespace SteamDatabaseBackend
             {
                 os = "ubuntu12";
             }
+            else if (os == "macos")
+            {
+                os = "osx";
+            }
 
             if (!Systems.Contains(os))
             {
