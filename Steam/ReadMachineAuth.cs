@@ -8,8 +8,7 @@ namespace SteamDatabaseBackend
     {
         public override void HandleMsg(IPacketMsg packetMsg)
         {
-            if (packetMsg.MsgType == EMsg.ClientServiceCall ||
-                packetMsg.MsgType == EMsg.ClientServiceModule ||
+            if (packetMsg.MsgType == EMsg.ClientServiceModule ||
                 packetMsg.MsgType == EMsg.ClientReadMachineAuth ||
                 packetMsg.MsgType == EMsg.ClientRequestMachineAuth)
             {
