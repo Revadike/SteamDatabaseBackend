@@ -5,7 +5,9 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using SteamKit2;
 
@@ -66,16 +68,16 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            SteamID steamID;
-
-            if (urlType != EVanityURLType.Default || !TrySetSteamID(args[0], out steamID))
+            if (urlType != EVanityURLType.Default || !TrySetSteamID(args[0], out var steamID))
             {
                 if (urlType == EVanityURLType.Default)
                 {
                     urlType = EVanityURLType.Individual;
                 }
 
-                var eResult = ResolveVanityURL(args[0], urlType, out steamID);
+                EResult eResult;
+
+                (eResult, steamID) = await ResolveVanityURL(args[0], urlType);
 
                 if (eResult != EResult.OK)
                 {
@@ -102,9 +104,7 @@ namespace SteamDatabaseBackend
 
         private static void OnPersonaState(SteamFriends.PersonaStateCallback callback)
         {
-            JobAction job;
-
-            if (!JobManager.TryRemoveJob(new JobID(callback.FriendID), out job))
+            if (!JobManager.TryRemoveJob(new JobID(callback.FriendID), out var job))
             {
                 return;
             }
@@ -146,9 +146,7 @@ namespace SteamDatabaseBackend
                 return true;
             }
 
-            ulong numericInput;
-
-            if (ulong.TryParse(input, out numericInput))
+            if (ulong.TryParse(input, out var numericInput))
             {
                 steamID.SetFromUInt64(numericInput);
 
@@ -158,34 +156,40 @@ namespace SteamDatabaseBackend
             return false;
         }
 
-        private static EResult ResolveVanityURL(string input, EVanityURLType urlType, out SteamID steamID)
+        private static async Task<(EResult result, SteamID steamID)> ResolveVanityURL(string input, EVanityURLType urlType)
         {
-            steamID = new SteamID();
-
-            using (dynamic steamUser = WebAPI.GetInterface("ISteamUser", Settings.Current.Steam.WebAPIKey))
+            var steamID = new SteamID();
+            EResult eResult;
+            
+            using (var steamUser = Steam.Configuration.GetAsyncWebAPIInterface("ISteamUser"))
             {
-                steamUser.Timeout = (int)TimeSpan.FromSeconds(5).TotalMilliseconds;
+                steamUser.Timeout = TimeSpan.FromSeconds(5);
 
                 KeyValue response;
 
                 try
                 {
-                    response = steamUser.ResolveVanityURL(vanityurl: input, url_type: (int)urlType);
+                    response = await steamUser.CallAsync(HttpMethod.Get, "ResolveVanityURL", 1,
+                        new Dictionary<string, string>
+                        {
+                            { "vanityurl", input },
+                            { "url_type", ((int)urlType).ToString() }
+                        });
                 }
                 catch (WebException)
                 {
-                    return EResult.Timeout;
+                    return (EResult.Timeout, steamID);
                 }
 
-                var eResult = (EResult)response["success"].AsInteger();
+                eResult = (EResult)response["success"].AsInteger();
 
                 if (eResult == EResult.OK)
                 {
                     steamID.SetFromUInt64((ulong)response["steamid"].AsLong());
                 }
-
-                return eResult;
             }
+
+            return (eResult, steamID);
         }
 
         /*
