@@ -761,7 +761,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
+            db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
 
             return EResult.OK;
         }
