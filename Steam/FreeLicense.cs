@@ -171,6 +171,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (kv["appids"].Children.Count == 0)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} has no apps");
+                return;
+            }
+
             if (kv["status"].AsInteger() != 0) // EPackageStatus.Available
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} is not available");
