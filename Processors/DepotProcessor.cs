@@ -117,16 +117,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                // SteamVR trickery
-                if (appID == 250820 && depot["manifests"]["beta"].Value != null)
-                {
-                    var branch = depots["branches"]["beta"]["buildid"].AsInteger() > depots["branches"]["public"]["buildid"].AsInteger() ? "beta" : "public";
-
-                    request.BuildID = depots["branches"][branch]["buildid"].AsInteger();
-                    request.ManifestID = ulong.Parse(depot["manifests"][branch].Value);
-                }
-                // If there is no public manifest for this depot, it still could have some sort of open beta
-                else if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
+                if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
                 {
                     var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
 
@@ -189,7 +180,7 @@ namespace SteamDatabaseBackend
                             continue;
                         }
 
-                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun <= FullRunState.Normal)
+                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun != FullRunState.WithForcedDepots)
                         {
                             // Update depot name if changed
                             if (!request.DepotName.Equals(dbDepot.Name))
@@ -234,7 +225,7 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    if (owned || Settings.Current.FullRun == FullRunState.WithForcedDepots || Settings.Current.FullRun == FullRunState.ImportantOnly)
+                    if (owned)
                     {
                         lock (DepotLocks)
                         {
