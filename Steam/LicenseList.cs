@@ -66,6 +66,12 @@ namespace SteamDatabaseBackend
 
             foreach (var license in licenseList.LicenseList)
             {
+                // Expired licenses block access to depots, so we have no use in these
+                if (license.LicenseFlags.HasFlag(ELicenseFlags.Expired))
+                {
+                    continue;
+                }
+
                 // For some obscure reason license list can contain duplicates
                 if (ownedSubs.ContainsKey(license.PackageID))
                 {
