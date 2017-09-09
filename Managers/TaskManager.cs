@@ -36,22 +36,13 @@ namespace SteamDatabaseBackend
             return t;
         }
 
-        public static void RegisterErrorHandler(Task t)
+        private static void RegisterErrorHandler(Task t)
         {
             Tasks.TryAdd(t, 1);
 
-#if DEBUG
-            Log.WriteDebug("Task Manager", "New task: {0}", t);
-#endif
-
             t.ContinueWith(task =>
             {
-                if (Tasks.TryRemove(task, out _))
-                {
-#if DEBUG
-                    Log.WriteDebug("Task Manager", "Removed task: {0} ({1} jobs left)", t, TasksCount);
-#endif
-                }
+                Tasks.TryRemove(task, out _);
             });
 
             t.ContinueWith(task =>
