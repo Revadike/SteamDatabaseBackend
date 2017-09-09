@@ -204,16 +204,16 @@ namespace SteamDatabaseBackend
             var expiryTime = kv["extended"]["expirytime"].AsUnsignedLong();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow);
 
-            if (expiryTime > now)
-            {
-                Log.WriteDebug("Free Packages", $"Package {subId} has expired already");
-                return;
-            }
-
-            if (startTime > 0 && startTime < now)
+            if (startTime > now)
             {
                 // TODO: Queue until starttime?
                 Log.WriteDebug("Free Packages", $"Package {subId} has not reached starttime yet");
+                return;
+            }
+
+            if (expiryTime > 0 && expiryTime < now)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} has already expired");
                 return;
             }
 
