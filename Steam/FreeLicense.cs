@@ -223,9 +223,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var appid = kv["appids"].Children.First().AsUnsignedInteger();
+            bool available;
+
+            using (var db = Database.GetConnection())
+            {
+                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") != \"unavailable\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID AND `AppType` > 0", new { AppID = appid });
+            }
+
+            if (!available)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} (app {appid}) did not pass release check");
+                return;
+            }
+
             Log.WriteDebug("Free Packages", $"Requesting apps in package {subId}");
 
-            QueueRequest(kv["appids"].Children.First().AsUnsignedInteger());
+            QueueRequest(appid);
         }
 
         private static void QueueRequest(uint appid)
