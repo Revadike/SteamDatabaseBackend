@@ -12,6 +12,8 @@ namespace SteamDatabaseBackend
 {
     class AccountInfo : SteamHandler
     {
+        public static string Country { get; private set; }
+
         public AccountInfo(CallbackManager manager)
             : base(manager)
         {
@@ -20,6 +22,8 @@ namespace SteamDatabaseBackend
 
         private static void OnAccountInfo(SteamUser.AccountInfoCallback callback)
         {
+            Country = callback.Country;
+
             Sync();
         }
 

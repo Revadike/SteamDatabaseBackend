@@ -249,14 +249,10 @@ namespace SteamDatabaseBackend
             {
                 LicenseList.RefreshApps();
             }
-            
-            var billingType = (EBillingType)productInfo.KeyValues["billingtype"].AsInteger();
 
-            if (!packageOwned && (billingType == EBillingType.FreeOnDemand || (billingType == EBillingType.NoCost && SubID != 17906)))
+            if (!packageOwned && SubID != 17906)
             {
-                Log.WriteDebug("Sub Processor", "Requesting apps in SubID {0} as a free license", SubID);
-
-                JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(productInfo.KeyValues["appids"].Children.Select(appid => (uint)appid.AsInteger()).ToList()));
+                FreeLicense.RequestFromPackage(SubID, productInfo.KeyValues);
             }
 
             // Re-queue apps in this package so we can update depots and whatnot

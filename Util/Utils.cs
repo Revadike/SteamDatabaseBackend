@@ -45,6 +45,15 @@ namespace SteamDatabaseBackend
                 select resultSelector(leftValue, rightValue, key);
         }
 
+        // https://stackoverflow.com/a/33551927/2200891
+        public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize)
+        {
+            for (var i = 0; i < chunkSize && queue.Count > 0; i++)
+            {
+                yield return queue.Dequeue();
+            }
+        }
+
         public static int NextRandom(int maxValue)
         {
             lock (RandomGenerator)

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Dapper;
 using SteamKit2;
 
@@ -18,6 +19,9 @@ namespace SteamDatabaseBackend
 {
     class FreeLicense : SteamHandler
     {
+        private static int AppsRequestedInHour;
+        private static readonly Queue<uint> AppsToRequest = new Queue<uint>();
+
         private bool CurrentlyUpdatingNames;
         private readonly Regex PackageRegex;
 
@@ -27,6 +31,8 @@ namespace SteamDatabaseBackend
             PackageRegex = new Regex("RemoveFreeLicense\\( ?(?<subid>[0-9]+), ?'(?<name>.+)' ?\\)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 
             manager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback);
+
+            new Timer(OnTimer, null, TimeSpan.FromMinutes(61), TimeSpan.FromMinutes(61));
         }
 
         private void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
@@ -137,6 +143,100 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
+        }
+
+        private static void OnTimer(object state)
+        {
+            if (AppsToRequest.Count == 0)
+            {
+                AppsRequestedInHour = 0;
+                return;
+            }
+
+            var list = AppsToRequest.DequeueChunk(50).ToList();
+
+            AppsRequestedInHour = list.Count;
+
+            Log.WriteDebug("Free Packages", $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
+
+            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list));
+        }
+
+        public static void RequestFromPackage(uint subId, KeyValue kv)
+        {
+            var billingType = (EBillingType)kv["billingtype"].AsInteger();
+
+            if (billingType != EBillingType.FreeOnDemand && billingType != EBillingType.NoCost)
+            {
+                return;
+            }
+
+            if (kv["status"].AsInteger() != 0) // EPackageStatus.Available
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} is not available");
+                return;
+            }
+
+            if ((ELicenseType)kv["licensetype"].AsInteger() != ELicenseType.SinglePurchase)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} is not single purchase");
+                return;
+            }
+
+            var dontGrantIfAppIdOwned = kv["extended"]["dontgrantifappidowned"].AsUnsignedInteger();
+
+            if (dontGrantIfAppIdOwned > 0 && LicenseList.OwnedApps.ContainsKey(dontGrantIfAppIdOwned))
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} already owns app {dontGrantIfAppIdOwned}");
+                return;
+            }
+
+            var allowPurchaseFromRestrictedCountries = kv["extended"]["allowpurchasefromrestrictedcountries"].AsBoolean();
+            var purchaseRestrictedCountries = kv["extended"]["purchaserestrictedcountries"].AsString();
+            
+            if (purchaseRestrictedCountries != null && purchaseRestrictedCountries.Contains(AccountInfo.Country) != allowPurchaseFromRestrictedCountries)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} is not available in {AccountInfo.Country}");
+                return;
+            }
+
+            var startTime = kv["extended"]["starttime"].AsUnsignedLong();
+            var expiryTime = kv["extended"]["expirytime"].AsUnsignedLong();
+            var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow);
+
+            if (expiryTime > now)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} has expired already");
+                return;
+            }
+
+            if (startTime > 0 && startTime < now)
+            {
+                // TODO: Queue until starttime?
+                Log.WriteDebug("Free Packages", $"Package {subId} has not reached starttime yet");
+                return;
+            }
+
+            Log.WriteDebug("Free Packages", $"Requesting apps in package {subId}");
+
+            QueueRequest(kv["appids"].Children.First().AsUnsignedInteger());
+        }
+
+        private static void QueueRequest(uint appid)
+        {
+            if (AppsRequestedInHour++ > 50)
+            {
+                Log.WriteDebug("Free Packages", $"Adding app {appid} to queue as rate limit is reached");
+
+                if (!AppsToRequest.Contains(appid))
+                {
+                    AppsToRequest.Enqueue(appid);
+                }
+                
+                return;
+            }
+
+            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appid));
         }
     }
 }
