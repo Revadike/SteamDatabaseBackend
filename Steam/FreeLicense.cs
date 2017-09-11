@@ -11,7 +11,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
+using System.Timers;
 using Dapper;
 using SteamKit2;
 
@@ -21,6 +21,7 @@ namespace SteamDatabaseBackend
     {
         private static int AppsRequestedInHour;
         private static readonly Queue<uint> AppsToRequest = new Queue<uint>();
+        private static Timer FreeLicenseTimer;
 
         private bool CurrentlyUpdatingNames;
         private readonly Regex PackageRegex;
@@ -32,7 +33,12 @@ namespace SteamDatabaseBackend
 
             manager.Subscribe<SteamApps.FreeLicenseCallback>(OnFreeLicenseCallback);
 
-            new Timer(OnTimer, null, TimeSpan.FromMinutes(61), TimeSpan.FromMinutes(61));
+            FreeLicenseTimer = new Timer
+            {
+                AutoReset = false,
+                Interval = TimeSpan.FromMinutes(61).TotalMilliseconds
+            };
+            FreeLicenseTimer.Elapsed += OnTimer;
         }
 
         private void OnFreeLicenseCallback(SteamApps.FreeLicenseCallback callback)
@@ -145,7 +151,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnTimer(object state)
+        private static void OnTimer(object sender, ElapsedEventArgs e)
         {
             if (AppsToRequest.Count == 0)
             {
@@ -252,9 +258,12 @@ namespace SteamDatabaseBackend
                 {
                     AppsToRequest.Enqueue(appid);
                 }
-                
+
                 return;
             }
+
+            FreeLicenseTimer.Stop();
+            FreeLicenseTimer.Start();
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appid));
         }
