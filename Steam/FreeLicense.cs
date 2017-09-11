@@ -153,12 +153,6 @@ namespace SteamDatabaseBackend
 
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
-            if (AppsToRequest.Count == 0)
-            {
-                AppsRequestedInHour = 0;
-                return;
-            }
-
             var list = AppsToRequest.DequeueChunk(50).ToList();
 
             AppsRequestedInHour = list.Count;
@@ -166,6 +160,11 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("Free Packages", $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list));
+
+            if (AppsToRequest.Count > 0)
+            {
+                FreeLicenseTimer.Start();
+            }
         }
 
         public static void RequestFromPackage(uint subId, KeyValue kv)
