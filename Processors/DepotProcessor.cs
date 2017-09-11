@@ -459,7 +459,7 @@ namespace SteamDatabaseBackend
 
                 if (depotManifest == null)
                 {
-                    LocalConfig.CDNAuthTokens.Remove(depot.DepotID);
+                    LocalConfig.CDNAuthTokens.TryRemove(depot.DepotID, out _);
 
                     RemoveLock(depot.DepotID);
 
@@ -563,7 +563,7 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteWarn("Depot Processor", "Dropping stored token for {0} due to download failures", depot.DepotID);
 
-                        LocalConfig.CDNAuthTokens.Remove(depot.DepotID);
+                        LocalConfig.CDNAuthTokens.TryRemove(depot.DepotID, out _);
 
                         using (var db = Database.GetConnection())
                         {

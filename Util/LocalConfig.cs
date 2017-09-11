@@ -5,10 +5,10 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -42,11 +42,11 @@ namespace SteamDatabaseBackend
             public byte[] Sentry { get; set; } 
 
             [JsonProperty]
-            public Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; } 
+            public ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; } 
 
             public LocalConfigJson()
             {
-                CDNAuthTokens = new Dictionary<uint, CDNAuthToken>();
+                CDNAuthTokens = new ConcurrentDictionary<uint, CDNAuthToken>();
             }
         }
 
@@ -56,7 +56,7 @@ namespace SteamDatabaseBackend
 
         public static byte[] Sentry { get; set; }
 
-        public static Dictionary<uint, CDNAuthToken> CDNAuthTokens { get; private set; }
+        public static ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; private set; }
 
         public static void Load()
         {
@@ -96,14 +96,7 @@ namespace SteamDatabaseBackend
                 CDNAuthTokens = CDNAuthTokens,
             };
 
-            string json;
-
-            lock (CDNAuthTokens)
-            {
-                json = JsonConvert.SerializeObject(current, JsonFormatted);
-            }
-
-            File.WriteAllText(GetPath(), json);
+            File.WriteAllText(GetPath(), JsonConvert.SerializeObject(current, JsonFormatted));
         }
 
         private static string GetPath()
