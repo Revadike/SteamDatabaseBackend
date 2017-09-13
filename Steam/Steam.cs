@@ -52,6 +52,7 @@ namespace SteamDatabaseBackend
             CallbackManager = new CallbackManager(Client);
 
             Client.AddHandler(new ReadMachineAuth());
+            Client.AddHandler(new PurchaseResponse());
 
             new Connection(CallbackManager);
             new PICSProductInfo(CallbackManager);

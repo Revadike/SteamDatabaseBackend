@@ -40,6 +40,7 @@ namespace SteamDatabaseBackend
                 new QueueCommand(),
                 new ImportantCommand(),
                 new ReloginCommand(),
+                new KeyCommand(),
             };
 
             // Register help command last so we can pass the list of the commands
