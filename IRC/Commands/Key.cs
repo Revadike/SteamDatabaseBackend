@@ -5,7 +5,6 @@
  */
 
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using SteamKit2;
 using SteamKit2.Internal;
@@ -14,34 +13,23 @@ namespace SteamDatabaseBackend
 {
     class KeyCommand : Command
     {
-        private readonly Regex KeyMatch;
-
         public KeyCommand()
         {
             Trigger = "key";
             IsSteamCommand = true;
-
-            KeyMatch = new Regex(@"^\w{5}\-\w{5}\-\w{5}$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         }
 
         public override async Task OnCommand(CommandArguments command)
         {
             var key = command.Message.Trim();
 
-            if (key.Length == 0)
+            if (key.Length < 17)
             {
                 command.Reply("Usage:{0} key <steam key>", Colors.OLIVE);
 
                 return;
             }
-
-            if (!command.IsUserAdmin && !KeyMatch.IsMatch(key))
-            {
-                command.Reply("That doesn't look like a Steam key.");
-
-                return;
-            }
-
+            
             var msg = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey)
             {
                 SourceJobID = Steam.Instance.Client.GetNextJobID(),
