@@ -50,9 +50,30 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            command.Reply($"{Colors.OLIVE}{job.PurchaseResultDetail}{Colors.NORMAL} Activated packages:{Colors.OLIVE} {string.Join(", ", job.Packages)}");
+            if (job.PurchaseResultDetail == EPurchaseResultDetail.BadActivationCode)
+            {
+                command.Reply("This key is invalid.");
+
+                return;
+            }
+
+            if (job.PurchaseResultDetail == EPurchaseResultDetail.DuplicateActivationCode)
+            {
+                command.Reply("This key has already been used by someone else.");
+
+                return;
+            }
+
+            if (job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail)
+            {
+                command.Reply($"{Colors.OLIVE}Key activated!{Colors.NORMAL} Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+            }
+            else
+            {
+                command.Reply($"I don't know what happened. {Colors.OLIVE}{job.PurchaseResultDetail}");
+            }
             
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Select(Utils.NewPICSRequest)));
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
         }
     }
 }

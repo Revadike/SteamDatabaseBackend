@@ -8,7 +8,7 @@ namespace SteamDatabaseBackend
 {
     public class PurchaseResponseCallback : CallbackMsg
     {
-        public List<uint> Packages { get; } = new List<uint>();
+        public Dictionary<uint, string> Packages { get; } = new Dictionary<uint, string>();
 
         public EPurchaseResultDetail PurchaseResultDetail { get; }
         public EResult Result { get; }
@@ -38,10 +38,11 @@ namespace SteamDatabaseBackend
             foreach (var lineItem in lineItems)
             {
                 var packageID = lineItem["PackageID"].AsUnsignedInteger();
+                var name = lineItem["ItemDescription"].Value;
 
                 if (packageID > 0)
                 {
-                    Packages.Add(packageID);
+                    Packages.Add(packageID, name);
                 }
             }
         }
