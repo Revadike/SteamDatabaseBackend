@@ -21,6 +21,13 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
+            if (command.CommandType != ECommandType.IRC || command.Recipient != Settings.Current.IRC.Channel.Main)
+            {
+                command.Reply($"This command is only available in {Settings.Current.IRC.Channel.Main}.");
+
+                return;
+            }
+
             var key = command.Message.Trim();
 
             if (key.Length < 17)
@@ -50,29 +57,26 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (job.PurchaseResultDetail == EPurchaseResultDetail.BadActivationCode)
-            {
-                command.Reply("This key is invalid.");
+            string response;
 
-                return;
+            switch (job.PurchaseResultDetail)
+            {
+                case EPurchaseResultDetail.DuplicateActivationCode:
+                    response = "This key has already been used by someone else.";
+                    break;
+                case EPurchaseResultDetail.NoDetail:
+                    response = $"{Colors.GREEN}Key activated, thanks ❤️ {Colors.NORMAL}";
+                    break;
+                case EPurchaseResultDetail.AlreadyPurchased:
+                    response = $"{Colors.OLIVE}I already own this.{Colors.NORMAL}";
+                    break;
+                default:
+                    response = $"I don't know what happened. {Colors.OLIVE}{job.PurchaseResultDetail}";
+                    break;
             }
 
-            if (job.PurchaseResultDetail == EPurchaseResultDetail.DuplicateActivationCode)
-            {
-                command.Reply("This key has already been used by someone else.");
+            command.Reply($"{response} Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
 
-                return;
-            }
-
-            if (job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail)
-            {
-                command.Reply($"{Colors.OLIVE}Key activated!{Colors.NORMAL} Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
-            }
-            else
-            {
-                command.Reply($"I don't know what happened. {Colors.OLIVE}{job.PurchaseResultDetail}");
-            }
-            
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
         }
     }
