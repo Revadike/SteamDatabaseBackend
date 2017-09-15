@@ -6,6 +6,7 @@
 
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using SteamKit2;
 using SteamKit2.Internal;
 
@@ -78,6 +79,13 @@ namespace SteamDatabaseBackend
             command.Reply($"{response} Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
+
+            using (var db = Database.GetConnection())
+            {
+                var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
+            }
         }
     }
 }
