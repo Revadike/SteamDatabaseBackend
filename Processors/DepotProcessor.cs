@@ -80,7 +80,6 @@ namespace SteamDatabaseBackend
                 // akamai.cdn.steampipe.steamcontent.com returns 404 Not Found unnecessarily
                 if (server.Type == "CDN" && !server.Host.Contains("cdn."))
                 {
-                    Log.WriteDebug("Depot Downloader", "Adding server as CDN: {0}", server.Host);
                     CDNServers.Add(server.Host);
                 }
             }
