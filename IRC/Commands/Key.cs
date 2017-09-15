@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            if (command.CommandType != ECommandType.IRC || command.Recipient != Settings.Current.IRC.Channel.Main)
+            if (!command.IsUserAdmin && (command.CommandType != ECommandType.IRC || command.Recipient != Settings.Current.IRC.Channel.Main))
             {
                 command.Reply($"This command is only available in {Settings.Current.IRC.Channel.Main}.");
 
