@@ -6,9 +6,7 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -54,6 +52,8 @@ namespace SteamDatabaseBackend
             }
         }
 
+        private static readonly string ConfigPath = Path.Combine(Application.Path, "files", ".support", "localconfig.json");
+
         public static LocalConfigJson Current { get; private set; } = new LocalConfigJson();
         public static uint CellID => Current.CellID;
         public static byte[] Sentry => Current.Sentry;
@@ -61,11 +61,9 @@ namespace SteamDatabaseBackend
 
         public static void Load()
         {
-            var path = GetPath();
-
-            if (File.Exists(path))
+            if (File.Exists(ConfigPath))
             {
-                Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path));
+                Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(ConfigPath));
             }
             else
             {
@@ -77,12 +75,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteDebug("Local Config", "Saving...");
             
-            File.WriteAllText(GetPath(), JsonConvert.SerializeObject(Current, JsonFormatted));
-        }
-
-        private static string GetPath()
-        {
-            return Path.Combine(Application.Path, "files", ".support", "localconfig.json");
+            File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(Current, JsonFormatted));
         }
     }
 }

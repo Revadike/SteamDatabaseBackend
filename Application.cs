@@ -182,6 +182,10 @@ namespace SteamDatabaseBackend
             {
                 db.Execute("DELETE FROM `GC`");
             }
+
+            Log.WriteInfo("Bootstrapper", "Saving local config...");
+
+            LocalConfig.Save();
         }
     }
 }
