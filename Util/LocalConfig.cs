@@ -8,6 +8,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -30,10 +31,13 @@ namespace SteamDatabaseBackend
         }
 
         [JsonObject(MemberSerialization.OptIn)]
-        class LocalConfigJson
+        public class LocalConfigJson
         {
             [JsonProperty]
-            public uint CellID { get; set; } 
+            public uint CellID { get; set; }
+
+            [JsonProperty]
+            public uint ChangeNumber { get; set; }
 
             [JsonProperty]
             public string SentryFileName { get; set; } 
@@ -50,35 +54,20 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static uint CellID { get; set; }
-
-        public static string SentryFileName { get; set; }
-
-        public static byte[] Sentry { get; set; }
-
-        public static ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; private set; }
+        public static LocalConfigJson Current { get; private set; } = new LocalConfigJson();
+        public static uint CellID => Current.CellID;
+        public static byte[] Sentry => Current.Sentry;
+        public static ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens => Current.CDNAuthTokens;
 
         public static void Load()
         {
             var path = GetPath();
 
-            LocalConfigJson current;
-
             if (File.Exists(path))
             {
-                current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path));
+                Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(path));
             }
             else
-            {
-                current = new LocalConfigJson();
-            }
-
-            CellID = current.CellID;
-            Sentry = current.Sentry;
-            SentryFileName = current.SentryFileName;
-            CDNAuthTokens = current.CDNAuthTokens;
-
-            if (!File.Exists(path))
             {
                 Save();
             }
@@ -87,16 +76,8 @@ namespace SteamDatabaseBackend
         public static void Save()
         {
             Log.WriteDebug("Local Config", "Saving...");
-
-            var current = new LocalConfigJson
-            {
-                CellID = CellID,
-                Sentry = Sentry,
-                SentryFileName = SentryFileName,
-                CDNAuthTokens = CDNAuthTokens,
-            };
-
-            File.WriteAllText(GetPath(), JsonConvert.SerializeObject(current, JsonFormatted));
+            
+            File.WriteAllText(GetPath(), JsonConvert.SerializeObject(Current, JsonFormatted));
         }
 
         private static string GetPath()

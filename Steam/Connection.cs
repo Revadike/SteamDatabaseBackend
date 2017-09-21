@@ -139,7 +139,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.CellID, cellId);
 
-                LocalConfig.CellID = cellId;
+                LocalConfig.Current.CellID = cellId;
 
                 LocalConfig.Save();
             }
@@ -208,10 +208,10 @@ namespace SteamDatabaseBackend
                     sentryHash = sha.ComputeHash(stream);
                 }
 
-                LocalConfig.Sentry = stream.ToArray();
+                LocalConfig.Current.Sentry = stream.ToArray();
             }
 
-            LocalConfig.SentryFileName = callback.FileName;
+            LocalConfig.Current.SentryFileName = callback.FileName;
             LocalConfig.Save();
 
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
