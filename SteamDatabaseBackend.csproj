@@ -10,10 +10,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Dapper" Version="1.50.4-alpha1-00070" />
-    <PackageReference Include="MySqlConnector" Version="0.26.4" />
+    <PackageReference Include="MySqlConnector" Version="0.26.5" />
     <PackageReference Include="NetIrc2" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="SteamKit2" Version="2.0.0-Alpha8" />
+    <PackageReference Include="SteamKit2" Version="2.0.0-Alpha9" />
   </ItemGroup>
   <ItemGroup>
     <None Update="settings.json">
