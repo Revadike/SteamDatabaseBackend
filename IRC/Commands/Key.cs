@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -37,7 +38,7 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-            
+
             var msg = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey)
             {
                 SourceJobID = Steam.Instance.Client.GetNextJobID(),
@@ -50,7 +51,7 @@ namespace SteamDatabaseBackend
             Steam.Instance.Client.Send(msg);
 
             var job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
-            
+
             if (job.Packages.Count == 0)
             {
                 command.Reply($"Nothing has been activated: {Colors.OLIVE}{job.PurchaseResultDetail}");
@@ -85,6 +86,32 @@ namespace SteamDatabaseBackend
                 var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
 
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
+            }
+
+            using (var db = Database.GetConnection())
+            {
+                foreach (var package in job.Packages)
+                {
+                    var databaseName = db.Query<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package.Key }).FirstOrDefault() ?? string.Empty;
+
+                    if (databaseName.Equals(package.Value, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.Key, Name = package.Value });
+
+                    db.Execute(SubProcessor.GetHistoryQuery(),
+                        new PICSHistory
+                        {
+                            ID = package.Key,
+                            Key = SteamDB.DATABASE_NAME_TYPE,
+                            OldValue = "key activation",
+                            NewValue = package.Value,
+                            Action = "created_info"
+                        }
+                    );
+                }
             }
         }
     }
