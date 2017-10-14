@@ -33,15 +33,14 @@ namespace SteamDatabaseBackend
 
         private Steam()
         {
-            Configuration = new SteamConfiguration
-            {
-                ServerListProvider = new FileStorageServerListProvider(Path.Combine(Application.Path, "files", ".support", "servers.bin")),
-                WebAPIBaseAddress = Settings.Current.Steam.WebAPIUrl,
-                WebAPIKey = Settings.Current.Steam.WebAPIKey,
-                CellID = LocalConfig.CellID,
-                ProtocolTypes = ProtocolTypes.Tcp
-            };
-            
+            Configuration = SteamConfiguration.Create(b => b
+                .WithServerListProvider(new FileStorageServerListProvider(Path.Combine(Application.Path, "files", ".support", "servers.bin")))
+                .WithCellID(LocalConfig.CellID)
+                .WithProtocolTypes(ProtocolTypes.Tcp)
+                .WithWebAPIBaseAddress(Settings.Current.Steam.WebAPIUrl)
+                .WithWebAPIKey(Settings.Current.Steam.WebAPIKey)
+            );
+
             Client = new SteamClient(Configuration);
 
             User = Client.GetHandler<SteamUser>();
