@@ -52,6 +52,12 @@ namespace SteamDatabaseBackend
 
             var job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
 
+            using (var db = Database.GetConnection())
+            {
+                await db.ExecuteAsync("INSERT INTO `SteamKeys` (`SteamKey`, `Result`) VALUES (@SteamKey, @PurchaseResultDetail) ON DUPLICATE KEY UPDATE `Result` = VALUES(`Result`)",
+                    new {SteamKey = key, job.PurchaseResultDetail});
+            }
+
             if (job.Packages.Count == 0)
             {
                 command.Reply($"Nothing has been activated: {Colors.OLIVE}{job.PurchaseResultDetail}");
