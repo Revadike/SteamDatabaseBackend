@@ -6,6 +6,8 @@
 
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -23,14 +25,14 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            if (!command.IsUserAdmin && (command.CommandType != ECommandType.IRC || command.Recipient != Settings.Current.IRC.Channel.Main))
+            if (!command.IsUserAdmin)
             {
-                command.Reply($"This command is only available in {Settings.Current.IRC.Channel.Main}.");
+                command.Reply("Use https://steamdb.info/keys/");
 
                 return;
             }
 
-            var key = command.Message.Trim();
+            var key = command.Message.Trim().ToUpper();
 
             if (key.Length < 17)
             {
@@ -63,6 +65,13 @@ namespace SteamDatabaseBackend
                 command.Reply($"Nothing has been activated: {Colors.OLIVE}{job.PurchaseResultDetail}");
 
                 return;
+            }
+
+            using (var db = Database.GetConnection())
+            using (var sha = new SHA1CryptoServiceProvider())
+            {
+                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
+                    new { SteamKey = key, HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key))) });
             }
 
             string response;
