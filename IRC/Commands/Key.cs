@@ -9,6 +9,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using Dapper;
 using SteamKit2;
 using SteamKit2.Internal;
@@ -21,6 +22,32 @@ namespace SteamDatabaseBackend
         {
             Trigger = "key";
             IsSteamCommand = true;
+
+            if (Settings.IsFullRun)
+            {
+                return;
+            }
+
+            var timer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
+            timer.Elapsed += OnTimer;
+        }
+        
+        private async void OnTimer(object sender, ElapsedEventArgs e)
+        {
+            using (var db = Database.GetConnection())
+            {
+                var keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) LIMIT 10")).ToList();
+
+                if (keys.Count == 0)
+                {
+                    return;
+                }
+
+                foreach (var key in keys)
+                {
+                    await ActivateKey(key);
+                }
+            }
         }
 
         public override async Task OnCommand(CommandArguments command)
@@ -41,6 +68,13 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var result = await ActivateKey(key);
+
+            command.Reply(result.ToString());
+        }
+
+        private async Task<EPurchaseResultDetail> ActivateKey(string key)
+        {
             var msg = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey)
             {
                 SourceJobID = Steam.Instance.Client.GetNextJobID(),
@@ -62,9 +96,9 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                command.Reply($"Nothing has been activated: {Colors.OLIVE}{job.PurchaseResultDetail}");
+                IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
 
-                return;
+                return job.PurchaseResultDetail;
             }
 
             using (var db = Database.GetConnection())
@@ -74,31 +108,16 @@ namespace SteamDatabaseBackend
                     new { SteamKey = key, HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key))) });
             }
 
-            string response;
-
-            switch (job.PurchaseResultDetail)
-            {
-                case EPurchaseResultDetail.DuplicateActivationCode:
-                    response = "This key has already been used by someone else.";
-                    break;
-                case EPurchaseResultDetail.NoDetail:
-                    response = $"{Colors.GREEN}Key activated, thanks ❤️ {Colors.NORMAL}";
-                    break;
-                case EPurchaseResultDetail.AlreadyPurchased:
-                    response = $"{Colors.OLIVE}I already own this.{Colors.NORMAL}";
-                    break;
-                default:
-                    response = $"I don't know what happened. {Colors.OLIVE}{job.PurchaseResultDetail}";
-                    break;
-            }
-
-            command.Reply($"{response} Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+            var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
+                $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";
+            
+            IRC.Instance.SendOps($"[Keys] {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
 
             using (var db = Database.GetConnection())
             {
-                var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
+                var apps = await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
 
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
             }
@@ -107,16 +126,16 @@ namespace SteamDatabaseBackend
             {
                 foreach (var package in job.Packages)
                 {
-                    var databaseName = db.Query<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package.Key }).FirstOrDefault() ?? string.Empty;
+                    var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package.Key })).FirstOrDefault() ?? string.Empty;
 
                     if (databaseName.Equals(package.Value, StringComparison.CurrentCultureIgnoreCase))
                     {
                         continue;
                     }
 
-                    db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.Key, Name = package.Value });
+                    await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.Key, Name = package.Value });
 
-                    db.Execute(SubProcessor.GetHistoryQuery(),
+                    await db.ExecuteAsync(SubProcessor.GetHistoryQuery(),
                         new PICSHistory
                         {
                             ID = package.Key,
@@ -128,6 +147,8 @@ namespace SteamDatabaseBackend
                     );
                 }
             }
+
+            return job.PurchaseResultDetail;
         }
     }
 }

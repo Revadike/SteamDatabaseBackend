@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
             var response = new ClientMsgProtobuf<CMsgClientPurchaseResponse>(packetMsg);
             var callback = new PurchaseResponseCallback(packetMsg.TargetJobID, response.Body);
 
-            Log.WriteInfo("Steam Keys", $"PurchaseResponse (EResult: {callback.Result}, PurchaseResultDetail: {callback.PurchaseResultDetail}");
+            Log.WriteInfo("Steam Keys", $"PurchaseResponse (EResult: {callback.Result}, PurchaseResultDetail: {callback.PurchaseResultDetail})");
 
             Client.PostCallback(callback);
         }
