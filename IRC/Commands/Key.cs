@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.GetConnection())
             {
-                var keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) LIMIT 10")).ToList();
+                var keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `Date` ASC LIMIT 10")).ToList();
 
                 if (keys.Count == 0)
                 {
