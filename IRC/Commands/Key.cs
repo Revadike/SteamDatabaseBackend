@@ -110,8 +110,13 @@ namespace SteamDatabaseBackend
             using (var db = Database.GetConnection())
             using (var sha = new SHA1CryptoServiceProvider())
             {
-                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
-                    new { SteamKey = key, HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key))) });
+                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
+                    new
+                    {
+                        SubID = job.Packages.First().Key,
+                        SteamKey = key,
+                        HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
+                    });
             }
 
             var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
