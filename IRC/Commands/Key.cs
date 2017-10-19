@@ -30,10 +30,16 @@ namespace SteamDatabaseBackend
 
             var timer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
             timer.Elapsed += OnTimer;
+            timer.Start();
         }
         
         private async void OnTimer(object sender, ElapsedEventArgs e)
         {
+            if (!Steam.Instance.Client.IsConnected)
+            {
+                return;
+            }
+
             using (var db = Database.GetConnection())
             {
                 var keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) LIMIT 10")).ToList();
