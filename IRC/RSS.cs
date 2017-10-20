@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
             public DateTime Date { get; set; }
         }
 
-        private class GenericFeedItem
+        public class GenericFeedItem
         {
             public string Title { get; set; }
             public string Link { get; set; }

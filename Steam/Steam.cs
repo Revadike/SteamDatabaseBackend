@@ -63,6 +63,7 @@ namespace SteamDatabaseBackend
             if (!Settings.IsFullRun)
             {
                 new AccountInfo(CallbackManager);
+                new MarketingMessage(CallbackManager);
                 new ClanState(CallbackManager);
                 new ChatMemberInfo(CallbackManager);
                 new GameCoordinator(Client, CallbackManager);
