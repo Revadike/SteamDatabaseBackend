@@ -102,7 +102,10 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
+                if (job.PurchaseResultDetail != EPurchaseResultDetail.RateLimited)
+                {
+                    IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
+                }
 
                 return job.PurchaseResultDetail;
             }
