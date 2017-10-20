@@ -147,9 +147,6 @@ namespace SteamDatabaseBackend
             {
                 Steam.Instance.IsRunning = false;
                 Steam.Instance.Client.Disconnect();
-
-                Steam.Anonymous.IsRunning = false;
-                Steam.Anonymous.Client.Disconnect();
             }
             catch (Exception e)
             {
@@ -186,6 +183,16 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Bootstrapper", "Saving local config...");
 
             LocalConfig.Save();
+
+            try
+            {
+                Steam.Anonymous.IsRunning = false;
+                Steam.Anonymous.Client.Disconnect();
+            }
+            catch (Exception e)
+            {
+                ErrorReporter.Notify("Bootstrapper", e);
+            }
         }
     }
 }
