@@ -54,6 +54,7 @@ namespace SteamDatabaseBackend
             Client.AddHandler(new PurchaseResponse());
 
             new Connection(CallbackManager);
+            new AccountInfo(CallbackManager);
             new PICSProductInfo(CallbackManager);
             new PICSTokens(CallbackManager);
             new LicenseList(CallbackManager);
@@ -62,7 +63,6 @@ namespace SteamDatabaseBackend
 
             if (!Settings.IsFullRun)
             {
-                new AccountInfo(CallbackManager);
                 new MarketingMessage(CallbackManager);
                 new ClanState(CallbackManager);
                 new ChatMemberInfo(CallbackManager);

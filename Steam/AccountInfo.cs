@@ -24,7 +24,10 @@ namespace SteamDatabaseBackend
         {
             Country = callback.Country;
 
-            Sync();
+            if (!Settings.IsFullRun)
+            {
+                Sync();
+            }
         }
 
         public static void Sync()
