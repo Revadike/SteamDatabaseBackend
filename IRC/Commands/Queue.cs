@@ -18,8 +18,6 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            await Task.Yield();
-
             var s = command.Message.Split(' ');
 
             if (s.Length < 2)
@@ -29,9 +27,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            uint id;
-
-            if (!uint.TryParse(s[1], out id))
+            if (!uint.TryParse(s[1], out var id))
             {
                 command.Reply("Your id does not look like a number.");
 
@@ -43,9 +39,9 @@ namespace SteamDatabaseBackend
             switch (s[0])
             {
                 case "app":
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
-                        name = db.ExecuteScalar<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
+                        name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
                     }
                                     
                     if (!string.IsNullOrEmpty(name))
@@ -70,9 +66,9 @@ namespace SteamDatabaseBackend
                         return;
                     }
 
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
-                        name = db.ExecuteScalar<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
+                        name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
                     }
                                     
                     if (!string.IsNullOrEmpty(name))

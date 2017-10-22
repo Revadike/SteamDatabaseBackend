@@ -46,24 +46,16 @@ namespace SteamDatabaseBackend
             Tick(null, null);
         }
 
-        private void Tick(object sender, ElapsedEventArgs e)
+        private static async void Tick(object sender, ElapsedEventArgs e)
         {
-            Parallel.ForEach(Settings.Current.RssFeeds, feed =>
-            {
-                try
-                {
-                    ProcessFeed(feed);
-                }
-                catch(Exception ex)
-                {
-                    ErrorReporter.Notify("RSS", ex);
-                }
-            });
+            var tasks = Settings.Current.RssFeeds.Select(ProcessFeed);
+
+            await Task.WhenAll(tasks);
         }
 
-        private static void ProcessFeed(Uri feed)
+        private static async Task ProcessFeed(Uri feed)
         {
-            var rssItems = LoadRSS(feed, out string feedTitle);
+            var rssItems = LoadRSS(feed, out var feedTitle);
 
             if (rssItems == null)
             {
@@ -72,7 +64,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.GetConnection())
             {
-                var items = db.Query<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) }).ToDictionary(x => x.Link, x => (byte)1);
+                var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) })).ToDictionary(x => x.Link, x => (byte)1);
 
                 var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
 
@@ -82,7 +74,7 @@ namespace SteamDatabaseBackend
 
                     IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
 
-                    db.Execute("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
+                    await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 
                     uint appID = 0;
 
@@ -121,14 +113,14 @@ namespace SteamDatabaseBackend
 
                     if (appID > 0)
                     {
-                        var build = db.Query<Build>(
+                        var build = (await db.QueryAsync<Build>(
                             "SELECT `Builds`.`BuildID`, `Builds`.`ChangeID`, `Builds`.`AppID`, `Changelists`.`Date`, LENGTH(`Official`) as `Official` FROM `Builds` " +
                             "LEFT JOIN `Patchnotes` ON `Patchnotes`.`BuildID` = `Builds`.`BuildID` " +
                             "JOIN `Apps` ON `Apps`.`AppID` = `Builds`.`AppID` " +
                             "JOIN `Changelists` ON `Builds`.`ChangeID` = `Changelists`.`ChangeID` " +
                             "WHERE `Builds`.`AppID` = @AppID ORDER BY `Builds`.`BuildID` DESC LIMIT 1",
                             new { appID }
-                        ).SingleOrDefault();
+                        )).SingleOrDefault();
 
                         if (build == null)
                         {
@@ -160,7 +152,7 @@ namespace SteamDatabaseBackend
 
                         Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
 
-                        db.Execute(
+                        await db.ExecuteAsync(
                             "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
                             "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = 428396",
                             new

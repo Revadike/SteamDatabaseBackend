@@ -44,9 +44,9 @@ namespace SteamDatabaseBackend
                     return;
                 }
 
-                using (var db = Database.GetConnection())
+                using (var db = Database.Get())
                 {
-                    appID = db.ExecuteScalar<uint>("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name OR `Apps`.`LastKnownName` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+                    appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name OR `Apps`.`LastKnownName` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
                 }
 
                 if (appID == 0)

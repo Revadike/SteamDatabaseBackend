@@ -67,9 +67,9 @@ namespace SteamDatabaseBackend
                         return;
                     }
 
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
-                        appID = db.ExecuteScalar<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+                        appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
                     }
                 }
 
@@ -94,9 +94,9 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                using (var db = Database.GetConnection())
+                using (var db = Database.Get())
                 {
-                    players = db.ExecuteScalar<uint>("SELECT `CurrentPlayers` FROM `OnlineStats` WHERE `AppID` = @AppID", new { AppID = appID });
+                    players = await db.ExecuteScalarAsync<uint>("SELECT `CurrentPlayers` FROM `OnlineStats` WHERE `AppID` = @AppID", new { AppID = appID });
                 }
 
                 if (players == 0)

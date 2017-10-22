@@ -23,16 +23,9 @@ namespace SteamDatabaseBackend
 
             BlogPost post;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                if (command.Message.Length > 0)
-                {
-                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 AND (`Slug` = @Slug OR `ID` = @Slug) LIMIT 1", new { Slug = command.Message }).SingleOrDefault();
-                }
-                else
-                {
-                    post = db.Query<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `Time` DESC LIMIT 1").SingleOrDefault();
-                }
+                post = (await db.QueryAsync<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `Time` DESC LIMIT 1")).SingleOrDefault();
             }
 
             if (post.ID == 0)

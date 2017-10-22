@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,30 +41,32 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (var db = Database.GetConnection())
-            {
-                var keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `Date` ASC LIMIT 25")).ToList();
+            List<string> keys;
 
-                if (keys.Count == 0)
+            using (var db = Database.Get())
+            {
+                keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `Date` ASC LIMIT 25")).ToList();
+            }
+
+            if (keys.Count == 0)
+            {
+                return;
+            }
+
+            var failuresAllowed = 5;
+
+            foreach (var key in keys)
+            {
+                var result = await ActivateKey(key);
+
+                if (result == EPurchaseResultDetail.RateLimited)
                 {
-                    return;
+                    break;
                 }
 
-                var failuresAllowed = 5;
-
-                foreach (var key in keys)
+                if (result != EPurchaseResultDetail.NoDetail && --failuresAllowed == 0)
                 {
-                    var result = await ActivateKey(key);
-
-                    if (result == EPurchaseResultDetail.RateLimited)
-                    {
-                        break;
-                    }
-
-                    if (result != EPurchaseResultDetail.NoDetail && --failuresAllowed == 0)
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
         }
@@ -146,10 +149,7 @@ namespace SteamDatabaseBackend
                 var apps = await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
 
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
-            }
 
-            using (var db = Database.GetConnection())
-            {
                 foreach (var package in job.Packages)
                 {
                     var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package.Key })).FirstOrDefault() ?? string.Empty;
