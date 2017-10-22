@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
@@ -15,6 +16,15 @@ namespace SteamDatabaseBackend
             var connection = new MySqlConnection(Settings.Current.ConnectionString);
 
             connection.Open();
+
+            return connection;
+        }
+
+        public static async Task<MySqlConnection> GetConnectionAsync()
+        {
+            var connection = new MySqlConnection(Settings.Current.ConnectionString);
+
+            await connection.OpenAsync();
 
             return connection;
         }

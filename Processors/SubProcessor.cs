@@ -28,8 +28,6 @@ namespace SteamDatabaseBackend
         public SubProcessor(uint subID)
         {
             SubID = subID;
-
-            DbConnection = Database.GetConnection();
         }
 
         public void Dispose()
@@ -43,6 +41,7 @@ namespace SteamDatabaseBackend
 
         private async Task LoadData()
         {
+            DbConnection = await Database.GetConnectionAsync();
             PackageName = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
             CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.KeyName, x => x);
         }
