@@ -174,7 +174,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
+        private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {
@@ -188,7 +188,7 @@ namespace SteamDatabaseBackend
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
 
-            HandleChangeNumbers(callback);
+            await HandleChangeNumbers(callback);
 
             if (appChangesCount == 0 && packageChangesCount == 0)
             {
@@ -201,58 +201,56 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
 
-                TaskManager.RunAsync(() => HandleApps(callback));
+                TaskManager.RunAsync(async () => await HandleApps(callback));
             }
 
             if (packageChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
 
-                TaskManager.RunAsync(() => HandlePackages(callback));
-                TaskManager.RunAsync(() => HandlePackagesChangelists(callback));
+                TaskManager.RunAsync(async () => await HandlePackages(callback));
+                TaskManager.RunAsync(async () => await HandlePackagesChangelists(callback));
             }
 
-            TaskManager.RunAsync(() => SendChangelistsToIRC(callback));
+            TaskManager.RunAsync(async () => await SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }
 
-        private void HandleApps(SteamApps.PICSChangesCallback callback)
+        private async Task HandleApps(SteamApps.PICSChangesCallback callback)
         {
-            StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
+            await StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
 
-            using (var db = Database.GetConnection())
+            using (var db = await Database.GetConnectionAsync())
             {
-                db.Execute("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
-
-                db.Execute("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
+                await db.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
+                await db.ExecuteAsync("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
             }
         }
 
-        private void HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
+        private async Task HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
         {
-            using (var db = Database.GetConnection())
+            using (var db = await Database.GetConnectionAsync())
             {
-                db.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
-
-                db.Execute("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
+                await db.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
+                await db.ExecuteAsync("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
             }
         }
 
-        private void HandlePackages(SteamApps.PICSChangesCallback callback)
+        private async Task HandlePackages(SteamApps.PICSChangesCallback callback)
         {
             Dictionary<uint, byte> ignoredPackages;
 
-            using (var db = Database.GetConnection())
+            using (var db = await Database.GetConnectionAsync())
             {
-                ignoredPackages = db.Query("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN @Subs AND `Key` = @Key AND `Value` IN @Types",
+                ignoredPackages = (await db.QueryAsync("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN @Subs AND `Key` = @Key AND `Value` IN @Types",
                     new
                     {
                         Key = BillingTypeKey,
                         Subs = callback.PackageChanges.Values.Select(x => x.ID),
                         Types = IgnorableBillingTypes
                     }
-                ).ToDictionary(x => (uint)x.SubID, x => (byte)1);
+                )).ToDictionary(x => (uint)x.SubID, x => (byte)1);
             }
 
             // Steam comp
@@ -279,20 +277,20 @@ namespace SteamDatabaseBackend
             List<uint> appids;
 
             // Queue all the apps in the package as well
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                appids = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids AND `Type` = 'app'", new { Ids = subids }).ToList();
+                appids = (await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids AND `Type` = 'app'", new { Ids = subids })).ToList();
             }
 
             if (appids.Any())
             {
-                StoreQueue.AddAppToQueue(appids);
+                await StoreQueue.AddAppToQueue(appids);
             }
 
-            StoreQueue.AddPackageToQueue(subids);
+            await StoreQueue.AddPackageToQueue(subids);
         }
 
-        private void HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
+        private async Task HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
         {
             var changeNumbers = callback.AppChanges.Values
                 .Select(x => x.ChangeNumber)
@@ -306,9 +304,9 @@ namespace SteamDatabaseBackend
             // Silly thing
             var changeLists = changeNumbers.Select(x => new Changelist { ChangeID = x });
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                db.Execute("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
+                await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
             }
         }
 
@@ -336,7 +334,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
+        private async Task SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
         {
             if (DateTime.Now > ChangelistBurstTime)
             {
@@ -375,7 +373,7 @@ namespace SteamDatabaseBackend
                 var appCount = changeList.Apps.Count;
                 var packageCount = changeList.Packages.Count;
 
-                string Message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
+                var message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
                                      Colors.BLUE, changeList.ChangeNumber, Colors.NORMAL,
                                      Colors.DARKGRAY, appCount, packageCount, Colors.NORMAL,
                                      Colors.DARKBLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
@@ -385,10 +383,10 @@ namespace SteamDatabaseBackend
 
                 if (changesCount >= 50)
                 {
-                    IRC.Instance.SendMain(Message);
+                    IRC.Instance.SendMain(message);
                 }
 
-                IRC.Instance.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, Message);
+                IRC.Instance.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, message);
 
                 // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
                 if (changesCount > 300)
@@ -402,9 +400,9 @@ namespace SteamDatabaseBackend
                 {
                     Dictionary<uint, App> apps;
 
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
-                        apps = db.Query<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps.Select(x => x.ID) }).ToDictionary(x => x.AppID, x => x);
+                        apps = (await db.QueryAsync<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps.Select(x => x.ID) })).ToDictionary(x => x.AppID, x => x);
                     }
 
                     foreach (var app in changeList.Apps)
@@ -423,9 +421,9 @@ namespace SteamDatabaseBackend
                 {
                     Dictionary<uint, Package> packages;
                     
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
-                        packages = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) }).ToDictionary(x => x.SubID, x => x);
+                        packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) })).ToDictionary(x => x.SubID, x => x);
                     }
 
                     foreach (var package in changeList.Packages)

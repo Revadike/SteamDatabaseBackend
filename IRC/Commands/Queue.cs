@@ -46,7 +46,7 @@ namespace SteamDatabaseBackend
                                     
                     if (!string.IsNullOrEmpty(name))
                     {
-                        StoreQueue.AddAppToQueue(id);
+                        await StoreQueue.AddAppToQueue(id);
 
                         command.Reply("App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
 
@@ -73,7 +73,7 @@ namespace SteamDatabaseBackend
                                     
                     if (!string.IsNullOrEmpty(name))
                     {
-                        StoreQueue.AddPackageToQueue(id);
+                        await StoreQueue.AddPackageToQueue(id);
 
                         command.Reply("Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
 

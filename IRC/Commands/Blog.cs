@@ -19,8 +19,6 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            await Task.Yield();
-
             BlogPost post;
 
             using (var db = Database.Get())
