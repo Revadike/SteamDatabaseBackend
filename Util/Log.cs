@@ -74,7 +74,7 @@ namespace SteamDatabaseBackend
         {
             string logLine = string.Format(
                 "{0} [{1}] {2}: {3}{4}",
-                DateTime.Now.ToLongTimeString(),
+                DateTime.Now.ToString("HH:mm:ss"),
                 category,
                 component,
                 string.Format(format, args),
