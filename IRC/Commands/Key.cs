@@ -116,7 +116,7 @@ namespace SteamDatabaseBackend
                     new
                     {
                         job.PurchaseResultDetail,
-                        SubID = job.Packages.First().Key,
+                        SubID = job.Packages.Count > 0 ? (int)job.Packages.First().Key : -1,
                         SteamKey = key,
                         HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
                     });
