@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
                         break;
                     }
 
-                    if (result != EPurchaseResultDetail.NoDetail && result != EPurchaseResultDetail.AlreadyPurchased && failuresAllowed-- == 0)
+                    if (result != EPurchaseResultDetail.NoDetail && --failuresAllowed == 0)
                     {
                         break;
                     }
@@ -105,11 +105,18 @@ namespace SteamDatabaseBackend
             Steam.Instance.Client.Send(msg);
 
             var job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
-
-            using (var db = Database.GetConnection())
+            
+            using (var db = Database.Get())
+            using (var sha = new SHA1CryptoServiceProvider())
             {
-                await db.ExecuteAsync("INSERT INTO `SteamKeys` (`SteamKey`, `Result`) VALUES (@SteamKey, @PurchaseResultDetail) ON DUPLICATE KEY UPDATE `Result` = VALUES(`Result`)",
-                    new {SteamKey = key, job.PurchaseResultDetail});
+                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @PurchaseResultDetail WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
+                    new
+                    {
+                        job.PurchaseResultDetail,
+                        SubID = job.Packages.First().Key,
+                        SteamKey = key,
+                        HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
+                    });
             }
 
             if (job.Packages.Count == 0)
@@ -122,22 +129,15 @@ namespace SteamDatabaseBackend
                 return job.PurchaseResultDetail;
             }
 
-            using (var db = Database.GetConnection())
-            using (var sha = new SHA1CryptoServiceProvider())
+            if (job.PurchaseResultDetail != EPurchaseResultDetail.AlreadyPurchased
+            &&  job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
+            &&  job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
             {
-                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
-                    new
-                    {
-                        SubID = job.Packages.First().Key,
-                        SteamKey = key,
-                        HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
-                    });
-            }
+                var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
+                    $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";
 
-            var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
-                $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";
-            
-            IRC.Instance.SendOps($"[Keys] {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+                IRC.Instance.SendOps($"[Keys] {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+            }
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
 

@@ -18,5 +18,10 @@ namespace SteamDatabaseBackend
 
             return connection;
         }
+
+        public static MySqlConnection Get()
+        {
+            return new MySqlConnection(Settings.Current.ConnectionString);
+        }
     }
 }
