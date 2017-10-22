@@ -19,6 +19,8 @@ namespace SteamDatabaseBackend
 {
     class KeyCommand : Command
     {
+        private static Timer ActivationTimer;
+
         public KeyCommand()
         {
             Trigger = "key";
@@ -29,9 +31,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var timer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
-            timer.Elapsed += OnTimer;
-            timer.Start();
+            ActivationTimer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
+            ActivationTimer.Elapsed += OnTimer;
+            ActivationTimer.Start();
         }
         
         private async void OnTimer(object sender, ElapsedEventArgs e)
@@ -69,6 +71,10 @@ namespace SteamDatabaseBackend
                     break;
                 }
             }
+
+            // Restart timer as rate limit runs from first activation
+            ActivationTimer.Stop();
+            ActivationTimer.Start();
         }
 
         public override async Task OnCommand(CommandArguments command)
