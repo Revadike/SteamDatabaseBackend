@@ -161,7 +161,7 @@ namespace SteamDatabaseBackend
 
                     await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.Key, Name = package.Value });
 
-                    await db.ExecuteAsync(SubProcessor.GetHistoryQuery(),
+                    await db.ExecuteAsync(SubProcessor.HistoryQuery,
                         new PICSHistory
                         {
                             ID = package.Key,

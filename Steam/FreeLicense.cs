@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
                         db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
 
                         db.Execute(
-                            SubProcessor.GetHistoryQuery(),
+                            SubProcessor.HistoryQuery,
                             new PICSHistory
                             {
                                 ID = package.SubID,

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
 
@@ -15,10 +16,12 @@ namespace SteamDatabaseBackend
 {
     class SubProcessor : IDisposable
     {
+        public const string HistoryQuery = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
+
         private IDbConnection DbConnection;
 
-        private readonly string PackageName;
-        private readonly Dictionary<string, PICSInfo> CurrentData;
+        private string PackageName;
+        private Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
         private readonly uint SubID;
 
@@ -27,9 +30,6 @@ namespace SteamDatabaseBackend
             SubID = subID;
 
             DbConnection = Database.GetConnection();
-
-            PackageName = DbConnection.ExecuteScalar<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
-            CurrentData = DbConnection.Query<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.KeyName, x => x);
         }
 
         public void Dispose()
@@ -41,24 +41,32 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        private async Task LoadData()
         {
+            PackageName = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
+            CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.KeyName, x => x);
+        }
+
+        public async Task Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        {
+            await LoadData();
+
             ChangeNumber = productInfo.ChangeNumber;
 
             if (Settings.IsFullRun)
             {
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
 
-                DbConnection.Execute("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
-                DbConnection.Execute("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, productInfo.ChangeNumber });
             }
 
-            ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
+            await ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
 
             var appAddedToThisPackage = false;
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
             var newPackageName = productInfo.KeyValues["name"].AsString();
-            var apps = DbConnection.Query<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID }).ToDictionary(x => x.AppID, x => x.Type);
+            var apps = (await DbConnection.QueryAsync<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.AppID, x => x.Type);
 
             // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
             if (newPackageName == null)
@@ -70,29 +78,29 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(PackageName))
                 {
-                    DbConnection.Execute("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
+                    await DbConnection.ExecuteAsync("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
 
-                    MakeHistory("created_sub");
-                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
+                    await MakeHistory("created_sub");
+                    await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
                 }
                 else if (!PackageName.Equals(newPackageName))
                 {
                     if (newPackageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
                     {
-                        DbConnection.Execute("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
+                        await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                     }
                     else
                     {
-                        DbConnection.Execute("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
+                        await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                     }
 
-                    MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
+                    await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
                 }
             }
 
             foreach (var section in productInfo.KeyValues.Children)
             {
-                string sectionName = section.Name.ToLower();
+                var sectionName = section.Name.ToLower();
 
                 if (string.IsNullOrEmpty(sectionName) || sectionName.Equals("packageid") || sectionName.Equals("changenumber") || sectionName.Equals("name"))
                 {
@@ -103,15 +111,13 @@ namespace SteamDatabaseBackend
                 if (sectionName.Equals("appids") || sectionName.Equals("depotids"))
                 {
                     // Remove "ids", so we get "app" from appids and "depot" from depotids
-                    string type = sectionName.Replace("ids", string.Empty);
-
+                    var type = sectionName.Replace("ids", string.Empty);
                     var isAppSection = type.Equals("app");
-
                     var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
                     foreach (var childrenApp in section.Children)
                     {
-                        uint appID = uint.Parse(childrenApp.Value);
+                        var appID = uint.Parse(childrenApp.Value);
 
                         // Is this appid already in this package?
                         if (apps.ContainsKey(appID))
@@ -119,9 +125,8 @@ namespace SteamDatabaseBackend
                             // Is this appid's type the same?
                             if (apps[appID] != type)
                             {
-                                DbConnection.Execute("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new { SubID, AppID = appID, Type = type });
-
-                                MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
+                                await DbConnection.ExecuteAsync("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new {SubID, AppID = appID, Type = type});
+                                await MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
 
                                 appAddedToThisPackage = true;
 
@@ -132,13 +137,12 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            DbConnection.Execute("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type)", new { SubID, AppID = appID, Type = type });
-
-                            MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
+                            await DbConnection.ExecuteAsync("INSERT INTO `SubsApps` (`SubID`, `AppID`, `Type`) VALUES(@SubID, @AppID, @Type)", new { SubID, AppID = appID, Type = type });
+                            await MakeHistory("added_to_sub", typeID, string.Empty, childrenApp.Value);
 
                             if (isAppSection)
                             {
-                                DbConnection.Execute(AppProcessor.HistoryQuery,
+                                await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
                                     new PICSHistory
                                     {
                                         ID       = appID,
@@ -150,7 +154,7 @@ namespace SteamDatabaseBackend
                             }
                             else
                             {
-                                DbConnection.Execute(DepotProcessor.GetHistoryQuery(),
+                                await DbConnection.ExecuteAsync(DepotProcessor.GetHistoryQuery(),
                                     new DepotHistory
                                     {
                                         DepotID  = appID,
@@ -178,11 +182,11 @@ namespace SteamDatabaseBackend
 
                         if (children.Children.Count > 0)
                         {
-                            ProcessKey(keyName, children.Name, Utils.JsonifyKeyValue(children), true);
+                            await ProcessKey(keyName, children.Name, Utils.JsonifyKeyValue(children), true);
                         }
                         else
                         {
-                            ProcessKey(keyName, children.Name, children.Value);
+                            await ProcessKey(keyName, children.Name, children.Value);
                         }
                     }
                 }
@@ -190,38 +194,37 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true);
+                    await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true);
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {
-                    string keyName = string.Format("root_{0}", sectionName);
+                    var keyName = string.Format("root_{0}", sectionName);
 
-                    ProcessKey(keyName, sectionName, section.Value);
+                    await ProcessKey(keyName, sectionName, section.Value);
                 }
             }
 
             foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
             {
-                DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
-
-                MakeHistory("removed_key", data.Key, data.Value);
+                await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
+                await MakeHistory("removed_key", data.Key, data.Value);
             }
 
             var appsRemoved = apps.Any();
 
             foreach (var app in apps)
             {
-                DbConnection.Execute("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new { SubID, AppID = app.Key, Type = app.Value });
+                await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new { SubID, AppID = app.Key, Type = app.Value });
 
                 var isAppSection = app.Value.Equals("app");
 
                 var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
-                MakeHistory("removed_from_sub", typeID, app.Key.ToString());
+                await MakeHistory("removed_from_sub", typeID, app.Key.ToString());
 
                 if (isAppSection)
                 {
-                    DbConnection.Execute(AppProcessor.HistoryQuery,
+                    await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
                         new PICSHistory
                         {
                             ID       = app.Key,
@@ -233,7 +236,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    DbConnection.Execute(DepotProcessor.GetHistoryQuery(),
+                    await DbConnection.ExecuteAsync(DepotProcessor.GetHistoryQuery(),
                         new DepotHistory
                         {
                             DepotID  = app.Key,
@@ -268,15 +271,17 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void ProcessUnknown()
+        public async Task ProcessUnknown()
         {
             Log.WriteInfo("Sub Processor", "Unknown SubID: {0}", SubID);
+
+            await LoadData();
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
 
             if (data.Any())
             {
-                DbConnection.Execute(GetHistoryQuery(), data.Select(x => new PICSHistory
+                await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {
                     ID       = SubID,
                     ChangeID = ChangeNumber,
@@ -288,16 +293,16 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(PackageName))
             {
-                MakeHistory("deleted_sub", 0, PackageName);
+                await MakeHistory("deleted_sub", 0, PackageName);
             }
 
-            DbConnection.Execute("DELETE FROM `Subs` WHERE `SubID` = @SubID", new { SubID });
-            DbConnection.Execute("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
-            DbConnection.Execute("DELETE FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID });
-            DbConnection.Execute("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
+            await DbConnection.ExecuteAsync("DELETE FROM `Subs` WHERE `SubID` = @SubID", new { SubID });
+            await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
+            await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID });
+            await DbConnection.ExecuteAsync("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
         }
 
-        private void ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
+        private async Task ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
         {
             if (keyName.Length > 90)
             {
@@ -313,15 +318,15 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
-                uint key = GetKeyNameID(keyName);
+                var key = await GetKeyNameID(keyName);
 
                 if (key == 0)
                 {
                     var type = isJSON ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    DbConnection.Execute("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
+                    await DbConnection.ExecuteAsync("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
 
-                    key = GetKeyNameID(keyName);
+                    key = await GetKeyNameID(keyName);
 
                     if (key == 0)
                     {
@@ -334,8 +339,8 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetPackageURL(SubID, "history"));
                 }
 
-                DbConnection.Execute("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });
-                MakeHistory("created_key", key, string.Empty, value);
+                await DbConnection.ExecuteAsync("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });
+                await MakeHistory("created_key", key, string.Empty, value);
 
                 return;
             }
@@ -357,14 +362,14 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-            
-            DbConnection.Execute("UPDATE `SubsInfo` SET `Value` = @Value WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key, Value = value });
-            MakeHistory("modified_key", data.Key, data.Value, value);
+
+            await DbConnection.ExecuteAsync("UPDATE `SubsInfo` SET `Value` = @Value WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key, Value = value });
+            await MakeHistory("modified_key", data.Key, data.Value, value);
         }
 
-        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
+        private Task MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
-            DbConnection.Execute(GetHistoryQuery(),
+            return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
                     ID       = SubID,
@@ -376,15 +381,10 @@ namespace SteamDatabaseBackend
                 }
             );
         }
-
-        public static string GetHistoryQuery()
+        
+        private Task<uint> GetKeyNameID(string keyName)
         {
-            return "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
-        }
-
-        private uint GetKeyNameID(string keyName)
-        {
-            return DbConnection.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
+            return DbConnection.ExecuteScalarAsync<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
         }
     }
 }
