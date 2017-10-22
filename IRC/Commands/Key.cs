@@ -55,6 +55,11 @@ namespace SteamDatabaseBackend
                 {
                     var result = await ActivateKey(key);
 
+                    if (result == EPurchaseResultDetail.RateLimited)
+                    {
+                        break;
+                    }
+
                     if (result != EPurchaseResultDetail.NoDetail && result != EPurchaseResultDetail.AlreadyPurchased && failuresAllowed-- == 0)
                     {
                         break;
