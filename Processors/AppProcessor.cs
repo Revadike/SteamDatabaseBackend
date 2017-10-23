@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -31,17 +32,13 @@ namespace SteamDatabaseBackend
 
         private IDbConnection DbConnection;
 
-        private readonly Dictionary<string, PICSInfo> CurrentData;
+        private Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
         private readonly uint AppID;
 
         public AppProcessor(uint appID)
         {
             AppID = appID;
-
-            DbConnection = Database.GetConnection();
-
-            CurrentData = DbConnection.Query<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new { AppID }).ToDictionary(x => x.KeyName, x => x);
         }
 
         public void Dispose()
@@ -53,57 +50,58 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        private async Task LoadData()
         {
+            DbConnection = await Database.GetConnectionAsync();
+            CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new { AppID })).ToDictionary(x => x.KeyName, x => x);
+        }
+
+        public async Task Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        {
+            await LoadData();
+            
             ChangeNumber = productInfo.ChangeNumber;
 
             if (Settings.IsFullRun)
             {
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
 
-                DbConnection.Execute("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
-                DbConnection.Execute("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, productInfo.ChangeNumber });
             }
 
-            ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
+            await ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
 
-            var app = DbConnection.Query<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID }).SingleOrDefault();
+            var app = (await DbConnection.QueryAsync<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID })).SingleOrDefault();
 
             var newAppName = productInfo.KeyValues["common"]["name"].AsString();
 
             if (newAppName != null)
             {
-                int newAppType = -1;
-                string currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
+                var currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
 
-                using (var reader = DbConnection.ExecuteReader("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }))
-                {
-                    if (reader.Read())
-                    {
-                        newAppType = reader.GetInt32(reader.GetOrdinal("AppType"));
-                    }
-                }
-
+                var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
+                
                 if (newAppType == -1)
                 {
-                    DbConnection.Execute("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
+                    await DbConnection.ExecuteAsync("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
                         new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
                     IRC.Instance.SendOps("New app type: {0}{1}{2} - {3}", Colors.BLUE, currentType, Colors.NORMAL, SteamDB.GetAppURL(AppID, "history"));
 
-                    newAppType = DbConnection.ExecuteScalar<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
+                    newAppType = await DbConnection.ExecuteScalarAsync<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                 }
 
                 if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
                 {
-                    DbConnection.Execute("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `LastKnownName` = VALUES(`LastKnownName`), `AppType` = VALUES(`AppType`)",
+                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `LastKnownName` = VALUES(`LastKnownName`), `AppType` = VALUES(`AppType`)",
                         new { AppID, Type = newAppType, AppName = newAppName }
                     );
 
-                    MakeHistory("created_app");
-                    MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
+                    await MakeHistory("created_app");
+                    await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
 
                     // TODO: Testy testy
                     if (!Settings.IsFullRun && Settings.Current.ChatRooms.Count > 0)
@@ -129,29 +127,28 @@ namespace SteamDatabaseBackend
                 }
                 else if (!app.Name.Equals(newAppName))
                 {
-                    DbConnection.Execute("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
-
-                    MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
+                    await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
                 }
 
                 if (app.AppType == 0 || app.AppType != newAppType)
                 {
-                    DbConnection.Execute("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID", new { AppID, Type = newAppType });
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID", new { AppID, Type = newAppType });
 
                     if (app.AppType == 0)
                     {
-                        MakeHistory("created_info", SteamDB.DATABASE_APPTYPE, string.Empty, newAppType.ToString());
+                        await MakeHistory("created_info", SteamDB.DATABASE_APPTYPE, string.Empty, newAppType.ToString());
                     }
                     else
                     {
-                        MakeHistory("modified_info", SteamDB.DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
+                        await MakeHistory("modified_info", SteamDB.DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
                     }
                 }
             }
 
             foreach (var section in productInfo.KeyValues.Children)
             {
-                string sectionName = section.Name.ToLower();
+                var sectionName = section.Name.ToLower();
 
                 if (sectionName == "appid" || sectionName == "public_only" || sectionName == "change_number")
                 {
@@ -172,11 +169,11 @@ namespace SteamDatabaseBackend
 
                         if (keyvalue.Children.Count > 0)
                         {
-                            ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), keyvalue);
+                            await ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), keyvalue);
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
                         {
-                            ProcessKey(keyName, keyvalue.Name, keyvalue.Value);
+                            await ProcessKey(keyName, keyvalue.Name, keyvalue.Value);
                         }
                     }
                 }
@@ -184,18 +181,17 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    if (ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName.Equals("root_depots"))
+                    if (await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName.Equals("root_depots"))
                     {
-                        DbConnection.Execute("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
+                        await DbConnection.ExecuteAsync("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
                     }
                 }
             }
 
             foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
             {
-                DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
-
-                MakeHistory("removed_key", data.Key, data.Value);
+                await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
+                await MakeHistory("removed_key", data.Key, data.Value);
 
                 if (newAppName != null && data.KeyName.Equals("common_section_type") && data.Value.Equals("ownersonly"))
                 {
@@ -207,15 +203,14 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(app.Name)) // We don't have the app in our database yet
                 {
-                    DbConnection.Execute("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
+                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
                 }
                 else if (!app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
                     IRC.Instance.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
 
-                    DbConnection.Execute("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
-
-                    MakeHistory("deleted_app", 0, app.Name);
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
+                    await MakeHistory("deleted_app", 0, app.Name);
                 }
             }
 
@@ -225,17 +220,19 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void ProcessUnknown()
+        public async Task ProcessUnknown()
         {
+            await LoadData();
+
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
-            var name = DbConnection.ExecuteScalar<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID });
+            var name = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID });
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
 
             if (data.Any())
             {
-                DbConnection.Execute(HistoryQuery, data.Select(x => new PICSHistory
+                await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {
                     ID       = AppID,
                     ChangeID = ChangeNumber,
@@ -247,7 +244,7 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(name) && !name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
             {
-                DbConnection.Execute(HistoryQuery, new PICSHistory
+                await DbConnection.ExecuteAsync(HistoryQuery, new PICSHistory
                 {
                     ID       = AppID,
                     ChangeID = ChangeNumber,
@@ -256,12 +253,12 @@ namespace SteamDatabaseBackend
                 });
             }
 
-            DbConnection.Execute("DELETE FROM `Apps` WHERE `AppID` = @AppID", new { AppID });
-            DbConnection.Execute("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
-            DbConnection.Execute("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
+            await DbConnection.ExecuteAsync("DELETE FROM `Apps` WHERE `AppID` = @AppID", new { AppID });
+            await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
+            await DbConnection.ExecuteAsync("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
         }
 
-        private bool ProcessKey(string keyName, string displayName, string value, KeyValue newKv = null)
+        private async Task<bool> ProcessKey(string keyName, string displayName, string value, KeyValue newKv = null)
         {
             if (keyName.Length > 90)
             {
@@ -275,15 +272,15 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
-                uint key = GetKeyNameID(keyName);
+                var key = await GetKeyNameID(keyName);
 
                 if (key == 0)
                 {
                     var type = newKv != null ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    DbConnection.Execute("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
+                    await DbConnection.ExecuteAsync("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
 
-                    key = GetKeyNameID(keyName);
+                    key = await GetKeyNameID(keyName);
 
                     if (key == 0)
                     {
@@ -296,8 +293,8 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetAppURL(AppID, "history"));
                 }
 
-                DbConnection.Execute("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
-                MakeHistory("created_key", key, string.Empty, value);
+                await DbConnection.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
+                await MakeHistory("created_key", key, string.Empty, value);
 
                 if ((keyName == "extended_developer" || keyName == "extended_publisher") && value == "Valve")
                 {
@@ -332,16 +329,16 @@ namespace SteamDatabaseBackend
             {
                 return false;
             }
-            
-            DbConnection.Execute("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key, Value = value });
+
+            await DbConnection.ExecuteAsync("UPDATE `AppsInfo` SET `Value` = @Value WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key, Value = value });
 
             if (newKv != null)
             {
-                MakeHistoryForJson(data.Key, data.Value, value, newKv);
+                await MakeHistoryForJson(data.Key, data.Value, value, newKv);
             }
             else
             {
-                MakeHistory("modified_key", data.Key, data.Value, value);
+                await MakeHistory("modified_key", data.Key, data.Value, value);
             }
             
             if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
@@ -352,11 +349,11 @@ namespace SteamDatabaseBackend
             return true;
         }
         
-        private void MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
+        private async Task MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
         {
             var diff = JsonConvert.SerializeObject(DiffKeyValues.Diff(oldValue, newKv));
                 
-            DbConnection.Execute(HistoryQuery,
+            await DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
                     ID       = AppID,
@@ -368,9 +365,9 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private void MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
+        private async Task MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
-            DbConnection.Execute(HistoryQuery,
+            await DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
                     ID = AppID,
@@ -383,15 +380,14 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private uint GetKeyNameID(string keyName)
+        private Task<uint> GetKeyNameID(string keyName)
         {
-            return DbConnection.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = @keyName", new { keyName });
+            return DbConnection.ExecuteScalarAsync<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = @keyName", new { keyName });
         }
 
         private void PrintLinux()
         {
-            string appType;
-            var name = Steam.GetAppName(AppID, out appType);
+            var name = Steam.GetAppName(AppID, out var appType);
 
             if (appType != "Game" && appType != "Application")
             {

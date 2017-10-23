@@ -63,11 +63,11 @@ namespace SteamDatabaseBackend
                         {
                             if (app.Value == null)
                             {
-                                processor.ProcessUnknown();
+                                await processor.ProcessUnknown();
                             }
                             else
                             {
-                                processor.Process(app.Value);
+                                await processor.Process(app.Value);
                             }
                         }
                     }
