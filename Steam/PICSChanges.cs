@@ -197,6 +197,8 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+// We don't care about waiting for separate database queries to finish, so don't await them
+#pragma warning disable 4014
             if (appChangesCount > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
@@ -213,6 +215,7 @@ namespace SteamDatabaseBackend
             }
 
             TaskManager.RunAsync(async () => await SendChangelistsToIRC(callback));
+#pragma warning restore 4014
 
             PrintImportants(callback);
         }
