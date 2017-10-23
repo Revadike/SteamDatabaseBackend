@@ -153,7 +153,7 @@ namespace SteamDatabaseBackend
                             }
                             else
                             {
-                                await DbConnection.ExecuteAsync(DepotProcessor.GetHistoryQuery(),
+                                await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
                                     new DepotHistory
                                     {
                                         DepotID  = appID,
@@ -235,7 +235,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    await DbConnection.ExecuteAsync(DepotProcessor.GetHistoryQuery(),
+                    await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
                         new DepotHistory
                         {
                             DepotID  = app.Key,

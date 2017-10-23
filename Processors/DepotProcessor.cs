@@ -33,6 +33,8 @@ namespace SteamDatabaseBackend
             public bool Anonymous;
         }
 
+        public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
+
         private readonly CDNClient CDNClient;
         private readonly Dictionary<uint, byte> DepotLocks;
         private List<string> CDNServers;
@@ -85,7 +87,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void Process(uint appID, uint changeNumber, KeyValue depots)
+        public async Task Process(uint appID, uint changeNumber, KeyValue depots)
         {
             var requests = new List<ManifestJob>();
 
@@ -122,9 +124,9 @@ namespace SteamDatabaseBackend
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
-                        using (var db = Database.GetConnection())
+                        using (var db = Database.Get())
                         {
-                            db.Execute("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)", new { request.DepotID, request.DepotName });
+                            await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)", new { request.DepotID, request.DepotName });
                         }
 
                         continue;
@@ -149,17 +151,17 @@ namespace SteamDatabaseBackend
 
             var depotsToDownload = new List<ManifestJob>();
 
-            using (var db = Database.GetConnection())
+            using (var db = await Database.GetConnectionAsync())
             {
                 var firstRequest = requests.First();
-                db.Execute( @"INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
+                await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
                 new {
                     firstRequest.BuildID,
                     firstRequest.ChangeNumber,
                     appID
                 });
 
-                var dbDepots = db.Query<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) })
+                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) }))
                     .ToDictionary(x => x.DepotID, x => x);
 
                 foreach (var request in requests)
@@ -184,7 +186,7 @@ namespace SteamDatabaseBackend
                             // Update depot name if changed
                             if (!request.DepotName.Equals(dbDepot.Name))
                             {
-                                db.Execute("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
+                                await db.ExecuteAsync("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
                             }
 
                             continue;
@@ -197,7 +199,7 @@ namespace SteamDatabaseBackend
 
                     if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || !request.DepotName.Equals(dbDepot.Name))
                     {
-                        db.Execute(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
+                        await db.ExecuteAsync(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
                                     ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = VALUES(`Name`), `BuildID` = VALUES(`BuildID`), `ManifestID` = VALUES(`ManifestID`)",
                         new {
                             request.DepotID,
@@ -209,7 +211,7 @@ namespace SteamDatabaseBackend
 
                     if (dbDepot.ManifestID != request.ManifestID)
                     {
-                        MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
+                        await MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
                     var owned = LicenseList.OwnedApps.ContainsKey(request.DepotID);
@@ -240,12 +242,6 @@ namespace SteamDatabaseBackend
 
                         depotsToDownload.Add(request);
                     }
-#if DEBUG
-                    else
-                    {
-                        Log.WriteDebug("Depot Processor", "Skipping depot {0} from app {1} because we don't own it", request.DepotID, appID);
-                    }
-#endif
                 }
             }
 
@@ -292,9 +288,9 @@ namespace SteamDatabaseBackend
 
         private async Task<byte[]> GetDepotDecryptionKey(SteamApps instance, uint depotID, uint appID)
         {
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                var currentDecryptionKey = db.ExecuteScalar<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { depotID });
+                var currentDecryptionKey = await db.ExecuteScalarAsync<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { depotID });
 
                 if (currentDecryptionKey != null)
                 {
@@ -330,9 +326,9 @@ namespace SteamDatabaseBackend
 
             Log.WriteDebug("Depot Downloader", "Got a new depot key for depot {0}", depotID);
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                db.Execute("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
+                await db.ExecuteAsync("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
             }
 
             return callback.DepotKey;
@@ -475,18 +471,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                var task = TaskManager.Run(() =>
-                {
-                    using (var db = Database.GetConnection())
-                    {
-                        using (var transaction = db.BeginTransaction())
-                        {
-                            var result = ProcessDepotAfterDownload(db, depot, depotManifest);
-                            transaction.Commit();
-                            return result;
-                        }
-                    }
-                });
+                var task = ProcessDepotAfterDownload(depot, depotManifest);
 
                 processTasks.Add(task);
 
@@ -564,10 +549,10 @@ namespace SteamDatabaseBackend
 
                         LocalConfig.CDNAuthTokens.TryRemove(depot.DepotID, out _);
 
-                        using (var db = Database.GetConnection())
+                        using (var db = Database.Get())
                         {
                             // Mark this depot for redownload
-                            db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
+                            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
                         }
                     }
 
@@ -646,9 +631,20 @@ namespace SteamDatabaseBackend
             return true;
         }
 
-        private EResult ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
+        private async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
         {
-            var filesOld = db.Query<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }).ToDictionary(x => x.File, x => x);
+            using (var db = await Database.GetConnectionAsync())
+            using (var transaction = await db.BeginTransactionAsync())
+            {
+                var result = await ProcessDepotAfterDownload(db, request, depotManifest);
+                await transaction.CommitAsync();
+                return result;
+            }
+        }
+
+        private async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
+        {
+            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID })).ToDictionary(x => x.File, x => x);
             var filesNew = new List<DepotFile>();
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
@@ -694,14 +690,14 @@ namespace SteamDatabaseBackend
 
                     if (oldFile.Size != file.Size || !file.Hash.Equals(oldFile.Hash))
                     {
-                        MakeHistory(db, request, file.File, "modified", oldFile.Size, file.Size);
+                        await MakeHistory(db, request, file.File, "modified", oldFile.Size, file.Size);
 
                         updateFile = true;
                     }
 
                     if (oldFile.Flags != file.Flags)
                     {
-                        MakeHistory(db, request, file.File, "modified_flags", (ulong)oldFile.Flags, (ulong)file.Flags);
+                        await MakeHistory(db, request, file.File, "modified_flags", (ulong)oldFile.Flags, (ulong)file.Flags);
 
                         updateFile = true;
                     }
@@ -710,7 +706,7 @@ namespace SteamDatabaseBackend
                     {
                         file.ID = oldFile.ID;
 
-                        db.Execute("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file);
+                        await db.ExecuteAsync("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file);
                     }
 
                     filesOld.Remove(file.File);
@@ -724,9 +720,8 @@ namespace SteamDatabaseBackend
 
             if (filesOld.Any())
             {
-                db.Execute("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
-
-                db.Execute(GetHistoryQuery(), filesOld.Select(x => new DepotHistory
+                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
+                await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                 {
                     DepotID  = request.DepotID,
                     ChangeID = request.ChangeNumber,
@@ -737,11 +732,11 @@ namespace SteamDatabaseBackend
 
             if (filesAdded.Any())
             {
-                db.Execute("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
+                await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
 
                 if (shouldHistorize)
                 {
-                    db.Execute(GetHistoryQuery(), filesAdded.Select(x => new DepotHistory
+                    await db.ExecuteAsync(HistoryQuery, filesAdded.Select(x => new DepotHistory
                     {
                         DepotID  = request.DepotID,
                         ChangeID = request.ChangeNumber,
@@ -751,19 +746,14 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            db.Execute("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
+            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
 
             return EResult.OK;
         }
-
-        public static string GetHistoryQuery()
+        
+        private static Task<int> MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
-            return "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
-        }
-
-        private static void MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
-        {
-            db.Execute(GetHistoryQuery(),
+            return db.ExecuteAsync(HistoryQuery,
                 new DepotHistory
                 {
                     DepotID  = request.DepotID,

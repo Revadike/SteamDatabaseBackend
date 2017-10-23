@@ -216,7 +216,7 @@ namespace SteamDatabaseBackend
 
             if (productInfo.KeyValues["depots"] != null)
             {
-                Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
+                await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
             }
         }
 
