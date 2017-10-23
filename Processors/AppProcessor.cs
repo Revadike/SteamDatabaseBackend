@@ -349,11 +349,11 @@ namespace SteamDatabaseBackend
             return true;
         }
         
-        private async Task MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
+        private Task MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
         {
             var diff = JsonConvert.SerializeObject(DiffKeyValues.Diff(oldValue, newKv));
                 
-            await DbConnection.ExecuteAsync(HistoryQuery,
+            return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
                     ID       = AppID,
@@ -365,9 +365,9 @@ namespace SteamDatabaseBackend
             );
         }
 
-        private async Task MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
+        private Task MakeHistory(string action, uint keyNameID = 0, string oldValue = "", string newValue = "")
         {
-            await DbConnection.ExecuteAsync(HistoryQuery,
+            return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
                     ID = AppID,

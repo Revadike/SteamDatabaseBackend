@@ -751,7 +751,7 @@ namespace SteamDatabaseBackend
             return EResult.OK;
         }
         
-        private static Task<int> MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        private static Task MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
             return db.ExecuteAsync(HistoryQuery,
                 new DepotHistory
