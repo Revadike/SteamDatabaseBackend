@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
             }
 
             // Test database connection, it will throw if connection is unable to be made
-            using (var connection = Database.GetConnection())
+            using (var connection = Database.Get())
             {
                 // Clear GC status table while we're at it
                 connection.Execute("DELETE FROM `GC`");

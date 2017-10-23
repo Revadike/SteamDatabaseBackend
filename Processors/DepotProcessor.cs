@@ -247,6 +247,7 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
+#pragma warning disable 4014
                 if (FileDownloader.IsImportantDepot(appID) && !Settings.IsFullRun && !string.IsNullOrEmpty(Settings.Current.PatchnotesNotifyURL))
                 {
                     TaskManager.Run(() => NotifyPatchnote(appID, depotsToDownload.First().BuildID));
@@ -268,6 +269,7 @@ namespace SteamDatabaseBackend
                         RemoveLock(depot.DepotID);
                     }
                 });
+#pragma warning restore 4014
             }
         }
 

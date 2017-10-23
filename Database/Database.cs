@@ -11,15 +11,6 @@ namespace SteamDatabaseBackend
 {
     static class Database
     {
-        public static MySqlConnection GetConnection()
-        {
-            var connection = new MySqlConnection(Settings.Current.ConnectionString);
-
-            connection.Open();
-
-            return connection;
-        }
-
         public static async Task<MySqlConnection> GetConnectionAsync()
         {
             var connection = new MySqlConnection(Settings.Current.ConnectionString);
@@ -29,6 +20,7 @@ namespace SteamDatabaseBackend
             return connection;
         }
 
+        [System.Obsolete]
         public static MySqlConnection Get()
         {
             return new MySqlConnection(Settings.Current.ConnectionString);

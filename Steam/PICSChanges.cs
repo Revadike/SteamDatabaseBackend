@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
                 
             manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChanges);
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 BillingTypeKey = db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype'");
 
@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
             IEnumerable<uint> apps;
             IEnumerable<uint> packages;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 if (Settings.Current.FullRun == FullRunState.Enumerate)
                 {

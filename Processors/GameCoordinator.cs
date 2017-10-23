@@ -343,7 +343,7 @@ namespace SteamDatabaseBackend
 
         public static void UpdateStatus(uint appID, string status)
         {
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 db.Execute("INSERT INTO `GC` (`AppID`, `Status`) VALUES(@AppID, @Status) ON DUPLICATE KEY UPDATE `Status` = VALUES(`Status`)", new { AppID = appID, Status = status });
             }

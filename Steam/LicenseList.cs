@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
 
         public static void RefreshAnonymous()
         {
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 AnonymousApps = db
                     .Query("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = 17906")
@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
             }

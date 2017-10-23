@@ -102,10 +102,9 @@ namespace SteamDatabaseBackend
         {
             List<Important> importantApps;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 importantApps = db.Query<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`").ToList();
-
                 ImportantSubs = db.Query<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`").ToDictionary(x => x.ID, x => (byte)1);
             }
 
@@ -175,7 +174,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Bootstrapper", "Truncating GC table...");
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 db.Execute("DELETE FROM `GC`");
             }

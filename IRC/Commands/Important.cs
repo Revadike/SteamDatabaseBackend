@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
                                         Application.ImportantApps.Remove(id);
                                     }
 
-                                    using (var db = Database.GetConnection())
+                                    using (var db = Database.Get())
                                     {
                                         db.Execute("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
                                     }

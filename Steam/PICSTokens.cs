@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
 {
     class PICSTokens : SteamHandler
     {
-        private class SillyToken
+        private class PICSToken
         {
             public uint AppID { get; set; }
             public ulong Token { get; set; }
@@ -39,9 +39,9 @@ namespace SteamDatabaseBackend
 
         private static void Reload()
         {
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
-                SecretTokens = db.Query<SillyToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
+                SecretTokens = db.Query<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
             }
         }
 
@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSTokens", "New token for appid {0}", id);
 
-                using (var db = Database.GetConnection())
+                using (var db = Database.Get())
                 {
                     db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
                         new { AppID = id, Token = accessToken }

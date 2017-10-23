@@ -150,7 +150,7 @@ namespace SteamDatabaseBackend
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
 
-            using (var db = Database.GetConnection())
+            using (var db = await Database.GetConnectionAsync())
             {
                 var apps = await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
 

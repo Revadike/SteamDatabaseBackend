@@ -120,7 +120,7 @@ namespace SteamDatabaseBackend
                 names.Add(subID, name);
             }
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 // Skip packages that have a store name to avoid messing up history
                 var packageData = db.Query<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
@@ -231,7 +231,7 @@ namespace SteamDatabaseBackend
             var appid = kv["appids"].Children.First().AsUnsignedInteger();
             bool available;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") != \"unavailable\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID AND `AppType` > 0", new { AppID = appid });
             }

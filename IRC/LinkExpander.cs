@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
                 {
                     App data;
 
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
                         data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = id }).SingleOrDefault();
                     }
@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
 
                 if (!isPackage && command.Recipient == "#steamlug" && (appType == "Game" || appType == "Application"))
                 {
-                    using (var db = Database.GetConnection())
+                    using (var db = Database.Get())
                     {
                         var status = db.ExecuteScalar<string>("SELECT `Status` FROM `LinuxSupport` WHERE `AppID` = @AppID", new { AppID = id });
 
@@ -126,7 +126,7 @@ namespace SteamDatabaseBackend
 
             List<Price> prices;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 prices = db.Query<Price>("SELECT `Country`, `PriceFinal`, `PriceDiscount` FROM `Store` WHERE `AppID` = @AppID AND `Country` IN ('us', 'uk', 'eu')", new { AppID = appID }).ToList();
             }

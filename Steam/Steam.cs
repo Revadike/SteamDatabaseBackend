@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
         {
             Package data;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 data = db.Query<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subID }).FirstOrDefault();
             }
@@ -113,7 +113,7 @@ namespace SteamDatabaseBackend
         {
             App data;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 data = db.Query<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
             }
@@ -125,7 +125,7 @@ namespace SteamDatabaseBackend
         {
             App data;
 
-            using (var db = Database.GetConnection())
+            using (var db = Database.Get())
             {
                 data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `Apps`.`AppType`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
             }
