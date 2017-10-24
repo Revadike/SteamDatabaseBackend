@@ -15,7 +15,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class AppProcessor : IDisposable
+    class AppProcessor : BaseProcessor, IDisposable
     {
         public const string HistoryQuery = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`, `Diff`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue, @Diff)";
         private static readonly string[] Triggers =
@@ -36,9 +36,13 @@ namespace SteamDatabaseBackend
         private uint ChangeNumber;
         private readonly uint AppID;
 
-        public AppProcessor(uint appID)
+        public AppProcessor(uint appID, SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
+            Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", productInfo == null ? "Unknown " : "", appID);
+
+            Id = appID;
             AppID = appID;
+            ProductInfo = productInfo;
         }
 
         public void Dispose()
@@ -50,42 +54,45 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task LoadData()
+        protected override AsyncJob RefreshSteam()
+        {
+            return Steam.Instance.Apps.PICSGetAccessTokens(AppID, null);
+        }
+
+        protected override async Task LoadData()
         {
             DbConnection = await Database.GetConnectionAsync();
             CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new { AppID })).ToDictionary(x => x.KeyName, x => x);
         }
 
-        public async Task Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        protected override async Task ProcessData()
         {
-            await LoadData();
-            
-            ChangeNumber = productInfo.ChangeNumber;
+            ChangeNumber = ProductInfo.ChangeNumber;
 
             if (Settings.IsFullRun)
             {
                 Log.WriteDebug("App Processor", "AppID: {0}", AppID);
 
-                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
-                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { ProductInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, ProductInfo.ChangeNumber });
             }
 
             await ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
 
             var app = (await DbConnection.QueryAsync<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID })).SingleOrDefault();
 
-            var newAppName = productInfo.KeyValues["common"]["name"].AsString();
+            var newAppName = ProductInfo.KeyValues["common"]["name"].AsString();
 
             if (newAppName != null)
             {
-                var currentType = productInfo.KeyValues["common"]["type"].AsString().ToLower();
+                var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLower();
 
                 var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
                 
                 if (newAppType == -1)
                 {
                     await DbConnection.ExecuteAsync("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
-                        new { Name = currentType, DisplayName = productInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
+                        new { Name = currentType, DisplayName = ProductInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
@@ -146,7 +153,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var section in productInfo.KeyValues.Children)
+            foreach (var section in ProductInfo.KeyValues.Children)
             {
                 var sectionName = section.Name.ToLower();
 
@@ -214,16 +221,14 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (productInfo.KeyValues["depots"] != null)
+            if (ProductInfo.KeyValues["depots"] != null)
             {
-                await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, productInfo.KeyValues["depots"]);
+                await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }
         }
 
-        public async Task ProcessUnknown()
+        protected override async Task ProcessUnknown()
         {
-            await LoadData();
-
             Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
 
             var name = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID });
@@ -398,6 +403,11 @@ namespace SteamDatabaseBackend
                 "[oslist][{0}] {1} now lists Linux{2} - {3} - https://store.steampowered.com/app/{4}/",
                 appType, name, LinkExpander.GetFormattedPrices(AppID), SteamDB.GetAppURL(AppID, "history"), AppID
             ));
+        }
+
+        public override string ToString()
+        {
+            return $"App {AppID}";
         }
     }
 }

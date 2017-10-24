@@ -125,12 +125,16 @@ namespace SteamDatabaseBackend
 
         private bool IsBusy()
         {
-            Log.WriteInfo("Full Run", "Jobs: {0} - Tasks: {1} - Depot locks: {2}",
+            Log.WriteInfo("Full Run", "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
                               JobManager.JobsCount,
                               TaskManager.TasksCount,
+                              PICSProductInfo.CurrentlyProcessingCount,
                               Steam.Instance.DepotProcessor.DepotLocksCount);
 
-            return TaskManager.TasksCount > 0 || JobManager.JobsCount > 0 || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
+            return TaskManager.TasksCount > 0
+                   || JobManager.JobsCount > 0
+                   || PICSProductInfo.CurrentlyProcessingCount > 50
+                   || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
         }
 
         private async void RequestUpdateForList(IEnumerable<uint> appIDs, IEnumerable<uint> packageIDs)

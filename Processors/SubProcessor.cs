@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SubProcessor : IDisposable
+    class SubProcessor : BaseProcessor, IDisposable
     {
         public const string HistoryQuery = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
 
@@ -25,9 +25,16 @@ namespace SteamDatabaseBackend
         private uint ChangeNumber;
         private readonly uint SubID;
 
-        public SubProcessor(uint subID)
+        public SubProcessor(uint subID, SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
+            Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", productInfo == null ? "Unknown " : "", subID);
+
             SubID = subID;
+            ProductInfo = productInfo;
+
+            // Even though there won't be any problems with appids and subids colliding, they'll just wait for each other
+            // We just add one billion to prevent unnecessary waiting
+            Id = subID + 1000000000;
         }
 
         public void Dispose()
@@ -39,32 +46,37 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task LoadData()
+        protected override AsyncJob RefreshSteam()
+        {
+            return Steam.Instance.Apps.PICSGetProductInfo(null, SubID, false, false);
+        }
+
+        protected override async Task LoadData()
         {
             DbConnection = await Database.GetConnectionAsync();
             PackageName = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
             CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.KeyName, x => x);
         }
 
-        public async Task Process(SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
+        protected override async Task ProcessData()
         {
             await LoadData();
 
-            ChangeNumber = productInfo.ChangeNumber;
+            ChangeNumber = ProductInfo.ChangeNumber;
 
             if (Settings.IsFullRun)
             {
                 Log.WriteDebug("Sub Processor", "SubID: {0}", SubID);
 
-                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { productInfo.ChangeNumber });
-                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, productInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { ProductInfo.ChangeNumber });
+                await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID, ProductInfo.ChangeNumber });
             }
 
             await ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
 
             var appAddedToThisPackage = false;
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
-            var newPackageName = productInfo.KeyValues["name"].AsString();
+            var newPackageName = ProductInfo.KeyValues["name"].AsString();
             var apps = (await DbConnection.QueryAsync<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.AppID, x => x.Type);
 
             // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
@@ -97,7 +109,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var section in productInfo.KeyValues.Children)
+            foreach (var section in ProductInfo.KeyValues.Children)
             {
                 var sectionName = section.Name.ToLower();
 
@@ -254,13 +266,13 @@ namespace SteamDatabaseBackend
 
             if (!packageOwned && SubID != 17906)
             {
-                FreeLicense.RequestFromPackage(SubID, productInfo.KeyValues);
+                FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
             }
 
             // Re-queue apps in this package so we can update depots and whatnot
             if (appAddedToThisPackage && !Settings.IsFullRun && !string.IsNullOrEmpty(PackageName))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(productInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(ProductInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
             }
 
             // Maintain a list of anonymous content
@@ -270,7 +282,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public async Task ProcessUnknown()
+        protected override async Task ProcessUnknown()
         {
             Log.WriteInfo("Sub Processor", "Unknown SubID: {0}", SubID);
 
@@ -384,6 +396,11 @@ namespace SteamDatabaseBackend
         private Task<uint> GetKeyNameID(string keyName)
         {
             return DbConnection.ExecuteScalarAsync<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = @keyName", new { keyName });
+        }
+
+        public override string ToString()
+        {
+            return $"Package {SubID}";
         }
     }
 }

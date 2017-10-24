@@ -4,21 +4,29 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
     class PICSProductInfo : SteamHandler
     {
-        private static readonly Dictionary<uint, Task> ProcessedApps = new Dictionary<uint, Task>();
-        private static readonly Dictionary<uint, Task> ProcessedSubs = new Dictionary<uint, Task>();
-        private static readonly SemaphoreSlim ProcessorSemaphore = new SemaphoreSlim(15);
+        private static readonly Dictionary<uint, Task> CurrentlyProcessing = new Dictionary<uint, Task>();
+        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(15);
+
+        public static int CurrentlyProcessingCount
+        {
+            get
+            {
+                lock (CurrentlyProcessing)
+                {
+                    return CurrentlyProcessing.Count;
+                }
+            }
+        }
 
         public PICSProductInfo(CallbackManager manager)
             : base(manager)
@@ -29,154 +37,65 @@ namespace SteamDatabaseBackend
         private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
             JobManager.TryRemoveJob(callback.JobID);
-
-            var apps = callback.Apps.Concat(callback.UnknownApps.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
-            var packages = callback.Packages.Concat(callback.UnknownPackages.ToDictionary(x => x, x => (SteamApps.PICSProductInfoCallback.PICSProductInfo)null));
-
-            foreach (var workaround in apps)
+            
+            var processors = new List<BaseProcessor>(
+                callback.Apps.Count +
+                callback.Packages.Count +
+                callback.UnknownApps.Count +
+                callback.UnknownPackages.Count
+            );
+            processors.AddRange(callback.Apps.Select(app => new AppProcessor(app.Key, app.Value)));
+            processors.AddRange(callback.Packages.Select(package => new SubProcessor(package.Key, package.Value)));
+            processors.AddRange(callback.UnknownApps.Select(app => new AppProcessor(app, null)));
+            processors.AddRange(callback.UnknownPackages.Select(package => new SubProcessor(package, null)));
+            
+            foreach (var workaround in processors)
             {
-                var app = workaround;
-
-                Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", app.Value == null ? "Unknown " : "", app.Key);
+                var processor = workaround;
 
                 Task mostRecentItem;
 
-                lock (ProcessedApps)
+                lock (CurrentlyProcessing)
                 {
-                    ProcessedApps.TryGetValue(app.Key, out mostRecentItem);
+                    CurrentlyProcessing.TryGetValue(processor.Id, out mostRecentItem);
                 }
 
                 var workerItem = TaskManager.Run(async () =>
                 {
+                    await Semaphore.WaitAsync(TaskManager.TaskCancellationToken.Token).ConfigureAwait(false);
+
                     try
                     {
-                        await ProcessorSemaphore.WaitAsync().ConfigureAwait(false);
-
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
-                            Log.WriteDebug("PICSProductInfo", "Waiting for app {0} to finish processing", app.Key);
+                            Log.WriteDebug("PICSProductInfo", "Waiting for {0} to finish processing", processor.ToString());
 
                             await mostRecentItem.ConfigureAwait(false);
                         }
 
-                        using (var processor = new AppProcessor(app.Key))
-                        {
-                            if (app.Value == null)
-                            {
-                                await processor.ProcessUnknown();
-                            }
-                            else
-                            {
-                                await processor.Process(app.Value);
-                            }
-                        }
-                    }
-                    catch (MySqlException e)
-                    {
-                        ErrorReporter.Notify($"App {app.Key}", e);
-
-                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(app.Key, null));
-                    }
-                    catch (Exception e)
-                    {
-                        ErrorReporter.Notify($"App {app.Key}", e);
+                        await processor.Process().ConfigureAwait(false);
                     }
                     finally
                     {
-                        lock (ProcessedApps)
-                        {
-                            if (ProcessedApps.TryGetValue(app.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
-                            {
-                                ProcessedApps.Remove(app.Key);
-                            }
-                        }
-
-                        ProcessorSemaphore.Release();
+                        Semaphore.Release();
                     }
-                });
+                }).Unwrap();
 
-                if (Settings.IsFullRun)
+                lock (CurrentlyProcessing)
                 {
-                    continue;
+                    CurrentlyProcessing[processor.Id] = workerItem;
                 }
 
-                lock (ProcessedApps)
+                workerItem.ContinueWith(task =>
                 {
-                    ProcessedApps[app.Key] = workerItem.Unwrap();
-                }
-            }
-
-            foreach (var workaround in packages)
-            {
-                var package = workaround;
-
-                Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", package.Value == null ? "Unknown " : "", package.Key);
-
-                Task mostRecentItem;
-
-                lock (ProcessedSubs)
-                {
-                    ProcessedSubs.TryGetValue(package.Key, out mostRecentItem);
-                }
-
-                var workerItem = TaskManager.Run(async () =>
-                {
-                    try
+                    lock (CurrentlyProcessing)
                     {
-                        await ProcessorSemaphore.WaitAsync().ConfigureAwait(false);
-
-                        if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                        if (CurrentlyProcessing.TryGetValue(processor.Id, out mostRecentItem) && mostRecentItem.IsCompleted)
                         {
-                            Log.WriteDebug("PICSProductInfo", "Waiting for package {0} to finish processing", package.Key);
-
-                            await mostRecentItem.ConfigureAwait(false);
-                        }
-
-                        using (var processor = new SubProcessor(package.Key))
-                        {
-                            if (package.Value == null)
-                            {
-                                await processor.ProcessUnknown();
-                            }
-                            else
-                            {
-                                await processor.Process(package.Value);
-                            }
+                            CurrentlyProcessing.Remove(processor.Id);
                         }
                     }
-                    catch (MySqlException e)
-                    {
-                        ErrorReporter.Notify($"Package {package.Key}", e);
-
-                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(null, package.Key, false, false));
-                    }
-                    catch (Exception e)
-                    {
-                        ErrorReporter.Notify($"Package {package.Key}", e);
-                    }
-                    finally
-                    {
-                        lock (ProcessedSubs)
-                        {
-                            if (ProcessedSubs.TryGetValue(package.Key, out mostRecentItem) && mostRecentItem.IsCompleted)
-                            {
-                                ProcessedSubs.Remove(package.Key);
-                            }
-                        }
-
-                        ProcessorSemaphore.Release();
-                    }
-                });
-
-                if (Settings.IsFullRun)
-                {
-                    continue;
-                }
-
-                lock (ProcessedSubs)
-                {
-                    ProcessedSubs[package.Key] = workerItem.Unwrap();
-                }
+                }, TaskManager.TaskCancellationToken.Token);
             }
         }
     }

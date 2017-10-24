@@ -14,7 +14,7 @@ namespace SteamDatabaseBackend
     static class TaskManager
     {
         private static readonly ConcurrentDictionary<Task, byte> Tasks = new ConcurrentDictionary<Task, byte>();
-        private static readonly CancellationTokenSource TaskCancellationToken = new CancellationTokenSource();
+        public static CancellationTokenSource TaskCancellationToken { get; } = new CancellationTokenSource();
 
         public static int TasksCount => Tasks.Count;
 
