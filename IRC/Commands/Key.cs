@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `Date` ASC LIMIT 25")).ToList();
+                keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `ID` ASC LIMIT 25")).ToList();
             }
 
             if (keys.Count == 0)
@@ -130,10 +130,7 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                if (job.PurchaseResultDetail != EPurchaseResultDetail.RateLimited)
-                {
-                    IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
-                }
+                IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
 
                 return job.PurchaseResultDetail;
             }
