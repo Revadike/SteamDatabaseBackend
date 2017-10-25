@@ -71,8 +71,6 @@ namespace SteamDatabaseBackend
 
             if (Settings.IsFullRun)
             {
-                Log.WriteDebug("App Processor", "AppID: {0}", AppID);
-
                 await DbConnection.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { ProductInfo.ChangeNumber });
                 await DbConnection.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID, ProductInfo.ChangeNumber });
             }

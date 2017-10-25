@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
+using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
@@ -47,6 +48,13 @@ namespace SteamDatabaseBackend
                 PreviousChangeNumber = 1; // Request everything
 
                 manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun);
+
+                var timer = new Timer
+                {
+                    Interval = TimeSpan.FromSeconds(10).TotalMilliseconds
+                };
+                timer.Elapsed += (sender, args) => IsBusy();
+                timer.Start();
 
                 return;
             }
