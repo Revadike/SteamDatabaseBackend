@@ -102,7 +102,7 @@ namespace SteamDatabaseBackend
 
                 lock (ProcessedApps)
                 {
-                    ProcessedApps[app.Key] = workerItem;
+                    ProcessedApps[app.Key] = workerItem.Unwrap();
                 }
             }
 
@@ -175,7 +175,7 @@ namespace SteamDatabaseBackend
 
                 lock (ProcessedSubs)
                 {
-                    ProcessedSubs[package.Key] = workerItem;
+                    ProcessedSubs[package.Key] = workerItem.Unwrap();
                 }
             }
         }
