@@ -62,6 +62,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (rssItems.Count == 0)
+            {
+                Log.WriteError("RSS", "Did not find any items in {0}", feed);
+                return;
+            }
+
             using (var db = await Database.GetConnectionAsync())
             {
                 var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) })).ToDictionary(x => x.Link, x => (byte)1);
