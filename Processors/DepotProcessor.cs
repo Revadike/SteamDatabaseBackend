@@ -10,7 +10,6 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -35,11 +34,12 @@ namespace SteamDatabaseBackend
 
         public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
 
+        private static readonly object UpdateScriptLock = new object();
+
         private readonly CDNClient CDNClient;
         private readonly Dictionary<uint, byte> DepotLocks;
         private List<string> CDNServers;
         private readonly string UpdateScript;
-        private SpinLock UpdateScriptLock;
         private bool SaveLocalConfig;
 
         public int DepotLocksCount => DepotLocks.Count;
@@ -47,7 +47,6 @@ namespace SteamDatabaseBackend
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
-            UpdateScriptLock = new SpinLock();
             DepotLocks = new Dictionary<uint, byte>();
             CDNClient = new CDNClient(client);
             CDNServers = new List<string>();
@@ -533,12 +532,8 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            bool lockTaken = false;
-
-            try
+            lock (UpdateScriptLock)
             {
-                UpdateScriptLock.Enter(ref lockTaken);
-
                 foreach (var depot in depots)
                 {
                     if (depot.Result == EResult.OK)
@@ -554,7 +549,7 @@ namespace SteamDatabaseBackend
                         using (var db = Database.Get())
                         {
                             // Mark this depot for redownload
-                            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
+                            db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
                         }
                     }
 
@@ -578,13 +573,6 @@ namespace SteamDatabaseBackend
                     );
 
                     JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
-                }
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    UpdateScriptLock.Exit();
                 }
             }
         }
