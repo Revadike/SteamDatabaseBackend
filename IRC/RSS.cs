@@ -136,14 +136,14 @@ namespace SteamDatabaseBackend
                         if (DateTime.UtcNow > build.Date.AddMinutes(60))
                         {
                             Log.WriteDebug("RSS", "Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
-                            IRC.Instance.SendOps("Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
+                            IRC.Instance.SendOps($"{Colors.GREEN}[Patch notes]{Colors.NORMAL} Got {appID} update patch notes, but there is no build within last 10 minutes. {item.Link}");
                             continue;
                         }
 
                         if (build.Official > 0)
                         {
                             Log.WriteDebug("RSS", "Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
-                            IRC.Instance.SendOps("Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
+                            IRC.Instance.SendOps($"{Colors.GREEN}[Patch notes]{Colors.NORMAL} Got {appID} update patch notes, but official patch notes is already filled. {item.Link}");
                             continue;
                         }
 
@@ -171,7 +171,7 @@ namespace SteamDatabaseBackend
                             }
                         );
 
-                        IRC.Instance.SendMain("{0} patch notes posted -{1} {2}", Steam.GetAppName(build.AppID), Colors.DARKBLUE, SteamDB.GetPatchnotesURL(build.BuildID));
+                        IRC.Instance.SendMain($"\u2699 Official patch notes:{Colors.BLUE} {Steam.GetAppName(build.AppID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPatchnotesURL(build.BuildID)}");
                     }
                 }
             }

@@ -76,7 +76,7 @@ namespace SteamDatabaseBackend
             {
                 SecretTokens.Add(id, accessToken);
 
-                IRC.Instance.SendOps("[TOKENS] Added a new token that the bot got itself: {0} ({1})", id, Steam.GetAppName(id));
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetAppName(id)})");
 
                 Log.WriteInfo("PICSTokens", "New token for appid {0}", id);
 
@@ -89,7 +89,7 @@ namespace SteamDatabaseBackend
             }
             else if (SecretTokens[id] != accessToken)
             {
-                IRC.Instance.SendOps("[TOKENS] Yo xPaw, bot got a token that mismatches the one in database: {0} != {1}", SecretTokens[id], accessToken);
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got a token that mismatches the one in database: {SecretTokens[id]} != {accessToken}");
             }
         }
     }

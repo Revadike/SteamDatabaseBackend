@@ -130,7 +130,7 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                IRC.Instance.SendOps($"[Keys] Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
+                IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
 
                 return job.PurchaseResultDetail;
             }
@@ -142,7 +142,7 @@ namespace SteamDatabaseBackend
                 var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
                     $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";
 
-                IRC.Instance.SendOps($"[Keys] {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+                IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
             }
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
