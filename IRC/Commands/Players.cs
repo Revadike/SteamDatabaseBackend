@@ -116,8 +116,13 @@ namespace SteamDatabaseBackend
                     break;
 
                 case "Legacy Media":
+                case "Series":
                 case "Video":
                     type = "watching";
+                    break;
+
+                case "Demo":
+                    type = "demoing";
                     break;
 
                 case "Guide":
@@ -130,7 +135,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                "{0}{1:N0}{2} people {3} {4}{5}{6}{7} -{8} {9}",
+                "{0}{1:N0}{2} {3} {4}{5}{6}{7} -{8} {9}",
                 Colors.OLIVE, players, Colors.NORMAL,
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
