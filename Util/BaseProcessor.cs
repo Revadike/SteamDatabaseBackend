@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
 
         public async Task Process()
         {
-            Log.WriteDebug(ToString(), "Process");
+            Log.WriteInfo(ToString(), "Process");
 
             try
             {
