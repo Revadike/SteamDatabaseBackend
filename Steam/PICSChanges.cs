@@ -45,10 +45,6 @@ namespace SteamDatabaseBackend
         {
             if (Settings.IsFullRun)
             {
-                PreviousChangeNumber = 1; // Request everything
-
-                manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChangesFullRun);
-
                 var timer = new Timer
                 {
                     Interval = TimeSpan.FromSeconds(10).TotalMilliseconds
@@ -87,6 +83,8 @@ namespace SteamDatabaseBackend
 
         public void PerformSync()
         {
+            PreviousChangeNumber = 2;
+
             List<uint> apps;
             List<uint> packages;
 
@@ -117,16 +115,6 @@ namespace SteamDatabaseBackend
                     packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
                 }
             }
-
-            TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
-        }
-
-        private void OnPICSChangesFullRun(SteamApps.PICSChangesCallback callback)
-        {
-            PreviousChangeNumber = 2;
-
-            var apps = callback.AppChanges.Keys.ToList();
-            var packages = callback.PackageChanges.Keys.ToList();
 
             TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
         }
