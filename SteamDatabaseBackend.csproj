@@ -9,8 +9,8 @@
     <PackageLicenseUrl>https://github.com/SteamDatabase/SteamDatabaseBackend/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="1.50.4-alpha1-00070" />
-    <PackageReference Include="MySqlConnector" Version="0.29.1" />
+    <PackageReference Include="Dapper" Version="1.50.4" />
+    <PackageReference Include="MySqlConnector" Version="0.32.0" />
     <PackageReference Include="NetIrc2" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="SteamKit2" Version="2.0.0-Beta.1" />
