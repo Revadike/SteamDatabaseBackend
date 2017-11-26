@@ -151,14 +151,11 @@ namespace SteamDatabaseBackend
 
             const int size = 100;
 
-            // Horribly unoptimized mess, but it's a full run so whatever
-            while (appIDs.Count > 0)
+            for (var i = 0; i < appIDs.Count; i += size)
             {
-                var list = appIDs.Take(size);
+                var list = appIDs.GetRange(i, Math.Min(size, appIDs.Count - i));
 
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
-
-                appIDs = appIDs.Skip(size).ToList();
 
                 do
                 {
@@ -174,13 +171,11 @@ namespace SteamDatabaseBackend
 
             var packages = packageIDs.Select(Utils.NewPICSRequest).ToList();
 
-            while (packages.Count > 0)
+            for (var i = 0; i < packages.Count; i += size)
             {
-                var list = packages.Take(size);
+                var list = packages.GetRange(i, Math.Min(size, packages.Count - i));
 
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
-
-                packages = packages.Skip(size).ToList();
 
                 do
                 {
