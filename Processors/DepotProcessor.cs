@@ -210,7 +210,7 @@ namespace SteamDatabaseBackend
 
                     if (dbDepot.ManifestID != request.ManifestID)
                     {
-                        await MakeHistory(db, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
+                        await MakeHistory(db, null, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
                     }
 
                     var owned = LicenseList.OwnedApps.ContainsKey(request.DepotID);
@@ -626,15 +626,15 @@ namespace SteamDatabaseBackend
             using (var db = await Database.GetConnectionAsync())
             using (var transaction = await db.BeginTransactionAsync())
             {
-                var result = await ProcessDepotAfterDownload(db, request, depotManifest);
+                var result = await ProcessDepotAfterDownload(db, transaction, request, depotManifest);
                 await transaction.CommitAsync();
                 return result;
             }
         }
 
-        private async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, ManifestJob request, DepotManifest depotManifest)
+        private async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, IDbTransaction transaction, ManifestJob request, DepotManifest depotManifest)
         {
-            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID })).ToDictionary(x => x.File, x => x);
+            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
             var filesNew = new List<DepotFile>();
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
@@ -680,14 +680,14 @@ namespace SteamDatabaseBackend
 
                     if (oldFile.Size != file.Size || !file.Hash.Equals(oldFile.Hash))
                     {
-                        await MakeHistory(db, request, file.File, "modified", oldFile.Size, file.Size);
+                        await MakeHistory(db, transaction, request, file.File, "modified", oldFile.Size, file.Size);
 
                         updateFile = true;
                     }
 
                     if (oldFile.Flags != file.Flags)
                     {
-                        await MakeHistory(db, request, file.File, "modified_flags", (ulong)oldFile.Flags, (ulong)file.Flags);
+                        await MakeHistory(db, transaction, request, file.File, "modified_flags", (ulong)oldFile.Flags, (ulong)file.Flags);
 
                         updateFile = true;
                     }
@@ -696,7 +696,7 @@ namespace SteamDatabaseBackend
                     {
                         file.ID = oldFile.ID;
 
-                        await db.ExecuteAsync("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file);
+                        await db.ExecuteAsync("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", file, transaction: transaction);
                     }
 
                     filesOld.Remove(file.File);
@@ -710,19 +710,19 @@ namespace SteamDatabaseBackend
 
             if (filesOld.Any())
             {
-                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) });
+                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) }, transaction: transaction);
                 await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                 {
                     DepotID  = request.DepotID,
                     ChangeID = request.ChangeNumber,
                     Action   = "removed",
                     File     = x.Value.File
-                }));
+                }), transaction: transaction);
             }
 
             if (filesAdded.Any())
             {
-                await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded);
+                await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded, transaction: transaction);
 
                 if (shouldHistorize)
                 {
@@ -732,16 +732,16 @@ namespace SteamDatabaseBackend
                         ChangeID = request.ChangeNumber,
                         Action   = "added",
                         File     = x.File
-                    }));
+                    }), transaction: transaction);
                 }
             }
 
-            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID });
+            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID }, transaction: transaction);
 
             return EResult.OK;
         }
         
-        private static Task MakeHistory(IDbConnection db, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
+        private static Task MakeHistory(IDbConnection db, IDbTransaction transaction, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
             return db.ExecuteAsync(HistoryQuery,
                 new DepotHistory
@@ -752,7 +752,8 @@ namespace SteamDatabaseBackend
                     File     = file,
                     OldValue = oldValue,
                     NewValue = newValue
-                }
+                },
+                transaction: transaction
             );
         }
 
