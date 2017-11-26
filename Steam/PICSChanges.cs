@@ -87,8 +87,8 @@ namespace SteamDatabaseBackend
 
         public void PerformSync()
         {
-            IEnumerable<uint> apps;
-            IEnumerable<uint> packages;
+            List<uint> apps;
+            List<uint> packages;
 
             using (var db = Database.Get())
             {
@@ -106,15 +106,15 @@ namespace SteamDatabaseBackend
                     Log.WriteInfo("Full Run", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
 
                     // greatest code you've ever seen
-                    apps = Enumerable.Range(0, lastAppID).Select(i => (uint)i);
-                    packages = Enumerable.Range(0, lastSubID).Select(i => (uint)i);
+                    apps = Enumerable.Range(0, lastAppID).Select(i => (uint)i).ToList();
+                    packages = Enumerable.Range(0, lastSubID).Select(i => (uint)i).ToList();
                 }
                 else
                 {
                     Log.WriteInfo("Full Run", "Doing a full run on all apps and packages in the database.");
 
-                    apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC");
-                    packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC");
+                    apps = db.Query<uint>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC").ToList();
+                    packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
                 }
             }
 
@@ -125,8 +125,8 @@ namespace SteamDatabaseBackend
         {
             PreviousChangeNumber = 2;
 
-            var apps = callback.AppChanges.Keys;
-            var packages = callback.PackageChanges.Keys;
+            var apps = callback.AppChanges.Keys.ToList();
+            var packages = callback.PackageChanges.Keys.ToList();
 
             TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
         }
@@ -145,16 +145,18 @@ namespace SteamDatabaseBackend
                    || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
         }
 
-        private async void RequestUpdateForList(IEnumerable<uint> appIDs, IEnumerable<uint> packageIDs)
+        private async void RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
-            Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count(), packageIDs.Count());
+            Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
 
             const int size = 100;
 
             // Horribly unoptimized mess, but it's a full run so whatever
-            while (appIDs.Any())
+            while (appIDs.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs.Take(size), Enumerable.Empty<uint>()));
+                var list = appIDs.Take(size);
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
 
                 appIDs = appIDs.Skip(size).ToList();
 
@@ -170,11 +172,13 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var packages = packageIDs.Select(Utils.NewPICSRequest);
+            var packages = packageIDs.Select(Utils.NewPICSRequest).ToList();
 
-            while (packages.Any())
+            while (packages.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), packages.Take(size)));
+                var list = packages.Take(size);
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
 
                 packages = packages.Skip(size).ToList();
 
