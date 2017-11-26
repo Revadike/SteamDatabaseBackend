@@ -467,7 +467,10 @@ namespace SteamDatabaseBackend
                             Colors.OLIVE, depot.DepotName, Colors.NORMAL, depot.Server, lastError);
                     }
 
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
+                    if (!Settings.IsFullRun)
+                    {
+                        JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
+                    }
 
                     continue;
                 }
