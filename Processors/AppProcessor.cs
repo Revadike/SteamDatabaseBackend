@@ -15,7 +15,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class AppProcessor : BaseProcessor, IDisposable
+    class AppProcessor : BaseProcessor
     {
         public const string HistoryQuery = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`, `Diff`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue, @Diff)";
         private static readonly string[] Triggers =
@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
             ProductInfo = productInfo;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (DbConnection != null)
             {

@@ -77,6 +77,8 @@ namespace SteamDatabaseBackend
                     }
                     finally
                     {
+                        processor.Dispose();
+
                         Semaphore.Release();
                     }
                 }).Unwrap();

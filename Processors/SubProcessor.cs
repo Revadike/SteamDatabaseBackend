@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SubProcessor : BaseProcessor, IDisposable
+    class SubProcessor : BaseProcessor
     {
         public const string HistoryQuery = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
 
@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
             Id = subID + 1000000000;
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (DbConnection != null)
             {

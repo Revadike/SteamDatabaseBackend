@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    abstract class BaseProcessor
+    abstract class BaseProcessor : IDisposable
     {
         protected SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo;
         public uint Id;
@@ -21,6 +21,7 @@ namespace SteamDatabaseBackend
         protected abstract Task ProcessUnknown();
         protected abstract AsyncJob RefreshSteam();
         public abstract override string ToString();
+        public abstract void Dispose();
 
         public async Task Process()
         {
