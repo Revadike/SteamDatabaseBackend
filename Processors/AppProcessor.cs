@@ -36,8 +36,6 @@ namespace SteamDatabaseBackend
 
         public AppProcessor(uint appID, SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
-            Log.WriteInfo("PICSProductInfo", "{0}AppID: {1}", productInfo == null ? "Unknown " : "", appID);
-
             Id = appID;
             AppID = appID;
             ProductInfo = productInfo;
@@ -215,8 +213,6 @@ namespace SteamDatabaseBackend
 
         protected override async Task ProcessUnknown()
         {
-            Log.WriteInfo("App Processor", "Unknown AppID: {0}", AppID);
-
             var name = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID });
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();

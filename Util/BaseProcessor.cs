@@ -35,9 +35,7 @@ namespace SteamDatabaseBackend
 
         public async Task Process()
         {
-#if DEBUG
-            Log.WriteDebug(ToString(), "Begin");
-#endif
+            Log.WriteDebug(ToString(), "Process");
 
             try
             {
@@ -64,10 +62,6 @@ namespace SteamDatabaseBackend
             {
                 ErrorReporter.Notify(ToString(), e);
             }
-
-#if DEBUG
-            Log.WriteDebug(ToString(), "Done");
-#endif
         }
     }
 }

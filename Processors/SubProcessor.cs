@@ -25,8 +25,6 @@ namespace SteamDatabaseBackend
 
         public SubProcessor(uint subID, SteamApps.PICSProductInfoCallback.PICSProductInfo productInfo)
         {
-            Log.WriteInfo("PICSProductInfo", "{0}SubID: {1}", productInfo == null ? "Unknown " : "", subID);
-
             SubID = subID;
             ProductInfo = productInfo;
 
@@ -270,8 +268,6 @@ namespace SteamDatabaseBackend
 
         protected override async Task ProcessUnknown()
         {
-            Log.WriteInfo("Sub Processor", "Unknown SubID: {0}", SubID);
-
             await LoadData();
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
