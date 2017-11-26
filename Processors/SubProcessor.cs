@@ -18,8 +18,6 @@ namespace SteamDatabaseBackend
     {
         public const string HistoryQuery = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
 
-        private IDbConnection DbConnection;
-
         private string PackageName;
         private Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
@@ -37,15 +35,6 @@ namespace SteamDatabaseBackend
             Id = subID + 1000000000;
         }
 
-        public override void Dispose()
-        {
-            if (DbConnection != null)
-            {
-                DbConnection.Dispose();
-                DbConnection = null;
-            }
-        }
-
         protected override AsyncJob RefreshSteam()
         {
             return Steam.Instance.Apps.PICSGetProductInfo(null, SubID, false, false);
@@ -53,7 +42,6 @@ namespace SteamDatabaseBackend
 
         protected override async Task LoadData()
         {
-            DbConnection = await Database.GetConnectionAsync();
             PackageName = await DbConnection.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID LIMIT 1", new { SubID });
             CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `SubsInfo` INNER JOIN `KeyNamesSubs` ON `SubsInfo`.`Key` = `KeyNamesSubs`.`ID` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.KeyName, x => x);
         }

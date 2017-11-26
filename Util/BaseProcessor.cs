@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Data;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using SteamKit2;
@@ -13,6 +14,7 @@ namespace SteamDatabaseBackend
 {
     abstract class BaseProcessor : IDisposable
     {
+        protected IDbConnection DbConnection;
         protected SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo;
         public uint Id;
 
@@ -21,7 +23,15 @@ namespace SteamDatabaseBackend
         protected abstract Task ProcessUnknown();
         protected abstract AsyncJob RefreshSteam();
         public abstract override string ToString();
-        public abstract void Dispose();
+
+        public void Dispose()
+        {
+            if (DbConnection != null)
+            {
+                DbConnection.Dispose();
+                DbConnection = null;
+            }
+        }
 
         public async Task Process()
         {
@@ -31,6 +41,8 @@ namespace SteamDatabaseBackend
 
             try
             {
+                DbConnection = await Database.GetConnectionAsync().ConfigureAwait(false);
+
                 await LoadData().ConfigureAwait(false);
 
                 if (ProductInfo == null)

@@ -30,8 +30,6 @@ namespace SteamDatabaseBackend
             "Team Fortress"
         };
 
-        private IDbConnection DbConnection;
-
         private Dictionary<string, PICSInfo> CurrentData;
         private uint ChangeNumber;
         private readonly uint AppID;
@@ -45,15 +43,6 @@ namespace SteamDatabaseBackend
             ProductInfo = productInfo;
         }
 
-        public override void Dispose()
-        {
-            if (DbConnection != null)
-            {
-                DbConnection.Dispose();
-                DbConnection = null;
-            }
-        }
-
         protected override AsyncJob RefreshSteam()
         {
             return Steam.Instance.Apps.PICSGetAccessTokens(AppID, null);
@@ -61,7 +50,6 @@ namespace SteamDatabaseBackend
 
         protected override async Task LoadData()
         {
-            DbConnection = await Database.GetConnectionAsync();
             CurrentData = (await DbConnection.QueryAsync<PICSInfo>("SELECT `Name` as `KeyName`, `Value`, `Key` FROM `AppsInfo` INNER JOIN `KeyNames` ON `AppsInfo`.`Key` = `KeyNames`.`ID` WHERE `AppID` = @AppID", new { AppID })).ToDictionary(x => x.KeyName, x => x);
         }
 
