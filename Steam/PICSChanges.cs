@@ -362,16 +362,6 @@ namespace SteamDatabaseBackend
 
             foreach (var changeList in changeLists)
             {
-                if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN)
-                {
-                    if (ChangelistBurstCount == CHANGELIST_BURST_MIN + 1)
-                    {
-                        IRC.Instance.SendAnnounce("{0}Changelist burst detected, further changelists will be suppressed. You can still view changelists online: {1}changelist/", Colors.RED, Settings.Current.BaseURL);
-                    }
-
-                    return;
-                }
-
                 var appCount = changeList.Apps.Count;
                 var packageCount = changeList.Packages.Count;
 
@@ -388,16 +378,25 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendMain(message);
                 }
 
-                IRC.Instance.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, message);
-
-                // If this changelist is very big, freenode will hate us forever if we decide to print all that stuff
-                if (changesCount > 300)
+                if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN || changesCount > 300)
                 {
-                    IRC.Instance.SendAnnounce("{0}  This changelist is too big to be printed in IRC, please view it online", Colors.RED);
+                    if (appCount > 0)
+                    {
+                        message += $" (Apps: {string.Join(", ", changeList.Apps.Select(x => x.ID))})";
+                    }
+
+                    if (packageCount > 0)
+                    {
+                        message += $" (Packages: {string.Join(", ", changeList.Packages.Select(x => x.ID))})";
+                    }
+
+                    IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} {message}");
 
                     continue;
                 }
-                    
+
+                IRC.Instance.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, message);
+
                 if (appCount > 0)
                 {
                     Dictionary<uint, App> apps;
