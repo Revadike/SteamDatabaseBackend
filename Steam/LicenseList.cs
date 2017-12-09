@@ -61,7 +61,7 @@ namespace SteamDatabaseBackend
 
             var ownedSubs = new Dictionary<uint, byte>();
             var newSubs = new List<uint>();
-            var isEmpty = OwnedSubs.Count > 0;
+            var hasAnyLicense = OwnedSubs.Count > 0;
 
             foreach (var license in licenseList.LicenseList)
             {
@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                if (!isEmpty && !OwnedSubs.ContainsKey(license.PackageID))
+                if (hasAnyLicense && !OwnedSubs.ContainsKey(license.PackageID))
                 {
                     Log.WriteInfo("LicenseList", $"New license granted: {license.PackageID} ({license.PaymentMethod}, {license.LicenseFlags})");
 
