@@ -54,15 +54,14 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("LicenseList", "Received {0} licenses from Steam", licenseList.LicenseList.Count);
 
-            if (!licenseList.LicenseList.Any())
+            if (licenseList.LicenseList.Count == 0)
             {
-                OwnedSubs.Clear();
-                OwnedApps.Clear();
-
                 return;
             }
 
             var ownedSubs = new Dictionary<uint, byte>();
+            var newSubs = new List<uint>();
+            var isEmpty = OwnedSubs.Count > 0;
 
             foreach (var license in licenseList.LicenseList)
             {
@@ -80,13 +79,31 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                if (!isEmpty && !OwnedSubs.ContainsKey(license.PackageID))
+                {
+                    Log.WriteInfo("LicenseList", $"New license granted: {license.PackageID} ({license.PaymentMethod}, {license.LicenseFlags})");
+
+                    newSubs.Add(license.PackageID);
+                }
+
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);
             }
-
 
             OwnedSubs = ownedSubs;
 
             RefreshApps();
+
+            if (newSubs.Count <= 0)
+            {
+                return;
+            }
+
+            using (var db = Database.Get())
+            {
+                var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = newSubs });
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
+            }
         }
 
         public static void RefreshApps()
