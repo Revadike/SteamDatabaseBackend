@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
                     "{0}{1}{2} announcement: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/announcements/detail/{8}",
                     Colors.BLUE, groupName, Colors.NORMAL,
                     Colors.OLIVE, announcement.Headline, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.ClanID, announcement.ID
+                    Colors.DARKBLUE, callback.ClanID.ConvertToUInt64(), announcement.ID
                 );
 
                 IRC.Instance.SendMain(message);
