@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
             var request = new CGameServers_GetServerList_Request
             {
                 filter = command.Message,
-                limit = 5000,
+                limit = int.MaxValue,
             };
 
             var callback = await GameServers.SendMessage(api => api.GetServerList(request));
@@ -60,16 +60,12 @@ namespace SteamDatabaseBackend
             {
                 var server = servers.First();
 
-                command.Reply("{0} - {1} - {2}/{3} - Map: {4} - AppID: {5} - Version: {6} - Dir: {7} - Tags: {8} - Name: {9}",
-                    server.addr, new SteamID(server.steamid).Render(true), server.players, server.max_players, server.map, server.appid, server.version, server.gamedir, server.gametype, server.name
-                );
+                command.Reply($"{server.addr} - {new SteamID(server.steamid).Render(true)} - {Colors.GREEN}{server.players}/{server.max_players}{Colors.NORMAL} - Map: {Colors.DARKGRAY}{server.map}{Colors.NORMAL} - AppID: {Colors.DARKGRAY}{server.appid}{Colors.NORMAL} - Version: {Colors.DARKGRAY}{server.version}{Colors.NORMAL} - Dir: {Colors.DARKGRAY}{server.gamedir}{Colors.NORMAL} - Tags: {Colors.DARKGRAY}{server.gametype}{Colors.NORMAL} - Name: {Colors.DARKGRAY}{server.name}");
 
                 return;
             }
 
-            var serv = servers.Take(5).Select(x => string.Format("{0} ({1})", x.addr, x.players));
-
-            command.Reply("{0}{1}", string.Join(", ", serv), servers.Count > 5 ? string.Format(", and {0}{1} more", servers.Count == 5000 ? ">" : "", servers.Count - 5) : "");
+            command.Reply($"{Colors.GREEN}{servers.Sum(x => x.players)}{Colors.NORMAL} players on {Colors.GREEN}{servers.Count}{Colors.NORMAL} servers. First three: {string.Join(" / ", servers.Take(3).Select(x => x.addr))}");
         }
     }
 }
