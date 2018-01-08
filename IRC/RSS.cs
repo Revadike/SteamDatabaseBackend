@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Copyright (c) 2013-2018, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -150,7 +150,7 @@ namespace SteamDatabaseBackend
                         // breaks
                         item.Content = new Regex(@"<br( \/)?>\r?\n?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "\n");
 
-                        // dashes (csgo mainly)
+                        // dashes (CS:GO mainly)
                         item.Content = new Regex("^&#(8208|8209|8210|8211|8212|8213); ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
 
                         // add source

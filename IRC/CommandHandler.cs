@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Copyright (c) 2013-2018, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -200,7 +200,7 @@ namespace SteamDatabaseBackend
             }
             catch (AsyncJobFailedException)
             {
-                commandData.Reply("Steam says this job failed, unable to execute your {0}{1}{2} command.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
+                commandData.Reply("Steam says this job failed. Unable to execute your {0}{1}{2} command.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
             }
             catch (Exception e)
             {

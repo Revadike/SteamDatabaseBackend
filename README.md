@@ -3,7 +3,7 @@
 The application that keeps SteamDB up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on FreeNode.
 
 ## Requirements
-You will need nuget to restore packages.
+You will need [NuGet](https://www.nuget.org/) to restore packages.
 
 ## IRC
 

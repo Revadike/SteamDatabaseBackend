@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Copyright (c) 2013-2018, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -63,7 +63,7 @@ namespace SteamDatabaseBackend
                         break;
 
                     default:
-                        command.Reply("Invalid vanity url type.");
+                        command.Reply("Invalid vanity URL type.");
                         return;
                 }
             }
@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
 
                 if (eResult != EResult.OK)
                 {
-                    command.Reply("Failed to resolve vanity url: {0}{1}", Colors.RED, eResult.ToString());
+                    command.Reply("Failed to resolve vanity URL: {0}{1}", Colors.RED, eResult.ToString());
 
                     return;
                 }
