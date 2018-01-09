@@ -117,7 +117,7 @@ namespace SteamDatabaseBackend
                 var subID = uint.Parse(match.Groups["subid"].Value);
                 var name = Encoding.UTF8.GetString(Convert.FromBase64String(match.Groups["name"].Value));
 
-                names.Add(subID, name);
+                names[subID] = name;
             }
 
             using (var db = Database.Get())
