@@ -39,10 +39,23 @@ namespace SteamDatabaseBackend
 
         private static void Reload()
         {
+            var oldTokens = SecretTokens;
+
             using (var db = Database.Get())
             {
                 SecretTokens = db.Query<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
             }
+
+            if (oldTokens == null)
+            {
+                return;
+            }
+
+            var apps = SecretTokens
+                .Where(x => !oldTokens.ContainsKey(x.Key))
+                .Select(app => Utils.NewPICSRequest(app.Key));
+
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
         }
 
         private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
