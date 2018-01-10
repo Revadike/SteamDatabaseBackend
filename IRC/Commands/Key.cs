@@ -113,8 +113,19 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.Client.Send(msg);
 
-            var job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
-            
+            PurchaseResponseCallback job;
+
+            try
+            {
+                job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
+            }
+            catch (TaskCanceledException e)
+            {
+                ErrorReporter.Notify(nameof(KeyCommand), e);
+
+                return EPurchaseResultDetail.Timeout;
+            }
+
             using (var db = Database.Get())
             using (var sha = new SHA1CryptoServiceProvider())
             {
