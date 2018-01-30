@@ -198,8 +198,6 @@ namespace SteamDatabaseBackend
                 }
                 else if (!app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    IRC.Instance.SendMain("App deleted: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
-
                     await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
                     await MakeHistory("deleted_app", 0, app.Name);
                 }
