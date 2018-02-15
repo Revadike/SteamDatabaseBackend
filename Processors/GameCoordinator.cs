@@ -95,9 +95,8 @@ namespace SteamDatabaseBackend
             foreach (var appID in Settings.Current.GameCoordinatorIdlers)
             {
                 var info = GetSessionInfo(appID);
-
-                if (info.Status == GCConnectionStatus.GCConnectionStatus_NO_SESSION
-                ||  info.Status == GCConnectionStatus.GCConnectionStatus_GC_GOING_DOWN)
+                
+                if (info.Status != GCConnectionStatus.GCConnectionStatus_HAVE_SESSION)
                 {
                     var hello = new ClientGCMsgProtobuf<CMsgClientHello>((uint)EGCBaseClientMsg.k_EMsgGCClientHello);
 
