@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
             var enumType = args[0].Replace("SteamKit2.", "");
 
             var matchingEnumType = SteamKitEnums
-                .FirstOrDefault(x => x.Name.Equals(enumType, StringComparison.InvariantCultureIgnoreCase) || GetDottedTypeName(x).IndexOf(enumType, StringComparison.OrdinalIgnoreCase) != -1);
+                .FirstOrDefault(x => x.Name.Equals(enumType, StringComparison.OrdinalIgnoreCase) || GetDottedTypeName(x).IndexOf(enumType, StringComparison.OrdinalIgnoreCase) != -1);
 
             if (matchingEnumType == null)
             {
@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            bool includeDeprecated = args.Length > 2 && args[2].Equals("deprecated", StringComparison.InvariantCultureIgnoreCase);
+            bool includeDeprecated = args.Length > 2 && args[2].Equals("deprecated", StringComparison.OrdinalIgnoreCase);
 
             GetType().GetMethod("RunForEnum", BindingFlags.Instance | BindingFlags.NonPublic)
                 .MakeGenericMethod(matchingEnumType)
@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(inputValue))
             {
-                enumValues = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.InvariantCultureIgnoreCase) >= 0);
+                enumValues = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
             var count = enumValues.Count();
