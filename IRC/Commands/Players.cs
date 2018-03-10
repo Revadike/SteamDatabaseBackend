@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
 
                 if (players == 0)
                 {
-                    command.Reply("Unable to request player count for {0}{1}{2}: {3}{4}", Colors.BLUE, name, Colors.NORMAL, Colors.RED, callback.Result);
+                    command.Reply($"Unable to request player count for {Colors.BLUE}{name}{Colors.NORMAL}: {Colors.RED}{callback.Result}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}");
 
                     return;
                 }
