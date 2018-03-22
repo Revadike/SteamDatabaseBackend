@@ -390,7 +390,7 @@ namespace SteamDatabaseBackend
 
         public override string ToString()
         {
-            return $"App {AppID}";
+            return $"{(ProductInfo == null ? "Unknown " : "")}App {AppID}";
         }
     }
 }

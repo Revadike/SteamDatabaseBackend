@@ -68,9 +68,11 @@ namespace SteamDatabaseBackend
                     {
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
-                            Log.WriteDebug("PICSProductInfo", "Waiting for {0} to finish processing", processor.ToString());
+                            Log.WriteDebug(processor.ToString(), "Waiting for previous task to finish processing");
 
                             await mostRecentItem.ConfigureAwait(false);
+
+                            Log.WriteDebug(processor.ToString(), "Previous task lock ended");
                         }
 
                         await processor.Process().ConfigureAwait(false);

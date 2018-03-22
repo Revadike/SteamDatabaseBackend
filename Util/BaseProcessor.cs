@@ -62,6 +62,8 @@ namespace SteamDatabaseBackend
             {
                 ErrorReporter.Notify(ToString(), e);
             }
+
+            Log.WriteDebug(ToString(), "Processed");
         }
     }
 }
