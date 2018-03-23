@@ -68,7 +68,7 @@ namespace SteamDatabaseBackend
                     {
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
-                            Log.WriteDebug(processor.ToString(), "Waiting for previous task to finish processing");
+                            Log.WriteDebug(processor.ToString(), $"Waiting for previous task to finish processing ({CurrentlyProcessing.Count})");
 
                             await mostRecentItem.ConfigureAwait(false);
 
@@ -94,7 +94,7 @@ namespace SteamDatabaseBackend
                 {
                     lock (CurrentlyProcessing)
                     {
-                        if (CurrentlyProcessing.TryGetValue(processor.Id, out mostRecentItem) && mostRecentItem.IsCompleted)
+                        if (CurrentlyProcessing.TryGetValue(processor.Id, out var mostRecentItem2) && mostRecentItem2.IsCompleted)
                         {
                             CurrentlyProcessing.Remove(processor.Id);
                         }
