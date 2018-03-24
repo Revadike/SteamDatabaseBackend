@@ -179,16 +179,16 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            List<string> channels;
-
-            if (Application.ImportantApps.TryGetValue(appID, out channels))
+            if (!Application.ImportantApps.TryGetValue(appID, out var channels))
             {
-                format = string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args));
+                return;
+            }
 
-                foreach (var channel in channels)
-                {
-                    Client.Message(channel, format); //, Priority.AboveMedium);
-                }
+            format = string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args));
+
+            foreach (var channel in channels)
+            {
+                Client.Message(channel, format); //, Priority.AboveMedium);
             }
         }
 

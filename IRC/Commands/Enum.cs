@@ -69,10 +69,9 @@ namespace SteamDatabaseBackend
         void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
             where TEnum : struct
         {
-            string enumName = GetDottedTypeName(typeof(TEnum));
-            TEnum enumValue;
+            var enumName = GetDottedTypeName(typeof(TEnum));
 
-            if (Enum.TryParse(inputValue, out enumValue))
+            if (Enum.TryParse(inputValue, out TEnum enumValue))
             {
                 command.Reply("{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
 

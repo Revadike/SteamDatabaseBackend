@@ -21,9 +21,7 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            uint subID;
-
-            if (command.Message.Length == 0 || !uint.TryParse(command.Message, out subID))
+            if (command.Message.Length == 0 || !uint.TryParse(command.Message, out var subID))
             {
                 command.Reply("Usage:{0} sub <subid>", Colors.OLIVE);
 

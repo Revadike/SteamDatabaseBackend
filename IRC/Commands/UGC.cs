@@ -31,9 +31,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            ulong ugcId;
-
-            if (!ulong.TryParse(command.Message, out ugcId))
+            if (!ulong.TryParse(command.Message, out var ugcId))
             {
                 command.Reply("Invalid UGC ID");
 

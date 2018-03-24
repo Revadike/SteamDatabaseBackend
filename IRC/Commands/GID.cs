@@ -27,9 +27,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            ulong uGid;
-
-            if (!ulong.TryParse(command.Message, out uGid))
+            if (!ulong.TryParse(command.Message, out var uGid))
             {
                 command.Reply("Invalid GlobalID.");
 

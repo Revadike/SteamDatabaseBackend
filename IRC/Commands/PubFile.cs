@@ -40,9 +40,7 @@ namespace SteamDatabaseBackend
 
             foreach (Match match in matches)
             {
-                ulong pubFileId;
-
-                if (!ulong.TryParse(match.Groups["pubfileid"].Value, out pubFileId))
+                if (!ulong.TryParse(match.Groups["pubfileid"].Value, out var pubFileId))
                 {
                     continue;
                 }
@@ -145,9 +143,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            ulong pubFileId;
-
-            if (!ulong.TryParse(command.Message, out pubFileId))
+            if (!ulong.TryParse(command.Message, out var pubFileId))
             {
                 command.Reply("Invalid Published File ID");
 
