@@ -22,6 +22,7 @@ namespace SteamDatabaseBackend
         {
             var t = Task.Run(function, TaskCancellationToken.Token);
 
+            AddTask(t);
             RegisterErrorHandler(t);
 
             return t;
@@ -30,13 +31,14 @@ namespace SteamDatabaseBackend
         public static Task RunAsync(Action action)
         {
             var t = Task.Run(action, TaskCancellationToken.Token);
-                
+
+            AddTask(t);
             RegisterErrorHandler(t);
 
             return t;
         }
 
-        private static void RegisterErrorHandler(Task t)
+        private static void AddTask(Task t)
         {
             Tasks.TryAdd(t, 1);
 
@@ -44,7 +46,10 @@ namespace SteamDatabaseBackend
             {
                 Tasks.TryRemove(task, out _);
             });
+        }
 
+        public static void RegisterErrorHandler(Task t)
+        {
             t.ContinueWith(task =>
             {
                 task.Exception.Flatten().Handle(e =>

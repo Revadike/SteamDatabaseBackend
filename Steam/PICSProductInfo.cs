@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -62,10 +63,10 @@ namespace SteamDatabaseBackend
 
                 var workerItem = TaskManager.Run(async () =>
                 {
-                    await Semaphore.WaitAsync(TaskManager.TaskCancellationToken.Token).ConfigureAwait(false);
-
                     try
                     {
+                        await Semaphore.WaitAsync(TaskManager.TaskCancellationToken.Token).ConfigureAwait(false);
+
                         if (mostRecentItem != null && !mostRecentItem.IsCompleted)
                         {
                             Log.WriteDebug(processor.ToString(), $"Waiting for previous task to finish processing ({CurrentlyProcessing.Count})");
@@ -76,6 +77,10 @@ namespace SteamDatabaseBackend
                         }
 
                         await processor.Process().ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        ErrorReporter.Notify(processor.ToString(), e);
                     }
                     finally
                     {
@@ -92,7 +97,9 @@ namespace SteamDatabaseBackend
                     CurrentlyProcessing[processor.Id] = workerItem;
                 }
 
-                workerItem.ContinueWith(RemoveProcessorLock, TaskManager.TaskCancellationToken.Token);
+                // Register error handler on inner task and the continuation
+                TaskManager.RegisterErrorHandler(workerItem);
+                TaskManager.RegisterErrorHandler(workerItem.ContinueWith(RemoveProcessorLock, TaskManager.TaskCancellationToken.Token));
             }
         }
 
