@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -57,6 +58,7 @@ namespace SteamDatabaseBackend
 
         private static void WriteLine(Category category, string component, string format, params object[] args)
         {
+            var date = DateTime.Now;
             var logLine = string.Format(
                 "{0} [{1}] {2}: {3}{4}",
                 DateTime.Now.ToString("HH:mm:ss"),
@@ -97,24 +99,15 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            try
+            Task.Run(() =>
             {
+                var logFile = Path.Combine(LogDirectoryPath, string.Format("{0}.log", date.ToString("MMMM_dd_yyyy")));
+
                 lock (logLock)
                 {
-                    File.AppendAllText(GetLogFile(), logLine);
+                    File.AppendAllText(logFile, logLine);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Unable to log to file: {0}", ex.Message);
-            }
-        }
-
-        private static string GetLogFile()
-        {
-            var logFile = string.Format("{0}.log", DateTime.Now.ToString("MMMM_dd_yyyy"));
-
-            return Path.Combine(LogDirectoryPath, logFile);
+            });
         }
     }
 }
