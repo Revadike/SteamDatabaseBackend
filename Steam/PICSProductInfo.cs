@@ -83,6 +83,8 @@ namespace SteamDatabaseBackend
 
                         processor.Dispose();
                     }
+
+                    return processor;
                 }).Unwrap();
 
                 lock (CurrentlyProcessing)
@@ -90,16 +92,36 @@ namespace SteamDatabaseBackend
                     CurrentlyProcessing[processor.Id] = workerItem;
                 }
 
-                workerItem.ContinueWith(task =>
+                workerItem.ContinueWith(RemoveProcessorLock, TaskManager.TaskCancellationToken.Token);
+            }
+        }
+
+        private static void RemoveProcessorLock(Task<BaseProcessor> task)
+        {
+            var processor = task.Result;
+
+            lock (CurrentlyProcessing)
+            {
+#if false
+                if (CurrentlyProcessing[processor.Id]?.Id == task.Id)
                 {
-                    lock (CurrentlyProcessing)
+                    CurrentlyProcessing.Remove(processor.Id);
+                }
+#endif
+
+                if (CurrentlyProcessing.TryGetValue(processor.Id, out var mostRecentItem))
+                {
+                    if (mostRecentItem.IsCompleted)
                     {
-                        if (CurrentlyProcessing.TryGetValue(processor.Id, out var mostRecentItem2) && mostRecentItem2.IsCompleted)
-                        {
-                            CurrentlyProcessing.Remove(processor.Id);
-                        }
+                        CurrentlyProcessing.Remove(processor.Id);
+
+                        Log.WriteDebug(processor.ToString(), $"Removed completed lock ({CurrentlyProcessing.Count})");
                     }
-                }, TaskManager.TaskCancellationToken.Token);
+                    else if (mostRecentItem.Id == task.Id)
+                    {
+                        ErrorReporter.Notify(processor.ToString(), new System.Exception($"Matching worker task ids, but task is not completed? @xPaw"));
+                    }
+                }
             }
         }
     }
