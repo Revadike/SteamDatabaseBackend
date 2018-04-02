@@ -108,6 +108,11 @@ namespace SteamDatabaseBackend
                 hashes = new Dictionary<string, byte[]>();
             }
 
+            foreach (var file in hashes.Keys.Except(files.Select(x => x.FileName)))
+            {
+                Log.WriteWarn(nameof(FileDownloader), $"\"{file}\" no longer exists in manifest");
+            }
+            
             Log.WriteInfo("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
             var downloadedFiles = 0;
