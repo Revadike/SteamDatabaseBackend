@@ -31,7 +31,9 @@ namespace SteamDatabaseBackend
                 Action = action
             };
 
+#if DEBUG
             Log.WriteDebug("Job Manager", "New job: {0}", jobID);
+#endif
 
             Jobs.TryAdd(jobID, job);
         }
@@ -46,8 +48,10 @@ namespace SteamDatabaseBackend
                 Command = command
             };
 
+#if DEBUG
             // Chat rooms don't have full message saved
             Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, command.Message);
+#endif
 
             Jobs.TryAdd(jobID, job);
         }
@@ -61,7 +65,9 @@ namespace SteamDatabaseBackend
         {
             if (Jobs.TryRemove(jobID, out job))
             {
+#if DEBUG
                 Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
+#endif
 
                 return true;
             }

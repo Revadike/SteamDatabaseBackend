@@ -73,7 +73,9 @@ namespace SteamDatabaseBackend
 
                             await mostRecentItem.ConfigureAwait(false);
 
+#if DEBUG
                             Log.WriteDebug(processor.ToString(), "Previous task lock ended");
+#endif
                         }
 
                         await processor.Process().ConfigureAwait(false);
@@ -109,25 +111,13 @@ namespace SteamDatabaseBackend
 
             lock (CurrentlyProcessing)
             {
-#if false
-                if (CurrentlyProcessing[processor.Id]?.Id == task.Id)
+                if (CurrentlyProcessing.TryGetValue(processor.Id, out var mostRecentItem) && mostRecentItem.IsCompleted)
                 {
                     CurrentlyProcessing.Remove(processor.Id);
-                }
+
+#if DEBUG
+                    Log.WriteDebug(processor.ToString(), $"Removed completed lock ({CurrentlyProcessing.Count})");
 #endif
-
-                if (CurrentlyProcessing.TryGetValue(processor.Id, out var mostRecentItem))
-                {
-                    if (mostRecentItem.IsCompleted)
-                    {
-                        CurrentlyProcessing.Remove(processor.Id);
-
-                        Log.WriteDebug(processor.ToString(), $"Removed completed lock ({CurrentlyProcessing.Count})");
-                    }
-                    else if (mostRecentItem.Id == task.Id)
-                    {
-                        ErrorReporter.Notify(processor.ToString(), new System.Exception($"Matching worker task ids, but task is not completed? @xPaw"));
-                    }
                 }
             }
         }

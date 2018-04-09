@@ -59,7 +59,9 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => RefreshSteam());
             }
 
+#if DEBUG
             Log.WriteDebug(ToString(), "Processed");
+#endif
         }
     }
 }
