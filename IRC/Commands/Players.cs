@@ -59,7 +59,6 @@ namespace SteamDatabaseBackend
 
                 if (appID == 0)
                 {
-
                     if (!Utils.ConvertUserInputToSQLSearch(ref name))
                     {
                         command.Reply ("Your request is invalid or too short.");
@@ -87,25 +86,17 @@ namespace SteamDatabaseBackend
             {
                 appID = 753;
             }
-
-            var type = "playing";
-            var players = callback.NumPlayers;
+            
             name = Steam.GetAppName(appID, out var appType);
 
             if (callback.Result != EResult.OK)
             {
-                using (var db = Database.Get())
-                {
-                    players = await db.ExecuteScalarAsync<uint>("SELECT `CurrentPlayers` FROM `OnlineStats` WHERE `AppID` = @AppID", new { AppID = appID });
-                }
+                command.Reply($"Unable to request player count for {Colors.BLUE}{name}{Colors.NORMAL}: {Colors.RED}{callback.Result}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}");
 
-                if (players == 0)
-                {
-                    command.Reply($"Unable to request player count for {Colors.BLUE}{name}{Colors.NORMAL}: {Colors.RED}{callback.Result}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}");
-
-                    return;
-                }
+                return;
             }
+
+            var type = "playing";
 
             switch (appType)
             {
@@ -136,7 +127,7 @@ namespace SteamDatabaseBackend
 
             command.Reply(
                 "{0}{1:N0}{2} {3} {4}{5}{6}{7} -{8} {9}",
-                Colors.OLIVE, players, Colors.NORMAL,
+                Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
                 callback.Result != EResult.OK ? $" {Colors.RED}({callback.Result}){Colors.NORMAL}" : "",
