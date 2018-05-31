@@ -38,6 +38,7 @@ namespace SteamDatabaseBackend
             ImportantSubs = new Dictionary<uint, byte>();
 
             ReloadImportant();
+            TaskManager.RunAsync(async () => await KeyNameCache.Init());
 
             ChangelistTimer = new Timer();
             ChangelistTimer.Elapsed += Tick;

@@ -260,15 +260,13 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
-                var key = await GetKeyNameID(keyName);
+                var key = KeyNameCache.GetAppKeyID(keyName);
 
                 if (key == 0)
                 {
                     var type = newKv != null ? 86 : 0; // 86 is a hardcoded const for the website
 
-                    await DbConnection.ExecuteAsync("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new { Name = keyName, DisplayName = displayName, Type = type });
-
-                    key = await GetKeyNameID(keyName);
+                    key = await KeyNameCache.CreateAppKey(keyName, displayName, type);
 
                     if (key == 0)
                     {
@@ -366,11 +364,6 @@ namespace SteamDatabaseBackend
                     Action = action
                 }
             );
-        }
-
-        private Task<uint> GetKeyNameID(string keyName)
-        {
-            return DbConnection.ExecuteScalarAsync<uint>("SELECT `ID` FROM `KeyNames` WHERE `Name` = @keyName", new { keyName });
         }
 
         private void PrintLinux()
