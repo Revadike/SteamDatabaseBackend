@@ -166,11 +166,6 @@ namespace SteamDatabaseBackend
                             {
                                 LicenseList.OwnedApps.Add(appID, 1);
                             }
-
-                            if (Application.ImportantApps.ContainsKey(appID))
-                            {
-                                IRC.Instance.AnnounceImportantAppUpdate(appID, $"Important app {Colors.BLUE}{Steam.GetAppName(appID)}{Colors.NORMAL} was added to package -{Colors.DARKBLUE} {SteamDB.GetPackageURL(SubID, "history")}");
-                            }
                         }
                     }
                 }
