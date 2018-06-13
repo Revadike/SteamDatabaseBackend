@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
         private const char IrcColor = '\x3';
 
         // To keep our colors somewhat consistent, only used colors are uncommented
-        public const char NORMAL = '\xf';
+        public const char NORMAL = '\x0F';
         //public static readonly string WHITE = IrcColor + "00"; // white is evil
         //public static readonly string BLACK = IrcColor + "01"; // black is evil, too
         public static readonly string DARKBLUE = IrcColor + "02";
@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
 
         public static string StripColors(string input)
         {
-            return Regex.Replace(input, @"\x15|\x03(\d\d)?", string.Empty);
+            return Regex.Replace(input, @"\x0F|\x03(\d\d)?", string.Empty);
         }
     }
 }
