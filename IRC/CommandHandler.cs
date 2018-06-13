@@ -149,9 +149,6 @@ namespace SteamDatabaseBackend
                 Message = callback.Message
             };
 
-            PubFileHandler.OnMessage(commandData);
-            LinkExpander.OnMessage(commandData);
-
             if (callback.Message[0] != Settings.Current.IRC.CommandPrefix || callback.Message.Contains('\n'))
             {
                 return;
