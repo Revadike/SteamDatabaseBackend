@@ -365,11 +365,7 @@ namespace SteamDatabaseBackend
                 var appCount = changeList.Apps.Count;
                 var packageCount = changeList.Packages.Count;
 
-                var message = string.Format("Changelist {0}{1}{2} {3}({4:N0} apps and {5:N0} packages){6} -{7} {8}",
-                                     Colors.BLUE, changeList.ChangeNumber, Colors.NORMAL,
-                                     Colors.DARKGRAY, appCount, packageCount, Colors.NORMAL,
-                                     Colors.DARKBLUE, SteamDB.GetChangelistURL(changeList.ChangeNumber)
-                                 );
+                var message = $"Changelist {Colors.BLUE}{changeList.ChangeNumber}{Colors.NORMAL} {Colors.DARKGRAY}({appCount:N0} apps and {packageCount:N0} packages)";
 
                 var changesCount = appCount + packageCount;
 
