@@ -371,7 +371,7 @@ namespace SteamDatabaseBackend
 
                 if (changesCount >= 50)
                 {
-                    IRC.Instance.SendMain(message);
+                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistURL(changeList.ChangeNumber)}");
                 }
 
                 if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN || changesCount > 300)
