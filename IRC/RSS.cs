@@ -160,14 +160,15 @@ namespace SteamDatabaseBackend
 
                         await db.ExecuteAsync(
                             "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
-                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = 428396",
+                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = @AccountID",
                             new
                             {
                                 build.BuildID,
                                 build.AppID,
                                 build.ChangeID,
                                 Date = build.Date.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss"),
-                                item.Content
+                                item.Content,
+                                Steam.Instance.Client.SteamID.AccountID
                             }
                         );
 
