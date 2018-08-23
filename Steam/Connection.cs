@@ -164,10 +164,10 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                JobManager.RestartJobsIfAny();
-
                 Application.ChangelistTimer.Start();
             }
+
+            JobManager.RestartJobsIfAny();
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
