@@ -134,10 +134,8 @@ namespace SteamDatabaseBackend
 
             const int size = 100;
 
-            for (var i = 0; i < appIDs.Count; i += size)
+            foreach(var list in appIDs.Split(size))
             {
-                var list = appIDs.GetRange(i, Math.Min(size, appIDs.Count - i));
-
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
 
                 do
@@ -154,10 +152,8 @@ namespace SteamDatabaseBackend
 
             var packages = packageIDs.Select(Utils.NewPICSRequest).ToList();
 
-            for (var i = 0; i < packages.Count; i += size)
+            foreach (var list in packages.Split(size))
             {
-                var list = packages.GetRange(i, Math.Min(size, packages.Count - i));
-
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
 
                 do
@@ -174,36 +170,55 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-
-            var packageChangesCount = callback.PackageChanges.Count;
-            var appChangesCount = callback.AppChanges.Count;
-
-            Log.WriteInfo("PICSChanges", "Changelist {0} -> {1} ({2} apps, {3} packages)", PreviousChangeNumber, callback.CurrentChangeNumber, appChangesCount, packageChangesCount);
+            
+            Log.WriteInfo("PICSChanges", $"Changelist {PreviousChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
 
             await HandleChangeNumbers(callback);
 
-            if (appChangesCount == 0 && packageChangesCount == 0)
+            if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
                 IRC.Instance.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.BLUE, PreviousChangeNumber, Colors.DARKGRAY);
 
                 return;
             }
 
-// We don't care about waiting for separate database queries to finish, so don't await them
-#pragma warning disable 4014
-            if (appChangesCount > 0)
+            const int appsPerJob = 50;
+
+            if (callback.AppChanges.Count > appsPerJob)
+            {
+                foreach (var list in callback.AppChanges.Keys.Split(appsPerJob))
+                {
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
+                }
+            }
+            else if (callback.AppChanges.Count > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
+            }
 
+            if (callback.PackageChanges.Count > appsPerJob)
+            {
+                foreach (var list in callback.PackageChanges.Keys.Select(Utils.NewPICSRequest).Split(appsPerJob))
+                {
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
+                }
+            }
+            else if (callback.PackageChanges.Count > 0)
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
+            }
+
+// We don't care about waiting for separate database queries to finish, so don't await them
+#pragma warning disable 4014
+            if (callback.AppChanges.Count > 0)
+            {
                 TaskManager.RunAsync(async () => await HandleApps(callback));
             }
 
-            if (packageChangesCount > 0)
+            if (callback.PackageChanges.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
-
                 TaskManager.RunAsync(async () => await HandlePackages(callback));
                 TaskManager.RunAsync(async () => await HandlePackagesChangelists(callback));
             }

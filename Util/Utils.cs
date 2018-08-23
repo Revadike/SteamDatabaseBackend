@@ -45,6 +45,27 @@ namespace SteamDatabaseBackend
                 select resultSelector(leftValue, rightValue, key);
         }
 
+        // https://codereview.stackexchange.com/a/90531/151882
+        public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> fullBatch, int chunkSize)
+        {
+            var cellCounter = 0;
+            var chunk = new List<T>(chunkSize);
+
+            foreach (var element in fullBatch)
+            {
+                if (cellCounter++ == chunkSize)
+                {
+                    yield return chunk;
+                    chunk = new List<T>(chunkSize);
+                    cellCounter = 1;
+                }
+
+                chunk.Add(element);
+            }
+
+            yield return chunk;
+        }
+
         // https://stackoverflow.com/a/33551927/2200891
         public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize)
         {
