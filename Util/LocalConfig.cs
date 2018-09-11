@@ -64,6 +64,20 @@ namespace SteamDatabaseBackend
             if (File.Exists(ConfigPath))
             {
                 Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(ConfigPath));
+
+                var time = DateTime.Now;
+
+                foreach (var token in Current.CDNAuthTokens)
+                {
+                    if (time > token.Value.Expiration)
+                    {
+                        Current.CDNAuthTokens.TryRemove(token.Key, out _);
+
+                        Log.WriteInfo("Local Config", $"Removing expired token for depot {token.Key}");
+                    }
+                }
+
+                Save();
             }
             else
             {
