@@ -192,9 +192,8 @@ namespace SteamDatabaseBackend
 
             int fileSize;
             byte[] sentryHash;
-
-
-            using (var stream = new MemoryStream(LocalConfig.Sentry ?? new byte[callback.BytesToWrite]))
+            
+            using (var stream = new MemoryStream(callback.BytesToWrite))
             {
                 stream.Seek(callback.Offset, SeekOrigin.Begin);
                 stream.Write(callback.Data, 0, callback.BytesToWrite);
