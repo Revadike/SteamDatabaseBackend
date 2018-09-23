@@ -243,7 +243,11 @@ namespace SteamDatabaseBackend
 
             await DbConnection.ExecuteAsync("DELETE FROM `Apps` WHERE `AppID` = @AppID", new { AppID });
             await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
-            await DbConnection.ExecuteAsync("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
+
+            if (Settings.Current.CanQueryStore)
+            {
+                await DbConnection.ExecuteAsync("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
+            }
         }
 
         private async Task<bool> ProcessKey(string keyName, string displayName, string value, KeyValue newKv = null)

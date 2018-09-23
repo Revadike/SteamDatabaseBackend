@@ -35,6 +35,11 @@ namespace SteamDatabaseBackend
 
         private static async Task InsertQuery(IEnumerable<uint> ids, string type)
         {
+            if (!Settings.Current.CanQueryStore)
+            {
+                return;
+            }
+
             var items = ids.Select(x => new StoreUpdateQueue { ID = x, Type = type });
 
             using (var db = Database.Get())

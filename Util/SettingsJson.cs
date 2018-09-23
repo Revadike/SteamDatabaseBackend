@@ -116,6 +116,9 @@ namespace SteamDatabaseBackend
 
         [JsonProperty(Required = Required.Always)]
         public bool LogToFile;
+
+        [JsonProperty(Required = Required.Always)]
+        public bool CanQueryStore;
     }
     #pragma warning restore 0649
 }

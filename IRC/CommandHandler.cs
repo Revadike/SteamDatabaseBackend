@@ -37,11 +37,15 @@ namespace SteamDatabaseBackend
                 new EnumCommand(),
                 new ServersCommand(),
                 new BinariesCommand(),
-                new QueueCommand(),
                 new ImportantCommand(),
                 new ReloginCommand(),
-                new KeyCommand(),
             };
+
+            if (Settings.Current.CanQueryStore)
+            {
+                RegisteredCommands.Add(new QueueCommand());
+                RegisteredCommands.Add(new KeyCommand());
+            }
 
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));

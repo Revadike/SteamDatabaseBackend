@@ -124,6 +124,11 @@ namespace SteamDatabaseBackend
         {
             string priceInfo = string.Empty;
 
+            if (!Settings.Current.CanQueryStore)
+            {
+                return priceInfo;
+            }
+
             List<Price> prices;
 
             using (var db = Database.Get())

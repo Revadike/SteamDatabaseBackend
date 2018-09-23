@@ -58,7 +58,11 @@ namespace SteamDatabaseBackend
             new PICSTokens(CallbackManager);
             new LicenseList(CallbackManager);
             new WebAuth(CallbackManager);
-            new FreeLicense(CallbackManager);
+
+            if (Settings.Current.CanQueryStore)
+            {
+                new FreeLicense(CallbackManager);
+            }
 
             if (!Settings.IsFullRun)
             {

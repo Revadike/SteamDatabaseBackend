@@ -82,6 +82,11 @@ namespace SteamDatabaseBackend
 
                     await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 
+                    if (!Settings.Current.CanQueryStore)
+                    {
+                        continue;
+                    }
+
                     uint appID = 0;
 
                     if (feedTitle == "Steam RSS News Feed")

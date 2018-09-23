@@ -292,7 +292,11 @@ namespace SteamDatabaseBackend
             await DbConnection.ExecuteAsync("DELETE FROM `Subs` WHERE `SubID` = @SubID", new { SubID });
             await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
             await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID });
-            await DbConnection.ExecuteAsync("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
+
+            if (Settings.Current.CanQueryStore)
+            {
+                await DbConnection.ExecuteAsync("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
+            }
         }
 
         private async Task ProcessKey(string keyName, string displayName, string value, bool isJSON = false)
