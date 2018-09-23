@@ -379,10 +379,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            IRC.Instance.SendSteamLUG(string.Format(
-                "[oslist][{0}] {1} now lists Linux{2} - {3} - https://store.steampowered.com/app/{4}/",
-                appType, name, LinkExpander.GetFormattedPrices(AppID), SteamDB.GetAppURL(AppID, "history"), AppID
-            ));
+            if (!Settings.Current.CanQueryStore)
+            {
+                return;
+            }
+
+            IRC.Instance.SendSteamLUG($"\u1F427 {name} now lists Linux{LinkExpander.GetFormattedPrices(AppID)} - {SteamDB.GetAppURL(AppID, "history")} - https://store.steampowered.com/app/{AppID}/");
         }
 
         public override string ToString()

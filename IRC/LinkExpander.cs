@@ -81,29 +81,6 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                if (!isPackage && command.Recipient == "#steamlug" && (appType == "Game" || appType == "Application"))
-                {
-                    using (var db = Database.Get())
-                    {
-                        var status = db.ExecuteScalar<string>("SELECT `Status` FROM `LinuxSupport` WHERE `AppID` = @AppID", new { AppID = id });
-
-                        switch(status)
-                        {
-                            case "working":
-                                priceInfo += " (✓ Confirmed for Linux)";
-                                break;
-
-                            case "beta":
-                                priceInfo += " (Has a public Linux βeta)";
-                                break;
-
-                            default:
-                                priceInfo += " (✘ Unknown Linux status)";
-                                break;
-                        }
-                    }
-                }
-
                 IRC.Instance.SendReply(command.Recipient,
                     string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
                         Colors.OLIVE,

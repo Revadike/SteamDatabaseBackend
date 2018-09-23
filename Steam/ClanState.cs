@@ -10,8 +10,6 @@ namespace SteamDatabaseBackend
 {
     class ClanState : SteamHandler
     {
-        private static readonly SteamID SteamLUG = new SteamID(103582791431044413UL);
-
         public ClanState(CallbackManager manager)
             : base(manager)
         {
@@ -50,12 +48,6 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendMain(message);
 
-                // Additionally send announcements to steamlug channel
-                if (callback.ClanID.Equals(SteamLUG))
-                {
-                    IRC.Instance.SendSteamLUG(message);
-                }
-
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
             }
 
@@ -74,15 +66,7 @@ namespace SteamDatabaseBackend
                     Colors.DARKGRAY, groupEvent.EventTime
                 );
 
-                // Send events only to steamlug channel
-                if (callback.ClanID.Equals(SteamLUG))
-                {
-                    IRC.Instance.SendSteamLUG(message);
-                }
-                else
-                {
-                    IRC.Instance.SendMain(message);
-                }
+                IRC.Instance.SendMain(message);
 
                 Log.WriteInfo("Group Announcement", "{0} Event \"{1}\"", groupName, groupEvent.Headline);
             }
