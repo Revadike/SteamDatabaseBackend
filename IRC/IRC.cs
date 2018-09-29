@@ -156,11 +156,12 @@ namespace SteamDatabaseBackend
         }
 
         // Woo, hardcoding!
-        public void SendSteamLUG(string message)
+        public void SendLinuxAnnouncement(string message)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.Message("#steamlug", string.Concat(Settings.Current.IRC.PrioritySendPrefix, message));
+                Client.Message("#steamlug", message);
+                Client.Message("#gamingonlinux", message);
             }
         }
 
