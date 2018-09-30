@@ -241,17 +241,25 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            uint parentAppId;
             var appid = kv["appids"].Children.First().AsUnsignedInteger();
             bool available;
 
             using (var db = Database.Get())
             {
                 available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appid });
+                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `AppsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `AppID` = @AppID", new { AppID = appid });
             }
 
             if (!available)
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} (app {appid}) did not pass release check");
+                return;
+            }
+
+            if (parentAppId > 0 && !LicenseList.OwnedApps.ContainsKey(parentAppId))
+            {
+                Log.WriteDebug("Free Packages", $"Parent app {parentAppId} is not owned to get {appid}");
                 return;
             }
 
