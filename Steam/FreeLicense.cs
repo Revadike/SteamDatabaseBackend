@@ -209,6 +209,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (kv["extended"]["curatorconnect"] != null)
+            {
+                Log.WriteDebug("Free Packages", $"Package {subId} is a curator package");
+                return;
+            }
+
             var allowPurchaseFromRestrictedCountries = kv["extended"]["allowpurchasefromrestrictedcountries"].AsBoolean();
             var purchaseRestrictedCountries = kv["extended"]["purchaserestrictedcountries"].AsString();
             
