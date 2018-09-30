@@ -240,7 +240,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") != \"unavailable\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID AND `AppType` > 0", new { AppID = appid });
+                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appid });
             }
 
             if (!available)
