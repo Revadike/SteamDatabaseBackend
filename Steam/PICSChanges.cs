@@ -106,7 +106,15 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo("Full Run", "Doing a full run on all apps and packages in the database.");
 
-                    apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
+                    if (Settings.Current.FullRun == FullRunState.PackagesNormal)
+                    {
+                        apps = new List<uint>();
+                    }
+                    else
+                    {
+                        apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
+                    }
+
                     packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
                 }
             }
