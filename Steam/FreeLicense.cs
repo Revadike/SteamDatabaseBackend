@@ -209,7 +209,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (kv["extended"]["curatorconnect"] != null)
+            if (kv["extended"]["curatorconnect"].AsInteger() == 1)
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} is a curator package");
                 return;
@@ -248,7 +248,7 @@ namespace SteamDatabaseBackend
             using (var db = Database.Get())
             {
                 available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appid });
-                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `AppsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `AppID` = @AppID", new { AppID = appid });
+                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `Apps`.`AppID` = @AppID AND `AppType` != 3", new { AppID = appid });
             }
 
             if (!available)
