@@ -161,6 +161,12 @@ namespace SteamDatabaseBackend
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
             var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
+
+            foreach (var appid in list)
+            {
+                LocalConfig.FreeLicensesToRequest.Remove(appid);
+            }
+
             LocalConfig.Save();
 
             AppsRequestedInHour = list.Count;
