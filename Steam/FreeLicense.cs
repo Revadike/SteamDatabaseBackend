@@ -66,20 +66,12 @@ namespace SteamDatabaseBackend
             if (packageIDs.Any())
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
-
-                TaskManager.RunAsync(() =>
-                {
-                    RefreshPackageNames();
-
-                    foreach (var subID in packageIDs)
-                    {
-                        IRC.Instance.SendAnnounce("New free license granted: {0}{1}{2} -{3} {4}",
-                            Colors.BLUE, Steam.GetPackageName(subID), Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetPackageURL(subID)
-                        );
-                    }
-                });
             }
+
+            TaskManager.RunAsync(() =>
+            {
+                RefreshPackageNames();
+            });
         }
 
         private void RefreshPackageNames()
