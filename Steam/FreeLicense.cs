@@ -183,9 +183,7 @@ namespace SteamDatabaseBackend
 
         public static void RequestFromPackage(uint subId, KeyValue kv)
         {
-            var billingType = (EBillingType)kv["billingtype"].AsInteger();
-
-            if (billingType != EBillingType.FreeOnDemand && billingType != EBillingType.NoCost)
+            if ((EBillingType)kv["billingtype"].AsInteger() != EBillingType.FreeOnDemand)
             {
                 return;
             }
