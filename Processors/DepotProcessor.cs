@@ -644,6 +644,20 @@ namespace SteamDatabaseBackend
             foreach (var file in depotManifest.Files)
             {
                 var name = file.FileName.Replace('\\', '/');
+                byte[] hash = null;
+
+                // Store empty hashes as NULL (e.g. an empty file)
+                if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
+                {
+                    for (int i = 0; i < file.FileHash.Length; ++i)
+                    {
+                        if (file.FileHash[i] != 0)
+                        {
+                            hash = file.FileHash;
+                            break;
+                        }
+                    }
+                }
 
                 // safe guard
                 if (name.Length > 255)
@@ -658,7 +672,7 @@ namespace SteamDatabaseBackend
                     var oldFile = filesOld[name];
                     var updateFile = false;
 
-                    if (oldFile.Size != file.TotalSize || !Utils.IsEqualSHA1(file.FileHash, oldFile.Hash))
+                    if (oldFile.Size != file.TotalSize || !Utils.IsEqualSHA1(hash, oldFile.Hash))
                     {
                         await MakeHistory(db, transaction, request, name, "modified", oldFile.Size, file.TotalSize);
 
@@ -678,7 +692,7 @@ namespace SteamDatabaseBackend
                         {
                             ID = oldFile.ID,
                             DepotID = request.DepotID,
-                            Hash = file.FileHash,
+                            Hash = hash,
                             Size = file.TotalSize,
                             Flags = file.Flags
                         }, transaction: transaction);
@@ -692,6 +706,7 @@ namespace SteamDatabaseBackend
                     filesAdded.Add(new DepotFile
                     {
                         DepotID = request.DepotID,
+                        Hash = hash,
                         File = name,
                         Size = file.TotalSize,
                         Flags = file.Flags
