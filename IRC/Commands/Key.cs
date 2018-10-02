@@ -121,8 +121,6 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException e)
             {
-                ErrorReporter.Notify(nameof(KeyCommand), e);
-
                 return EPurchaseResultDetail.Timeout;
             }
 
