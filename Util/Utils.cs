@@ -132,6 +132,29 @@ namespace SteamDatabaseBackend
             return BitConverter.ToString(ba).Replace("-", "");
         }
 
+        public static bool IsEqualSHA1(byte[] a, byte[] b)
+        {
+            const int SHA1_LENGTH = 20;
+
+            var aEmpty = a == null || a.Length < SHA1_LENGTH;
+            var bEmpty = b == null || b.Length < SHA1_LENGTH;
+
+            if (aEmpty || bEmpty)
+            {
+                return aEmpty == bEmpty;
+            }
+
+            for (int i = 0; i < SHA1_LENGTH; ++i)
+            {
+                if (a[i] != b[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public static bool ConvertUserInputToSQLSearch(ref string output)
         {
             if (output.Length < 2 || !output.Distinct().Skip(1).Any()) // TODO: Probably would be better to only search for % and _ repetitions

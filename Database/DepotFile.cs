@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
         public uint DepotID { get; set; }
         public uint ID { get; set; }
         public string File { get; set; }
-        public string Hash { get; set; }
+        public byte[] Hash { get; set; }
         public ulong Size { get; set; }
         public EDepotFileFlag Flags { get; set; }
     }
