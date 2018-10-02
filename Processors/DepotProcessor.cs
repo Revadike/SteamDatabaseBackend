@@ -62,7 +62,7 @@ namespace SteamDatabaseBackend
 
             try
             {
-                serverList = await CDNClient.FetchServerListAsync(maxServers: 30);
+                serverList = await CDNClient.FetchServerListAsync(maxServers: 60);
             }
             catch (Exception e)
             {
@@ -78,8 +78,7 @@ namespace SteamDatabaseBackend
 
             foreach (var server in serverList)
             {
-                // akamai.cdn.steampipe.steamcontent.com returns 404 Not Found unnecessarily
-                if (server.Type == "CDN" && !server.Host.Contains("cdn."))
+                if (server.Type == "CDN" && server.Host.StartsWith("valve"))
                 {
                     CDNServers.Add(server.Host);
                 }
@@ -355,12 +354,7 @@ namespace SteamDatabaseBackend
 #endif
             }
 
-            var newToken = new LocalConfig.CDNAuthToken
-            {
-                Server = GetContentServer()
-            };
-
-            var task = instance.GetCDNAuthToken(appID, depotID, newToken.Server);
+            var task = instance.GetCDNAuthToken(appID, depotID, "steampipe.steamcontent.com");
             task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.CDNAuthTokenCallback tokenCallback;
@@ -384,9 +378,12 @@ namespace SteamDatabaseBackend
             {
                 return null;
             }
-
-            newToken.Token = tokenCallback.Token;
-            newToken.Expiration = tokenCallback.Expiration.Subtract(TimeSpan.FromMinutes(1));
+            
+            var newToken = new LocalConfig.CDNAuthToken
+            {
+                Token = tokenCallback.Token,
+                Expiration = tokenCallback.Expiration.Subtract(TimeSpan.FromMinutes(1))
+            };
 
             LocalConfig.CDNAuthTokens[depotID] = newToken;
 
@@ -427,7 +424,7 @@ namespace SteamDatabaseBackend
                 }
 
                 depot.CDNToken = cdnToken.Token;
-                depot.Server = cdnToken.Server;
+                depot.Server = GetContentServer();
 
                 DepotManifest depotManifest = null;
                 string lastError = string.Empty;
@@ -443,9 +440,12 @@ namespace SteamDatabaseBackend
                     catch (Exception e)
                     {
                         lastError = e.Message;
+
+                        Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
                     }
 
                     // TODO: get new auth key if auth fails
+                    depot.Server = GetContentServer();
 
                     if (depotManifest == null)
                     {
@@ -459,12 +459,10 @@ namespace SteamDatabaseBackend
 
                     RemoveLock(depot.DepotID);
 
-                    Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3})", appID, depot.DepotID, depot.Server, lastError);
-
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
                     {
-                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download manifest ({3}: {4})",
-                            Colors.OLIVE, depot.DepotName, Colors.NORMAL, depot.Server, lastError);
+                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download manifest ({3})",
+                            Colors.OLIVE, depot.DepotName, Colors.NORMAL, lastError);
                     }
 
                     if (!Settings.IsFullRun)

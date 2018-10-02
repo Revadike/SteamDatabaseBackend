@@ -20,9 +20,6 @@ namespace SteamDatabaseBackend
         public class CDNAuthToken
         {
             [JsonProperty]
-            public string Server { get; set; }
-
-            [JsonProperty]
             public string Token { get; set; }
 
             [JsonProperty]
