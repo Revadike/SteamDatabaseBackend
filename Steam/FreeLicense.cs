@@ -194,6 +194,14 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            // TODO: Put LicenseList.OwnedApps.ContainsKey() in First() search
+            var appid = kv["appids"].Children.First().AsUnsignedInteger();
+
+            if (LicenseList.OwnedApps.ContainsKey(appid))
+            {
+                return;
+            }
+
             if (kv["status"].AsInteger() != 0) // EPackageStatus.Available
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} is not available");
@@ -247,7 +255,6 @@ namespace SteamDatabaseBackend
             }
 
             uint parentAppId;
-            var appid = kv["appids"].Children.First().AsUnsignedInteger();
             bool available;
 
             using (var db = Database.Get())
