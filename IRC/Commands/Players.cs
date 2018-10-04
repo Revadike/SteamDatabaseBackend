@@ -38,8 +38,9 @@ namespace SteamDatabaseBackend
 
                 using (var webClient = new WebClient())
                 {
-                    webClient.QueryString.Add("x-algolia-application-id", "94HE6YATEI");
-                    webClient.QueryString.Add("x-algolia-api-key", "2414d3366df67739fe6e73dad3f51a43");
+                    webClient.Headers.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
+                    webClient.Headers.Add("X-Algolia-Application-Id", "94HE6YATEI");
+                    webClient.Headers.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
                     webClient.QueryString.Add("hitsPerPage", "1");
                     webClient.QueryString.Add("attributesToHighlight", "null");
                     webClient.QueryString.Add("attributesToSnippet", "null");
