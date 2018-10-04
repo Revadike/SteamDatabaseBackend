@@ -8,8 +8,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Dapper;
+using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -35,19 +37,7 @@ namespace SteamDatabaseBackend
 
             if (!uint.TryParse(command.Message, out var appID))
             {
-                name = command.Message;
-
-                if (!Utils.ConvertUserInputToSQLSearch(ref name))
-                {
-                    command.Reply("Your request is invalid or too short.");
-
-                    return;
-                }
-
-                using (var db = Database.Get())
-                {
-                    appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` WHERE `Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name OR `Apps`.`LastKnownName` LIKE @Name ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
-                }
+                appID = await TrySearchAppId(command);
 
                 if (appID == 0)
                 {
@@ -104,6 +94,53 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(info.ID));
             }
+        }
+
+        public async static Task<uint> TrySearchAppId(CommandArguments command)
+        {
+            uint appID = 0;
+            var name = command.Message;
+
+            using (var webClient = new WebClient())
+            {
+                webClient.Headers.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
+                webClient.Headers.Add("X-Algolia-Application-Id", "94HE6YATEI");
+                webClient.Headers.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
+                webClient.QueryString.Add("hitsPerPage", "1");
+                webClient.QueryString.Add("attributesToHighlight", "null");
+                webClient.QueryString.Add("attributesToSnippet", "null");
+                webClient.QueryString.Add("attributesToRetrieve", "[\"objectID\"]");
+                webClient.QueryString.Add("facetFilters", "[[\"appType:Game\",\"appType:Application\"]]");
+                webClient.QueryString.Add("advancedSyntax", "true");
+                webClient.QueryString.Add("query", name);
+
+                var data = await webClient.DownloadStringTaskAsync("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/");
+                dynamic json = JsonConvert.DeserializeObject(data);
+
+                if (json.hits != null && json.hits.Count > 0)
+                {
+                    appID = json.hits[0].objectID;
+                }
+            }
+
+            if (appID > 0)
+            {
+                return appID;
+            }
+
+            if (!Utils.ConvertUserInputToSQLSearch(ref name))
+            {
+                command.Reply("Your request is invalid or too short.");
+
+                return 0;
+            }
+
+            using (var db = Database.Get())
+            {
+                appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+            }
+
+            return appID;
         }
     }
 }
