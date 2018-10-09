@@ -23,6 +23,13 @@ namespace SteamDatabaseBackend
             "ubuntu12"
         };
 
+        private static readonly IDictionary<string, string> SystemAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["windows"] = "win32",
+            ["linux"] = "ubuntu12",
+            ["macos"] = "osx"
+        };
+
         public BinariesCommand()
         {
             Trigger = "bins";
@@ -40,17 +47,9 @@ namespace SteamDatabaseBackend
             var args = command.Message.Split(' ');
             string os = args[0];
 
-            if (os == "windows")
+            if (SystemAliases.TryGetValue(os, out var aliasTarget))
             {
-                os = "win32";
-            }
-            else if (os == "linux")
-            {
-                os = "ubuntu12";
-            }
-            else if (os == "macos")
-            {
-                os = "osx";
+                os = aliasTarget;
             }
 
             if (!Systems.Contains(os))
