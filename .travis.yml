@@ -4,16 +4,13 @@ dotnet: 2.1
 
 solution: SteamDatabaseBackend.sln
 
-os:
-  - linux
-  - windows
-
 install:
   - cp ./settings.json.default ./settings.json
   - dotnet restore
 
 script:
-  - dotnet build
+  - dotnet build -c Debug
+  - dotnet build -c Release
 
 notifications:
   email: false
