@@ -11,9 +11,11 @@ namespace SteamDatabaseBackend
 {
     class Watchdog
     {
+        private readonly Timer Timer;
+
         public Watchdog()
         {
-            new Timer(OnTimer, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
+            Timer = new Timer(OnTimer, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
         }
 
         private void OnTimer(object state)
