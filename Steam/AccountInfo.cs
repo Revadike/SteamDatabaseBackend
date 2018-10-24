@@ -52,7 +52,6 @@ namespace SteamDatabaseBackend
 
             Steam.Instance.Client.Send(clientMsg);
 
-            //Steam.Instance.Friends.SetPersonaState(EPersonaState.Busy);
             var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus)
             {
                 Body =

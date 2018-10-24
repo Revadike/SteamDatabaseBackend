@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Dapper;
@@ -31,6 +32,10 @@ namespace SteamDatabaseBackend
 
         public bool IsRunning { get; set; }
 
+        private readonly List<SteamHandler> Handlers;
+        private readonly GameCoordinator GameCoordinatorHandle;
+        private readonly Watchdog WatchdogHandle;
+
         private Steam()
         {
             Configuration = SteamConfiguration.Create(b => b
@@ -52,26 +57,29 @@ namespace SteamDatabaseBackend
 
             Client.AddHandler(new PurchaseResponse());
 
-            new Connection(CallbackManager);
-            new AccountInfo(CallbackManager);
-            new PICSProductInfo(CallbackManager);
-            new PICSTokens(CallbackManager);
-            new LicenseList(CallbackManager);
-            new WebAuth(CallbackManager);
+            Handlers = new List<SteamHandler>
+            {
+                new Connection(CallbackManager),
+                new AccountInfo(CallbackManager),
+                new PICSProductInfo(CallbackManager),
+                new PICSTokens(CallbackManager),
+                new LicenseList(CallbackManager),
+                new WebAuth(CallbackManager)
+            };
 
             if (Settings.Current.CanQueryStore)
             {
-                new FreeLicense(CallbackManager);
+                Handlers.Add(new FreeLicense(CallbackManager));
             }
 
             if (!Settings.IsFullRun)
             {
-                new MarketingMessage(CallbackManager);
-                new ClanState(CallbackManager);
-                new ChatMemberInfo(CallbackManager);
-                new GameCoordinator(Client, CallbackManager);
+                Handlers.Add(new MarketingMessage(CallbackManager));
+                Handlers.Add(new ClanState(CallbackManager));
+                Handlers.Add(new ChatMemberInfo(CallbackManager));
 
-                new Watchdog();
+                GameCoordinatorHandle = new GameCoordinator(Client, CallbackManager);
+                WatchdogHandle = new Watchdog();
             }
 
             PICSChanges = new PICSChanges(CallbackManager);

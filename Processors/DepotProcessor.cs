@@ -271,7 +271,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task<byte[]> NotifyPatchnote(uint appID, int buildID)
+        private static async Task<byte[]> NotifyPatchnote(uint appID, int buildID)
         {
             Log.WriteInfo("Depot Downloader", "Pinging patchnotes notify url for app {0} build {1}", appID, buildID);
 
@@ -394,7 +394,7 @@ namespace SteamDatabaseBackend
 
         private async Task DownloadDepots(uint appID, List<ManifestJob> depots)
         {
-            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count(), DepotLocks.Count);
+            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
 
             var processTasks = new List<Task<EResult>>();
             bool anyFilesDownloaded = false;
@@ -515,7 +515,7 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks).ConfigureAwait(false);
 
-            Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count());
+            Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count);
 
             // TODO: use ContinueWith on tasks
             if (!anyFilesDownloaded)

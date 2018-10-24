@@ -15,12 +15,7 @@ namespace SteamDatabaseBackend
     {
         public static bool IsAuthorized { get; private set; }
         private static string WebAPIUserNonce;
-        private static CookieContainer Cookies;
-
-        static WebAuth()
-        {
-            Cookies = new CookieContainer();
-        }
+        private static CookieContainer Cookies = new CookieContainer();
 
         public WebAuth(CallbackManager manager)
             : base(manager)

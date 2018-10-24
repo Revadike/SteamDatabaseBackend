@@ -20,25 +20,20 @@ namespace SteamDatabaseBackend
 
         private readonly uint BillingTypeKey;
 
-        private static readonly List<EBillingType> IgnorableBillingTypes;
+        private static readonly List<EBillingType> IgnorableBillingTypes = new List<EBillingType>
+        {
+            EBillingType.ProofOfPrepurchaseOnly, // CDKey
+            EBillingType.GuestPass,
+            EBillingType.HardwarePromo,
+            EBillingType.Gift,
+            EBillingType.AutoGrant,
+            EBillingType.OEMTicket,
+            EBillingType.RecurringOption, // Not sure if should be ignored
+        };
 
         private const uint CHANGELIST_BURST_MIN = 50;
         private uint ChangelistBurstCount;
         private DateTime ChangelistBurstTime;
-
-        static PICSChanges()
-        {
-            IgnorableBillingTypes = new List<EBillingType>
-            {
-                EBillingType.ProofOfPrepurchaseOnly, // CDKey
-                EBillingType.GuestPass,
-                EBillingType.HardwarePromo,
-                EBillingType.Gift,
-                EBillingType.AutoGrant,
-                EBillingType.OEMTicket,
-                EBillingType.RecurringOption, // Not sure if should be ignored
-            };
-        }
 
         public PICSChanges(CallbackManager manager)
             : base(manager)
@@ -119,10 +114,10 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            TaskManager.RunAsync(() => RequestUpdateForList(apps, packages));
+            TaskManager.RunAsync(async () => await RequestUpdateForList(apps, packages));
         }
 
-        private bool IsBusy()
+        private static bool IsBusy()
         {
             Log.WriteInfo("Full Run", "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
                               JobManager.JobsCount,
@@ -136,7 +131,7 @@ namespace SteamDatabaseBackend
                    || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
         }
 
-        private async void RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
+        private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
             Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
 
@@ -330,7 +325,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void PrintImportants(SteamApps.PICSChangesCallback callback)
+        private static void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
