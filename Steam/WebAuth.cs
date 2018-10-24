@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System.IO;
 using System.Net;
 using System.Text;
 using SteamKit2;
@@ -12,7 +13,7 @@ namespace SteamDatabaseBackend
 {
     class WebAuth : SteamHandler
     {
-        private static bool IsAuthorized;
+        public static bool IsAuthorized { get; private set; }
         private static string WebAPIUserNonce;
         private static CookieContainer Cookies;
 
@@ -103,6 +104,8 @@ namespace SteamDatabaseBackend
                     return false;
                 }
 
+                File.WriteAllText(Path.Combine(Application.Path, "files", ".support", "cookie.txt"), $"steamLogin={result["token"].AsString()}; steamLoginSecure={result["tokensecure"].AsString()}");
+
                 Cookies = new CookieContainer();
                 Cookies.Add(new Cookie("steamLogin", result["token"].AsString(), "/", "store.steampowered.com"));
                 Cookies.Add(new Cookie("steamLoginSecure", result["tokensecure"].AsString(), "/", "store.steampowered.com"));
@@ -111,6 +114,8 @@ namespace SteamDatabaseBackend
             IsAuthorized = true;
 
             Log.WriteInfo("WebAuth", "Authenticated");
+
+            TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
 
             return true;
         }
