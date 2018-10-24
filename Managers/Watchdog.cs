@@ -33,6 +33,10 @@ namespace SteamDatabaseBackend
                 {
                     TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
                 }
+                else
+                {
+                    WebAuth.AuthenticateUser();
+                }
             }
             else if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalMinutes >= 5.0)
             {

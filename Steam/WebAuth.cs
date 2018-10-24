@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
             WebAPIUserNonce = callback.Nonce;
         }
 
-        private static bool AuthenticateUser()
+        public static bool AuthenticateUser()
         {
             // 32 byte random blob of data
             var sessionKey = CryptoHelper.GenerateRandomBlock(32);
