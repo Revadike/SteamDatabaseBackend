@@ -106,8 +106,11 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("WebAuth", "Authenticated");
 
-            TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
-
+            if (!Settings.IsFullRun)
+            {
+                TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
+            }
+            
             return true;
         }
 
