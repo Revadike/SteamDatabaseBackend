@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -85,20 +86,30 @@ namespace SteamDatabaseBackend
                 handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
                 client.DefaultRequestHeaders.Add("Host", "steamdb.info");
 
-                var data = await client.GetStringAsync("https://localhost/api/GetNextAppIdToIdle/");
+                var response = await client.GetAsync("https://localhost/api/GetNextAppIdToIdle/");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Log.WriteWarn("AccountInfo", $"GetNextAppIdToIdle returned {response.StatusCode}");
+
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        WebAuth.AuthenticateUser();
+                    }
+
+                    return;
+                }
+
+                var data = await response.Content.ReadAsStringAsync();
                 newAppsToIdle = JsonConvert.DeserializeObject<List<uint>>(data);
             }
-            
+
+            Log.WriteInfo("AccountInfo", $"{newAppsToIdle.Count} apps to idle: {string.Join(", ", newAppsToIdle)}");
+
             if (!AppsToIdle.SequenceEqual(newAppsToIdle))
             {
-                Log.WriteInfo("AccountInfo", $"{newAppsToIdle.Count} apps to idle: {string.Join(", ", newAppsToIdle)}");
-
                 AppsToIdle = newAppsToIdle;
                 Sync();
-            }
-            else
-            {
-                Log.WriteInfo("AccountInfo", $"Idling the same {AppsToIdle.Count} apps");
             }
         }
     }
