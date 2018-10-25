@@ -8,6 +8,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -15,44 +16,23 @@ namespace SteamDatabaseBackend
     class WebAuth : SteamHandler
     {
         public static bool IsAuthorized { get; private set; }
-        private static string WebAPIUserNonce;
         private static CookieContainer Cookies = new CookieContainer();
 
         public WebAuth(CallbackManager manager)
             : base(manager)
         {
             manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
-            manager.Subscribe<SteamUser.WebAPIUserNonceCallback>(OnWebAPIUserNonce);
         }
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            if (callback.Result != EResult.OK)
-            {
-                return;
-            }
-
-            WebAPIUserNonce = callback.WebAPIUserNonce;
-
-            TaskManager.RunAsync(() => AuthenticateUser());
+            TaskManager.RunAsync(async () => await AuthenticateUser());
         }
 
-        private void OnWebAPIUserNonce(SteamUser.WebAPIUserNonceCallback callback)
+        public static async Task<bool> AuthenticateUser()
         {
-            if (callback.Result != EResult.OK)
-            {
-                Log.WriteWarn("WebAuth", "Unable to get user nonce: {0}", callback.Result);
+            var nonce = await Steam.Instance.User.RequestWebAPIUserNonce();
 
-                // TODO: Should keep trying?
-
-                return;
-            }
-
-            WebAPIUserNonce = callback.Nonce;
-        }
-
-        public static bool AuthenticateUser()
-        {
             // 32 byte random blob of data
             var sessionKey = CryptoHelper.GenerateRandomBlock(32);
 
@@ -65,15 +45,15 @@ namespace SteamDatabaseBackend
             }
 
             // users hashed loginkey, AES encrypted with the sessionkey
-            var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(WebAPIUserNonce), sessionKey);
+            var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(nonce.Nonce), sessionKey);
 
-            using (dynamic userAuth = WebAPI.GetInterface("ISteamUserAuth"))
+            using (dynamic userAuth = WebAPI.GetAsyncInterface("ISteamUserAuth"))
             {
                 KeyValue result;
 
                 try
                 {
-                    result = userAuth.AuthenticateUser(
+                    result = await userAuth.AuthenticateUser(
                         steamid: Steam.Instance.Client.SteamID.ConvertToUInt64(),
                         sessionkey: WebHelpers.UrlEncode(encryptedSessionKey),
                         encrypted_loginkey: WebHelpers.UrlEncode(encryptedLoginKey),
@@ -84,11 +64,6 @@ namespace SteamDatabaseBackend
                 catch (HttpRequestException e)
                 {
                     IsAuthorized = false;
-
-                    if (Steam.Instance.Client.IsConnected)
-                    {
-                        Steam.Instance.User.RequestWebAPIUserNonce();
-                    }
 
                     Log.WriteWarn("WebAuth", "Failed to authenticate: {0}", e.Message);
 
@@ -108,7 +83,7 @@ namespace SteamDatabaseBackend
 
             if (!Settings.IsFullRun)
             {
-                TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
+                await AccountInfo.RefreshAppsToIdle();
             }
             
             return true;
@@ -116,16 +91,11 @@ namespace SteamDatabaseBackend
 
         public static HttpWebResponse PerformRequest(string method, string url)
         {
-            if (WebAPIUserNonce == null)
-            {
-                throw new WebException("Tried to perform a web request, but didn't receieve webauth nonce yet.");
-            }
-
             HttpWebResponse response = null;
 
             for (var i = 0; i < 5; i++)
             {
-                if (!IsAuthorized && !AuthenticateUser())
+                if (!IsAuthorized && !AuthenticateUser().GetAwaiter().GetResult()) // TODO: async
                 {
                     continue;
                 }

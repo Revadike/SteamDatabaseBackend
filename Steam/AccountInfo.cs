@@ -94,7 +94,7 @@ namespace SteamDatabaseBackend
 
                     if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        WebAuth.AuthenticateUser();
+                        await WebAuth.AuthenticateUser();
                     }
 
                     return;
