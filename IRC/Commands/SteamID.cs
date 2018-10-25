@@ -176,7 +176,7 @@ namespace SteamDatabaseBackend
                             { "url_type", ((int)urlType).ToString() }
                         });
                 }
-                catch (WebException)
+                catch (HttpRequestException)
                 {
                     return (EResult.Timeout, steamID);
                 }

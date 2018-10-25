@@ -6,6 +6,7 @@
 
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using SteamKit2;
 
@@ -80,18 +81,13 @@ namespace SteamDatabaseBackend
                         secure: true
                     );
                 }
-                catch (WebException e)
+                catch (HttpRequestException e)
                 {
-                    var response = (HttpWebResponse)e.Response;
+                    IsAuthorized = false;
 
-                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                    if (Steam.Instance.Client.IsConnected)
                     {
-                        IsAuthorized = false;
-
-                        if (Steam.Instance.Client.IsConnected)
-                        {
-                            Steam.Instance.User.RequestWebAPIUserNonce();
-                        }
+                        Steam.Instance.User.RequestWebAPIUserNonce();
                     }
 
                     Log.WriteWarn("WebAuth", "Failed to authenticate: {0}", e.Message);
