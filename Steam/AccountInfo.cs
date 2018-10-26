@@ -35,40 +35,56 @@ namespace SteamDatabaseBackend
             if (!Settings.IsFullRun)
             {
                 Sync();
+
+                var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus)
+                {
+                    Body =
+                    {
+                        persona_state = (uint)EPersonaState.Online,
+                        persona_state_flags = uint.MaxValue,
+                        player_name = Steam.Instance.Friends.GetPersonaName()
+                    }
+                };
+
+                Steam.Instance.Client.Send(stateMsg);
+
+                foreach (var chatRoom in Settings.Current.ChatRooms)
+                {
+                    Steam.Instance.Friends.JoinChat(chatRoom);
+                }
             }
         }
 
         public static void Sync()
         {
-            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayedNoDataBlob);
+            var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
             clientMsg.Body.games_played.AddRange(
-                Settings.Current.GameCoordinatorIdlers
-                    .Concat(AppsToIdle)
-                    .Select(appID => new CMsgClientGamesPlayed.GamePlayed
-                    {
-                        game_extra_info = "\u2764 steamdb.info",
-                        game_id = appID
-                    })
+                Settings.Current.GameCoordinatorIdlers.Select(appID => new CMsgClientGamesPlayed.GamePlayed
+                {
+                    game_id = appID
+                })
             );
 
             Steam.Instance.Client.Send(clientMsg);
-
-            var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus)
+            
+            clientMsg.Body.games_played.Insert(0, new CMsgClientGamesPlayed.GamePlayed
             {
-                Body =
+                game_extra_info = "\u2764 https://steamdb.info",
+                game_id = new GameID
                 {
-                    persona_state = (uint)EPersonaState.Online,
-                    persona_state_flags = uint.MaxValue,
-                    player_name = Steam.Instance.Friends.GetPersonaName()
+                    AppType = GameID.GameType.Shortcut,
+                    ModID = uint.MaxValue
                 }
-            };
+            });
 
-            Steam.Instance.Client.Send(stateMsg);
+            clientMsg.Body.games_played.AddRange(
+                AppsToIdle.Select(appID => new CMsgClientGamesPlayed.GamePlayed
+                {
+                    game_id = appID
+                })
+            );
 
-            foreach(var chatRoom in Settings.Current.ChatRooms)
-            {
-                Steam.Instance.Friends.JoinChat(chatRoom);
-            }
+            Steam.Instance.Client.Send(clientMsg);
         }
 
         public async static Task RefreshAppsToIdle()
