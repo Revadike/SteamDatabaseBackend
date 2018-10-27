@@ -58,30 +58,15 @@ namespace SteamDatabaseBackend
         public static void Sync()
         {
             var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
-            clientMsg.Body.games_played.AddRange(
-                Settings.Current.GameCoordinatorIdlers.Select(appID => new CMsgClientGamesPlayed.GamePlayed
-                {
-                    game_id = appID
-                })
-            );
-
-            Steam.Instance.Client.Send(clientMsg);
-            
-            clientMsg.Body.games_played.Insert(0, new CMsgClientGamesPlayed.GamePlayed
-            {
-                game_extra_info = "\u2764 https://steamdb.info",
-                game_id = new GameID
-                {
-                    AppType = GameID.GameType.Shortcut,
-                    ModID = uint.MaxValue
-                }
-            });
 
             clientMsg.Body.games_played.AddRange(
-                AppsToIdle.Select(appID => new CMsgClientGamesPlayed.GamePlayed
-                {
-                    game_id = appID
-                })
+                Settings.Current.GameCoordinatorIdlers
+                    .Concat(AppsToIdle)
+                    .Select(appID => new CMsgClientGamesPlayed.GamePlayed
+                    {
+                        game_extra_info = "\u2764 https://steamdb.info",
+                        game_id = appID
+                    })
             );
 
             Steam.Instance.Client.Send(clientMsg);
