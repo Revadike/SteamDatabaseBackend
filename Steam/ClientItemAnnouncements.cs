@@ -20,6 +20,11 @@ namespace SteamDatabaseBackend
 
             var response = new ClientMsgProtobuf<CMsgClientItemAnnouncements>(packetMsg);
 
+            if (response.Body.count_new_items == 0)
+            {
+                return;
+            }
+
             Log.WriteInfo("ClientItemAnnouncements", $"New items: {response.Body.count_new_items}");
 
             IRC.Instance.SendOps($"Got {Colors.GREEN}{response.Body.count_new_items}{Colors.NORMAL} new items");
