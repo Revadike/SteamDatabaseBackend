@@ -97,40 +97,23 @@ namespace SteamDatabaseBackend
                 var votesUp = details.vote_data?.votes_up ?? 0;
                 var votesDown = details.vote_data?.votes_down ?? 0;
 
-                if (command.CommandType == ECommandType.SteamChatRoom)
-                {
-                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg,
-                        string.Format("» {0}: {1} for {2} ({3:N0} views, {4:N0} \ud83d\udc4d, {5:N0} \ud83d\udc4e){6}",
-                            (EWorkshopFileType)details.file_type,
-                            title,
-                            details.app_name,
-                            details.views,
-                            votesUp,
-                            votesDown,
-                            details.spoiler_tag ? " :retreat: SPOILER" : ""
-                        )
-                    );
-                }
-                else
-                {
-                    IRC.Instance.SendReply(command.Recipient,
-                        string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9:N0} views, {10:N0} \ud83d\udc4d, {11:N0} \ud83d\udc4e)",
-                            Colors.OLIVE,
-                            Colors.NORMAL,
-                            (EWorkshopFileType)details.file_type,
-                            Colors.BLUE,
-                            title,
-                            Colors.NORMAL,
-                            Colors.BLUE,
-                            details.app_name,
-                            Colors.LIGHTGRAY,
-                            details.views,
-                            votesUp,
-                            votesDown
-                        ),
-                        false
-                    );
-                }
+                IRC.Instance.SendReply(command.Recipient,
+                    string.Format("{0}» {1}{2} {3}{4}{5} for {6}{7}{8} ({9:N0} views, {10:N0} \ud83d\udc4d, {11:N0} \ud83d\udc4e)",
+                        Colors.OLIVE,
+                        Colors.NORMAL,
+                        (EWorkshopFileType)details.file_type,
+                        Colors.BLUE,
+                        title,
+                        Colors.NORMAL,
+                        Colors.BLUE,
+                        details.app_name,
+                        Colors.LIGHTGRAY,
+                        details.views,
+                        votesUp,
+                        votesDown
+                    ),
+                    false
+                );
             }
         }
 

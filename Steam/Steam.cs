@@ -75,7 +75,6 @@ namespace SteamDatabaseBackend
             {
                 Handlers.Add(new MarketingMessage(CallbackManager));
                 Handlers.Add(new ClanState(CallbackManager));
-                Handlers.Add(new ChatMemberInfo(CallbackManager));
 
                 WatchdogHandle = new Watchdog();
             }
@@ -98,11 +97,6 @@ namespace SteamDatabaseBackend
 
         public void RegisterCommandHandlers(CommandHandler handler)
         {
-            if (Settings.Current.ChatRooms.Count > 0)
-            {
-                CallbackManager.Subscribe<SteamFriends.ChatMsgCallback>(handler.OnSteamChatMessage);
-            }
-
             CallbackManager.Subscribe<SteamFriends.FriendMsgCallback>(handler.OnSteamFriendMessage);
         }
 

@@ -57,11 +57,6 @@ namespace SteamDatabaseBackend
                 };
 
                 Steam.Instance.Client.Send(stateMsg);
-
-                foreach (var chatRoom in Settings.Current.ChatRooms)
-                {
-                    Steam.Instance.Friends.JoinChat(chatRoom);
-                }
             }
         }
 

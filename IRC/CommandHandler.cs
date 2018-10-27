@@ -138,31 +138,6 @@ namespace SteamDatabaseBackend
             HandleSteamMessage(commandData);
         }
 
-        public void OnSteamChatMessage(SteamFriends.ChatMsgCallback callback)
-        {
-            if (callback.ChatMsgType != EChatEntryType.ChatMsg || callback.ChatterID == Steam.Instance.Client.SteamID)
-            {
-                return;
-            }
-
-            var commandData = new CommandArguments
-            {
-                CommandType = ECommandType.SteamChatRoom,
-                SenderID = callback.ChatterID,
-                ChatRoomID = callback.ChatRoomID,
-                Message = callback.Message
-            };
-
-            if (callback.Message[0] != Settings.Current.IRC.CommandPrefix || callback.Message.Contains('\n'))
-            {
-                return;
-            }
-
-            Log.WriteInfo("CommandHandler", "Handling Steam command \"{0}\" for {1}", callback.Message, commandData);
-
-            HandleSteamMessage(commandData);
-        }
-
         private void HandleSteamMessage(CommandArguments commandData)
         {
             var message = commandData.Message;

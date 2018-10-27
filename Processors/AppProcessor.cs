@@ -94,20 +94,6 @@ namespace SteamDatabaseBackend
                     await MakeHistory("created_app");
                     await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
 
-                    // TODO: Testy testy
-                    if (!Settings.IsFullRun && Settings.Current.ChatRooms.Count > 0)
-                    {
-                        Steam.Instance.Friends.SendChatRoomMessage(Settings.Current.ChatRooms[0], EChatEntryType.ChatMsg,
-                            string.Format(
-                                "New {0} was published: {1}\nSteamDB: {2}\nSteam: https://store.steampowered.com/app/{3}/",
-                                currentType,
-                                newAppName,
-                                SteamDB.GetAppURL(AppID),
-                                AppID
-                            )
-                        );
-                    }
-
                     if ((newAppType > 9 && newAppType != 13 && newAppType != 17) || Triggers.Any(newAppName.Contains))
                     {
                         IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",

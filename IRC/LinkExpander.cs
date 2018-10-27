@@ -74,13 +74,6 @@ namespace SteamDatabaseBackend
 
                 string priceInfo = isPackage ? string.Empty : GetFormattedPrices(id);
 
-                if (command.CommandType == ECommandType.SteamChatRoom)
-                {
-                    Steam.Instance.Friends.SendChatRoomMessage(command.ChatRoomID, EChatEntryType.ChatMsg, string.Format("» {0} {1} — {2}{3}", isPackage ? "Package" : "App", id, Colors.StripColors(name), priceInfo));
-
-                    continue;
-                }
-
                 IRC.Instance.SendReply(command.Recipient,
                     string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
                         Colors.OLIVE,

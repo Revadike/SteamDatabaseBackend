@@ -13,7 +13,6 @@ namespace SteamDatabaseBackend
     enum ECommandType
     {
         IRC,
-        SteamChatRoom,
         SteamIndividual
     }
 
@@ -33,7 +32,6 @@ namespace SteamDatabaseBackend
         public string Recipient { get; set; }
         public IrcIdentity SenderIdentity { get; set; }
         public ECommandType CommandType { get; set; }
-        public SteamID ChatRoomID { get; set; }
         public SteamID SenderID { get; set; }
         public bool IsUserAdmin { get; set; }
 
@@ -75,20 +73,6 @@ namespace SteamDatabaseBackend
 
                     break;
 
-                case ECommandType.SteamChatRoom:
-                    if (!Steam.Instance.Client.IsConnected)
-                    {
-                        break;
-                    }
-
-                    Steam.Instance.Friends.SendChatRoomMessage(
-                        ChatRoomID,
-                        EChatEntryType.ChatMsg,
-                        string.Format("{0}: {1}", Steam.Instance.Friends.GetFriendPersonaName(SenderID), Colors.StripColors(message))
-                    );
-
-                    break;
-
                 case ECommandType.SteamIndividual:
                     if (!Steam.Instance.Client.IsConnected)
                     {
@@ -111,9 +95,6 @@ namespace SteamDatabaseBackend
             {
                 case ECommandType.IRC:
                     return string.Format("IRC User \"{0}\" in \"{1}\"", SenderIdentity, Recipient);
-
-                case ECommandType.SteamChatRoom:
-                    return string.Format("Steam User \"{0}\" in \"{1}\"", SenderID.Render(true), ChatRoomID.Render(true));
 
                 case ECommandType.SteamIndividual:
                     return string.Format("Steam User \"{0}\"", SenderID.Render(true));
