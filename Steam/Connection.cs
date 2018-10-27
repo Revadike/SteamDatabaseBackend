@@ -57,8 +57,6 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
-            GameCoordinator.UpdateStatus(0, EResult.NotLoggedOn.ToString());
-
             Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
 
             byte[] sentryHash = null;
@@ -92,8 +90,6 @@ namespace SteamDatabaseBackend
 
             Application.ChangelistTimer.Stop();
 
-            GameCoordinator.UpdateStatus(0, EResult.NoConnection.ToString());
-
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
             IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);
@@ -103,8 +99,6 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            GameCoordinator.UpdateStatus(0, Settings.IsFullRun ? string.Format("Full Run ({0})", Settings.Current.FullRun) : callback.Result.ToString());
-
             if (callback.Result == EResult.AccountLogonDenied)
             {
                 Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
@@ -177,8 +171,6 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
             IRC.Instance.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
-
-            GameCoordinator.UpdateStatus(0, callback.Result.ToString());
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)

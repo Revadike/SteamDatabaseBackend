@@ -85,9 +85,6 @@ namespace SteamDatabaseBackend
         public List<ulong> ChatRooms = new List<ulong>();
 
         [JsonProperty(Required = Required.Always)]
-        public List<uint> GameCoordinatorIdlers = new List<uint>();
-
-        [JsonProperty(Required = Required.Always)]
         public SteamJson Steam = new SteamJson();
 
         [JsonProperty(Required = Required.Always)]

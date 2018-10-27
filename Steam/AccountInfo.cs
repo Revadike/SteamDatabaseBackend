@@ -22,6 +22,16 @@ namespace SteamDatabaseBackend
 
         private static List<uint> AppsToIdle = new List<uint>();
 
+        private static CMsgClientGamesPlayed.GamePlayed InGameShorcut = new CMsgClientGamesPlayed.GamePlayed
+        {
+            game_extra_info = "\u2764 https://steamdb.info",
+            game_id = new GameID
+            {
+                AppType = GameID.GameType.Shortcut,
+                ModID = uint.MaxValue
+            }
+        };
+
         public AccountInfo(CallbackManager manager)
             : base(manager)
         {
@@ -59,15 +69,23 @@ namespace SteamDatabaseBackend
         {
             var clientMsg = new ClientMsgProtobuf<CMsgClientGamesPlayed>(EMsg.ClientGamesPlayed);
 
-            clientMsg.Body.games_played.AddRange(
-                Settings.Current.GameCoordinatorIdlers
-                    .Concat(AppsToIdle)
-                    .Select(appID => new CMsgClientGamesPlayed.GamePlayed
+            // Send empty first
+            Steam.Instance.Client.Send(clientMsg);
+
+            if (AppsToIdle.Count > 0)
+            {
+                clientMsg.Body.games_played.AddRange(
+                    AppsToIdle.Select(appID => new CMsgClientGamesPlayed.GamePlayed
                     {
-                        game_extra_info = "\u2764 https://steamdb.info",
+                        game_extra_info = InGameShorcut.game_extra_info,
                         game_id = appID
                     })
-            );
+                );
+            }
+            else
+            {
+                clientMsg.Body.games_played.Add(InGameShorcut);
+            }
 
             Steam.Instance.Client.Send(clientMsg);
         }

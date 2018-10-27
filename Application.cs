@@ -173,13 +173,6 @@ namespace SteamDatabaseBackend
                 thread.Join(TimeSpan.FromSeconds(5));
             }
 
-            Log.WriteInfo("Bootstrapper", "Truncating GC table...");
-
-            using (var db = Database.Get())
-            {
-                db.Execute("DELETE FROM `GC`");
-            }
-
             Log.WriteInfo("Bootstrapper", "Saving local config...");
 
             LocalConfig.Save();

@@ -33,7 +33,6 @@ namespace SteamDatabaseBackend
         public bool IsRunning { get; set; }
 
         private readonly List<SteamHandler> Handlers;
-        private readonly GameCoordinator GameCoordinatorHandle;
         private readonly Watchdog WatchdogHandle;
 
         private Steam()
@@ -78,7 +77,6 @@ namespace SteamDatabaseBackend
                 Handlers.Add(new ClanState(CallbackManager));
                 Handlers.Add(new ChatMemberInfo(CallbackManager));
 
-                GameCoordinatorHandle = new GameCoordinator(Client, CallbackManager);
                 WatchdogHandle = new Watchdog();
             }
 

@@ -16,11 +16,6 @@
 		"WebAPIKey": ""
 	},
 	
-	"GameCoordinatorIdlers":
-	[
-		440
-	],
-	
 	"IRC":
 	{
 		"Enabled": false,
