@@ -27,8 +27,6 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("ClientItemAnnouncements", $"New items: {response.Body.count_new_items}");
 
-            IRC.Instance.SendOps($"Got {Colors.GREEN}{response.Body.count_new_items}{Colors.NORMAL} new items");
-
             TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
         }
     }
