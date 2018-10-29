@@ -96,9 +96,6 @@ namespace SteamDatabaseBackend
         [JsonProperty(Required = Required.Always)]
         public Uri RawBaseURL;
 
-        [JsonProperty(Required = Required.Default)]
-        public string PatchnotesNotifyURL;
-
         [JsonProperty(Required = Required.Always)]
         public string ConnectionString;
 

@@ -246,11 +246,6 @@ namespace SteamDatabaseBackend
             if (depotsToDownload.Any())
             {
 #pragma warning disable 4014
-                if (FileDownloader.IsImportantDepot(appID) && !Settings.IsFullRun && !string.IsNullOrEmpty(Settings.Current.PatchnotesNotifyURL))
-                {
-                    TaskManager.Run(() => NotifyPatchnote(appID, depotsToDownload.First().BuildID));
-                }
-
                 TaskManager.Run(async () =>
                 {
                     try
@@ -268,21 +263,6 @@ namespace SteamDatabaseBackend
                     }
                 });
 #pragma warning restore 4014
-            }
-        }
-
-        private static async Task<byte[]> NotifyPatchnote(uint appID, int buildID)
-        {
-            Log.WriteInfo("Depot Downloader", "Pinging patchnotes notify url for app {0} build {1}", appID, buildID);
-
-            using (var webClient = new WebClient())
-            {
-                return await webClient.DownloadDataTaskAsync(
-                    new Uri(Settings.Current.PatchnotesNotifyURL
-                        .Replace("{appid}", appID.ToString())
-                        .Replace("{buildid}", buildID.ToString())
-                    )
-                );
             }
         }
 
