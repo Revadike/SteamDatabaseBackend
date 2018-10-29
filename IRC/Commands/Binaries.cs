@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using SteamKit2;
 
@@ -59,16 +60,17 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (var webClient = new WebClient())
-            {
-                var isStable = args.Length > 1 && args[1].Equals("stable");
-                string data = await webClient.DownloadStringTaskAsync(new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks)));
+            var isStable = args.Length > 1 && args[1].Equals("stable");
+            var uri = new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks));
 
+            using (var client = new HttpClient())
+            {
+                var data = await client.GetStringAsync(uri);
                 var kv = KeyValue.LoadFromString(data);
 
                 if (kv == null)
                 {
-                    throw new Exception("Failed to parse downloaded client manifest.");
+                    throw new InvalidOperationException("Failed to parse downloaded client manifest.");
                 }
 
                 PrintBinary(command, kv, string.Concat("bins_", os));

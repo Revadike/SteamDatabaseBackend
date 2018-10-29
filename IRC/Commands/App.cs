@@ -8,8 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -101,20 +102,27 @@ namespace SteamDatabaseBackend
             uint appID = 0;
             var name = command.Message;
 
-            using (var webClient = new WebClient())
+            using (var webClient = new HttpClient())
             {
-                webClient.Headers.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
-                webClient.Headers.Add("X-Algolia-Application-Id", "94HE6YATEI");
-                webClient.Headers.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
-                webClient.QueryString.Add("hitsPerPage", "1");
-                webClient.QueryString.Add("attributesToHighlight", "null");
-                webClient.QueryString.Add("attributesToSnippet", "null");
-                webClient.QueryString.Add("attributesToRetrieve", "[\"objectID\"]");
-                webClient.QueryString.Add("facetFilters", "[[\"appType:Game\",\"appType:Application\"]]");
-                webClient.QueryString.Add("advancedSyntax", "true");
-                webClient.QueryString.Add("query", name);
+                webClient.DefaultRequestHeaders.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
+                webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
+                webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
 
-                var data = await webClient.DownloadStringTaskAsync("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/");
+                var query = HttpUtility.ParseQueryString(string.Empty);
+                query.Add("hitsPerPage", "1");
+                query.Add("attributesToHighlight", "null");
+                query.Add("attributesToSnippet", "null");
+                query.Add("attributesToRetrieve", "[\"objectID\"]");
+                query.Add("facetFilters", "[[\"appType:Game\",\"appType:Application\"]]");
+                query.Add("advancedSyntax", "true");
+                query.Add("query", name);
+
+                var uri = new UriBuilder("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/")
+                {
+                    Query = query.ToString()
+                };
+
+                var data = await webClient.GetStringAsync(uri.Uri);
                 dynamic json = JsonConvert.DeserializeObject(data);
 
                 if (json.hits != null && json.hits.Count > 0)
