@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web;
 using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -101,6 +100,25 @@ namespace SteamDatabaseBackend
         {
             uint appID = 0;
             var name = command.Message;
+            Uri uri;
+            var query = new Dictionary<string, string>
+            {
+                { "hitsPerPage", "1" },
+                { "attributesToHighlight", "null" },
+                { "attributesToSnippet", "null" },
+                { "attributesToRetrieve", "[\"objectID\"]" },
+                { "facetFilters", "[[\"appType:Game\",\"appType:Application\"]]" },
+                { "advancedSyntax", "true" },
+                { "query", name }
+            };
+
+            using (var content = new FormUrlEncodedContent(query))
+            {
+                uri = new UriBuilder("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/")
+                {
+                    Query = await content.ReadAsStringAsync()
+                }.Uri;
+            }
 
             using (var webClient = new HttpClient())
             {
@@ -108,21 +126,7 @@ namespace SteamDatabaseBackend
                 webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
                 webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
 
-                var query = HttpUtility.ParseQueryString(string.Empty);
-                query.Add("hitsPerPage", "1");
-                query.Add("attributesToHighlight", "null");
-                query.Add("attributesToSnippet", "null");
-                query.Add("attributesToRetrieve", "[\"objectID\"]");
-                query.Add("facetFilters", "[[\"appType:Game\",\"appType:Application\"]]");
-                query.Add("advancedSyntax", "true");
-                query.Add("query", name);
-
-                var uri = new UriBuilder("https://94he6yatei-dsn.algolia.net/1/indexes/steamdb/")
-                {
-                    Query = query.ToString()
-                };
-
-                var data = await webClient.GetStringAsync(uri.Uri);
+                var data = await webClient.GetStringAsync(uri);
                 dynamic json = JsonConvert.DeserializeObject(data);
 
                 if (json.hits != null && json.hits.Count > 0)
