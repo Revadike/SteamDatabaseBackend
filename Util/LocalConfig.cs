@@ -69,19 +69,27 @@ namespace SteamDatabaseBackend
                 Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(ConfigPath));
 
                 var time = DateTime.Now;
+                var removed = 0;
 
                 foreach (var token in Current.CDNAuthTokens)
                 {
                     if (time > token.Value.Expiration)
                     {
                         Current.CDNAuthTokens.TryRemove(token.Key, out _);
-
-                        Log.WriteInfo("Local Config", $"Removing expired token for depot {token.Key}");
+                        removed++;
                     }
+                }
+
+                if (removed > 0)
+                {
+                    Log.WriteInfo("Local Config", $"Removing {removed} expired depot tokens");
                 }
             }
 
-            Log.WriteInfo("Local Config", $"There are {Current.FreeLicensesToRequest.Count} free licenses to request");
+            if (Current.FreeLicensesToRequest.Count > 0)
+            {
+                Log.WriteInfo("Local Config", $"There are {Current.FreeLicensesToRequest.Count} free licenses to request");
+            }
 
             Save();
         }
