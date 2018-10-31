@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
             {
                 AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;
 
-                IRC.Instance.SendOps("💀🔫 Backend process is going to crash, send help.");
+                IRC.Instance.SendOps("🥀 Backend process has crashed.");
 
                 Application.Cleanup();
             }

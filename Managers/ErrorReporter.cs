@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
             var stacktrace = new StackTrace(e, true);
             var frame = stacktrace.GetFrame(stacktrace.FrameCount - 1);
             
-            IRC.Instance.SendOps("{0}[{1} Exception @{2}]{3} {4} {5}({6}#L{7})",
+            IRC.Instance.SendOps("⚠️ {0}[{1} Exception @{2}]{3} {4} {5}({6}#L{7})",
                 Colors.OLIVE, component, frame.GetMethod(), Colors.NORMAL,
                 e.Message, Colors.DARKGRAY, frame.GetFileName(), frame.GetFileLineNumber()
             );
