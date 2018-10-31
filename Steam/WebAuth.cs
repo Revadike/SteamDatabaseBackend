@@ -31,7 +31,20 @@ namespace SteamDatabaseBackend
 
         public static async Task<bool> AuthenticateUser()
         {
-            var nonce = await Steam.Instance.User.RequestWebAPIUserNonce();
+            SteamUser.WebAPIUserNonceCallback nonce;
+
+            try
+            {
+                nonce = await Steam.Instance.User.RequestWebAPIUserNonce();
+            }
+            catch (Exception e)
+            {
+                IsAuthorized = false;
+
+                Log.WriteWarn("WebAuth", "Failed to get nonce: {0}", e.Message);
+
+                return false;
+            }
 
             // 32 byte random blob of data
             var sessionKey = CryptoHelper.GenerateRandomBlock(32);
