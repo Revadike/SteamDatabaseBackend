@@ -42,22 +42,24 @@ namespace SteamDatabaseBackend
         {
             Country = callback.Country;
 
-            if (!Settings.IsFullRun)
+            var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus)
             {
-                Sync();
-
-                var stateMsg = new ClientMsgProtobuf<CMsgClientChangeStatus>(EMsg.ClientChangeStatus)
+                Body =
                 {
-                    Body =
-                    {
-                        persona_state = (uint)EPersonaState.Online,
-                        persona_state_flags = uint.MaxValue,
-                        player_name = Steam.Instance.Friends.GetPersonaName()
-                    }
-                };
+                    persona_state = (uint)EPersonaState.Online,
+                    persona_state_flags = uint.MaxValue,
+                    player_name = Steam.Instance.Friends.GetPersonaName()
+                }
+            };
 
-                Steam.Instance.Client.Send(stateMsg);
+            Steam.Instance.Client.Send(stateMsg);
+
+            if (Settings.IsFullRun)
+            {
+                InGameShorcut.game_extra_info = $"\u23E9 Full run: {Settings.Current.FullRun.ToString()}";
             }
+
+            Sync();
         }
 
         public static void Sync()
