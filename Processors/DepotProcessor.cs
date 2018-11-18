@@ -51,6 +51,10 @@ namespace SteamDatabaseBackend
             CDNClient = new CDNClient(client);
             CDNServers = new List<string>();
 
+#if DEBUG
+            CDNClient.RequestTimeout = TimeSpan.FromMinutes(1);
+#endif
+
             FileDownloader.SetCDNClient(CDNClient);
 
             manager.Subscribe<SteamClient.ServerListCallback>(OnServerList);
