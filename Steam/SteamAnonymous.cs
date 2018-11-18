@@ -5,6 +5,8 @@
  */
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Timers;
 using SteamKit2;
 
@@ -40,6 +42,7 @@ namespace SteamDatabaseBackend
             CallbackManager.Subscribe<SteamClient.DisconnectedCallback>(OnDisconnected);
             CallbackManager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
             CallbackManager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
+            CallbackManager.Subscribe<SteamApps.PICSTokensCallback>(OnPICSTokens);
 
             IsRunning = true;
         }
@@ -52,6 +55,19 @@ namespace SteamDatabaseBackend
             {
                 CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(5));
             }
+        }
+
+        public void GetAccessTokenForApp(uint appID)
+        {
+            // Request two apps at once because for some reason that seems to increase
+            // the chance of the token actually being granted
+            var apps = new List<uint>
+            {
+                5,
+                appID
+            };
+
+            _ = Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>());
         }
 
         private void Reconnect(object sender, ElapsedEventArgs e)
@@ -107,6 +123,20 @@ namespace SteamDatabaseBackend
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             Log.WriteInfo("SteamAnonymous", "Logged out of Steam: {0}", callback.Result);
+        }
+
+        private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
+        {
+            Log.WriteDebug("SteamAnonymous", $"Tokens granted: {callback.AppTokens.Count} - Tokens denied: {callback.AppTokensDenied.Count}");
+
+            foreach (var (appID, token) in callback.AppTokens)
+            {
+                if (token > 0 && PICSTokens.HandleToken(appID, token))
+                {
+                    // If we actually get a valid token, request fresh app info with main Steam instance
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
+                }
+            }
         }
     }
 }
