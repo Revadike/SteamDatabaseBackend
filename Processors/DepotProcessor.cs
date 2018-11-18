@@ -249,8 +249,7 @@ namespace SteamDatabaseBackend
 
             if (depotsToDownload.Any())
             {
-#pragma warning disable 4014
-                TaskManager.Run(async () =>
+                _ = TaskManager.Run(async () =>
                 {
                     try
                     {
@@ -266,7 +265,6 @@ namespace SteamDatabaseBackend
                         RemoveLock(depot.DepotID);
                     }
                 });
-#pragma warning restore 4014
             }
         }
 

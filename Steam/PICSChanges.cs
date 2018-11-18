@@ -213,21 +213,18 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
             }
 
-// We don't care about waiting for separate database queries to finish, so don't await them
-#pragma warning disable 4014
             if (callback.AppChanges.Count > 0)
             {
-                TaskManager.RunAsync(async () => await HandleApps(callback));
+                _ = TaskManager.RunAsync(async () => await HandleApps(callback));
             }
 
             if (callback.PackageChanges.Count > 0)
             {
-                TaskManager.RunAsync(async () => await HandlePackages(callback));
-                TaskManager.RunAsync(async () => await HandlePackagesChangelists(callback));
+                _ = TaskManager.RunAsync(async () => await HandlePackages(callback));
+                _ = TaskManager.RunAsync(async () => await HandlePackagesChangelists(callback));
             }
 
-            TaskManager.RunAsync(async () => await SendChangelistsToIRC(callback));
-#pragma warning restore 4014
+            _ = TaskManager.RunAsync(async () => await SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }
