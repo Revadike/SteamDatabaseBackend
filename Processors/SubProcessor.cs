@@ -125,7 +125,26 @@ namespace SteamDatabaseBackend
 
                                 appAddedToThisPackage = true;
 
-                                // TODO: Log relevant add/remove history for depot/app?
+                                // Log relevant add/remove history events for depot and app
+                                await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
+                                    new PICSHistory
+                                    {
+                                        ID = appID,
+                                        ChangeID = ChangeNumber,
+                                        NewValue = SubID.ToString(),
+                                        Action = isAppSection ? "added_to_sub" : "removed_from_sub"
+                                    }
+                                );
+
+                                await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
+                                    new DepotHistory
+                                    {
+                                        DepotID = appID,
+                                        ChangeID = ChangeNumber,
+                                        OldValue = SubID,
+                                        Action = isAppSection ? "removed_from_sub" : "added_to_sub"
+                                    }
+                                );
                             }
 
                             apps.Remove(appID);
