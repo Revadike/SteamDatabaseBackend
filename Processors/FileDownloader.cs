@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -97,15 +98,15 @@ namespace SteamDatabaseBackend
             var downloadState = EResult.Fail;
             
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
-            Dictionary<string, byte[]> hashes;
+            ConcurrentDictionary<string, byte[]> hashes;
 
             if (File.Exists(hashesFile))
             {
-                hashes = JsonConvert.DeserializeObject<Dictionary<string, byte[]>>(File.ReadAllText(hashesFile));
+                hashes = JsonConvert.DeserializeObject<ConcurrentDictionary<string, byte[]>>(File.ReadAllText(hashesFile));
             }
             else
             {
-                hashes = new Dictionary<string, byte[]>();
+                hashes = new ConcurrentDictionary<string, byte[]>();
             }
 
             foreach (var file in hashes.Keys.Except(files.Select(x => x.FileName)))
