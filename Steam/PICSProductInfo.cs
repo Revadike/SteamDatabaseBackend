@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
                     {
                         await Semaphore.WaitAsync(TaskManager.TaskCancellationToken.Token).ConfigureAwait(false);
 
-                        if (mostRecentItem != null && !mostRecentItem.IsCompleted)
+                        if (mostRecentItem?.IsCompleted == false)
                         {
                             Log.WriteDebug(processor.ToString(), $"Waiting for previous task to finish processing ({CurrentlyProcessing.Count})");
 

@@ -281,7 +281,7 @@ namespace SteamDatabaseBackend
                 .Select(x => x.ID).Where(x => !ignoredPackages.ContainsKey(x))
                 .ToList();
 
-            if (!subids.Any())
+            if (subids.Count == 0)
             {
                 return;
             }
@@ -294,7 +294,7 @@ namespace SteamDatabaseBackend
                 appids = (await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids AND `Type` = 'app'", new { Ids = subids })).ToList();
             }
 
-            if (appids.Any())
+            if (appids.Count > 0)
             {
                 await StoreQueue.AddAppToQueue(appids);
             }

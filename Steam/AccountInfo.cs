@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
 
         private static List<uint> AppsToIdle = new List<uint>();
 
-        private static CMsgClientGamesPlayed.GamePlayed InGameShorcut = new CMsgClientGamesPlayed.GamePlayed
+        private static readonly CMsgClientGamesPlayed.GamePlayed InGameShorcut = new CMsgClientGamesPlayed.GamePlayed
         {
             game_extra_info = "\u2764 https://steamdb.info",
             game_id = new GameID

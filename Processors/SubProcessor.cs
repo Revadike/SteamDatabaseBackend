@@ -214,7 +214,7 @@ namespace SteamDatabaseBackend
                         }
                     }
                 }
-                else if (section.Children.Any())
+                else if (section.Children.Count > 0)
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
@@ -234,7 +234,7 @@ namespace SteamDatabaseBackend
                 await MakeHistory("removed_key", data.Key, data.Value);
             }
 
-            var appsRemoved = apps.Any();
+            var appsRemoved = apps.Count > 0;
 
             foreach (var app in apps)
             {
@@ -301,7 +301,7 @@ namespace SteamDatabaseBackend
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
 
-            if (data.Any())
+            if (data.Count > 0)
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {

@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Dapper" Version="1.50.5" />
-    <PackageReference Include="MySqlConnector" Version="0.46.0" />
+    <PackageReference Include="MySqlConnector" Version="0.47.1" />
     <PackageReference Include="NetIrc2" Version="1.0.0">
       <NoWarn>NU1701</NoWarn>
     </PackageReference>

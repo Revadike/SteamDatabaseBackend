@@ -187,12 +187,7 @@ namespace SteamDatabaseBackend
 
             var distinct = output.Distinct().ToList();
 
-            if (distinct.Count == 1 && distinct.First() == '%')
-            {
-                return false;
-            }
-
-            return true;
+            return distinct.Count == 1 && distinct[0] == '%';
         }
 
         public static string RemoveControlCharacters(string input)

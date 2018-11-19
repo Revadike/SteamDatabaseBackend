@@ -233,7 +233,7 @@ namespace SteamDatabaseBackend
                     {
                         foreach (var chunk in chunks)
                         {
-                            var oldChunk = oldChunks.FirstOrDefault(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+                            var oldChunk = oldChunks.Find(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
 
                             if (oldChunk != null)
                             {

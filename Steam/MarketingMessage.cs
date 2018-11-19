@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
 
         private static async void OnMarketingMessage(SteamUser.MarketingMessageCallback callback)
         {
-            if (!callback.Messages.Any())
+            if (callback.Messages.Count == 0)
             {
                 return;
             }

@@ -42,10 +42,7 @@ namespace SteamDatabaseBackend
         {
             Tasks.TryAdd(t, 1);
 
-            t.ContinueWith(task =>
-            {
-                Tasks.TryRemove(task, out _);
-            });
+            t.ContinueWith(task => Tasks.TryRemove(task, out _));
         }
 
         public static void RegisterErrorHandler(Task t)

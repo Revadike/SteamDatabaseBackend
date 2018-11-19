@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
 
                 if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
                 {
-                    var branch = depot["manifests"].Children.FirstOrDefault(x => x.Name != "local");
+                    var branch = depot["manifests"].Children.Find(x => x.Name != "local");
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
@@ -146,7 +146,7 @@ namespace SteamDatabaseBackend
                 requests.Add(request);
             }
 
-            if (!requests.Any())
+            if (requests.Count == 0)
             {
                 return;
             }
@@ -155,11 +155,10 @@ namespace SteamDatabaseBackend
 
             using (var db = await Database.GetConnectionAsync())
             {
-                var firstRequest = requests.First();
                 await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
                 new {
-                    firstRequest.BuildID,
-                    firstRequest.ChangeNumber,
+                    requests[0].BuildID,
+                    requests[0].ChangeNumber,
                     appID
                 });
 
@@ -247,7 +246,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (depotsToDownload.Any())
+            if (depotsToDownload.Count > 0)
             {
                 _ = TaskManager.Run(async () =>
                 {
@@ -542,7 +541,7 @@ namespace SteamDatabaseBackend
                 // Only commit changes if all depots downloaded
                 if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
-                    if (!RunUpdateScript(appID, depots.First().BuildID))
+                    if (!RunUpdateScript(appID, depots[0].BuildID))
                     {
                         RunUpdateScript("0");
                     }
@@ -619,7 +618,7 @@ namespace SteamDatabaseBackend
         {
             var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
             var filesAdded = new List<DepotFile>();
-            var shouldHistorize = filesOld.Any(); // Don't historize file additions if we didn't have any data before
+            var shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
 
             foreach (var file in depotManifest.Files)
             {
@@ -627,7 +626,7 @@ namespace SteamDatabaseBackend
                 byte[] hash = null;
 
                 // Store empty hashes as NULL (e.g. an empty file)
-                if (file.FileHash.Length > 0 && !file.Flags.HasFlag(EDepotFileFlag.Directory))
+                if (file.FileHash.Length > 0 && (file.Flags & EDepotFileFlag.Directory) == 0)
                 {
                     for (int i = 0; i < file.FileHash.Length; ++i)
                     {
@@ -694,7 +693,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (filesOld.Any())
+            if (filesOld.Count > 0)
             {
                 await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) }, transaction: transaction);
                 await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
@@ -706,7 +705,7 @@ namespace SteamDatabaseBackend
                 }), transaction: transaction);
             }
 
-            if (filesAdded.Any())
+            if (filesAdded.Count > 0)
             {
                 await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded, transaction: transaction);
 

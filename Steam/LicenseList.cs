@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
             foreach (var license in licenseList.LicenseList)
             {
                 // Expired licenses block access to depots, so we have no use in these
-                if (license.LicenseFlags.HasFlag(ELicenseFlags.Expired))
+                if ((license.LicenseFlags & ELicenseFlags.Expired) != 0)
                 {
                     continue;
                 }
@@ -108,7 +108,7 @@ namespace SteamDatabaseBackend
 
         public static void RefreshApps()
         {
-            if (!OwnedSubs.Any())
+            if (OwnedSubs.Count == 0)
             {
                 return;
             }

@@ -5,7 +5,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using NetIrc2;
 using NetIrc2.Events;

@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -204,7 +203,7 @@ namespace SteamDatabaseBackend
 
             var data = CurrentData.Values.Where(x => !x.KeyName.StartsWith("website", StringComparison.Ordinal)).ToList();
 
-            if (data.Any())
+            if (data.Count > 0)
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {
@@ -310,7 +309,7 @@ namespace SteamDatabaseBackend
 
             if (newKv != null)
             {
-                await MakeHistoryForJson(data.Key, data.Value, value, newKv);
+                await MakeHistoryForJson(data.Key, data.Value, newKv);
             }
             else
             {
@@ -325,7 +324,7 @@ namespace SteamDatabaseBackend
             return true;
         }
         
-        private Task MakeHistoryForJson(uint keyNameId, string oldValue, string newValue, KeyValue newKv)
+        private Task MakeHistoryForJson(uint keyNameId, string oldValue, KeyValue newKv)
         {
             var diff = JsonConvert.SerializeObject(DiffKeyValues.Diff(oldValue, newKv));
                 
