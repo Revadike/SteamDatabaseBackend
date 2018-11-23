@@ -290,7 +290,7 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                Log.WriteError("Depot Processor", "Decryption key timed out for {0}", depotID);
+                Log.WriteWarn("Depot Processor", "Decryption key timed out for {0}", depotID);
 
                 return null;
             }
@@ -299,7 +299,7 @@ namespace SteamDatabaseBackend
             {
                 if (callback.Result != EResult.AccessDenied)
                 {
-                    Log.WriteError("Depot Processor", "No access to depot {0} ({1})", depotID, callback.Result);
+                    Log.WriteWarn("Depot Processor", "No access to depot {0} ({1})", depotID, callback.Result);
                 }
 
                 return null;
@@ -346,7 +346,7 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                Log.WriteError("Depot Processor", "CDN auth token timed out for {0}", depotID);
+                Log.WriteWarn("Depot Processor", "CDN auth token timed out for {0}", depotID);
 
                 return null;
             }
