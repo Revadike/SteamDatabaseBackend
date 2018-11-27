@@ -129,7 +129,7 @@ namespace SteamDatabaseBackend
                 var data = await webClient.GetStringAsync(uri);
                 dynamic json = JsonConvert.DeserializeObject(data);
 
-                if (json.hits != null && json.hits.Count > 0)
+                if (json.hits?.Count > 0)
                 {
                     appID = json.hits[0].objectID;
                 }

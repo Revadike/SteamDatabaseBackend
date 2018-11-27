@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             {
                 AnonymousApps = db
                     .Query("SELECT `AppID` FROM `SubsApps` WHERE `SubID` = 17906")
-                    .ToDictionary(x => (uint)x.AppID, x => (byte)1);
+                    .ToDictionary(x => (uint)x.AppID, _ => (byte)1);
             }
 
             Log.WriteDebug("LicenseList", "Loaded {0} anonymous apps", AnonymousApps.Count);
@@ -115,7 +115,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, x => (byte)1);
+                OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, _ => (byte)1);
             }
         }
     }

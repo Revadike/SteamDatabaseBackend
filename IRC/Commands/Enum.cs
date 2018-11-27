@@ -66,7 +66,9 @@ namespace SteamDatabaseBackend
                 .Invoke(this, new object[] { args.Length > 1 ? args[1] : string.Empty, command, includeDeprecated });
         }
 
+#pragma warning disable RCS1213 // Invoked above
         void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
+#pragma warning restore RCS1213
             where TEnum : struct
         {
             var enumName = GetDottedTypeName(typeof(TEnum));
@@ -82,7 +84,7 @@ namespace SteamDatabaseBackend
 
             if (!includeDeprecated)
             {
-                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Any()));
+                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Length > 0));
             }
 
             if (!string.IsNullOrEmpty(inputValue))
@@ -155,7 +157,7 @@ namespace SteamDatabaseBackend
 
                 // TODO: Handle odd flags that aren't (1<<x)
 
-                if (definedFlags.Any())
+                if (definedFlags.Count > 0)
                 {
                     return string.Join(", ", definedFlags);
                 }

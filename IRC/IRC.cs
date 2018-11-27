@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
 
                     if (Settings.Current.IRC.SslAcceptInvalid)
                     {
-                        options.SslCertificateValidationCallback = (sender, certificate, chain, policyErrors) => true;
+                        options.SslCertificateValidationCallback = (_, __, ___, ____) => true;
                     }
                 }
 

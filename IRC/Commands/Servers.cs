@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
             var response = callback.GetDeserializedResponse<CGameServers_GetServerList_Response>();
             var servers = response.servers;
 
-            if (!servers.Any())
+            if (servers.Count == 0)
             {
                 command.Reply("No servers.");
 
@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
 
             if (servers.Count == 1)
             {
-                var server = servers.First();
+                var server = servers[0];
 
                 command.Reply($"{server.addr} - {new SteamID(server.steamid).Render(true)} - {Colors.GREEN}{server.players}/{server.max_players}{Colors.NORMAL} - Map: {Colors.DARKGRAY}{server.map}{Colors.NORMAL} - AppID: {Colors.DARKGRAY}{server.appid}{Colors.NORMAL} - Version: {Colors.DARKGRAY}{server.version}{Colors.NORMAL} - Dir: {Colors.DARKGRAY}{server.gamedir}{Colors.NORMAL} - Tags: {Colors.DARKGRAY}{server.gametype}{Colors.NORMAL} - Name: {Colors.DARKGRAY}{server.name}");
 

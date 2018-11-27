@@ -70,7 +70,7 @@ namespace SteamDatabaseBackend
 
             using (var db = await Database.GetConnectionAsync())
             {
-                var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) })).ToDictionary(x => x.Link, x => (byte)1);
+                var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) })).ToDictionary(x => x.Link, _ => (byte)1);
 
                 var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
 

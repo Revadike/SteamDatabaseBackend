@@ -106,7 +106,7 @@ namespace SteamDatabaseBackend
             using (var db = Database.Get())
             {
                 importantApps = db.Query<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`").ToList();
-                ImportantSubs = db.Query<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`").ToDictionary(x => x.ID, x => (byte)1);
+                ImportantSubs = db.Query<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`").ToDictionary(x => x.ID, _ => (byte)1);
             }
 
             lock (ImportantApps)

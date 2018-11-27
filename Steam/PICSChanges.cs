@@ -260,7 +260,7 @@ namespace SteamDatabaseBackend
                         Subs = callback.PackageChanges.Values.Select(x => x.ID),
                         Types = IgnorableBillingTypes
                     }
-                )).ToDictionary(x => (uint)x.SubID, x => (byte)1);
+                )).ToDictionary(x => (uint)x.SubID, _ => (byte)1);
             }
 
             // Steam comp

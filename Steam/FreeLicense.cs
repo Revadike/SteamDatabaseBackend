@@ -195,7 +195,7 @@ namespace SteamDatabaseBackend
             }
 
             // TODO: Put LicenseList.OwnedApps.ContainsKey() in First() search
-            var appid = kv["appids"].Children.First().AsUnsignedInteger();
+            var appid = kv["appids"].Children[0].AsUnsignedInteger();
 
             if (LicenseList.OwnedApps.ContainsKey(appid))
             {

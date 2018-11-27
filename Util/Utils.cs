@@ -85,7 +85,7 @@ namespace SteamDatabaseBackend
 
         public static int ExponentionalBackoff(int i)
         {
-            return (1 << i) * 1000 + NextRandom(1001);
+            return ((1 << i) * 1000) + NextRandom(1001);
         }
 
         public static SteamApps.PICSRequest NewPICSRequest(uint id)
