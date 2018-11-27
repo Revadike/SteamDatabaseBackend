@@ -134,16 +134,14 @@ namespace SteamDatabaseBackend
         private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
             Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
-
-            const int size = 100;
-
-            foreach(var list in appIDs.Split(size))
+            
+            foreach(var list in appIDs.Split(200))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
 
                 do
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(100);
                 }
                 while (IsBusy());
             }
@@ -155,13 +153,13 @@ namespace SteamDatabaseBackend
 
             var packages = packageIDs.Select(Utils.NewPICSRequest).ToList();
 
-            foreach (var list in packages.Split(size))
+            foreach (var list in packages.Split(1000))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
 
                 do
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(100);
                 }
                 while (IsBusy());
             }
