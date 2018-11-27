@@ -14,7 +14,7 @@
     <PackageReference Include="NetIrc2" Version="1.0.0">
       <NoWarn>NU1701</NoWarn>
     </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="SteamKit2" Version="2.1.0" />
   </ItemGroup>
   <ItemGroup>
