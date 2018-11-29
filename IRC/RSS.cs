@@ -156,7 +156,7 @@ namespace SteamDatabaseBackend
                         item.Content = new Regex(@"<br( \/)?>\r?\n?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "\n");
 
                         // dashes (CS:GO mainly)
-                        item.Content = new Regex("^&#(8208|8209|8210|8211|8212|8213); ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
+                        item.Content = new Regex("^(?:-|&#(?:8208|8209|8210|8211|8212|8213);) ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
 
                         // add source
                         item.Content = string.Format("Via [{0}]({1}):\n\n{2}", appID == 730 ? "CS:GO Blog" : "the Steam Store", item.Link, item.Content);
