@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            if (command.Message.Length == 0)
+            if (string.IsNullOrWhiteSpace(command.Message))
             {
                 command.Reply("Usage:{0} players <appid or partial game name>", Colors.OLIVE);
 
@@ -35,8 +35,6 @@ namespace SteamDatabaseBackend
 
                 if (appID == 0)
                 {
-                    command.Reply("Nothing was found matching your request.");
-
                     return;
                 }
             }

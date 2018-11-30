@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            if (command.Message.Length == 0)
+            if (string.IsNullOrWhiteSpace(command.Message))
             {
                 command.Reply("Usage:{0} app <appid or partial game name>", Colors.OLIVE);
 
@@ -41,8 +41,6 @@ namespace SteamDatabaseBackend
 
                 if (appID == 0)
                 {
-                    command.Reply("Nothing was found matching your request.");
-
                     return;
                 }
             }
@@ -140,16 +138,14 @@ namespace SteamDatabaseBackend
                 return appID;
             }
 
-            if (!Utils.ConvertUserInputToSQLSearch(ref name))
-            {
-                command.Reply("Your request is invalid or too short.");
-
-                return 0;
-            }
-
             using (var db = Database.Get())
             {
                 appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+            }
+
+            if (appID == 0)
+            {
+                command.Reply("Nothing was found matching your request.");
             }
 
             return appID;
