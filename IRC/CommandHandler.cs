@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-                
+
             trigger = trigger.Substring(1);
 
             var command = RegisteredCommands.Find(cmd => cmd.Trigger.Equals(trigger));

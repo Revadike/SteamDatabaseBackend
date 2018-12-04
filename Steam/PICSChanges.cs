@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-                
+
             manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChanges);
 
             using (var db = Database.Get())
@@ -65,7 +65,7 @@ namespace SteamDatabaseBackend
                 {
                     PreviousChangeNumber = LocalConfig.Current.ChangeNumber;
                 }
-                
+
                 Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
             }
 
@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
         private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
             Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
-            
+
             foreach(var list in appIDs.Split(200))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
@@ -171,7 +171,7 @@ namespace SteamDatabaseBackend
             {
                 return;
             }
-            
+
             Log.WriteInfo("PICSChanges", $"Changelist {PreviousChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
@@ -425,7 +425,7 @@ namespace SteamDatabaseBackend
                 if (packageCount > 0)
                 {
                     Dictionary<uint, Package> packages;
-                    
+
                     using (var db = Database.Get())
                     {
                         packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) })).ToDictionary(x => x.SubID, x => x);

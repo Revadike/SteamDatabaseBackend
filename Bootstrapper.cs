@@ -19,10 +19,10 @@ namespace SteamDatabaseBackend
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
 
             Console.Title = "Steam Database";
-            
+
             // Load settings file before logging as it can be enabled in settings
             Settings.Load();
-            
+
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
 
             // Just create deepest folder we will use in the app
@@ -78,7 +78,7 @@ namespace SteamDatabaseBackend
             {
                 ErrorReporter.Notify("Bootstrapper", parentException);
             }
-            
+
             if (args.IsTerminating)
             {
                 AppDomain.CurrentDomain.UnhandledException -= OnSillyCrashHandler;

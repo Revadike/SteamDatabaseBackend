@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
             ActivationTimer.Elapsed += OnTimer;
             ActivationTimer.Start();
         }
-        
+
         private async void OnTimer(object sender, ElapsedEventArgs e)
         {
             if (!Steam.Instance.Client.IsConnected)

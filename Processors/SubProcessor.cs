@@ -405,7 +405,7 @@ namespace SteamDatabaseBackend
                 }
             );
         }
-        
+
         public override string ToString()
         {
             return $"Package {SubID}";

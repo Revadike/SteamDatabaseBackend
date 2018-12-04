@@ -105,16 +105,16 @@ namespace SteamDatabaseBackend
 
                 IsTwoFactor = false;
                 AuthCode = Console.ReadLine()?.Trim();
-                
+
                 return;
             }
             else if (callback.Result == EResult.AccountLoginDeniedNeedTwoFactor)
             {
                 Console.Write("STEAM GUARD! Please enter your 2 factor auth code from your authenticator app: ");
-                
+
                 IsTwoFactor = true;
                 AuthCode = Console.ReadLine()?.Trim();
-                
+
                 return;
             }
 
@@ -184,7 +184,7 @@ namespace SteamDatabaseBackend
 
             int fileSize;
             byte[] sentryHash;
-            
+
             using (var stream = new MemoryStream(callback.BytesToWrite))
             {
                 stream.Seek(callback.Offset, SeekOrigin.Begin);

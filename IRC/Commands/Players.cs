@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
             {
                 appID = 753;
             }
-            
+
             name = Steam.GetAppName(appID, out var appType);
 
             if (callback.Result != EResult.OK)

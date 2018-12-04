@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
         {
             var steamID = new SteamID();
             EResult eResult;
-            
+
             using (var steamUser = Steam.Configuration.GetAsyncWebAPIInterface("ISteamUser"))
             {
                 steamUser.Timeout = TimeSpan.FromSeconds(5);

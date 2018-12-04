@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
                     {
                         name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
                     }
-                                    
+
                     if (!string.IsNullOrEmpty(name))
                     {
                         await StoreQueue.AddAppToQueue(id);
@@ -70,7 +70,7 @@ namespace SteamDatabaseBackend
                     {
                         name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
                     }
-                                    
+
                     if (!string.IsNullOrEmpty(name))
                     {
                         await StoreQueue.AddPackageToQueue(id);

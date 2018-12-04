@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
                 {
                     ErrorReporter.Notify("Depot Downloader", e);
                 }
-                
+
                 return;
             }
 
@@ -357,7 +357,7 @@ namespace SteamDatabaseBackend
             {
                 return null;
             }
-            
+
             var newToken = new LocalConfig.CDNAuthToken
             {
                 Token = tokenCallback.Token,
@@ -460,11 +460,11 @@ namespace SteamDatabaseBackend
                 {
                     continue;
                 }
-                
+
                 task = TaskManager.Run(async () =>
                 {
                     var result = EResult.Fail;
-                        
+
                     try
                     {
                         result = await FileDownloader.DownloadFilesFromDepot(depot, depotManifest);
@@ -478,10 +478,10 @@ namespace SteamDatabaseBackend
                     {
                         ErrorReporter.Notify($"Depot Processor {depot.DepotID}", e);
                     }
-                        
+
                     return result;
                 }).Unwrap();
-                
+
                 processTasks.Add(task);
             }
 
@@ -597,7 +597,7 @@ namespace SteamDatabaseBackend
                 process.Start();
                 process.WaitForExit(120000);
             }
-            
+
             return true;
         }
 
@@ -723,7 +723,7 @@ namespace SteamDatabaseBackend
 
             return EResult.OK;
         }
-        
+
         private static Task MakeHistory(IDbConnection db, IDbTransaction transaction, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
         {
             return db.ExecuteAsync(HistoryQuery,

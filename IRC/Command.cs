@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
     abstract class Command
     {
         public string Trigger { get; protected set; }
-        
+
         public bool IsAdminCommand { get; protected set; }
         public bool IsSteamCommand { get; protected set; }
 

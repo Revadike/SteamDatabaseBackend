@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             };
             ReconnectionTimer.Elapsed += Reconnect;
             ReconnectionTimer.Interval = TimeSpan.FromSeconds(Connection.RETRY_DELAY).TotalMilliseconds;
-            
+
             Client = new SteamClient(Steam.Configuration);
             User = Client.GetHandler<SteamUser>();
             Apps = Client.GetHandler<SteamApps>();

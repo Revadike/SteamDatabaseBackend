@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
         {
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var downloadState = EResult.Fail;
-            
+
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
             ConcurrentDictionary<string, byte[]> hashes;
 
@@ -113,7 +113,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteWarn(nameof(FileDownloader), $"\"{file}\" no longer exists in manifest");
             }
-            
+
             Log.WriteInfo("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
 
             var downloadedFiles = 0;
@@ -151,7 +151,7 @@ namespace SteamDatabaseBackend
                         downloadState = fileState;
                     }
                 }).Unwrap();
-                
+
                 // Register error handler on inner task
                 TaskManager.RegisterErrorHandler(fileTasks[i]);
             }
@@ -216,7 +216,7 @@ namespace SteamDatabaseBackend
             {
                 checksum = sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName));
             }
-            
+
             var neededChunks = new List<DepotManifest.ChunkData>();
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
             var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(checksum)));
@@ -288,7 +288,7 @@ namespace SteamDatabaseBackend
                     try
                     {
                         chunkCancellation.Token.ThrowIfCancellationRequested();
-                        
+
                         await ChunkDownloadingSemaphore.WaitAsync(chunkCancellation.Token).ConfigureAwait(false);
 
                         var result = await DownloadChunk(job, chunk, downloadPath);
@@ -342,11 +342,11 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, job.DepotName);
-            
+
             finalPath.Delete();
 
             downloadPath.MoveTo(finalPath.FullName);
-            
+
             if (chunks.Count > 1)
             {
                 File.WriteAllText(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences));

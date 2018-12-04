@@ -99,7 +99,7 @@ namespace SteamDatabaseBackend
             {
                 await AccountInfo.RefreshAppsToIdle();
             }
-            
+
             return true;
         }
 

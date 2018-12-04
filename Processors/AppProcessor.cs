@@ -17,6 +17,7 @@ namespace SteamDatabaseBackend
     class AppProcessor : BaseProcessor
     {
         public const string HistoryQuery = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`, `Diff`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue, @Diff)";
+
         private static readonly string[] Triggers =
         {
             "Valve",
@@ -71,7 +72,7 @@ namespace SteamDatabaseBackend
                 var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLower();
 
                 var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
-                
+
                 if (newAppType == -1)
                 {
                     await DbConnection.ExecuteAsync("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
@@ -315,7 +316,7 @@ namespace SteamDatabaseBackend
             {
                 await MakeHistory("modified_key", data.Key, data.Value, value);
             }
-            
+
             if (keyName == "common_oslist" && value.Contains("linux") && !data.Value.Contains("linux"))
             {
                 PrintLinux();
@@ -323,11 +324,11 @@ namespace SteamDatabaseBackend
 
             return true;
         }
-        
+
         private Task MakeHistoryForJson(uint keyNameId, string oldValue, KeyValue newKv)
         {
             var diff = JsonConvert.SerializeObject(DiffKeyValues.Diff(oldValue, newKv));
-                
+
             return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {

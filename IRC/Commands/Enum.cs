@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-                
+
             var enumValues = Enum.GetValues(typeof(TEnum)).Cast<TEnum>();
 
             if (!includeDeprecated)

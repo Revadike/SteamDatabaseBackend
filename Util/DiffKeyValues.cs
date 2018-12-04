@@ -23,13 +23,13 @@ namespace SteamDatabaseBackend
             public string NewValue { get; set; }
             public string Type { get; set; }
         }
-        
+
         public static Dictionary<string, ComparedValue> Diff(string oldJson, KeyValue newKv)
         {
             var oldFlat = DeserializeAndFlattenJson(oldJson);
             var newFlat = FlattenKeyValue(newKv.Children, null); // Children because we skip root
             var diff = new Dictionary<string, ComparedValue>();
-            
+
             foreach (var oldSingle in oldFlat)
             {
                 if (newFlat.TryGetValue(oldSingle.Key, out var newValue))
@@ -68,12 +68,12 @@ namespace SteamDatabaseBackend
 
             return diff;
         }
-        
+
         private static Dictionary<string, string> FlattenKeyValue(KeyValue kv, string path = "")
         {
             var flat = new Dictionary<string, string>();
             var key = $"{path}{kv.Name}";
-            
+
             if (kv.Children.Count > 0)
             {
                 var flatChildren = FlattenKeyValue(kv.Children, key);
@@ -90,7 +90,7 @@ namespace SteamDatabaseBackend
 
             return flat;
         }
-        
+
         private static Dictionary<string, string> FlattenKeyValue(IEnumerable<KeyValue> input, string path)
         {
             if (path != null)

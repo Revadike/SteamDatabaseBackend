@@ -36,14 +36,14 @@ namespace SteamDatabaseBackend
             public uint ChangeNumber { get; set; }
 
             [JsonProperty]
-            public string SentryFileName { get; set; } 
+            public string SentryFileName { get; set; }
 
             [JsonProperty]
-            public byte[] Sentry { get; set; } 
+            public byte[] Sentry { get; set; }
 
             [JsonProperty]
             public ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; }
-            
+
             [JsonProperty]
             public HashSet<uint> FreeLicensesToRequest { get; set; }
 

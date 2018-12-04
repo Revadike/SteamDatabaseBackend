@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
         private static void OnPICSProductInfo(SteamApps.PICSProductInfoCallback callback)
         {
             JobManager.TryRemoveJob(callback.JobID);
-            
+
             var processors = new List<BaseProcessor>(
                 callback.Apps.Count +
                 callback.Packages.Count +
@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
             processors.AddRange(callback.Packages.Select(package => new SubProcessor(package.Key, package.Value)));
             processors.AddRange(callback.UnknownApps.Select(app => new AppProcessor(app, null)));
             processors.AddRange(callback.UnknownPackages.Select(package => new SubProcessor(package, null)));
-            
+
             foreach (var workaround in processors)
             {
                 var processor = workaround;
