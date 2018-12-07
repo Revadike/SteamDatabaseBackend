@@ -158,14 +158,11 @@ namespace SteamDatabaseBackend
                         // dashes (CS:GO mainly)
                         item.Content = new Regex("^(?:-|&#(?:8208|8209|8210|8211|8212|8213);) ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
 
-                        // add source
-                        item.Content = string.Format("Via [{0}]({1}):\n\n{2}", appID == 730 ? "CS:GO Blog" : "the Steam Store", item.Link, item.Content);
-
                         Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
 
                         await db.ExecuteAsync(
-                            "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`) " +
-                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `LastEditor` = @AccountID",
+                            "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`, `OfficialURL`) " +
+                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `OfficialURL` = VALUES(`OfficialURL`), `LastEditor` = @AccountID",
                             new
                             {
                                 build.BuildID,
@@ -173,6 +170,7 @@ namespace SteamDatabaseBackend
                                 build.ChangeID,
                                 Date = build.Date.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss"),
                                 item.Content,
+                                item.Link,
                                 Steam.Instance.Client.SteamID.AccountID
                             }
                         );
