@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
 
                         await db.ExecuteAsync(
                             "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`, `OfficialURL`) " +
-                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `OfficialURL` = VALUES(`OfficialURL`), `LastEditor` = @AccountID",
+                            "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content, @Link) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `OfficialURL` = VALUES(`OfficialURL`), `LastEditor` = @AccountID",
                             new
                             {
                                 build.BuildID,
