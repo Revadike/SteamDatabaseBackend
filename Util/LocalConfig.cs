@@ -45,12 +45,12 @@ namespace SteamDatabaseBackend
             public ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; }
 
             [JsonProperty]
-            public HashSet<uint> FreeLicensesToRequest { get; set; }
+            public Dictionary<uint, uint> FreeLicensesToRequest { get; set; }
 
             public LocalConfigJson()
             {
                 CDNAuthTokens = new ConcurrentDictionary<uint, CDNAuthToken>();
-                FreeLicensesToRequest = new HashSet<uint>();
+                FreeLicensesToRequest = new Dictionary<uint, uint>();
             }
         }
 
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
         public static uint CellID => Current.CellID;
         public static byte[] Sentry => Current.Sentry;
         public static ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens => Current.CDNAuthTokens;
-        public static HashSet<uint> FreeLicensesToRequest => Current.FreeLicensesToRequest;
+        public static Dictionary<uint, uint> FreeLicensesToRequest => Current.FreeLicensesToRequest;
 
         public static void Load()
         {

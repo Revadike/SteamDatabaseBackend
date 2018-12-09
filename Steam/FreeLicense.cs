@@ -167,33 +167,33 @@ namespace SteamDatabaseBackend
 
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
-            var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
+            var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT);
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
 
             using (var db = Database.Get())
             {
-                startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
+                startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list.Select(x => x.Key) }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
             }
 
-            foreach (var appid in list)
+            foreach (var (subId, _) in list)
             {
-                if (startTimes.TryGetValue(appid, out var startTime) && startTime > now)
+                if (startTimes.TryGetValue(subId, out var startTime) && startTime > now)
                 {
                     // If start time has not been reached yet, don't remove this app from the list and keep trying to activate it
                     continue;
                 }
 
-                LocalConfig.FreeLicensesToRequest.Remove(appid);
+                LocalConfig.FreeLicensesToRequest.Remove(subId);
             }
 
             LocalConfig.Save();
 
-            AppsRequestedInHour = list.Count;
+            AppsRequestedInHour = list.Count();
 
             Log.WriteDebug(nameof(FreeLicense), $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
 
-            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list));
+            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list.Select(x => x.Value)));
 
             if (LocalConfig.FreeLicensesToRequest.Count > 0)
             {
@@ -215,9 +215,9 @@ namespace SteamDatabaseBackend
             }
 
             // TODO: Put LicenseList.OwnedApps.ContainsKey() in First() search
-            var appid = kv["appids"].Children[0].AsUnsignedInteger();
+            var appId = kv["appids"].Children[0].AsUnsignedInteger();
 
-            if (LicenseList.OwnedApps.ContainsKey(appid))
+            if (LicenseList.OwnedApps.ContainsKey(appId))
             {
                 return;
             }
@@ -269,7 +269,7 @@ namespace SteamDatabaseBackend
 
             if (startTime > now)
             {
-                AddToQueue(appid);
+                AddToQueue(subId, appId);
 
                 Log.WriteDebug(nameof(FreeLicense), $"Package {subId} has not reached starttime yet, added to queue");
 
@@ -281,34 +281,34 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appid });
-                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `Apps`.`AppID` = @AppID AND `AppType` != 3", new { AppID = appid });
+                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appId });
+                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `Apps`.`AppID` = @AppID AND `AppType` != 3", new { AppID = appId });
             }
 
             if (!available)
             {
-                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} (app {appid}) did not pass release check");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} (app {appId}) did not pass release check");
                 return;
             }
 
             if (parentAppId > 0 && !LicenseList.OwnedApps.ContainsKey(parentAppId))
             {
-                Log.WriteDebug(nameof(FreeLicense), $"Parent app {parentAppId} is not owned to get {appid}");
+                Log.WriteDebug(nameof(FreeLicense), $"Parent app {parentAppId} is not owned to get {appId}");
                 return;
             }
 
             Log.WriteDebug(nameof(FreeLicense), $"Requesting apps in package {subId}");
 
-            QueueRequest(appid);
+            QueueRequest(subId, appId);
         }
 
-        private static void QueueRequest(uint appid)
+        private static void QueueRequest(uint subId, uint appId)
         {
             if (Settings.IsFullRun || AppsRequestedInHour++ >= REQUEST_RATE_LIMIT)
             {
-                Log.WriteDebug(nameof(FreeLicense), $"Adding app {appid} to queue as rate limit is reached");
+                Log.WriteDebug(nameof(FreeLicense), $"Adding app {appId} to queue as rate limit is reached");
 
-                AddToQueue(appid);
+                AddToQueue(subId, appId);
 
                 return;
             }
@@ -316,22 +316,22 @@ namespace SteamDatabaseBackend
             FreeLicenseTimer.Stop();
             FreeLicenseTimer.Start();
 
-            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appid));
+            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appId));
         }
 
-        private static void AddToQueue(uint appid)
+        private static void AddToQueue(uint subId, uint appId)
         {
             if (!FreeLicenseTimer.Enabled)
             {
                 FreeLicenseTimer.Start();
             }
 
-            if (LocalConfig.FreeLicensesToRequest.Contains(appid))
+            if (LocalConfig.FreeLicensesToRequest.ContainsKey(subId))
             {
                 return;
             }
 
-            LocalConfig.FreeLicensesToRequest.Add(appid);
+            LocalConfig.FreeLicensesToRequest.Add(subId, appId);
             LocalConfig.Save();
         }
     }
