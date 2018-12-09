@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
             var packageIDs = callback.GrantedPackages;
             var appIDs = callback.GrantedApps;
 
-            Log.WriteDebug("FreeLicense", "Received free license: {0} ({1} apps: {2}, {3} packages: {4})",
+            Log.WriteDebug(nameof(FreeLicense), "Received free license: {0} ({1} apps: {2}, {3} packages: {4})",
                 callback.Result, appIDs.Count, string.Join(", ", appIDs), packageIDs.Count, string.Join(", ", packageIDs));
 
             if (appIDs.Count > 0)
@@ -191,7 +191,7 @@ namespace SteamDatabaseBackend
 
             AppsRequestedInHour = list.Count;
 
-            Log.WriteDebug("Free Packages", $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
+            Log.WriteDebug(nameof(FreeLicense), $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list));
 
@@ -210,7 +210,7 @@ namespace SteamDatabaseBackend
 
             if (kv["appids"].Children.Count == 0)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} has no apps");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} has no apps");
                 return;
             }
 
@@ -224,13 +224,13 @@ namespace SteamDatabaseBackend
 
             if (kv["status"].AsInteger() != 0) // EPackageStatus.Available
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} is not available");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} is not available");
                 return;
             }
 
             if ((ELicenseType)kv["licensetype"].AsInteger() != ELicenseType.SinglePurchase)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} is not single purchase");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} is not single purchase");
                 return;
             }
 
@@ -238,13 +238,13 @@ namespace SteamDatabaseBackend
 
             if (dontGrantIfAppIdOwned > 0 && LicenseList.OwnedApps.ContainsKey(dontGrantIfAppIdOwned))
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} already owns app {dontGrantIfAppIdOwned}");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} already owns app {dontGrantIfAppIdOwned}");
                 return;
             }
 
             if (kv["extended"]["curatorconnect"].AsInteger() == 1)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} is a curator package");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} is a curator package");
                 return;
             }
 
@@ -253,7 +253,7 @@ namespace SteamDatabaseBackend
 
             if (purchaseRestrictedCountries != null && purchaseRestrictedCountries.Contains(AccountInfo.Country) != allowPurchaseFromRestrictedCountries)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} is not available in {AccountInfo.Country}");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} is not available in {AccountInfo.Country}");
                 return;
             }
 
@@ -263,7 +263,7 @@ namespace SteamDatabaseBackend
 
             if (expiryTime > 0 && expiryTime < now)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} has already expired");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} has already expired");
                 return;
             }
 
@@ -271,7 +271,7 @@ namespace SteamDatabaseBackend
             {
                 AddToQueue(appid);
 
-                Log.WriteDebug("Free Packages", $"Package {subId} has not reached starttime yet, added to queue");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} has not reached starttime yet, added to queue");
 
                 return;
             }
@@ -287,17 +287,17 @@ namespace SteamDatabaseBackend
 
             if (!available)
             {
-                Log.WriteDebug("Free Packages", $"Package {subId} (app {appid}) did not pass release check");
+                Log.WriteDebug(nameof(FreeLicense), $"Package {subId} (app {appid}) did not pass release check");
                 return;
             }
 
             if (parentAppId > 0 && !LicenseList.OwnedApps.ContainsKey(parentAppId))
             {
-                Log.WriteDebug("Free Packages", $"Parent app {parentAppId} is not owned to get {appid}");
+                Log.WriteDebug(nameof(FreeLicense), $"Parent app {parentAppId} is not owned to get {appid}");
                 return;
             }
 
-            Log.WriteDebug("Free Packages", $"Requesting apps in package {subId}");
+            Log.WriteDebug(nameof(FreeLicense), $"Requesting apps in package {subId}");
 
             QueueRequest(appid);
         }
@@ -306,7 +306,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.IsFullRun || AppsRequestedInHour++ >= REQUEST_RATE_LIMIT)
             {
-                Log.WriteDebug("Free Packages", $"Adding app {appid} to queue as rate limit is reached");
+                Log.WriteDebug(nameof(FreeLicense), $"Adding app {appid} to queue as rate limit is reached");
 
                 AddToQueue(appid);
 
