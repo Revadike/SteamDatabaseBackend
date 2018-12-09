@@ -61,6 +61,13 @@ namespace SteamDatabaseBackend
             if (appIDs.Count > 0)
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs, Enumerable.Empty<uint>()));
+
+                foreach (var appid in appIDs)
+                {
+                    LocalConfig.FreeLicensesToRequest.Remove(appid);
+                }
+
+                LocalConfig.Save();
             }
 
             if (packageIDs.Count > 0)
@@ -161,9 +168,22 @@ namespace SteamDatabaseBackend
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
             var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
+            var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
+            Dictionary<uint, ulong> startTimes;
+
+            using (var db = Database.Get())
+            {
+                startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
+            }
 
             foreach (var appid in list)
             {
+                if (startTimes.TryGetValue(appid, out var startTime) && startTime > now)
+                {
+                    // If start time has not been reached yet, don't remove this app from the list and keep trying to activate it
+                    continue;
+                }
+
                 LocalConfig.FreeLicensesToRequest.Remove(appid);
             }
 
@@ -230,7 +250,7 @@ namespace SteamDatabaseBackend
 
             var allowPurchaseFromRestrictedCountries = kv["extended"]["allowpurchasefromrestrictedcountries"].AsBoolean();
             var purchaseRestrictedCountries = kv["extended"]["purchaserestrictedcountries"].AsString();
-            
+
             if (purchaseRestrictedCountries != null && purchaseRestrictedCountries.Contains(AccountInfo.Country) != allowPurchaseFromRestrictedCountries)
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} is not available in {AccountInfo.Country}");
@@ -241,16 +261,18 @@ namespace SteamDatabaseBackend
             var expiryTime = kv["extended"]["expirytime"].AsUnsignedLong();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow);
 
-            if (startTime > now)
-            {
-                // TODO: Queue until starttime?
-                Log.WriteDebug("Free Packages", $"Package {subId} has not reached starttime yet");
-                return;
-            }
-
             if (expiryTime > 0 && expiryTime < now)
             {
                 Log.WriteDebug("Free Packages", $"Package {subId} has already expired");
+                return;
+            }
+
+            if (startTime > now)
+            {
+                AddToQueue(appid);
+
+                Log.WriteDebug("Free Packages", $"Package {subId} has not reached starttime yet, added to queue");
+
                 return;
             }
 
@@ -284,15 +306,9 @@ namespace SteamDatabaseBackend
         {
             if (Settings.IsFullRun || AppsRequestedInHour++ >= REQUEST_RATE_LIMIT)
             {
-                if (LocalConfig.FreeLicensesToRequest.Contains(appid))
-                {
-                    return;
-                }
-
                 Log.WriteDebug("Free Packages", $"Adding app {appid} to queue as rate limit is reached");
 
-                LocalConfig.FreeLicensesToRequest.Add(appid);
-                LocalConfig.Save();
+                AddToQueue(appid);
 
                 return;
             }
@@ -301,6 +317,22 @@ namespace SteamDatabaseBackend
             FreeLicenseTimer.Start();
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appid));
+        }
+
+        private static void AddToQueue(uint appid)
+        {
+            if (!FreeLicenseTimer.Enabled)
+            {
+                FreeLicenseTimer.Start();
+            }
+
+            if (LocalConfig.FreeLicensesToRequest.Contains(appid))
+            {
+                return;
+            }
+
+            LocalConfig.FreeLicensesToRequest.Add(appid);
+            LocalConfig.Save();
         }
     }
 }
