@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
             };
             FreeLicenseTimer.Elapsed += OnTimer;
 
-            if (LocalConfig.FreeLicensesToRequest.Count > 0)
+            if (!Settings.IsFullRun && LocalConfig.FreeLicensesToRequest.Count > 0)
             {
                 AppsRequestedInHour = REQUEST_RATE_LIMIT;
                 FreeLicenseTimer.Start();
@@ -167,7 +167,7 @@ namespace SteamDatabaseBackend
 
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
-            var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT);
+            var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
 
@@ -321,7 +321,7 @@ namespace SteamDatabaseBackend
 
         private static void AddToQueue(uint subId, uint appId)
         {
-            if (!FreeLicenseTimer.Enabled)
+            if (!Settings.IsFullRun && !FreeLicenseTimer.Enabled)
             {
                 FreeLicenseTimer.Start();
             }
