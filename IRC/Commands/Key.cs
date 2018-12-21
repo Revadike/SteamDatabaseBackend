@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
             {
                 job = await new AsyncJob<PurchaseResponseCallback>(Steam.Instance.Client, msg.SourceJobID);
             }
-            catch (TaskCanceledException)
+            catch (Exception)
             {
                 return EPurchaseResultDetail.Timeout;
             }
