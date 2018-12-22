@@ -17,9 +17,9 @@ namespace SteamDatabaseBackend
     {
         public const uint RETRY_DELAY = 15;
 
-        public static DateTime LastSuccessfulLogin;
+        public static DateTime LastSuccessfulLogin { get; private set; }
 
-        public readonly Timer ReconnectionTimer;
+        public Timer ReconnectionTimer { get; }
 
         private string AuthCode;
         private bool IsTwoFactor;

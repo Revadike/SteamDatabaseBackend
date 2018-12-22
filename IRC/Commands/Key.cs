@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
 {
     class KeyCommand : Command
     {
-        private static Timer ActivationTimer;
+        private readonly Timer ActivationTimer;
 
         public KeyCommand()
         {
