@@ -120,7 +120,7 @@ namespace SteamDatabaseBackend
                 request.AllowAutoRedirect = false;
                 request.CookieContainer = Cookies;
                 request.AutomaticDecompression = DecompressionMethods.GZip;
-                request.UserAgent = "Steam Database (https://github.com/SteamDatabase/SteamDatabaseBackend)";
+                request.UserAgent = SteamDB.USERAGENT;
 
                 response = request.GetResponse() as HttpWebResponse;
 

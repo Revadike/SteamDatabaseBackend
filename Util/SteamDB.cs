@@ -13,6 +13,8 @@ namespace SteamDatabaseBackend
         public const uint DATABASE_APPTYPE   = 9;
         public const uint DATABASE_NAME_TYPE = 10;
 
+        public const string USERAGENT = "Steam Database (https://github.com/SteamDatabase/SteamDatabaseBackend)";
+
         public const string UNKNOWN_APP = "SteamDB Unknown App";
 
         public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);

@@ -186,7 +186,7 @@ namespace SteamDatabaseBackend
             try
             {
                 var webReq = WebRequest.Create(url) as HttpWebRequest;
-                webReq.UserAgent = "RSS2IRC";
+                webReq.UserAgent = SteamDB.USERAGENT;
                 webReq.Timeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
                 webReq.ReadWriteTimeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
 

@@ -65,6 +65,8 @@ namespace SteamDatabaseBackend
 
             using (var client = new HttpClient())
             {
+                client.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
+
                 var data = await client.GetStringAsync(uri);
                 var kv = KeyValue.LoadFromString(data);
 
