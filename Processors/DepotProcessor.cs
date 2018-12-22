@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -515,7 +514,7 @@ namespace SteamDatabaseBackend
                 {
                     if (depot.Result == EResult.OK)
                     {
-                        RunUpdateScript(string.Format("{0} no-git", depot.DepotID));
+                        RunUpdateScript(UpdateScript, string.Format("{0} no-git", depot.DepotID));
                     }
                     else if(depot.Result != EResult.Ignored)
                     {
@@ -538,7 +537,7 @@ namespace SteamDatabaseBackend
                 {
                     if (!RunUpdateScript(appID, depots[0].BuildID))
                     {
-                        RunUpdateScript("0");
+                        RunUpdateScript(UpdateScript, "0");
                     }
                 }
                 else
@@ -554,8 +553,10 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void RunUpdateScript(string arg)
+        private void RunUpdateScript(string script, string arg)
         {
+            Log.WriteDebug("Depot Downloader", $"Running update script: {script} {arg}");
+
             using (var process = new System.Diagnostics.Process())
             {
                 process.StartInfo = new System.Diagnostics.ProcessStartInfo
@@ -584,16 +585,7 @@ namespace SteamDatabaseBackend
                 return false;
             }
 
-            using (var process = new System.Diagnostics.Process())
-            {
-                process.StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = updateScript,
-                    Arguments = buildID.ToString()
-                };
-                process.Start();
-                process.WaitForExit(120000);
-            }
+            RunUpdateScript(updateScript, buildID.ToString());
 
             return true;
         }
