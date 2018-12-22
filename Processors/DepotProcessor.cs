@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             DepotLocks = new Dictionary<uint, byte>();
             CDNClient = new CDNClient(client);
-            CDNServers = new List<string>();
+            CDNServers = new List<string> { "valve500.steamcontent.com" };
 
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
 
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
 
         private async void OnServerList(SteamClient.ServerListCallback callback)
         {
-            IList<CDNClient.Server> serverList;
+            IList<CDNClient.Server> serverList = null;
 
             try
             {
@@ -68,10 +68,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                if (CDNServers.Count == 0)
-                {
-                    ErrorReporter.Notify("Depot Downloader", e);
-                }
+                ErrorReporter.Notify("Depot Downloader", e);
 
                 return;
             }
