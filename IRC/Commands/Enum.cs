@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 using SteamKit2.Internal;
 
@@ -59,32 +58,28 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var input = args.Length > 1 ? args[1] : string.Empty;
             bool includeDeprecated = args.Length > 2 && args[2].Equals("deprecated", StringComparison.OrdinalIgnoreCase);
 
-            GetType().GetMethod("RunForEnum", BindingFlags.Instance | BindingFlags.NonPublic)
-                .MakeGenericMethod(matchingEnumType)
-                .Invoke(this, new object[] { args.Length > 1 ? args[1] : string.Empty, command, includeDeprecated });
+            RunForEnum(matchingEnumType, input, command, includeDeprecated);
         }
-
-#pragma warning disable RCS1213 // Invoked above
-        void RunForEnum<TEnum>(string inputValue, CommandArguments command, bool includeDeprecated)
-#pragma warning restore RCS1213
-            where TEnum : struct
+        
+        void RunForEnum(Type enumType, string inputValue, CommandArguments command, bool includeDeprecated)
         {
-            var enumName = GetDottedTypeName(typeof(TEnum));
+            var enumName = GetDottedTypeName(enumType);
 
-            if (Enum.TryParse(inputValue, out TEnum enumValue))
+            if (Enum.TryParse(enumType, inputValue, out var enumValue))
             {
-                command.Reply("{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(typeof(TEnum), enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
+                command.Reply("{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(enumType, enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
 
                 return;
             }
 
-            var enumValues = Enum.GetValues(typeof(TEnum)).Cast<TEnum>();
-
+            var enumValues = Enum.GetValues(enumType).Cast<object>();
+            
             if (!includeDeprecated)
             {
-                enumValues = enumValues.Except(enumValues.Where(x => typeof(TEnum).GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Length > 0));
+                enumValues = enumValues.Except(enumValues.Where(x => enumType.GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Length > 0));
             }
 
             if (!string.IsNullOrEmpty(inputValue))
@@ -113,7 +108,7 @@ namespace SteamDatabaseBackend
                 enumValues = enumValues.Take(10);
             }
 
-            var formatted = string.Join(", ", enumValues.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(typeof(TEnum), @enum, "D"))));
+            var formatted = string.Join(", ", enumValues.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(enumType, @enum, "D"))));
 
             if (count > 10)
             {
@@ -125,7 +120,7 @@ namespace SteamDatabaseBackend
 
         private static string ExpandEnumFlagsToString<TEnum>(TEnum enumValue)
         {
-            if (typeof(TEnum).GetCustomAttributes<FlagsAttribute>().Any())
+            if (typeof(TEnum).GetCustomAttributes(typeof(FlagsAttribute), false).Any())
             {
                 var definedFlags = new List<string>();
                 ulong flags = Convert.ToUInt64(enumValue);
