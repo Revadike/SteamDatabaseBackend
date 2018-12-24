@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
                 RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
             );
 
-            PublishedFiles = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IPublishedFile>();
+            PublishedFiles = Steam.Instance.UnifiedMessages.CreateService<IPublishedFile>();
         }
 
         public async void OnMessage(CommandArguments command)

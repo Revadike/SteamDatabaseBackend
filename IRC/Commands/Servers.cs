@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
             Trigger = "servers";
             IsSteamCommand = true;
 
-            GameServers = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>().CreateService<IGameServers>();
+            GameServers = Steam.Instance.UnifiedMessages.CreateService<IGameServers>();
         }
 
         public override async Task OnCommand(CommandArguments command)

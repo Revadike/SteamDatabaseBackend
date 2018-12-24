@@ -25,6 +25,7 @@ namespace SteamDatabaseBackend
         public SteamApps Apps { get; }
         public SteamFriends Friends { get; }
         public SteamUserStats UserStats { get; }
+        public SteamUnifiedMessages UnifiedMessages { get; }
         public CallbackManager CallbackManager { get; }
 
         public PICSChanges PICSChanges { get; }
@@ -51,6 +52,7 @@ namespace SteamDatabaseBackend
             Apps = Client.GetHandler<SteamApps>();
             Friends = Client.GetHandler<SteamFriends>();
             UserStats = Client.GetHandler<SteamUserStats>();
+            UnifiedMessages = Client.GetHandler<SteamUnifiedMessages>();
 
             CallbackManager = new CallbackManager(Client);
 
