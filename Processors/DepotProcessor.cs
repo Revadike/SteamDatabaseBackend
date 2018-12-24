@@ -561,7 +561,7 @@ namespace SteamDatabaseBackend
             {
                 process.StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = UpdateScript,
+                    FileName = script,
                     Arguments = arg,
                 };
                 process.Start();
