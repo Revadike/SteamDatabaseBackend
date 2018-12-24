@@ -34,6 +34,7 @@ namespace SteamDatabaseBackend
         private const uint CHANGELIST_BURST_MIN = 50;
         private uint ChangelistBurstCount;
         private DateTime ChangelistBurstTime;
+        private SteamUnifiedMessages SteamUnifiedMessagesHandler;
 
         public PICSChanges(CallbackManager manager)
             : base(manager)
@@ -49,6 +50,8 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+
+            SteamUnifiedMessagesHandler = Steam.Instance.Client.GetHandler<SteamUnifiedMessages>();
 
             manager.Subscribe<SteamApps.PICSChangesCallback>(OnPICSChanges);
 
@@ -320,7 +323,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void PrintImportants(SteamApps.PICSChangesCallback callback)
+        private void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
@@ -333,6 +336,16 @@ namespace SteamDatabaseBackend
                     appType,
                     Colors.BLUE, appName, Colors.NORMAL,
                     Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
+
+                if (Settings.Current.CanQueryStore)
+                {
+                    SteamUnifiedMessagesHandler.SendMessage("ChatRoom.SendChatMessage#1", new CChatRoom_SendChatMessage_Request
+                    {
+                        chat_group_id = 1147,
+                        chat_id = 10208600,
+                        message = $"{appType} update: {appName}\n{SteamDB.GetAppURL(app, "history")}"
+                    });
+                }
             }
 
             // Packages
