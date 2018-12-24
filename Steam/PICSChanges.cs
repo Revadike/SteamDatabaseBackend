@@ -340,7 +340,7 @@ namespace SteamDatabaseBackend
                     {
                         chat_group_id = 1147,
                         chat_id = 10208600,
-                        message = $"{appType} update: {appName}\n{SteamDB.GetAppURL(app, "history")}"
+                        message = $"[Changelist {callback.CurrentChangeNumber}] {appType} update: {appName}\n{SteamDB.GetAppURL(app, "history")}?utm_source=Steam&utm_medium=Steam&utm_campaign=SteamDB%20Group%20Chat"
                     });
                 }
             }
