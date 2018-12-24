@@ -4,18 +4,67 @@ using ProtoBuf;
 
 namespace SteamDatabaseBackend
 {
-    public class CChatRoom_SendChatMessage_Request : IExtensible
+    [global::System.Serializable, global::ProtoBuf.ProtoContract(Name = @"CChatRoom_SendChatMessage_Request")]
+    public partial class CChatRoom_SendChatMessage_Request : global::ProtoBuf.IExtensible
     {
-        [ProtoMember(1, IsRequired = false, Name = "chat_group_id", DataFormat = DataFormat.Default)]
-        public ulong chat_group_id { get; set; }
+        public CChatRoom_SendChatMessage_Request() { }
 
-        [ProtoMember(2, IsRequired = false, Name = "chat_id", DataFormat = DataFormat.Default)]
-        public ulong chat_id { get; set; }
 
-        [ProtoMember(3, IsRequired = false, Name = "message", DataFormat = DataFormat.Default)]
-        public string message { get; set; }
+        private ulong? _chat_group_id;
+        [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name = @"chat_group_id", DataFormat = global::ProtoBuf.DataFormat.TwosComplement)]
+        public ulong chat_group_id
+        {
+            get { return _chat_group_id ?? default(ulong); }
+            set { _chat_group_id = value; }
+        }
+        [global::System.Xml.Serialization.XmlIgnore]
+        [global::System.ComponentModel.Browsable(false)]
+        public bool chat_group_idSpecified
+        {
+            get { return _chat_group_id != null; }
+            set { if (value == (_chat_group_id == null)) _chat_group_id = value ? this.chat_group_id : (ulong?)null; }
+        }
+        private bool ShouldSerializechat_group_id() { return chat_group_idSpecified; }
+        private void Resetchat_group_id() { chat_group_idSpecified = false; }
 
-        private IExtension extensionObject;
-        IExtension IExtensible.GetExtensionObject(bool createIfMissing) => Extensible.GetExtensionObject(ref extensionObject, createIfMissing);
+
+        private ulong? _chat_id;
+        [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"chat_id", DataFormat = global::ProtoBuf.DataFormat.TwosComplement)]
+        public ulong chat_id
+        {
+            get { return _chat_id ?? default(ulong); }
+            set { _chat_id = value; }
+        }
+        [global::System.Xml.Serialization.XmlIgnore]
+        [global::System.ComponentModel.Browsable(false)]
+        public bool chat_idSpecified
+        {
+            get { return _chat_id != null; }
+            set { if (value == (_chat_id == null)) _chat_id = value ? this.chat_id : (ulong?)null; }
+        }
+        private bool ShouldSerializechat_id() { return chat_idSpecified; }
+        private void Resetchat_id() { chat_idSpecified = false; }
+
+
+        private string _message;
+        [global::ProtoBuf.ProtoMember(3, IsRequired = false, Name = @"message", DataFormat = global::ProtoBuf.DataFormat.Default)]
+        public string message
+        {
+            get { return _message ?? ""; }
+            set { _message = value; }
+        }
+        [global::System.Xml.Serialization.XmlIgnore]
+        [global::System.ComponentModel.Browsable(false)]
+        public bool messageSpecified
+        {
+            get { return _message != null; }
+            set { if (value == (_message == null)) _message = value ? this.message : (string)null; }
+        }
+        private bool ShouldSerializemessage() { return messageSpecified; }
+        private void Resetmessage() { messageSpecified = false; }
+
+        private global::ProtoBuf.IExtension extensionObject;
+        global::ProtoBuf.IExtension global::ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
+        { return global::ProtoBuf.Extensible.GetExtensionObject(ref extensionObject, createIfMissing); }
     }
 }
