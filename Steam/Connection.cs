@@ -39,6 +39,7 @@ namespace SteamDatabaseBackend
             manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
             manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
             manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
+            manager.Subscribe<SteamUser.LoginKeyCallback>(OnLoginKey);
         }
 
         public static void Reconnect(object sender, ElapsedEventArgs e)
@@ -73,7 +74,10 @@ namespace SteamDatabaseBackend
                 CellID = LocalConfig.CellID,
                 AuthCode = IsTwoFactor ? null : AuthCode,
                 TwoFactorCode = IsTwoFactor ? AuthCode : null,
-                SentryFileHash = sentryHash
+                SentryFileHash = sentryHash,
+                ShouldRememberPassword = true,
+                LoginKey = LocalConfig.Current.LoginKey,
+                LoginID = 0x78_50_61_77,
             });
         }
 
@@ -116,6 +120,11 @@ namespace SteamDatabaseBackend
                 AuthCode = Console.ReadLine()?.Trim();
 
                 return;
+            }
+
+            if (callback.Result == EResult.InvalidPassword)
+            {
+                LocalConfig.Current.LoginKey = null;
             }
 
             if (callback.Result != EResult.OK)
@@ -221,6 +230,16 @@ namespace SteamDatabaseBackend
 
                 SentryFileHash = sentryHash
             });
+        }
+
+        private void OnLoginKey(SteamUser.LoginKeyCallback callback)
+        {
+            Log.WriteInfo("Steam", $"Got new login key with unique id {callback.UniqueID}");
+
+            LocalConfig.Current.LoginKey = callback.LoginKey;
+            LocalConfig.Save();
+
+            Steam.Instance.User.AcceptNewLoginKey(callback);
         }
     }
 }

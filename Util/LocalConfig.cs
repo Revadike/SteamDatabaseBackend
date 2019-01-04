@@ -42,6 +42,9 @@ namespace SteamDatabaseBackend
             public byte[] Sentry { get; set; }
 
             [JsonProperty]
+            public string LoginKey { get; set; }
+
+            [JsonProperty]
             public ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; }
 
             [JsonProperty]
