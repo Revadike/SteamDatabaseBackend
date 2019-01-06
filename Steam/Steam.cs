@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
         {
             Configuration = SteamConfiguration.Create(b => b
                 .WithServerListProvider(new FileStorageServerListProvider(Path.Combine(Application.Path, "files", ".support", "servers.bin")))
-                .WithCellID(LocalConfig.CellID)
+                .WithCellID(LocalConfig.Current.CellID)
                 .WithProtocolTypes(ProtocolTypes.Tcp)
                 .WithWebAPIBaseAddress(Settings.Current.Steam.WebAPIUrl)
                 .WithWebAPIKey(Settings.Current.Steam.WebAPIKey)

@@ -60,10 +60,6 @@ namespace SteamDatabaseBackend
         private static readonly string ConfigPath = Path.Combine(Application.Path, "files", ".support", "localconfig.json");
 
         public static LocalConfigJson Current { get; private set; } = new LocalConfigJson();
-        public static uint CellID => Current.CellID;
-        public static byte[] Sentry => Current.Sentry;
-        public static ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens => Current.CDNAuthTokens;
-        public static Dictionary<uint, uint> FreeLicensesToRequest => Current.FreeLicensesToRequest;
 
         public static void Load()
         {

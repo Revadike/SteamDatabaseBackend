@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
             };
             FreeLicenseTimer.Elapsed += OnTimer;
 
-            if (!Settings.IsFullRun && LocalConfig.FreeLicensesToRequest.Count > 0)
+            if (!Settings.IsFullRun && LocalConfig.Current.FreeLicensesToRequest.Count > 0)
             {
                 AppsRequestedInHour = REQUEST_RATE_LIMIT;
                 FreeLicenseTimer.Start();
@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var appid in appIDs)
                 {
-                    LocalConfig.FreeLicensesToRequest.Remove(appid);
+                    LocalConfig.Current.FreeLicensesToRequest.Remove(appid);
                 }
 
                 LocalConfig.Save();
@@ -167,7 +167,7 @@ namespace SteamDatabaseBackend
 
         private static void OnTimer(object sender, ElapsedEventArgs e)
         {
-            var list = LocalConfig.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
+            var list = LocalConfig.Current.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
 
@@ -184,7 +184,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                LocalConfig.FreeLicensesToRequest.Remove(subId);
+                LocalConfig.Current.FreeLicensesToRequest.Remove(subId);
             }
 
             LocalConfig.Save();
@@ -195,7 +195,7 @@ namespace SteamDatabaseBackend
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list.Select(x => x.Value)));
 
-            if (LocalConfig.FreeLicensesToRequest.Count > 0)
+            if (LocalConfig.Current.FreeLicensesToRequest.Count > 0)
             {
                 FreeLicenseTimer.Start();
             }
@@ -326,12 +326,12 @@ namespace SteamDatabaseBackend
                 FreeLicenseTimer.Start();
             }
 
-            if (LocalConfig.FreeLicensesToRequest.ContainsKey(subId))
+            if (LocalConfig.Current.FreeLicensesToRequest.ContainsKey(subId))
             {
                 return;
             }
 
-            LocalConfig.FreeLicensesToRequest.Add(subId, appId);
+            LocalConfig.Current.FreeLicensesToRequest.Add(subId, appId);
             LocalConfig.Save();
         }
     }

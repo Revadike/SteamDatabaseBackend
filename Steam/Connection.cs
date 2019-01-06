@@ -67,20 +67,20 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
-            Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
+            Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
 
             byte[] sentryHash = null;
 
-            if (LocalConfig.Sentry != null)
+            if (LocalConfig.Current.Sentry != null)
             {
-                sentryHash = CryptoHelper.SHAHash(LocalConfig.Sentry);
+                sentryHash = CryptoHelper.SHAHash(LocalConfig.Current.Sentry);
             }
 
             Steam.Instance.User.LogOn(new SteamUser.LogOnDetails
             {
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
-                CellID = LocalConfig.CellID,
+                CellID = LocalConfig.Current.CellID,
                 AuthCode = IsTwoFactor ? null : AuthCode,
                 TwoFactorCode = IsTwoFactor ? AuthCode : null,
                 SentryFileHash = sentryHash,
@@ -147,9 +147,9 @@ namespace SteamDatabaseBackend
 
             var cellId = callback.CellID;
 
-            if (LocalConfig.CellID != cellId)
+            if (LocalConfig.Current.CellID != cellId)
             {
-                Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.CellID, cellId);
+                Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.Current.CellID, cellId);
 
                 LocalConfig.Current.CellID = cellId;
 

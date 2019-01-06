@@ -320,9 +320,9 @@ namespace SteamDatabaseBackend
 
         private async Task<LocalConfig.CDNAuthToken> GetCDNAuthToken(SteamApps instance, uint appID, uint depotID)
         {
-            if (LocalConfig.CDNAuthTokens.ContainsKey(depotID))
+            if (LocalConfig.Current.CDNAuthTokens.ContainsKey(depotID))
             {
-                var token = LocalConfig.CDNAuthTokens[depotID];
+                var token = LocalConfig.Current.CDNAuthTokens[depotID];
 
                 if (DateTime.Now < token.Expiration)
                 {
@@ -369,7 +369,7 @@ namespace SteamDatabaseBackend
                 Expiration = tokenCallback.Expiration.Subtract(TimeSpan.FromMinutes(1))
             };
 
-            LocalConfig.CDNAuthTokens[depotID] = newToken;
+            LocalConfig.Current.CDNAuthTokens[depotID] = newToken;
 
             SaveLocalConfig = true;
 
@@ -439,7 +439,7 @@ namespace SteamDatabaseBackend
 
                 if (depotManifest == null)
                 {
-                    LocalConfig.CDNAuthTokens.TryRemove(depot.DepotID, out _);
+                    LocalConfig.Current.CDNAuthTokens.TryRemove(depot.DepotID, out _);
 
                     RemoveLock(depot.DepotID);
 
@@ -529,7 +529,7 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteWarn("Depot Processor", "Dropping stored token for {0} due to download failures", depot.DepotID);
 
-                        LocalConfig.CDNAuthTokens.TryRemove(depot.DepotID, out _);
+                        LocalConfig.Current.CDNAuthTokens.TryRemove(depot.DepotID, out _);
 
                         using (var db = Database.Get())
                         {

@@ -95,11 +95,11 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
-            Log.WriteInfo("SteamAnonymous", "Connected, logging in to cellid {0}...", LocalConfig.CellID);
+            Log.WriteInfo("SteamAnonymous", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
 
             User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
             {
-                CellID = LocalConfig.CellID
+                CellID = LocalConfig.Current.CellID
             });
         }
 
