@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
                                     {
                                         await db.ExecuteAsync("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new { AppID = id, Channel = channel });
                                     }
-                                        
+
                                     command.Reply("Marked app {0}{1}{2} ({3}) as important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
                                 }
 
@@ -159,7 +159,7 @@ namespace SteamDatabaseBackend
                                     {
                                         await db.ExecuteAsync("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new { SubID = id });
                                     }
-                                        
+
                                     command.Reply("Removed package {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
                                 }
 

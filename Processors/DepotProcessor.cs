@@ -15,7 +15,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class DepotProcessor
+    class DepotProcessor : IDisposable
     {
         public class ManifestJob
         {
@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
 
         private static readonly object UpdateScriptLock = new object();
 
-        private readonly CDNClient CDNClient;
+        private CDNClient CDNClient;
         private readonly Dictionary<uint, byte> DepotLocks;
         private List<string> CDNServers;
         private readonly string UpdateScript;
@@ -55,6 +55,15 @@ namespace SteamDatabaseBackend
             FileDownloader.SetCDNClient(CDNClient);
 
             manager.Subscribe<SteamClient.ServerListCallback>(OnServerList);
+        }
+
+        public void Dispose()
+        {
+            if (CDNClient != null)
+            {
+                CDNClient.Dispose();
+                CDNClient = null;
+            }
         }
 
         private async void OnServerList(SteamClient.ServerListCallback callback)

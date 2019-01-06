@@ -17,9 +17,9 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class KeyCommand : Command
+    class KeyCommand : Command, IDisposable
     {
-        private readonly Timer ActivationTimer;
+        private Timer ActivationTimer;
 
         public KeyCommand()
         {
@@ -34,6 +34,15 @@ namespace SteamDatabaseBackend
             ActivationTimer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
             ActivationTimer.Elapsed += OnTimer;
             ActivationTimer.Start();
+        }
+
+        public void Dispose()
+        {
+            if (ActivationTimer != null)
+            {
+                ActivationTimer.Dispose();
+                ActivationTimer = null;
+            }
         }
 
         private async void OnTimer(object sender, ElapsedEventArgs e)

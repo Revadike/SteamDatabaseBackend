@@ -63,7 +63,7 @@ namespace SteamDatabaseBackend
 
             RunForEnum(matchingEnumType, input, command, includeDeprecated);
         }
-        
+
         void RunForEnum(Type enumType, string inputValue, CommandArguments command, bool includeDeprecated)
         {
             var enumName = GetDottedTypeName(enumType);
@@ -76,7 +76,7 @@ namespace SteamDatabaseBackend
             }
 
             var enumValues = Enum.GetValues(enumType).Cast<object>();
-            
+
             if (!includeDeprecated)
             {
                 enumValues = enumValues.Except(enumValues.Where(x => enumType.GetMember(x.ToString())[0].GetCustomAttributes(typeof(ObsoleteAttribute), false).Length > 0));
@@ -120,7 +120,7 @@ namespace SteamDatabaseBackend
 
         private static string ExpandEnumFlagsToString<TEnum>(TEnum enumValue)
         {
-            if (typeof(TEnum).GetCustomAttributes(typeof(FlagsAttribute), false).Any())
+            if (typeof(TEnum).GetCustomAttributes(typeof(FlagsAttribute), false).Length > 0)
             {
                 var definedFlags = new List<string>();
                 ulong flags = Convert.ToUInt64(enumValue);

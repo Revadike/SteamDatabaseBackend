@@ -124,7 +124,7 @@ namespace SteamDatabaseBackend
                 HexAsBytes[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             }
 
-            return HexAsBytes; 
+            return HexAsBytes;
         }
 
         public static string ByteArrayToString(byte[] ba)

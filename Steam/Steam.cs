@@ -14,7 +14,7 @@ using SteamKit2.Discovery;
 
 namespace SteamDatabaseBackend
 {
-    class Steam
+    class Steam : IDisposable
     {
         public static Steam Instance { get; } = new Steam();
         public static SteamAnonymous Anonymous { get; } = new SteamAnonymous();
@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
         public CallbackManager CallbackManager { get; }
 
         public PICSChanges PICSChanges { get; }
-        public DepotProcessor DepotProcessor { get; }
+        public DepotProcessor DepotProcessor { get; private set; }
 
         public bool IsRunning { get; set; }
 
@@ -86,6 +86,15 @@ namespace SteamDatabaseBackend
             DepotProcessor = new DepotProcessor(Client, CallbackManager);
 
             IsRunning = true;
+        }
+
+        public void Dispose()
+        {
+            if (DepotProcessor != null)
+            {
+                DepotProcessor.Dispose();
+                DepotProcessor = null;
+            }
         }
 
         public void Tick()

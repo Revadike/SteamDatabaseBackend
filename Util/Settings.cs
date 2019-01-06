@@ -14,9 +14,9 @@ namespace SteamDatabaseBackend
     static class Settings
     {
         public static SettingsJson Current { get; private set; } = new SettingsJson();
-        
+
         public static bool IsFullRun { get; private set; }
-        
+
         public static void Load()
         {
             string settingsFile = Path.Combine(Application.Path, "settings.json");

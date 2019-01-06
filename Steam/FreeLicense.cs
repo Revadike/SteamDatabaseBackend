@@ -189,7 +189,7 @@ namespace SteamDatabaseBackend
 
             LocalConfig.Save();
 
-            AppsRequestedInHour = list.Count();
+            AppsRequestedInHour = list.Count;
 
             Log.WriteDebug(nameof(FreeLicense), $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
 

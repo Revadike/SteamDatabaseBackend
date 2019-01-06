@@ -12,9 +12,9 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SteamAnonymous
+    class SteamAnonymous : IDisposable
     {
-        private readonly Timer ReconnectionTimer;
+        private Timer ReconnectionTimer;
 
         public SteamClient Client { get; }
         private SteamUser User { get; }
@@ -45,6 +45,15 @@ namespace SteamDatabaseBackend
             CallbackManager.Subscribe<SteamApps.PICSTokensCallback>(OnPICSTokens);
 
             IsRunning = true;
+        }
+
+        public void Dispose()
+        {
+            if (ReconnectionTimer != null)
+            {
+                ReconnectionTimer.Dispose();
+                ReconnectionTimer = null;
+            }
         }
 
         public void Tick()

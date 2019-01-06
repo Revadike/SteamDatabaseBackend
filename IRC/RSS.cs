@@ -16,7 +16,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    class RSS
+    class RSS : IDisposable
     {
         private class Build
         {
@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
             public string Content { get; set; }
         }
 
-        public Timer Timer { get; }
+        public Timer Timer { get; private set; }
 
         public RSS()
         {
@@ -44,6 +44,15 @@ namespace SteamDatabaseBackend
             Timer.Start();
 
             Tick(null, null);
+        }
+
+        public void Dispose()
+        {
+            if (Timer != null)
+            {
+                Timer.Dispose();
+                Timer = null;
+            }
         }
 
         private static async void Tick(object sender, ElapsedEventArgs e)

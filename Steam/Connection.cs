@@ -13,13 +13,13 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class Connection : SteamHandler
+    class Connection : SteamHandler, IDisposable
     {
         public const uint RETRY_DELAY = 15;
 
         public static DateTime LastSuccessfulLogin { get; private set; }
 
-        public Timer ReconnectionTimer { get; }
+        public Timer ReconnectionTimer { get; private set; }
 
         private string AuthCode;
         private bool IsTwoFactor;
@@ -40,6 +40,15 @@ namespace SteamDatabaseBackend
             manager.Subscribe<SteamUser.LoggedOffCallback>(OnLoggedOff);
             manager.Subscribe<SteamUser.UpdateMachineAuthCallback>(OnMachineAuth);
             manager.Subscribe<SteamUser.LoginKeyCallback>(OnLoginKey);
+        }
+
+        public void Dispose()
+        {
+            if (ReconnectionTimer != null)
+            {
+                ReconnectionTimer.Dispose();
+                ReconnectionTimer = null;
+            }
         }
 
         public static void Reconnect(object sender, ElapsedEventArgs e)
