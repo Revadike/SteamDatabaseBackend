@@ -186,7 +186,10 @@ namespace SteamDatabaseBackend
             {
                 if (!finalPath.Exists)
                 {
-                    finalPath.Create();
+                    using (var _ = finalPath.Create())
+                    {
+                        // FileInfo.Create returns a stream but we don't need it
+                    }
 
                     Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
 

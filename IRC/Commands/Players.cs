@@ -85,11 +85,10 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                "{0}{1:N0}{2} {3} {4}{5}{6}{7} -{8} {9}",
+                "{0}{1:N0}{2} {3} {4}{5}{6} -{7} {8}",
                 Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
                 type,
                 Colors.BLUE, name, Colors.NORMAL,
-                callback.Result != EResult.OK ? $" {Colors.RED}({callback.Result}){Colors.NORMAL}" : "",
                 Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
             );
         }

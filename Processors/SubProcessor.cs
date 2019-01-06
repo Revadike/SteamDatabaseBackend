@@ -69,28 +69,25 @@ namespace SteamDatabaseBackend
                 newPackageName = string.Concat("Steam Sub ", SubID);
             }
 
-            if (newPackageName != null)
+            if (string.IsNullOrEmpty(PackageName))
             {
-                if (string.IsNullOrEmpty(PackageName))
-                {
-                    await DbConnection.ExecuteAsync("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
+                await DbConnection.ExecuteAsync("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
 
-                    await MakeHistory("created_sub");
-                    await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
-                }
-                else if (!PackageName.Equals(newPackageName))
+                await MakeHistory("created_sub");
+                await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
+            }
+            else if (!PackageName.Equals(newPackageName))
+            {
+                if (newPackageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
                 {
-                    if (newPackageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
-                    {
-                        await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
-                    }
-                    else
-                    {
-                        await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
-                    }
-
-                    await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
+                    await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                 }
+                else
+                {
+                    await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
+                }
+
+                await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
             }
 
             foreach (var section in ProductInfo.KeyValues.Children)
