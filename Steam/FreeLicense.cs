@@ -134,6 +134,13 @@ namespace SteamDatabaseBackend
                 names[subID] = name;
             }
 
+            if (names.Count == 0)
+            {
+                Log.WriteError("FreeLicense", "Failed to find any package names on licenses page");
+
+                return;
+            }
+
             using (var db = Database.Get())
             {
                 // Skip packages that have a store name to avoid messing up history
