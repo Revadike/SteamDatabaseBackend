@@ -1,3 +1,7 @@
+-- Copyright (c) 2013-present, SteamDB. All rights reserved.
+-- Use of this source code is governed by a BSD-style license that can be
+-- found in the LICENSE file.
+
 -- This is a partical database structure dump used by SteamDB
 -- This structure is not final and can change at any time
 

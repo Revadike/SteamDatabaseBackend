@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2013-2015, SteamDB. All rights reserved.
+ * Copyright (c) 2013-present, SteamDB. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
             // Load settings file before logging as it can be enabled in settings
             Settings.Load();
 
-            Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-2015, SteamDB. See LICENSE file for more information.");
+            Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
 
             // Just create deepest folder we will use in the app
             var filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
