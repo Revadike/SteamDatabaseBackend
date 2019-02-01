@@ -3,7 +3,13 @@
 The application that keeps SteamDB up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on FreeNode.
 
 ## Requirements
-[.NET Core](https://dot.net)
+* [.NET Core](https://dot.net)
+* [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) server
+
+## Installation
+1. Import `_database.sql` to your database
+2. Copy `settings.json.default` to `settings.json`
+3. Edit `settings.json` as needed: database connection string and Steam credentials.
 
 ## IRC
 
