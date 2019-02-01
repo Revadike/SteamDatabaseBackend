@@ -69,6 +69,18 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
 
+            if (Settings.Current.Steam.Username == "anonymous")
+            {
+                Log.WriteInfo("Steam", "Using an anonymous account");
+
+                Steam.Instance.User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
+                {
+                    CellID = LocalConfig.Current.CellID,
+                });
+
+                return;
+            }
+
             byte[] sentryHash = null;
 
             if (LocalConfig.Current.Sentry != null)
