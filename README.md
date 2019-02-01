@@ -22,8 +22,5 @@ There are some modules that are particularly useful to have:
 * [stickychan](http://wiki.znc.in/Stickychan)
 * [prioritysend](https://github.com/xPaw/znc-prioritysend) *(custom module)*
 
-## Reporting issues
-You can report issues in our main repository [over here](https://github.com/SteamDatabase/SteamDatabase).
-
 ## License
 Use of SteamDB Updater is governed by a BSD-style license that can be found in the LICENSE file.
