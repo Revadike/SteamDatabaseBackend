@@ -1,6 +1,6 @@
 # SteamDB Updater *(and IRC bot)* [![Build Status](https://travis-ci.com/SteamDatabase/SteamDatabaseBackend.svg)](https://travis-ci.com/SteamDatabase/SteamDatabaseBackend)
 
-The application that keeps SteamDB up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on FreeNode.
+The application that keeps [SteamDB](https://steamdb.info/) up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on [Freenode](https://freenode.net/).
 
 ## Requirements
 * [.NET Core](https://dot.net)
@@ -10,6 +10,8 @@ The application that keeps SteamDB up to date with the latest changes, additiona
 1. Import `_database.sql` to your database
 2. Copy `settings.json.default` to `settings.json`
 3. Edit `settings.json` as needed: database connection string and Steam credentials.
+
+Use `anonymous` as the Steam username if you need to debug quickly.
 
 ## IRC
 
