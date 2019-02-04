@@ -274,7 +274,7 @@ namespace SteamDatabaseBackend
                 LicenseList.RefreshApps();
             }
 
-            if (!packageOwned && SubID != 17906)
+            if (!packageOwned && SubID != 17906 && Settings.Current.CanQueryStore)
             {
                 FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
             }
