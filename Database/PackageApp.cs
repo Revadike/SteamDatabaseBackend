@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct PackageApp
+    class PackageApp
     {
         public uint AppID { get; set; }
         public string Type { get; set; }

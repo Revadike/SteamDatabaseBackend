@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct PICSInfo
+    class PICSInfo
     {
         public uint Key { get; set; }
         public string KeyName { get; set; }
