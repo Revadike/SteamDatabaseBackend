@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class Changelist
+    struct Changelist
     {
         public uint ChangeID { get; set; }
     }

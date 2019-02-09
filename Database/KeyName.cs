@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class KeyName
+    struct KeyName
     {
         public uint ID { get; set; }
         public string Name { get; set; }

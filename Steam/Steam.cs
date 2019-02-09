@@ -152,7 +152,7 @@ namespace SteamDatabaseBackend
 
         public static string FormatAppName(uint appID, App data)
         {
-            if (data == null || data.AppID == 0)
+            if (data.AppID == 0)
             {
                 return string.Format("AppID {0}", appID);
             }
@@ -170,7 +170,7 @@ namespace SteamDatabaseBackend
 
         public static string FormatPackageName(uint subID, Package data)
         {
-            if (data == null || data.SubID == 0)
+            if (data.SubID == 0)
             {
                 // much hackery
                 if (subID == 0)
