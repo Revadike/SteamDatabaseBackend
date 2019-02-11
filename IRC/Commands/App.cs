@@ -18,6 +18,7 @@ namespace SteamDatabaseBackend
 {
     class AppCommand : Command
     {
+#pragma warning disable 0649
         private class AlgoliaSearchAppHits
         {
             public class AlgoliaAppHit
@@ -28,6 +29,7 @@ namespace SteamDatabaseBackend
 
             public AlgoliaAppHit[] Hits;
         }
+#pragma warning restore 0649
 
         public AppCommand()
         {

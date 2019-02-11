@@ -6,7 +6,6 @@
 
 using System;
 using System.IO;
-using Dapper;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
