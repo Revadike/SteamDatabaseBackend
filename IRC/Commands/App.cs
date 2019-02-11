@@ -18,6 +18,17 @@ namespace SteamDatabaseBackend
 {
     class AppCommand : Command
     {
+        private class AlgoliaSearchAppHits
+        {
+            public class AlgoliaAppHit
+            {
+                [JsonProperty(PropertyName = "objectID")]
+                public uint AppID;
+            }
+
+            public AlgoliaAppHit[] Hits;
+        }
+
         public AppCommand()
         {
             Trigger = "app";
@@ -126,11 +137,11 @@ namespace SteamDatabaseBackend
                 webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
 
                 var data = await webClient.GetStringAsync(uri);
-                dynamic json = JsonConvert.DeserializeObject(data);
+                var json = JsonConvert.DeserializeObject<AlgoliaSearchAppHits>(data);
 
-                if (json.hits?.Count > 0)
+                if (json.Hits.Length > 0)
                 {
-                    appID = json.hits[0].objectID;
+                    appID = json.Hits[0].AppID;
                 }
             }
 
