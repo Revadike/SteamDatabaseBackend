@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -61,18 +62,19 @@ namespace SteamDatabaseBackend
             // users hashed loginkey, AES encrypted with the sessionkey
             var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(nonce.Nonce), sessionKey);
 
-            using (dynamic userAuth = WebAPI.GetAsyncInterface("ISteamUserAuth"))
+            using (var userAuth = WebAPI.GetAsyncInterface("ISteamUserAuth"))
             {
                 KeyValue result;
 
                 try
                 {
-                    result = await userAuth.AuthenticateUser(
-                        steamid: Steam.Instance.Client.SteamID.ConvertToUInt64(),
-                        sessionkey: WebHelpers.UrlEncode(encryptedSessionKey),
-                        encrypted_loginkey: WebHelpers.UrlEncode(encryptedLoginKey),
-                        method: "POST",
-                        secure: true
+                    result = await userAuth.CallAsync(HttpMethod.Post, "AuthenticateUser", 1,
+                        new Dictionary<string, string>
+                        {
+                            { "steamid", Steam.Instance.Client.SteamID.ConvertToUInt64().ToString() },
+                            { "sessionkey", WebHelpers.UrlEncode(encryptedSessionKey) },
+                            { "encrypted_loginkey", WebHelpers.UrlEncode(encryptedLoginKey) },
+                        }
                     );
                 }
                 catch (HttpRequestException e)
