@@ -44,6 +44,7 @@ namespace SteamDatabaseBackend
                 .WithProtocolTypes(ProtocolTypes.Tcp)
                 .WithWebAPIBaseAddress(Settings.Current.Steam.WebAPIUrl)
                 .WithWebAPIKey(Settings.Current.Steam.WebAPIKey)
+                .WithHttpClientFactory(Utils.CreateHttpClient)
             );
 
             Client = new SteamClient(Configuration);

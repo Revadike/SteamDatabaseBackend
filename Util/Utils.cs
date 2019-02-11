@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -196,6 +197,13 @@ namespace SteamDatabaseBackend
             }
 
             w.WriteEndObject();
+        }
+
+        public static HttpClient CreateHttpClient()
+        {
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
+            return client;
         }
     }
 

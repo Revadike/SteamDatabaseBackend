@@ -6,8 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using SteamKit2;
 
@@ -63,10 +61,8 @@ namespace SteamDatabaseBackend
             var isStable = args.Length > 1 && args[1].Equals("stable");
             var uri = new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks));
 
-            using (var client = new HttpClient())
+            using (var client = Utils.CreateHttpClient())
             {
-                client.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
-
                 var data = await client.GetStringAsync(uri);
                 var kv = KeyValue.LoadFromString(data);
 

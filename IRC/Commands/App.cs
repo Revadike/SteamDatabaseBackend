@@ -131,9 +131,8 @@ namespace SteamDatabaseBackend
                 }.Uri;
             }
 
-            using (var webClient = new HttpClient())
+            using (var webClient = Utils.CreateHttpClient())
             {
-                webClient.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
                 webClient.DefaultRequestHeaders.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
                 webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
                 webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
