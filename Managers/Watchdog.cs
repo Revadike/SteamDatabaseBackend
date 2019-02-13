@@ -30,8 +30,6 @@ namespace SteamDatabaseBackend
             if (Steam.Instance.Client.IsConnected && Application.ChangelistTimer.Enabled)
             {
                 AccountInfo.Sync();
-
-                TaskManager.RunAsync(async () => await AccountInfo.RefreshAppsToIdle());
             }
             else if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalMinutes >= 5.0)
             {

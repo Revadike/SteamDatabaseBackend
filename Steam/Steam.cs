@@ -58,7 +58,6 @@ namespace SteamDatabaseBackend
             CallbackManager = new CallbackManager(Client);
 
             Client.AddHandler(new PurchaseResponse());
-            Client.AddHandler(new ClientItemAnnouncements());
 
             Handlers = new List<SteamHandler>
             {
