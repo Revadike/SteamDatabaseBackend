@@ -31,9 +31,14 @@ namespace SteamDatabaseBackend
         public static readonly string DARKGRAY = IrcColor + "14";
         public static readonly string LIGHTGRAY = IrcColor + "15";
 
+        private static readonly Regex StripColorsRegex = new Regex(
+            @"\x0F|\x03(?:\d\d)?",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
+        );
+
         public static string StripColors(string input)
         {
-            return Regex.Replace(input, @"\x0F|\x03(\d\d)?", string.Empty);
+            return StripColorsRegex.Replace(input, string.Empty);
         }
     }
 }

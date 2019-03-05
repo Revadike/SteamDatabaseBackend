@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NetIrc2.Events;
 using SteamKit2;
@@ -18,6 +19,7 @@ namespace SteamDatabaseBackend
         private readonly List<Command> RegisteredCommands;
         private readonly PubFileCommand PubFileHandler;
         private readonly LinkExpander LinkExpander;
+        private readonly Regex DiscordRelayMessageRegex;
 
         public CommandHandler()
         {
@@ -50,6 +52,11 @@ namespace SteamDatabaseBackend
             // Register help command last so we can pass the list of the commands
             RegisteredCommands.Add(new HelpCommand(RegisteredCommands));
 
+            DiscordRelayMessageRegex = new Regex(
+                "^<(?<name>.+?)\x03> (?<message>.+)$",
+                RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
+            );
+
             Log.WriteInfo("CommandHandler", "Registered {0} commands", RegisteredCommands.Count);
         }
 
@@ -59,23 +66,40 @@ namespace SteamDatabaseBackend
             {
                 CommandType = ECommandType.IRC,
                 SenderIdentity = e.Sender,
+                Nickname = e.Sender.Nickname.ToString(),
                 Recipient = e.Recipient,
                 Message = e.Message
             };
 
-            if (Steam.Instance.Client.IsConnected)
+            if (commandData.SenderIdentity.Hostname == "steamdb/discord-relay")
             {
-                PubFileHandler.OnMessage(commandData);
+                var match = DiscordRelayMessageRegex.Match(commandData.Message);
+
+                if (!match.Success)
+                {
+                    return;
+                }
+
+                // Remove IRC colors, remove control characters, remove zero width space, add @ and a space
+                commandData.Nickname = $"@{Utils.RemoveControlCharacters(Colors.StripColors(match.Groups["name"].Value.Replace("\u200B", "")))} ";
+                commandData.Message = match.Groups["message"].Value;
+            }
+            else
+            {
+                if (Steam.Instance.Client.IsConnected)
+                {
+                    PubFileHandler.OnMessage(commandData);
+                }
+
+                LinkExpander.OnMessage(commandData);
             }
 
-            LinkExpander.OnMessage(commandData);
-
-            if (e.Message[0] != Settings.Current.IRC.CommandPrefix)
+            if (commandData.Message[0] != Settings.Current.IRC.CommandPrefix)
             {
                 return;
             }
 
-            var message = (string)e.Message;
+            var message = (string)commandData.Message;
             var messageArray = message.Split(' ');
             var trigger = messageArray[0];
 

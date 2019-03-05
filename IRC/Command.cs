@@ -30,6 +30,7 @@ namespace SteamDatabaseBackend
     {
         public string Message { get; set; }
         public string Recipient { get; set; }
+        public string Nickname { get; set; }
         public IrcIdentity SenderIdentity { get; set; }
         public ECommandType CommandType { get; set; }
         public SteamID SenderID { get; set; }
@@ -57,7 +58,7 @@ namespace SteamDatabaseBackend
                     {
                         if (!notice)
                         {
-                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, SenderIdentity.Nickname, Colors.NORMAL, message);
+                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, Nickname, Colors.NORMAL, message);
                         }
                         else
                         {
