@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                $"{Colors.OLIVE}{callback.NumPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name} (24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL}) -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
+                $"{Colors.OLIVE}{callback.NumPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name}{Colors.NORMAL} (24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL}) -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
             );
         }
     }
