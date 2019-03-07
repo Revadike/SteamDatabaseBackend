@@ -7,6 +7,7 @@
 using System;
 using System.Threading.Tasks;
 using SteamKit2;
+using Dapper;
 
 namespace SteamDatabaseBackend
 {
@@ -55,6 +56,13 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            uint dailyPlayers;
+
+            using (var db = Database.Get())
+            {
+                dailyPlayers = await db.ExecuteScalarAsync<uint>("SELECT `MaxDailyPlayers` FROM `OnlineStats` WHERE `AppID` = @appID", new { appID });
+            }
+
             var type = "playing";
 
             switch (appType)
@@ -85,11 +93,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                "{0}{1:N0}{2} {3} {4}{5}{6} -{7} {8}",
-                Colors.OLIVE, callback.NumPlayers, Colors.NORMAL,
-                type,
-                Colors.BLUE, name, Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetAppURL(appID, "graphs")
+                $"{Colors.OLIVE}{callback.NumPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name} (24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL}) -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
             );
         }
     }
