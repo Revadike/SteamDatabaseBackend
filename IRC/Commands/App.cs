@@ -58,7 +58,9 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var tokenCallback = await Steam.Instance.Apps.PICSGetAccessTokens(appID, null);
+            var tokenTask = Steam.Instance.Apps.PICSGetAccessTokens(appID, null);
+            tokenTask.Timeout = TimeSpan.FromSeconds(10);
+            var tokenCallback = await tokenTask;
             SteamApps.PICSRequest request;
 
             if (tokenCallback.AppTokens.ContainsKey(appID))
@@ -70,7 +72,9 @@ namespace SteamDatabaseBackend
                 request = Utils.NewPICSRequest(appID);
             }
 
-            var job = await Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
+            var infoTask = Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
+            infoTask.Timeout = TimeSpan.FromSeconds(10);
+            var job = await infoTask;
             var callback = job.Results.FirstOrDefault(x => x.Apps.ContainsKey(appID));
 
             if (callback == null)

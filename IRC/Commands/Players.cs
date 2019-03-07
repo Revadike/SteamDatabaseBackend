@@ -40,7 +40,9 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var callback = await Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
+            var task = Steam.Instance.UserStats.GetNumberOfCurrentPlayers(appID);
+            task.Timeout = TimeSpan.FromSeconds(10);
+            var callback = await task;
 
             if (appID == 0)
             {

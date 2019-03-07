@@ -38,7 +38,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var callback = await Cloud.RequestUGCDetails(ugcId);
+            var task = Cloud.RequestUGCDetails(ugcId);
+            task.Timeout = TimeSpan.FromSeconds(10);
+            var callback = await task;
 
             if (callback.Result != EResult.OK)
             {

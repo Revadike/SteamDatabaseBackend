@@ -28,7 +28,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var job = await Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
+            var task = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
+            task.Timeout = TimeSpan.FromSeconds(10);
+            var job = await task;
             var callback = job.Results.FirstOrDefault(x => x.Packages.ContainsKey(subID));
 
             if (callback == null)

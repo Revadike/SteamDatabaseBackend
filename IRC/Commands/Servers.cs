@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using SteamKit2;
@@ -45,7 +46,9 @@ namespace SteamDatabaseBackend
                 limit = int.MaxValue,
             };
 
-            var callback = await GameServers.SendMessage(api => api.GetServerList(request));
+            var task = GameServers.SendMessage(api => api.GetServerList(request));
+            task.Timeout = TimeSpan.FromSeconds(10);
+            var callback = await task;
             var response = callback.GetDeserializedResponse<CGameServers_GetServerList_Response>();
             var servers = response.servers;
 

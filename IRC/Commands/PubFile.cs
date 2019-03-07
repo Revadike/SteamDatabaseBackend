@@ -58,7 +58,9 @@ namespace SteamDatabaseBackend
 
                 try
                 {
-                    var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+                    var task = PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+                    task.Timeout = TimeSpan.FromSeconds(10);
+                    var callback = await task;
                     var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
                     details = response.publishedfiledetails.FirstOrDefault();
                 }
@@ -146,7 +148,9 @@ namespace SteamDatabaseBackend
 
             pubFileRequest.publishedfileids.Add(pubFileId);
 
-            var callback = await PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+            var task = PublishedFiles.SendMessage(api => api.GetDetails(pubFileRequest));
+            task.Timeout = TimeSpan.FromSeconds(10);
+            var callback = await task;
             var response = callback.GetDeserializedResponse<CPublishedFile_GetDetails_Response>();
             var details = response.publishedfiledetails.FirstOrDefault();
 
