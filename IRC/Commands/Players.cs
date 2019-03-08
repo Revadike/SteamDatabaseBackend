@@ -65,6 +65,11 @@ namespace SteamDatabaseBackend
                 dailyPlayers = await db.ExecuteScalarAsync<uint>("SELECT `MaxDailyPlayers` FROM `OnlineStats` WHERE `AppID` = @appID", new { appID });
             }
 
+            if (callback.NumPlayers > dailyPlayers)
+            {
+                dailyPlayers = callback.NumPlayers;
+            }
+
             var type = "playing";
 
             switch (appType)
@@ -95,7 +100,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                $"{Colors.OLIVE}{callback.NumPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name}{Colors.NORMAL} (24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL}) -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
+                $"{Colors.OLIVE}{callback.NumPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name}{Colors.NORMAL} - 24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
             );
         }
     }
