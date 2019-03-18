@@ -10,7 +10,7 @@ namespace SteamDatabaseBackend
 {
     abstract class SteamHandler
     {
-        protected SteamHandler(CallbackManager manager)
+        protected SteamHandler()
         {
             // This is just an empty class, steamkit callbacks extend this
         }

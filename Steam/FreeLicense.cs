@@ -28,7 +28,6 @@ namespace SteamDatabaseBackend
         private readonly Regex PackageRegex;
 
         public FreeLicense(CallbackManager manager)
-            : base(manager)
         {
             PackageRegex = new Regex("RemoveFreeLicense\\( ?(?<subid>[0-9]+), ?'(?<name>.+)' ?\\)", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 

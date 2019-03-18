@@ -9,13 +9,22 @@ using System.Threading;
 
 namespace SteamDatabaseBackend
 {
-    class Watchdog
+    class Watchdog : IDisposable
     {
-        private readonly Timer Timer;
+        public Timer Timer { get; private set; }
 
         public Watchdog()
         {
             Timer = new Timer(OnTimer, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(20));
+        }
+
+        public void Dispose()
+        {
+            if (Timer != null)
+            {
+                Timer.Dispose();
+                Timer = null;
+            }
         }
 
         private void OnTimer(object state)

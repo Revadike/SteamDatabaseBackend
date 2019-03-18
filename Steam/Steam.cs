@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
         public bool IsRunning { get; set; }
 
         private readonly List<SteamHandler> Handlers;
-        private readonly Watchdog WatchdogHandle;
+        private Watchdog WatchdogHandle;
 
         private Steam()
         {
@@ -94,6 +94,12 @@ namespace SteamDatabaseBackend
             {
                 DepotProcessor.Dispose();
                 DepotProcessor = null;
+            }
+
+            if (WatchdogHandle != null)
+            {
+                WatchdogHandle.Dispose();
+                WatchdogHandle = null;
             }
         }
 

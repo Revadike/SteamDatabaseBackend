@@ -36,7 +36,6 @@ namespace SteamDatabaseBackend
         private DateTime ChangelistBurstTime;
 
         public PICSChanges(CallbackManager manager)
-            : base(manager)
         {
             if (Settings.IsFullRun)
             {
@@ -350,7 +349,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.Instance.AnnounceImportantPackageUpdate(package, "Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
+                IRC.Instance.AnnounceImportantPackageUpdate("Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
             }
         }
 

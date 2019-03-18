@@ -25,7 +25,6 @@ namespace SteamDatabaseBackend
         private bool IsTwoFactor;
 
         public Connection(CallbackManager manager)
-            : base(manager)
         {
             ReconnectionTimer = new Timer
             {

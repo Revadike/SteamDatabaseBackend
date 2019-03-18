@@ -23,7 +23,6 @@ namespace SteamDatabaseBackend
         private static Dictionary<uint, ulong> SecretTokens;
 
         public PICSTokens(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamApps.PICSTokensCallback>(OnPICSTokens);
 

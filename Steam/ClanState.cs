@@ -11,7 +11,6 @@ namespace SteamDatabaseBackend
     class ClanState : SteamHandler
     {
         public ClanState(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamFriends.ClanStateCallback>(OnClanState);
         }

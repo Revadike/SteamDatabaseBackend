@@ -68,7 +68,7 @@ namespace SteamDatabaseBackend
 
         private async void OnServerList(SteamClient.ServerListCallback callback)
         {
-            IList<CDNClient.Server> serverList = null;
+            IList<CDNClient.Server> serverList;
 
             try
             {

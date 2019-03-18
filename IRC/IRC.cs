@@ -192,7 +192,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void AnnounceImportantPackageUpdate(uint subID, string format, params object[] args)
+        public void AnnounceImportantPackageUpdate(string format, params object[] args)
         {
             SendMain(format, args); // TODO
         }

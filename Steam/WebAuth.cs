@@ -21,7 +21,6 @@ namespace SteamDatabaseBackend
         private static CookieContainer Cookies = new CookieContainer();
 
         public WebAuth(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
         }

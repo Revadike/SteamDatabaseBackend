@@ -31,7 +31,6 @@ namespace SteamDatabaseBackend
         };
 
         public AccountInfo(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamUser.AccountInfoCallback>(OnAccountInfo);
 

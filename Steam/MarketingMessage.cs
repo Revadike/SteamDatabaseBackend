@@ -15,7 +15,6 @@ namespace SteamDatabaseBackend
     class MarketingMessage : SteamHandler
     {
         public MarketingMessage(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamUser.MarketingMessageCallback>(OnMarketingMessage);
         }

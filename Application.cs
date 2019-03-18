@@ -147,6 +147,7 @@ namespace SteamDatabaseBackend
             {
                 Steam.Instance.IsRunning = false;
                 Steam.Instance.Client.Disconnect();
+                Steam.Instance.Dispose();
             }
             catch (Exception e)
             {
@@ -158,6 +159,7 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo("Bootstrapper", "Closing IRC connection...");
 
                 RssReader.Timer.Stop();
+                RssReader.Dispose();
 
                 IRC.Instance.Close();
             }
@@ -181,6 +183,7 @@ namespace SteamDatabaseBackend
             {
                 Steam.Anonymous.IsRunning = false;
                 Steam.Anonymous.Client.Disconnect();
+                Steam.Anonymous.Dispose();
             }
             catch (Exception e)
             {

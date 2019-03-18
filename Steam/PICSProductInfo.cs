@@ -30,7 +30,6 @@ namespace SteamDatabaseBackend
         }
 
         public PICSProductInfo(CallbackManager manager)
-            : base(manager)
         {
             manager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);
         }
