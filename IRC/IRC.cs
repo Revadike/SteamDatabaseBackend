@@ -100,6 +100,7 @@ namespace SteamDatabaseBackend
 
             if (!Disconnecting)
             {
+                Client.Close();
                 Connect();
             }
         }
