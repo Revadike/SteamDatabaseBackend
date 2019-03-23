@@ -20,7 +20,6 @@
 	{
 		"Enabled": false,
 		"SSL": false,
-		"SslAcceptInvalid": false,
 		"Server": "example.com",
 		"Port": 0,
 		"Nickname": "SteamDB-Fork",

@@ -50,11 +50,6 @@ namespace SteamDatabaseBackend
                         Ssl = true,
                         SslHostname = Settings.Current.IRC.Server
                     };
-
-                    if (Settings.Current.IRC.SslAcceptInvalid)
-                    {
-                        options.SslCertificateValidationCallback = (_, __, ___, ____) => true;
-                    }
                 }
 
                 Client.Connect(Settings.Current.IRC.Server, Settings.Current.IRC.Port, options);

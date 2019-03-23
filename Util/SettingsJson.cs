@@ -39,9 +39,6 @@ namespace SteamDatabaseBackend
             public bool Ssl;
 
             [JsonProperty(Required = Required.Always)]
-            public bool SslAcceptInvalid;
-
-            [JsonProperty(Required = Required.Always)]
             public string Server;
 
             [JsonProperty(Required = Required.Always)]
