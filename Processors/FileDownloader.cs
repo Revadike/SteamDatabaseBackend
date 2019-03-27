@@ -164,6 +164,10 @@ namespace SteamDatabaseBackend
 
                 job.Result = EResult.OK;
             }
+            else if (downloadState == EResult.DataCorruption)
+            {
+                job.Result = EResult.DataCorruption;
+            }
             else
             {
                 job.Result = EResult.Ignored;
