@@ -48,6 +48,13 @@ namespace SteamDatabaseBackend
             var args = command.Message.Split(' ');
             var enumType = args[0].Replace("SteamKit2.", "");
 
+            if (int.TryParse(enumType, out _))
+            {
+                command.Reply($"Did you mean:{Colors.OLIVE} enum eresult {enumType}");
+
+                return;
+            }
+
             var matchingEnumType = SteamKitEnums
                 .FirstOrDefault(x => x.Name.Equals(enumType, StringComparison.OrdinalIgnoreCase) || GetDottedTypeName(x).IndexOf(enumType, StringComparison.OrdinalIgnoreCase) != -1);
 
