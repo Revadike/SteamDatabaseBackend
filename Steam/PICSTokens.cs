@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
 
             var apps = SecretTokens
                 .Where(x => !oldTokens.ContainsKey(x.Key))
-                .Select(app => Utils.NewPICSRequest(app.Key));
+                .Select(app => Utils.NewPICSRequest(app.Key, app.Value));
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
         }
@@ -68,6 +68,11 @@ namespace SteamDatabaseBackend
                 .Concat(callback.AppTokens.Select(app => Utils.NewPICSRequest(app.Key, app.Value)));
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
+        }
+
+        public static bool HasToken(uint id)
+        {
+            return SecretTokens.ContainsKey(id);
         }
 
         public static ulong GetToken(uint id)

@@ -196,6 +196,12 @@ namespace SteamDatabaseBackend
             {
                 await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }
+
+            if (ProductInfo.MissingToken && PICSTokens.HasToken(AppID))
+            {
+                Log.WriteError("PICSTokens", $"Overriden token for appid {AppID} is invalid?");
+                IRC.Instance.SendOps($"[Tokens] Looks like the overriden token for appid {AppID} ({newAppName}) is invalid");
+            }
         }
 
         protected override async Task ProcessUnknown()
