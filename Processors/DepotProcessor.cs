@@ -123,6 +123,15 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                // SteamVR trickery
+                if (appID == 250820
+                    && depot["manifests"]["beta"].Value != null
+                    && depots["branches"]["beta"]["buildid"].AsInteger() > depots["branches"]["public"]["buildid"].AsInteger())
+                {
+                    request.BuildID = depots["branches"]["beta"]["buildid"].AsInteger();
+                    request.ManifestID = ulong.Parse(depot["manifests"]["beta"].Value);
+                }
+                else
                 if (depot["manifests"]["public"].Value == null || !ulong.TryParse(depot["manifests"]["public"].Value, out request.ManifestID))
                 {
                     var branch = depot["manifests"].Children.Find(x => x.Name != "local");
