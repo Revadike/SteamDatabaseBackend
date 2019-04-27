@@ -85,11 +85,18 @@ namespace SteamDatabaseBackend
 
             foreach (var server in serverList)
             {
-                if (server.Type == "CDN" && server.Host.StartsWith("valve"))
+                if (server.Type == "CDN" && (server.Host.StartsWith("valve") || server.Host.StartsWith("cache")) )
                 {
+                    Log.WriteDebug("Depot Processor", "Adding {0} to CDN server list", server.Host);
                     CDNServers.Add(server.Host);
                 }
+                else
+                {
+                    Log.WriteDebug("Depot Processor", "Skipping {0}, not added to CDN server list", server.Host);
+                }
             }
+
+            Log.WriteDebug("Depot Processor", "Finished adding CDN servers, added {0} out of {1}", CDNServers.Count, serverList.Count);
         }
 
         public async Task Process(uint appID, uint changeNumber, KeyValue depots)
