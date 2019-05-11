@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -68,35 +69,39 @@ namespace SteamDatabaseBackend
 
         private async void OnServerList(SteamClient.ServerListCallback callback)
         {
-            IList<CDNClient.Server> serverList;
+            KeyValue response;
 
-            try
+            using (var steamDirectory = Steam.Configuration.GetAsyncWebAPIInterface("ISteamDirectory"))
             {
-                serverList = await CDNClient.FetchServerListAsync(maxServers: 60);
-            }
-            catch (Exception e)
-            {
-                ErrorReporter.Notify("Depot Downloader", e);
+                steamDirectory.Timeout = TimeSpan.FromSeconds(5);
 
-                return;
-            }
-
-            var newServers = new List<string>();
-
-            foreach (var server in serverList)
-            {
-                if (server.Type == "CDN" && (server.Host.StartsWith("valve") || server.Host.StartsWith("cache")) )
+                try
                 {
-                    Log.WriteDebug("Depot Processor", "Adding {0} to CDN server list", server.Host);
-                    CDNServers.Add(server.Host);
+                    response = await steamDirectory.CallAsync(HttpMethod.Get, "GetCSList", 1,
+                        new Dictionary<string, string>
+                        {
+                            { "cellid", LocalConfig.Current.CellID.ToString() },
+                            { "maxcount", "20" } // Use the first 20 servers as they're sorted by cellid and we want low latency
+                        });
+
+                    if ((EResult)response["result"].AsInteger() != EResult.OK)
+                    {
+                        throw new Exception($"GetCSList result is EResult.${response["result"]}");
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    Log.WriteDebug("Depot Processor", "Skipping {0}, not added to CDN server list", server.Host);
+                    ErrorReporter.Notify("Depot Downloader", e);
+
+                    return;
                 }
             }
 
-            Log.WriteDebug("Depot Processor", "Finished adding CDN servers, added {0} out of {1}", CDNServers.Count, serverList.Count);
+            // Note: There are servers like `origin5-sea1.steamcontent.com`
+            // which are hosted in Seattle, and most likely are the source of truth for
+            // game content, perhaps we should filter to these. But the latency is poor from Europe.
+
+            var newServers = response["serverlist"].Children.Select(x => x.AsString()).ToList();
 
             if (newServers.Count > 0)
             {
