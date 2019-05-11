@@ -114,7 +114,7 @@ namespace SteamDatabaseBackend
                 Log.WriteWarn(nameof(FileDownloader), $"\"{file}\" no longer exists in manifest");
             }
 
-            Log.WriteInfo("FileDownloader", "Will download {0} files from depot {1}", files.Count, job.DepotID);
+            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Will download {files.Count} files");
 
             var downloadedFiles = 0;
             var fileTasks = new Task[files.Count];
@@ -195,14 +195,14 @@ namespace SteamDatabaseBackend
                         // FileInfo.Create returns a stream but we don't need it
                     }
 
-                    Log.WriteInfo("FileDownloader", "{0} created an empty file", file.FileName);
+                    Log.WriteInfo($"FileDownloader {job.DepotID}", $"{file.FileName} created an empty file");
 
                     return EResult.SameAsPreviousValue;
                 }
                 else if (finalPath.Length == 0)
                 {
 #if DEBUG
-                    Log.WriteDebug("FileDownloader", "{0} is already empty", file.FileName);
+                    Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} is already empty");
 #endif
 
                     return EResult.SameAsPreviousValue;
@@ -211,7 +211,7 @@ namespace SteamDatabaseBackend
             else if (hash != null && file.FileHash.SequenceEqual(hash))
             {
 #if DEBUG
-                Log.WriteDebug("FileDownloader", "{0} already matches the file we have", file.FileName);
+                Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} already matches the file we have");
 #endif
 
                 return EResult.SameAsPreviousValue;
@@ -256,7 +256,7 @@ namespace SteamDatabaseBackend
                                     fs.Write(oldData, 0, oldData.Length);
 
 #if DEBUG
-                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), not downloading", file.FileName, chunk.Offset);
+                                    Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), not downloading");
 #endif
                                 }
                                 else
@@ -264,7 +264,7 @@ namespace SteamDatabaseBackend
                                     neededChunks.Add(chunk);
 
 #if DEBUG
-                                    Log.WriteDebug("FileDownloader", "{0} Found chunk ({1}), but checksum differs", file.FileName, chunk.Offset);
+                                    Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), but checksum differs");
 #endif
                                 }
                             }
@@ -285,7 +285,7 @@ namespace SteamDatabaseBackend
             var chunkCancellation = new CancellationTokenSource();
             var chunkTasks = new Task[neededChunks.Count];
 
-            Log.WriteInfo("FileDownloader", "Downloading {0} ({1} bytes, {2} out of {3} chunks)", file.FileName, downloadedSize, neededChunks.Count, chunks.Count);
+            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({downloadedSize} bytes, {neededChunks.Count} out of {chunks.Count} chunks)");
 
             for (var i = 0; i < chunkTasks.Length; i++)
             {
@@ -302,7 +302,7 @@ namespace SteamDatabaseBackend
 
                         if (!result)
                         {
-                            Log.WriteWarn("FileDownloader", "Failed to download chunk for {0}", file.FileName);
+                            Log.WriteWarn($"FileDownloader {job.DepotID}", $"Failed to download chunk for {file.FileName} ({chunk.Offset})");
 
                             chunkCancellation.Cancel();
                         }
@@ -341,14 +341,14 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
                     Colors.OLIVE, job.DepotName, Colors.NORMAL, Colors.BLUE, file.FileName);
 
-                Log.WriteWarn("FileDownloader", "Failed to download file {0} ({1})", file.FileName, job.Server);
+                Log.WriteWarn($"FileDownloader {job.DepotID}", $"Hash check failed for {file.FileName} ({job.Server})");
 
                 downloadPath.Delete();
 
                 return EResult.DataCorruption;
             }
 
-            Log.WriteInfo("FileDownloader", "Downloaded {0} from {1}", file.FileName, job.DepotName);
+            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloaded {file.FileName}");
 
             finalPath.Delete();
 
@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    Log.WriteWarn("FileDownloader", "{0} exception: {1}", job.DepotID, e.Message);
+                    Log.WriteWarn($"FileDownloader {job.DepotID}", $"Exception: {e}");
                 }
 
                 await Task.Delay(Utils.ExponentionalBackoff(i));
