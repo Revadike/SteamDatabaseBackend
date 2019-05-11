@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            CDNServers = new List<string>();
+            var newServers = new List<string>();
 
             foreach (var server in serverList)
             {
@@ -97,6 +97,11 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteDebug("Depot Processor", "Finished adding CDN servers, added {0} out of {1}", CDNServers.Count, serverList.Count);
+
+            if (newServers.Count > 0)
+            {
+                CDNServers = newServers;
+            }
         }
 
         public async Task Process(uint appID, uint changeNumber, KeyValue depots)
