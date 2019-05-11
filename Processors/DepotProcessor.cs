@@ -67,13 +67,18 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async void OnServerList(SteamClient.ServerListCallback callback)
+        private void OnServerList(SteamClient.ServerListCallback callback)
+        {
+            TaskManager.RunAsync(UpdateContentServerList);
+        }
+
+        private async void UpdateContentServerList()
         {
             KeyValue response;
 
             using (var steamDirectory = Steam.Configuration.GetAsyncWebAPIInterface("ISteamDirectory"))
             {
-                steamDirectory.Timeout = TimeSpan.FromSeconds(5);
+                steamDirectory.Timeout = TimeSpan.FromSeconds(30);
 
                 try
                 {
