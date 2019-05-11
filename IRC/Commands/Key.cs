@@ -154,6 +154,7 @@ namespace SteamDatabaseBackend
             }
 
             if (job.PurchaseResultDetail != EPurchaseResultDetail.AlreadyPurchased
+            &&  job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode
             &&  job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
             &&  job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
             {
