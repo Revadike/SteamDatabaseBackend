@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
             {
                 AccountInfo.Sync();
 
-                if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalSeconds >= 10)
+                if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalMinutes >= 1.0)
                 {
                     IRC.Instance.SendOps("[Watchdog] Forcing a new changelist request.");
 
