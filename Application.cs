@@ -20,8 +20,6 @@ namespace SteamDatabaseBackend
 
         private static RSS RssReader;
 
-        public static Timer ChangelistTimer { get; private set; }
-
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
@@ -39,10 +37,6 @@ namespace SteamDatabaseBackend
 
             ReloadImportant();
             TaskManager.RunAsync(async () => await KeyNameCache.Init());
-
-            ChangelistTimer = new Timer();
-            ChangelistTimer.Elapsed += Tick;
-            ChangelistTimer.Interval = Settings.Current.CanQueryStore ? 750 : 3000;
 
             var thread = new Thread(Steam.Instance.Tick)
             {
@@ -84,22 +78,6 @@ namespace SteamDatabaseBackend
                 Threads.Add(thread);
 
                 IRC.Instance.RegisterCommandHandlers(commandHandler);
-            }
-        }
-
-        private static void Tick(object sender, ElapsedEventArgs e)
-        {
-            Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
-
-            // debug observer to see whether this timer needs to be tweaked or not
-            if (++Steam.Instance.PICSChanges.InflightRequests > 1)
-            {
-                if (Steam.Instance.PICSChanges.InflightRequests == 2)
-                {
-                    IRC.Instance.SendOps("PICSGetChangesSince tick fell behind");
-                }
-
-                Log.WriteWarn("Application", $"PICSGetChangesSince is falling behind: ${Steam.Instance.PICSChanges.InflightRequests}");
             }
         }
 
@@ -149,10 +127,6 @@ namespace SteamDatabaseBackend
             }
 
             Log.WriteInfo("Bootstrapper", "Exiting...");
-
-            ChangelistTimer.Stop();
-
-            Log.WriteInfo("Bootstrapper", "Disconnecting from Steam...");
 
             try
             {

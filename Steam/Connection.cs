@@ -103,16 +103,14 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
+            Steam.Instance.IsLoggedIn = false;
+
             if (!Steam.Instance.IsRunning)
             {
-                Application.ChangelistTimer.Stop();
-
                 Log.WriteInfo("Steam", "Disconnected from Steam");
 
                 return;
             }
-
-            Application.ChangelistTimer.Stop();
 
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
 
@@ -156,6 +154,8 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            Steam.Instance.IsLoggedIn = true;
+
             var cellId = callback.CellID;
 
             if (LocalConfig.Current.CellID != cellId)
@@ -187,7 +187,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                Application.ChangelistTimer.Start();
+                Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
             }
 
             JobManager.RestartJobsIfAny();
@@ -195,7 +195,7 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Application.ChangelistTimer.Stop();
+            Steam.Instance.IsLoggedIn = false;
 
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 

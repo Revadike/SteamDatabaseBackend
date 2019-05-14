@@ -33,6 +33,8 @@ namespace SteamDatabaseBackend
 
         public bool IsRunning { get; set; }
 
+        public bool IsLoggedIn { get; set; }
+
         private readonly List<SteamHandler> Handlers;
         private Watchdog WatchdogHandle;
 

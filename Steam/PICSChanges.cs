@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
-        public uint InflightRequests { get; set; }
+        public DateTime LastReceivedChangelist { get; private set; }
 
         private readonly uint BillingTypeKey;
 
@@ -168,7 +168,9 @@ namespace SteamDatabaseBackend
 
         private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
-            InflightRequests--;
+            LastReceivedChangelist = DateTime.Now;
+
+            _ = Steam.Instance.Apps.PICSGetChangesSince(callback.CurrentChangeNumber, true, true);
 
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {

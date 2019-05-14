@@ -36,12 +36,23 @@ namespace SteamDatabaseBackend
                 IRC.Instance.Connect();
             }
 
-            if (Steam.Instance.Client.IsConnected && Application.ChangelistTimer.Enabled)
+            if (Steam.Instance.Client.IsConnected && Steam.Instance.IsLoggedIn)
             {
                 AccountInfo.Sync();
+
+                if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalSeconds >= 10)
+                {
+                    IRC.Instance.SendOps("[Watchdog] Forcing a new changelist request.");
+
+                    Log.WriteWarn("Watchdog", "Forcing a new changelist request.");
+
+                    Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
+                }
             }
             else if (DateTime.Now.Subtract(Connection.LastSuccessfulLogin).TotalMinutes >= 5.0)
             {
+                IRC.Instance.SendOps("[Watchdog] Forcing a Steam reconnect.");
+
                 Log.WriteWarn("Watchdog", "Forcing a Steam reconnect.");
 
                 Connection.Reconnect(null, null);
