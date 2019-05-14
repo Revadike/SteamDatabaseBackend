@@ -18,6 +18,8 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
+        public uint InflightRequests { get; set; }
+
         private readonly uint BillingTypeKey;
 
         private static readonly List<EBillingType> IgnorableBillingTypes = new List<EBillingType>
@@ -166,6 +168,8 @@ namespace SteamDatabaseBackend
 
         private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
+            InflightRequests--;
+
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {
                 return;

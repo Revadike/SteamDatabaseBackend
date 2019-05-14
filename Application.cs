@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
 
             ChangelistTimer = new Timer();
             ChangelistTimer.Elapsed += Tick;
-            ChangelistTimer.Interval = TimeSpan.FromSeconds(1).TotalMilliseconds;
+            ChangelistTimer.Interval = Settings.Current.CanQueryStore ? 750 : 3000;
 
             var thread = new Thread(Steam.Instance.Tick)
             {
@@ -90,6 +90,17 @@ namespace SteamDatabaseBackend
         private static void Tick(object sender, ElapsedEventArgs e)
         {
             Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
+
+            // debug observer to see whether this timer needs to be tweaked or not
+            if (++Steam.Instance.PICSChanges.InflightRequests > 1)
+            {
+                if (Steam.Instance.PICSChanges.InflightRequests == 2)
+                {
+                    IRC.Instance.SendOps("PICSGetChangesSince tick fell behind");
+                }
+
+                Log.WriteWarn("Application", $"PICSGetChangesSince is falling behind: ${Steam.Instance.PICSChanges.InflightRequests}");
+            }
         }
 
         public static void ReloadImportant(CommandArguments command)
