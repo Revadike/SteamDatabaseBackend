@@ -148,13 +148,15 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
+                if (job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode)
+                {
+                    IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
+                }
 
                 return job.PurchaseResultDetail;
             }
 
             if (job.PurchaseResultDetail != EPurchaseResultDetail.AlreadyPurchased
-            &&  job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode
             &&  job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
             &&  job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
             {
