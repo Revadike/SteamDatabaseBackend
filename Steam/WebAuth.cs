@@ -68,11 +68,11 @@ namespace SteamDatabaseBackend
                 try
                 {
                     result = await userAuth.CallAsync(HttpMethod.Post, "AuthenticateUser", 1,
-                        new Dictionary<string, string>
+                        new Dictionary<string, object>
                         {
-                            { "steamid", Steam.Instance.Client.SteamID.ConvertToUInt64().ToString() },
-                            { "sessionkey", WebHelpers.UrlEncode(encryptedSessionKey) },
-                            { "encrypted_loginkey", WebHelpers.UrlEncode(encryptedLoginKey) },
+                            { "steamid", Steam.Instance.Client.SteamID.ConvertToUInt64() },
+                            { "sessionkey", encryptedSessionKey },
+                            { "encrypted_loginkey", encryptedLoginKey },
                         }
                     );
                 }

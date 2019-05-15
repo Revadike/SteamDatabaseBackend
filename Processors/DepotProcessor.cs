@@ -83,9 +83,9 @@ namespace SteamDatabaseBackend
                 try
                 {
                     response = await steamDirectory.CallAsync(HttpMethod.Get, "GetCSList", 1,
-                        new Dictionary<string, string>
+                        new Dictionary<string, object>
                         {
-                            { "cellid", LocalConfig.Current.CellID.ToString() },
+                            { "cellid", LocalConfig.Current.CellID },
                             { "maxcount", "20" } // Use the first 20 servers as they're sorted by cellid and we want low latency
                         });
 

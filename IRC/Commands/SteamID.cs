@@ -170,10 +170,10 @@ namespace SteamDatabaseBackend
                 try
                 {
                     response = await steamUser.CallAsync(HttpMethod.Get, "ResolveVanityURL", 1,
-                        new Dictionary<string, string>
+                        new Dictionary<string, object>
                         {
                             { "vanityurl", input },
-                            { "url_type", ((int)urlType).ToString() }
+                            { "url_type", (int)urlType }
                         });
                 }
                 catch (HttpRequestException)
