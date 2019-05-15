@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Dapper;
@@ -26,7 +27,7 @@ namespace SteamDatabaseBackend
             public ulong ManifestID;
             public string DepotName;
             public string CDNToken;
-            public string Server;
+            public CDNClient.Server Server;
             public byte[] DepotKey;
             public EResult Result = EResult.Fail;
             public bool Anonymous;
@@ -38,7 +39,7 @@ namespace SteamDatabaseBackend
 
         private CDNClient CDNClient;
         private readonly Dictionary<uint, byte> DepotLocks;
-        private List<string> CDNServers;
+        private List<CDNClient.Server> CDNServers;
         private readonly string UpdateScript;
         private bool SaveLocalConfig;
 
@@ -49,7 +50,10 @@ namespace SteamDatabaseBackend
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             DepotLocks = new Dictionary<uint, byte>();
             CDNClient = new CDNClient(client);
-            CDNServers = new List<string> { "valve500.steamcontent.com" };
+            CDNServers = new List<CDNClient.Server>
+            {
+                new DnsEndPoint("valve500.steamcontent.com", 443)
+            };
 
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
 
@@ -106,7 +110,7 @@ namespace SteamDatabaseBackend
             // which are hosted in Seattle, and most likely are the source of truth for
             // game content, perhaps we should filter to these. But the latency is poor from Europe.
 
-            var newServers = response["serverlist"].Children.Select(x => x.AsString()).ToList();
+            var newServers = response["serverlist"].Children.Select(x => (CDNClient.Server)new DnsEndPoint(x.Value.ToString(), 443)).ToList();
 
             if (newServers.Count > 0)
             {
@@ -780,7 +784,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private string GetContentServer()
+        private CDNClient.Server GetContentServer()
         {
             var i = Utils.NextRandom(CDNServers.Count);
 
