@@ -19,7 +19,7 @@ namespace SteamDatabaseBackend
 
         public static DateTime LastSuccessfulLogin { get; private set; }
 
-        public Timer ReconnectionTimer { get; private set; }
+        private Timer ReconnectionTimer;
 
         private string AuthCode;
         private bool IsTwoFactor;
@@ -52,13 +52,6 @@ namespace SteamDatabaseBackend
 
         public static void Reconnect(object sender, ElapsedEventArgs e)
         {
-            if (Steam.Instance.Client.IsConnected)
-            {
-                Log.WriteDebug("Steam", "Reconnect timer fired, but it's connected already.");
-
-                return;
-            }
-
             Log.WriteDebug("Steam", "Reconnecting...");
 
             Steam.Instance.Client.Connect();
@@ -66,6 +59,8 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
+            ReconnectionTimer.Stop();
+
             Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
 
             if (Settings.Current.Steam.Username == "anonymous")

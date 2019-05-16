@@ -15,11 +15,11 @@ namespace SteamDatabaseBackend
     class SteamAnonymous : IDisposable
     {
         private Timer ReconnectionTimer;
+        private readonly CallbackManager CallbackManager;
 
         public SteamClient Client { get; }
         private SteamUser User { get; }
         public SteamApps Apps { get; }
-        private CallbackManager CallbackManager { get; }
 
         public bool IsRunning { get; set; }
 
@@ -81,13 +81,6 @@ namespace SteamDatabaseBackend
 
         private void Reconnect(object sender, ElapsedEventArgs e)
         {
-            if (Client.IsConnected)
-            {
-                Log.WriteDebug("SteamAnonymous", "Reconnect timer fired, but it's connected already.");
-
-                return;
-            }
-
             Log.WriteDebug("SteamAnonymous", "Reconnecting...");
 
             Client.Connect();
@@ -95,6 +88,8 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(SteamClient.ConnectedCallback callback)
         {
+            ReconnectionTimer.Stop();
+
             Log.WriteInfo("SteamAnonymous", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
 
             User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
