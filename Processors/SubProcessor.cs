@@ -142,11 +142,6 @@ namespace SteamDatabaseBackend
                                         Action = isAppSection ? "removed_from_sub" : "added_to_sub"
                                     }
                                 );
-
-                                if (isAppSection && SubID == 17906)
-                                {
-                                    Steam.Anonymous.GetAccessTokenForApp(appID);
-                                }
                             }
 
                             apps.Remove(appID);
@@ -167,11 +162,6 @@ namespace SteamDatabaseBackend
                                         Action   = "added_to_sub"
                                     }
                                 );
-
-                                if (SubID == 17906)
-                                {
-                                    Steam.Anonymous.GetAccessTokenForApp(appID);
-                                }
                             }
                             else
                             {

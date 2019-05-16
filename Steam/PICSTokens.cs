@@ -87,7 +87,7 @@ namespace SteamDatabaseBackend
             return 0;
         }
 
-        public static bool HandleToken(uint id, ulong accessToken)
+        public static void HandleToken(uint id, ulong accessToken)
         {
             if (!SecretTokens.ContainsKey(id))
             {
@@ -103,15 +103,11 @@ namespace SteamDatabaseBackend
                         new { AppID = id, Token = accessToken }
                     );
                 }
-
-                return true;
             }
             else if (SecretTokens[id] != accessToken)
             {
                 IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got a token that mismatches the one in database: {SecretTokens[id]} != {accessToken}");
             }
-
-            return false;
         }
     }
 }
