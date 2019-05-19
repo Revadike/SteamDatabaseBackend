@@ -85,8 +85,6 @@ namespace SteamDatabaseBackend
                     return false;
                 }
 
-                File.WriteAllText(Path.Combine(Application.Path, "files", ".support", "cookie.txt"), $"steamLogin={result["token"].AsString()}; steamLoginSecure={result["tokensecure"].AsString()}");
-
                 Cookies = new CookieContainer();
                 Cookies.Add(new Cookie("steamLogin", result["token"].AsString(), "/", "store.steampowered.com"));
                 Cookies.Add(new Cookie("steamLoginSecure", result["tokensecure"].AsString(), "/", "store.steampowered.com"));
