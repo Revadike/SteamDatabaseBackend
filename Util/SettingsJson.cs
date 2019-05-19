@@ -25,9 +25,6 @@ namespace SteamDatabaseBackend
 
             [JsonProperty(Required = Required.Always)]
             public string WebAPIKey;
-
-            [JsonProperty(Required = Required.Default)]
-            public Uri WebAPIUrl = SteamKit2.WebAPI.DefaultBaseAddress;
         }
 
         public sealed class IrcJson

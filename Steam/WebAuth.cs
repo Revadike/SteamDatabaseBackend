@@ -61,7 +61,7 @@ namespace SteamDatabaseBackend
             // users hashed loginkey, AES encrypted with the sessionkey
             var encryptedLoginKey = CryptoHelper.SymmetricEncrypt(Encoding.ASCII.GetBytes(nonce.Nonce), sessionKey);
 
-            using (var userAuth = WebAPI.GetAsyncInterface("ISteamUserAuth"))
+            using (var userAuth = Steam.Configuration.GetAsyncWebAPIInterface("ISteamUserAuth"))
             {
                 KeyValue result;
 
