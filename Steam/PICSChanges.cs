@@ -18,8 +18,6 @@ namespace SteamDatabaseBackend
     {
         public uint PreviousChangeNumber { get; private set; }
 
-        public DateTime LastReceivedChangelist { get; private set; }
-
         private readonly uint BillingTypeKey;
 
         private static readonly List<EBillingType> IgnorableBillingTypes = new List<EBillingType>
@@ -118,6 +116,31 @@ namespace SteamDatabaseBackend
             TaskManager.RunAsync(async () => await RequestUpdateForList(apps, packages));
         }
 
+        public void StartTick()
+        {
+            TaskManager.Run(Tick);
+        }
+
+        private async Task Tick()
+        {
+            Log.WriteDebug(nameof(PICSChanges), "Thread started");
+
+            while (Steam.Instance.IsLoggedIn)
+            {
+                try
+                {
+                    await Steam.Instance.Apps.PICSGetChangesSince(PreviousChangeNumber, true, true);
+                }
+                catch (Exception e)
+                {
+                    IRC.Instance.SendOps($"PICSGetChangesSince failed: {e.Message}");
+                    Log.WriteError(nameof(PICSChanges), $"PICSGetChangesSince failed: {e.Message}");
+                }
+            }
+
+            Log.WriteDebug(nameof(PICSChanges), "Thread stopped");
+        }
+
         private static bool IsBusy()
         {
             Log.WriteInfo("Full Run", "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
@@ -168,10 +191,6 @@ namespace SteamDatabaseBackend
 
         private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
-            LastReceivedChangelist = DateTime.Now;
-
-            _ = Steam.Instance.Apps.PICSGetChangesSince(callback.CurrentChangeNumber, true, true);
-
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {
                 return;

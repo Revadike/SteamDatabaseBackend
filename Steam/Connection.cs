@@ -182,7 +182,7 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                Steam.Instance.Apps.PICSGetChangesSince(Steam.Instance.PICSChanges.PreviousChangeNumber, true, true);
+                Steam.Instance.PICSChanges.StartTick();
             }
 
             JobManager.RestartJobsIfAny();
