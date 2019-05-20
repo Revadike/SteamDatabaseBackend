@@ -98,8 +98,6 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
-            Steam.Instance.IsLoggedIn = false;
-
             if (!Steam.Instance.IsRunning)
             {
                 Log.WriteInfo("Steam", "Disconnected from Steam");
@@ -149,8 +147,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Steam.Instance.IsLoggedIn = true;
-
             var cellId = callback.CellID;
 
             if (LocalConfig.Current.CellID != cellId)
@@ -190,8 +186,6 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Steam.Instance.IsLoggedIn = false;
-
             Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
 
             IRC.Instance.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);

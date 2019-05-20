@@ -36,7 +36,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.Connect();
             }
 
-            if (Steam.Instance.Client.IsConnected && Steam.Instance.IsLoggedIn)
+            if (Steam.Instance.Client.IsConnected)
             {
                 AccountInfo.Sync();
             }

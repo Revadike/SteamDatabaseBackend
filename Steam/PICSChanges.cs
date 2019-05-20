@@ -125,7 +125,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteDebug(nameof(PICSChanges), "Thread started");
 
-            while (Steam.Instance.IsLoggedIn)
+            while (Steam.Instance.Client.IsConnected)
             {
                 try
                 {
