@@ -732,7 +732,8 @@ namespace SteamDatabaseBackend
                     DepotID  = request.DepotID,
                     ChangeID = request.ChangeNumber,
                     Action   = "removed",
-                    File     = x.Value.File
+                    File     = x.Value.File,
+                    OldValue = x.Value.Size
                 }), transaction: transaction);
             }
 
@@ -747,7 +748,8 @@ namespace SteamDatabaseBackend
                         DepotID  = request.DepotID,
                         ChangeID = request.ChangeNumber,
                         Action   = "added",
-                        File     = x.File
+                        File     = x.File,
+                        NewValue = x.Size
                     }), transaction: transaction);
                 }
             }
