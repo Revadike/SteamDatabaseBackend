@@ -199,16 +199,9 @@ namespace SteamDatabaseBackend
         {
             try
             {
-                using (var webClient = Utils.CreateHttpClient())
+                using (var reader = new XmlTextReader(await Utils.HttpClient.GetStreamAsync(url)))
                 {
-                    webClient.DefaultRequestHeaders.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
-                    webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
-                    webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
-
-                    using (var reader = new XmlTextReader(await webClient.GetStreamAsync(url)))
-                    {
-                        return ReadFeedItems(reader);
-                    }
+                    return ReadFeedItems(reader);
                 }
             }
             catch (Exception ex)

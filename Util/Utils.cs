@@ -20,6 +20,12 @@ namespace SteamDatabaseBackend
     static class Utils
     {
         private static readonly Random RandomGenerator = new Random();
+        public static HttpClient HttpClient { get; } = new HttpClient();
+
+        static Utils()
+        {
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
+        }
 
         // Adapted from http://stackoverflow.com/a/13503860/139147
         // Mono doesn't really like method extensions
@@ -199,12 +205,6 @@ namespace SteamDatabaseBackend
             w.WriteEndObject();
         }
 
-        public static HttpClient CreateHttpClient()
-        {
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
-            return client;
-        }
     }
 
     class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>

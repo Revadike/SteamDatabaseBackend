@@ -135,13 +135,14 @@ namespace SteamDatabaseBackend
                 }.Uri;
             }
 
-            using (var webClient = Utils.CreateHttpClient())
+            using (var requestMessage = new HttpRequestMessage(HttpMethod.Get, uri))
             {
-                webClient.DefaultRequestHeaders.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
-                webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
-                webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
+                requestMessage.Headers.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
+                requestMessage.Headers.Add("X-Algolia-Application-Id", "94HE6YATEI");
+                requestMessage.Headers.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
 
-                var data = await webClient.GetStringAsync(uri);
+                var response = await Utils.HttpClient.SendAsync(requestMessage);
+                var data = await response.Content.ReadAsStringAsync();
                 var json = JsonConvert.DeserializeObject<AlgoliaSearchAppHits>(data);
 
                 if (json.Hits.Length > 0)

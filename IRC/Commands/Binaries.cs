@@ -61,19 +61,17 @@ namespace SteamDatabaseBackend
             var isStable = args.Length > 1 && args[1].Equals("stable");
             var uri = new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks));
 
-            using (var client = Utils.CreateHttpClient())
+            var client = Utils.HttpClient;
+            var data = await client.GetStringAsync(uri);
+            var kv = KeyValue.LoadFromString(data);
+
+            if (kv == null)
             {
-                var data = await client.GetStringAsync(uri);
-                var kv = KeyValue.LoadFromString(data);
-
-                if (kv == null)
-                {
-                    throw new InvalidOperationException("Failed to parse downloaded client manifest.");
-                }
-
-                PrintBinary(command, kv, string.Concat("bins_", os));
-                PrintBinary(command, kv, string.Concat("bins_client_", os));
+                throw new InvalidOperationException("Failed to parse downloaded client manifest.");
             }
+
+            PrintBinary(command, kv, string.Concat("bins_", os));
+            PrintBinary(command, kv, string.Concat("bins_client_", os));
         }
 
         private static void PrintBinary(CommandArguments command, KeyValue kv, string key)
