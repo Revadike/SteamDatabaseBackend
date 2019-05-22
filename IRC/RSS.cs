@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
@@ -25,6 +24,12 @@ namespace SteamDatabaseBackend
             public uint AppID { get; set; }
             public uint Official { get; set; }
             public DateTime Date { get; set; }
+        }
+
+        public class GenericFeed
+        {
+            public string Title { get; set; }
+            public List<GenericFeedItem> Items { get; set; }
         }
 
         public class GenericFeedItem
@@ -62,32 +67,32 @@ namespace SteamDatabaseBackend
             await Task.WhenAll(tasks);
         }
 
-        private static async Task ProcessFeed(Uri feed)
+        private static async Task ProcessFeed(Uri feedUrl)
         {
-            var rssItems = LoadRSS(feed, out var feedTitle);
+            var feed = await LoadRSS(feedUrl);
 
-            if (rssItems == null)
+            if (feed == null)
             {
                 return;
             }
 
-            if (rssItems.Count == 0)
+            if (feed.Items.Count == 0)
             {
-                Log.WriteError("RSS", "Did not find any items in {0}", feed);
+                Log.WriteError("RSS", "Did not find any items in {0}", feedUrl);
                 return;
             }
 
             using (var db = await Database.GetConnectionAsync())
             {
-                var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = rssItems.Select(x => x.Link) })).ToDictionary(x => x.Link, _ => (byte)1);
+                var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = feed.Items.Select(x => x.Link) })).ToDictionary(x => x.Link, _ => (byte)1);
 
-                var newItems = rssItems.Where(item => !items.ContainsKey(item.Link));
+                var newItems = feed.Items.Where(item => !items.ContainsKey(item.Link));
 
                 foreach (var item in newItems)
                 {
-                    Log.WriteInfo("RSS", "[{0}] {1}: {2}", feedTitle, item.Title, item.Link);
+                    Log.WriteInfo("RSS", "[{0}] {1}: {2}", feed.Title, item.Title, item.Link);
 
-                    IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feedTitle, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
+                    IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feed.Title, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
 
                     await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 
@@ -98,7 +103,7 @@ namespace SteamDatabaseBackend
 
                     uint appID = 0;
 
-                    if (feedTitle == "Steam RSS News Feed")
+                    if (feed.Title == "Steam RSS News Feed")
                     {
                         if (item.Title.StartsWith("Dota 2 Update", StringComparison.Ordinal))
                         {
@@ -121,7 +126,7 @@ namespace SteamDatabaseBackend
                             appID = 620;
                         }
                     }
-                    else if (feedTitle.Contains("Counter-Strike: Global Offensive") && item.Title.StartsWith("Release Notes", StringComparison.Ordinal))
+                    else if (feed.Title.Contains("Counter-Strike: Global Offensive") && item.Title.StartsWith("Release Notes", StringComparison.Ordinal))
                     {
                         appID = 730;
 
@@ -190,20 +195,19 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static List<GenericFeedItem> LoadRSS(Uri url, out string feedTitle)
+        private static async Task<GenericFeed> LoadRSS(Uri url)
         {
             try
             {
-                var webReq = WebRequest.Create(url) as HttpWebRequest;
-                webReq.UserAgent = SteamDB.USERAGENT;
-                webReq.Timeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
-                webReq.ReadWriteTimeout = (int)TimeSpan.FromSeconds(15).TotalMilliseconds;
-
-                using (var response = webReq.GetResponse())
+                using (var webClient = Utils.CreateHttpClient())
                 {
-                    using (var reader = new XmlTextReader(response.GetResponseStream()))
+                    webClient.DefaultRequestHeaders.Add("Referer", "https://github.com/SteamDatabase/SteamDatabaseBackend");
+                    webClient.DefaultRequestHeaders.Add("X-Algolia-Application-Id", "94HE6YATEI");
+                    webClient.DefaultRequestHeaders.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
+
+                    using (var reader = new XmlTextReader(await webClient.GetStreamAsync(url)))
                     {
-                        return ReadFeedItems(reader, out feedTitle);
+                        return ReadFeedItems(reader);
                     }
                 }
             }
@@ -211,18 +215,19 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError("RSS", "Unable to load RSS feed {0}: {1}", url, ex.Message);
 
-                feedTitle = null;
-
                 return null;
             }
         }
 
         // http://www.nullskull.com/a/1177/everything-rss--atom-feed-parser.aspx
-        private static List<GenericFeedItem> ReadFeedItems(XmlTextReader reader, out string feedTitle)
+        private static GenericFeed ReadFeedItems(XmlTextReader reader)
         {
-            feedTitle = string.Empty;
+            var feed = new GenericFeed
+            {
+                Title = string.Empty,
+                Items = new List<GenericFeedItem>()
+            };
 
-            var itemList = new List<GenericFeedItem>();
             GenericFeedItem currentItem = null;
 
             while (reader.Read())
@@ -235,7 +240,7 @@ namespace SteamDatabaseBackend
                     {
                         if (currentItem != null)
                         {
-                            itemList.Add(currentItem);
+                            feed.Items.Add(currentItem);
                         }
 
                         currentItem = new GenericFeedItem();
@@ -263,12 +268,12 @@ namespace SteamDatabaseBackend
                     {
                         reader.Read();
 
-                        feedTitle = reader.Value;
+                        feed.Title = reader.Value;
                     }
                 }
             }
 
-            return itemList;
+            return feed;
         }
     }
 }
