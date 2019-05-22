@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Globalization;
 using System.IO;
 using SteamKit2;
 
@@ -16,6 +17,9 @@ namespace SteamDatabaseBackend
 
         public static void Main()
         {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
 
             Console.Title = "Steam Database";
