@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -97,45 +96,44 @@ namespace SteamDatabaseBackend
             return true;
         }
 
-        public static HttpWebResponse PerformRequest(string method, string url)
+        public static async Task<HttpResponseMessage> PerformRequest(HttpMethod method, string url)
         {
-            HttpWebResponse response = null;
+            HttpResponseMessage response = null;
 
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < 3; i++)
             {
-                if (!IsAuthorized && !AuthenticateUser().GetAwaiter().GetResult()) // TODO: async
+                if (!IsAuthorized && !await AuthenticateUser())
                 {
                     continue;
                 }
 
-                var request = (HttpWebRequest)WebRequest.Create(url);
-                request.Method = method;
-                request.Timeout = 10000;
-                request.AllowAutoRedirect = false;
-                request.CookieContainer = Cookies;
-                request.AutomaticDecompression = DecompressionMethods.GZip;
-                request.UserAgent = SteamDB.USERAGENT;
-
-                response = request.GetResponse() as HttpWebResponse;
-
-                if (response == null || response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
+                var uri = new Uri(url);
+                string cookies = string.Empty;
+                
+                foreach (var cookie in Cookies.GetCookies(uri))
                 {
-                    IsAuthorized = false;
-
-                    continue;
+                    cookies += cookie.ToString() + ";";
                 }
 
-                if (response.StatusCode != HttpStatusCode.OK)
+                using (var requestMessage = new HttpRequestMessage(method, uri))
                 {
-                    throw new WebException(string.Format("Invalid status code: {0} ({1})", response.StatusCode, (int)response.StatusCode));
+                    requestMessage.Headers.Add("Cookie", cookies); // Can't pass cookie container into a single req message
+
+                    response = await Utils.HttpClient.SendAsync(requestMessage);
+
+                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
+                    {
+                        Log.WriteDebug(nameof(WebAuth), $"Got status code {response.StatusCode}");
+
+                        IsAuthorized = false;
+
+                        continue;
+                    }
+
+                    response.EnsureSuccessStatusCode();
                 }
 
                 break;
-            }
-
-            if (response == null)
-            {
-                throw new WebException("No data received");
             }
 
             return response;

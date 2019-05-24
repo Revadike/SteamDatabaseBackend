@@ -6,11 +6,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Timers;
 using Dapper;
 using SteamKit2;
@@ -73,9 +73,9 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
 
-                TaskManager.RunAsync(() =>
+                TaskManager.RunAsync(async () =>
                 {
-                    RefreshPackageNames();
+                    await RefreshPackageNames();
 
                     foreach (var subID in packageIDs)
                     {
@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void RefreshPackageNames()
+        private async Task RefreshPackageNames()
         {
             if (CurrentlyUpdatingNames)
             {
@@ -101,17 +101,10 @@ namespace SteamDatabaseBackend
             {
                 CurrentlyUpdatingNames = true;
 
-                var response = WebAuth.PerformRequest("GET", "https://store.steampowered.com/account/licenses/");
-
-                using (var responseStream = response.GetResponseStream())
-                {
-                    using (var reader = new StreamReader(responseStream))
-                    {
-                        data = reader.ReadToEnd();
-                    }
-                }
+                var response = await WebAuth.PerformRequest(HttpMethod.Get, "https://store.steampowered.com/account/licenses/");
+                data = await response.Content.ReadAsStringAsync();
             }
-            catch (WebException e)
+            catch (Exception e)
             {
                 Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
 
@@ -143,7 +136,7 @@ namespace SteamDatabaseBackend
             using (var db = Database.Get())
             {
                 // Skip packages that have a store name to avoid messing up history
-                var packageData = db.Query<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
+                var packageData = await db.QueryAsync<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
 
                 foreach (var package in packageData)
                 {
@@ -153,9 +146,9 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
 
-                        db.Execute("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
+                        await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
 
-                        db.Execute(
+                        await db.ExecuteAsync(
                             SubProcessor.HistoryQuery,
                             new PICSHistory
                             {

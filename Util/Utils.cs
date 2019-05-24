@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using Newtonsoft.Json;
@@ -20,11 +21,17 @@ namespace SteamDatabaseBackend
     static class Utils
     {
         private static readonly Random RandomGenerator = new Random();
-        public static HttpClient HttpClient { get; } = new HttpClient();
+        public static HttpClient HttpClient { get; }
 
         static Utils()
         {
+            HttpClient = new HttpClient(new HttpClientHandler()
+            {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.GZip,
+            });
             HttpClient.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
+            HttpClient.Timeout = TimeSpan.FromSeconds(10);
         }
 
         // Adapted from http://stackoverflow.com/a/13503860/139147
