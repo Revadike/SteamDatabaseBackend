@@ -42,16 +42,9 @@ namespace SteamDatabaseBackend
             };
             thread.Start();
 
-            var anonThread = new Thread(Steam.Anonymous.Tick)
-            {
-                Name = "SteamAnonymous"
-            };
-            anonThread.Start();
-
             Threads = new List<Thread>
             {
                 thread,
-                anonThread,
             };
 
             if (Settings.IsFullRun)
@@ -161,17 +154,6 @@ namespace SteamDatabaseBackend
             Log.WriteInfo("Bootstrapper", "Saving local config...");
 
             LocalConfig.Save();
-
-            try
-            {
-                Steam.Anonymous.IsRunning = false;
-                Steam.Anonymous.Client.Disconnect();
-                Steam.Anonymous.Dispose();
-            }
-            catch (Exception e)
-            {
-                ErrorReporter.Notify("Bootstrapper", e);
-            }
         }
     }
 }

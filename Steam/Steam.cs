@@ -17,7 +17,6 @@ namespace SteamDatabaseBackend
     class Steam : IDisposable
     {
         public static Steam Instance { get; } = new Steam();
-        public static SteamAnonymous Anonymous { get; } = new SteamAnonymous();
         public static SteamConfiguration Configuration { get; private set; }
 
         public SteamClient Client { get; }
