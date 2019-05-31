@@ -301,6 +301,11 @@ namespace SteamDatabaseBackend
                 }
             }
 
+            if (!LicenseList.OwnedApps.ContainsKey(depotID))
+            {
+                return null;
+            }
+
             var task = instance.GetDepotDecryptionKey(depotID, appID);
             task.Timeout = TimeSpan.FromMinutes(15);
 
