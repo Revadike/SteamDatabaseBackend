@@ -390,12 +390,17 @@ namespace SteamDatabaseBackend
             }
 
 #if DEBUG
-            Log.WriteDebug("Depot Downloader", "Token for depot {0} result: {1}", depotID, tokenCallback.Result);
+            Log.WriteDebug("Depot Downloader", $"Token for depot {depotID} result: {tokenCallback.Result} ({tokenCallback.Token})");
 #endif
 
             if (tokenCallback.Result != EResult.OK)
             {
                 return null;
+            }
+
+            if (string.IsNullOrEmpty(tokenCallback.Token))
+            {
+                Log.WriteWarn("Depot Downloader", $"Token for depot {depotID} is an empty string");
             }
 
             var newToken = new LocalConfig.CDNAuthToken
