@@ -133,7 +133,6 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    IRC.Instance.SendOps($"PICSGetChangesSince failed: {e.Message}");
                     Log.WriteError(nameof(PICSChanges), $"PICSGetChangesSince failed: {e.Message}");
                 }
             }
