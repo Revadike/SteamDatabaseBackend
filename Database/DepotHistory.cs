@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class DepotHistory
+    internal class DepotHistory
     {
         public uint DepotID { get; set; }
         public uint ChangeID { get; set; }

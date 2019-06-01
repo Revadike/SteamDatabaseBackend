@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class Bootstrapper
+    internal static class Bootstrapper
     {
         private static bool CleaningUp;
 

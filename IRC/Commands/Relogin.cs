@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
-    class ReloginCommand : Command
+    internal class ReloginCommand : Command
     {
         public ReloginCommand()
         {

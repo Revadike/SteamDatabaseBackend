@@ -11,7 +11,7 @@ using NetIrc2.Events;
 
 namespace SteamDatabaseBackend
 {
-    class IRC
+    internal class IRC
     {
         public static IRC Instance { get; } = new IRC();
 

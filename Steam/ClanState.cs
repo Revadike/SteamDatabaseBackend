@@ -8,7 +8,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class ClanState : SteamHandler
+    internal class ClanState : SteamHandler
     {
         public ClanState(CallbackManager manager)
         {
@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string groupName = callback.ClanName;
+            var groupName = callback.ClanName;
             string message;
 
             if (string.IsNullOrEmpty(groupName))

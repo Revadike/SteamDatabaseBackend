@@ -9,7 +9,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    class QueueCommand : Command
+    internal class QueueCommand : Command
     {
         public QueueCommand()
         {

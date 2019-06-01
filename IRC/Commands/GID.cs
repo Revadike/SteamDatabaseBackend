@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class GIDCommand : Command
+    internal class GIDCommand : Command
     {
         public GIDCommand()
         {

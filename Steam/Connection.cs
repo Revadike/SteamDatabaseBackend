@@ -13,7 +13,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class Connection : SteamHandler, IDisposable
+    internal class Connection : SteamHandler, IDisposable
     {
         public const uint RETRY_DELAY = 15;
 

@@ -6,7 +6,7 @@
 
 namespace SteamDatabaseBackend
 {
-    enum FullRunState
+    internal enum FullRunState
     {
         None = 0,
         Normal = 1,

@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct Important
+    internal struct Important
     {
         public uint ID { get; set; }
         public string Channel { get; set; }

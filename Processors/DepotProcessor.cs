@@ -17,7 +17,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class DepotProcessor : IDisposable
+    internal class DepotProcessor : IDisposable
     {
         public class ManifestJob
         {
@@ -133,7 +133,7 @@ namespace SteamDatabaseBackend
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
-                    DepotName    = depot["name"].AsString()
+                    DepotName = depot["name"].AsString()
                 };
 
                 // Ignore keys that aren't integers, for example "branches"
@@ -193,7 +193,8 @@ namespace SteamDatabaseBackend
             using (var db = await Database.GetConnectionAsync())
             {
                 await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
-                new {
+                new
+                {
                     requests[0].BuildID,
                     requests[0].ChangeNumber,
                     appID
@@ -239,7 +240,8 @@ namespace SteamDatabaseBackend
                     {
                         await db.ExecuteAsync(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
                                     ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = VALUES(`Name`), `BuildID` = VALUES(`BuildID`), `ManifestID` = VALUES(`ManifestID`)",
-                        new {
+                        new
+                        {
                             request.DepotID,
                             request.DepotName,
                             request.BuildID,
@@ -410,7 +412,7 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
 
             var processTasks = new List<Task<EResult>>();
-            bool anyFilesDownloaded = false;
+            var anyFilesDownloaded = false;
 
             foreach (var depot in depots)
             {
@@ -438,7 +440,7 @@ namespace SteamDatabaseBackend
                 depot.Server = GetContentServer();
 
                 DepotManifest depotManifest = null;
-                string lastError = string.Empty;
+                var lastError = string.Empty;
 
                 for (var i = 0; i <= 5; i++)
                 {
@@ -467,7 +469,6 @@ namespace SteamDatabaseBackend
                 if (depotManifest == null)
                 {
                     LocalConfig.Current.CDNAuthTokens.TryRemove(depot.DepotID, out _);
-
                     RemoveLock(depot.DepotID);
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
@@ -552,7 +553,7 @@ namespace SteamDatabaseBackend
                     {
                         RunUpdateScript(UpdateScript, string.Format("{0} no-git", depot.DepotID));
                     }
-                    else if(depot.Result != EResult.Ignored)
+                    else if (depot.Result != EResult.Ignored)
                     {
                         Log.WriteWarn("Depot Processor", "Dropping stored token for {0} due to download failures", depot.DepotID);
 
@@ -616,7 +617,7 @@ namespace SteamDatabaseBackend
 
             var updateScript = Path.Combine(Application.Path, "files", downloadFolder, "update.sh");
 
-            if(!File.Exists(updateScript))
+            if (!File.Exists(updateScript))
             {
                 return false;
             }
@@ -651,7 +652,7 @@ namespace SteamDatabaseBackend
                 // Store empty hashes as NULL (e.g. an empty file)
                 if (file.FileHash.Length > 0 && (file.Flags & EDepotFileFlag.Directory) == 0)
                 {
-                    for (int i = 0; i < file.FileHash.Length; ++i)
+                    for (var i = 0; i < file.FileHash.Length; ++i)
                     {
                         if (file.FileHash[i] != 0)
                         {
@@ -721,10 +722,10 @@ namespace SteamDatabaseBackend
                 await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) }, transaction: transaction);
                 await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                 {
-                    DepotID  = request.DepotID,
+                    DepotID = request.DepotID,
                     ChangeID = request.ChangeNumber,
-                    Action   = "removed",
-                    File     = x.Value.File,
+                    Action = "removed",
+                    File = x.Value.File,
                     OldValue = x.Value.Size
                 }), transaction: transaction);
             }
@@ -737,10 +738,10 @@ namespace SteamDatabaseBackend
                 {
                     await db.ExecuteAsync(HistoryQuery, filesAdded.Select(x => new DepotHistory
                     {
-                        DepotID  = request.DepotID,
+                        DepotID = request.DepotID,
                         ChangeID = request.ChangeNumber,
-                        Action   = "added",
-                        File     = x.File,
+                        Action = "added",
+                        File = x.File,
                         NewValue = x.Size
                     }), transaction: transaction);
                 }
@@ -756,10 +757,10 @@ namespace SteamDatabaseBackend
             return db.ExecuteAsync(HistoryQuery,
                 new DepotHistory
                 {
-                    DepotID  = request.DepotID,
+                    DepotID = request.DepotID,
                     ChangeID = request.ChangeNumber,
-                    Action   = action,
-                    File     = file,
+                    Action = action,
+                    File = file,
                     OldValue = oldValue,
                     NewValue = newValue
                 },

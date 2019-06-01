@@ -10,13 +10,13 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    enum ECommandType
+    internal enum ECommandType
     {
         IRC,
         SteamIndividual
     }
 
-    abstract class Command
+    internal abstract class Command
     {
         public string Trigger { get; protected set; }
 
@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         public abstract Task OnCommand(CommandArguments command);
     }
 
-    class CommandArguments
+    internal class CommandArguments
     {
         public string Message { get; set; }
         public string Recipient { get; set; }
@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
             {
                 case ECommandType.IRC:
                     var isChannelMessage = IRC.IsRecipientChannel(Recipient);
-                    string recipient = Recipient;
+                    var recipient = Recipient;
 
                     if (isChannelMessage)
                     {

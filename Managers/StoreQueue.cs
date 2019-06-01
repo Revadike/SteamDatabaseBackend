@@ -11,7 +11,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    static class StoreQueue
+    internal static class StoreQueue
     {
         public static async Task AddAppToQueue(uint appID)
         {

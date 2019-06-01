@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace SteamDatabaseBackend
 {
-    class Watchdog : IDisposable
+    internal class Watchdog : IDisposable
     {
         public Timer Timer { get; private set; }
 

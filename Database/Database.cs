@@ -9,7 +9,7 @@ using MySql.Data.MySqlClient;
 
 namespace SteamDatabaseBackend
 {
-    static class Database
+    internal static class Database
     {
         public static async Task<MySqlConnection> GetConnectionAsync()
         {

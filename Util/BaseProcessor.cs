@@ -12,7 +12,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    abstract class BaseProcessor : IDisposable
+    internal abstract class BaseProcessor : IDisposable
     {
         protected IDbConnection DbConnection;
         protected SteamApps.PICSProductInfoCallback.PICSProductInfo ProductInfo;

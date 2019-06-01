@@ -16,7 +16,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class AppCommand : Command
+    internal class AppCommand : Command
     {
 #pragma warning disable 0649
         private class AlgoliaSearchAppHits

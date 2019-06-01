@@ -4,11 +4,9 @@
  * found in the LICENSE file.
  */
 
-using SteamKit2;
-
 namespace SteamDatabaseBackend
 {
-    abstract class SteamHandler
+    internal abstract class SteamHandler
     {
         protected SteamHandler()
         {

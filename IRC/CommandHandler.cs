@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class CommandHandler
+    internal class CommandHandler
     {
         private readonly List<Command> RegisteredCommands;
         private readonly PubFileCommand PubFileHandler;
@@ -99,7 +99,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var message = (string)commandData.Message;
+            var message = commandData.Message;
             var messageArray = message.Split(' ');
             var trigger = messageArray[0];
 
@@ -142,9 +142,9 @@ namespace SteamDatabaseBackend
         public void OnSteamFriendMessage(SteamFriends.FriendMsgCallback callback)
         {
             if (callback.EntryType != EChatEntryType.ChatMsg        // Is chat message
-            ||  callback.Sender == Steam.Instance.Client.SteamID    // Is not sent by the bot
-            ||  callback.Message[0] != Settings.Current.IRC.CommandPrefix
-            ||  callback.Message.Contains('\n')                     // Does not contain new lines
+            || callback.Sender == Steam.Instance.Client.SteamID    // Is not sent by the bot
+            || callback.Message[0] != Settings.Current.IRC.CommandPrefix
+            || callback.Message.Contains('\n')                     // Does not contain new lines
             )
             {
                 return;

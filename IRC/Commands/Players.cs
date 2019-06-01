@@ -6,12 +6,12 @@
 
 using System;
 using System.Threading.Tasks;
-using SteamKit2;
 using Dapper;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class PlayersCommand : Command
+    internal class PlayersCommand : Command
     {
         public PlayersCommand()
         {

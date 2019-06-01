@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dapper;
@@ -12,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class PICSTokens : SteamHandler
+    internal class PICSTokens : SteamHandler
     {
         private class PICSToken
         {

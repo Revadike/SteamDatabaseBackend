@@ -10,13 +10,13 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class JobAction
+    internal class JobAction
     {
         public Func<JobID> Action;
         public CommandArguments Command;
     }
 
-    static class JobManager
+    internal static class JobManager
     {
         private static readonly ConcurrentDictionary<JobID, JobAction> Jobs = new ConcurrentDictionary<JobID, JobAction>();
 

@@ -14,7 +14,7 @@ using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
-    class PICSChanges : SteamHandler
+    internal class PICSChanges : SteamHandler
     {
         public uint PreviousChangeNumber { get; private set; }
 
@@ -158,7 +158,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
 
-            foreach(var list in appIDs.Split(200))
+            foreach (var list in appIDs.Split(200))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
 

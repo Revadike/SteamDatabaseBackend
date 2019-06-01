@@ -14,7 +14,7 @@ using SteamKit2.Discovery;
 
 namespace SteamDatabaseBackend
 {
-    class Steam : IDisposable
+    internal class Steam : IDisposable
     {
         public static Steam Instance { get; } = new Steam();
         public static SteamConfiguration Configuration { get; private set; }
@@ -160,8 +160,8 @@ namespace SteamDatabaseBackend
                 return string.Format("AppID {0}", appID);
             }
 
-            string name     = Utils.RemoveControlCharacters(data.Name);
-            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
+            var name = Utils.RemoveControlCharacters(data.Name);
+            var nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase))
             {
@@ -184,8 +184,8 @@ namespace SteamDatabaseBackend
                 return string.Format("SubID {0}", subID);
             }
 
-            string name     = Utils.RemoveControlCharacters(data.Name);
-            string nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
+            var name = Utils.RemoveControlCharacters(data.Name);
+            var nameLast = Utils.RemoveControlCharacters(data.LastKnownName);
 
             if (string.IsNullOrEmpty(nameLast))
             {

@@ -13,7 +13,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class PICSProductInfo : SteamHandler
+    internal class PICSProductInfo : SteamHandler
     {
         private static readonly Dictionary<uint, Task> CurrentlyProcessing = new Dictionary<uint, Task>();
         private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(15);

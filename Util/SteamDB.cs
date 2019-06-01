@@ -8,7 +8,7 @@ using System;
 
 namespace SteamDatabaseBackend
 {
-    static class SteamDB
+    internal static class SteamDB
     {
         public const uint DATABASE_APPTYPE   = 9;
         public const uint DATABASE_NAME_TYPE = 10;
@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
 
         public static string GetPatchnotesURL(uint buildID)
         {
-        	return new Uri(Settings.Current.BaseURL, string.Format("/patchnotes/{0}/", buildID)).AbsoluteUri;
+            return new Uri(Settings.Current.BaseURL, string.Format("/patchnotes/{0}/", buildID)).AbsoluteUri;
         }
     }
 }

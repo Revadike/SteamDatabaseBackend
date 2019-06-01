@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct StoreUpdateQueue
+    internal struct StoreUpdateQueue
     {
         public uint ID { get; set; }
         public string Type { get; set; }

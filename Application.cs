@@ -12,7 +12,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    static class Application
+    internal static class Application
     {
         private static List<Thread> Threads;
 
@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        ImportantApps.Add(app.ID, new List<string>{ app.Channel });
+                        ImportantApps.Add(app.ID, new List<string> { app.Channel });
                     }
                 }
             }

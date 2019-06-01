@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class Depot
+    internal class Depot
     {
         public uint DepotID { get; set; }
         public string Name { get; set; }

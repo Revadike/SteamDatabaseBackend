@@ -19,7 +19,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class FileDownloader
+    internal static class FileDownloader
     {
         private static readonly JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
         private static readonly JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
 
             ReloadFileList();
 
-            string filesDir = Path.Combine(Application.Path, "files", ".support", "hashes");
+            var filesDir = Path.Combine(Application.Path, "files", ".support", "hashes");
             Directory.CreateDirectory(filesDir);
         }
 
@@ -44,7 +44,7 @@ namespace SteamDatabaseBackend
             Files = new Dictionary<uint, Regex>();
             DownloadFolders = new Dictionary<uint, string>();
 
-            string file = Path.Combine(Application.Path, "files", "depots_mapping.json");
+            var file = Path.Combine(Application.Path, "files", "depots_mapping.json");
 
             if (!File.Exists(file))
             {
@@ -68,7 +68,7 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in files)
             {
-                string pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(ConvertFileMatch)));
+                var pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(ConvertFileMatch)));
 
                 Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 

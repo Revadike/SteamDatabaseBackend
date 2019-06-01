@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace SteamDatabaseBackend
 {
-    static class ErrorReporter
+    internal static class ErrorReporter
     {
         public static void Notify(string component, Exception e)
         {

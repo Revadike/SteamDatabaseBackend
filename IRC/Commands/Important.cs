@@ -10,7 +10,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    class ImportantCommand : Command
+    internal class ImportantCommand : Command
     {
         public ImportantCommand()
         {
@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
                                     }
                                     else
                                     {
-                                        Application.ImportantApps.Add(id, new List<string>{ channel });
+                                        Application.ImportantApps.Add(id, new List<string> { channel });
                                     }
 
                                     using (var db = Database.Get())

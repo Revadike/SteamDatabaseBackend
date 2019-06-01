@@ -17,7 +17,7 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class KeyCommand : Command, IDisposable
+    internal class KeyCommand : Command, IDisposable
     {
         private Timer ActivationTimer;
 
@@ -157,8 +157,8 @@ namespace SteamDatabaseBackend
             }
 
             if (job.PurchaseResultDetail != EPurchaseResultDetail.AlreadyPurchased
-            &&  job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
-            &&  job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
+            && job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
+            && job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
             {
                 var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
                     $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";

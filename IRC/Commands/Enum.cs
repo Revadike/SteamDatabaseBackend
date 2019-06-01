@@ -12,9 +12,9 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class EnumCommand : Command
+    internal class EnumCommand : Command
     {
-        readonly IEnumerable<Type> SteamKitEnums;
+        private readonly IEnumerable<Type> SteamKitEnums;
 
         public EnumCommand()
         {
@@ -66,12 +66,12 @@ namespace SteamDatabaseBackend
             }
 
             var input = args.Length > 1 ? args[1] : string.Empty;
-            bool includeDeprecated = args.Length > 2 && args[2].Equals("deprecated", StringComparison.OrdinalIgnoreCase);
+            var includeDeprecated = args.Length > 2 && args[2].Equals("deprecated", StringComparison.OrdinalIgnoreCase);
 
             RunForEnum(matchingEnumType, input, command, includeDeprecated);
         }
 
-        void RunForEnum(Type enumType, string inputValue, CommandArguments command, bool includeDeprecated)
+        private void RunForEnum(Type enumType, string inputValue, CommandArguments command, bool includeDeprecated)
         {
             var enumName = GetDottedTypeName(enumType);
 
@@ -130,9 +130,9 @@ namespace SteamDatabaseBackend
             if (typeof(TEnum).GetCustomAttributes(typeof(FlagsAttribute), false).Length > 0)
             {
                 var definedFlags = new List<string>();
-                ulong flags = Convert.ToUInt64(enumValue);
+                var flags = Convert.ToUInt64(enumValue);
                 ulong i = 0;
-                int currentFlag = -1;
+                var currentFlag = -1;
 
                 while (i < flags)
                 {

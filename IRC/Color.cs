@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace SteamDatabaseBackend
 {
-    static class Colors
+    internal static class Colors
     {
         private const char IrcColor = '\x3';
 

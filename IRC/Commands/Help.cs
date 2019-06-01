@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
-    class HelpCommand : Command
+    internal class HelpCommand : Command
     {
         private readonly List<Command> Commands;
 

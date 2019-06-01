@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
-    class PackageCommand : Command
+    internal class PackageCommand : Command
     {
         public PackageCommand()
         {

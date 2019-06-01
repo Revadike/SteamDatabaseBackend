@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class WebAuth : SteamHandler
+    internal class WebAuth : SteamHandler
     {
         public static bool IsAuthorized { get; private set; }
         private static CookieContainer Cookies = new CookieContainer();
@@ -108,8 +108,8 @@ namespace SteamDatabaseBackend
                 }
 
                 var uri = new Uri(url);
-                string cookies = string.Empty;
-                
+                var cookies = string.Empty;
+
                 foreach (var cookie in Cookies.GetCookies(uri))
                 {
                     cookies += cookie.ToString() + ";";

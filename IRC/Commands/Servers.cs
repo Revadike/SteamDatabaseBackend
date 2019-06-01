@@ -12,7 +12,7 @@ using SteamKit2.Unified.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class ServersCommand : Command
+    internal class ServersCommand : Command
     {
         private readonly SteamUnifiedMessages.UnifiedService<IGameServers> GameServers;
 

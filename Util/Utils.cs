@@ -18,7 +18,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class Utils
+    internal static class Utils
     {
         private static readonly Random RandomGenerator = new Random();
         public static HttpClient HttpClient { get; }
@@ -54,9 +54,9 @@ namespace SteamDatabaseBackend
             var keySet = new HashSet<TKey>(leftKeys.Union(rightKeys));
 
             return from key in keySet
-                from leftValue in leftLookup[key].DefaultIfEmpty(defaultLeft)
-                from rightValue in rightLookup[key].DefaultIfEmpty(defaultRight)
-                select resultSelector(leftValue, rightValue, key);
+                   from leftValue in leftLookup[key].DefaultIfEmpty(defaultLeft)
+                   from rightValue in rightLookup[key].DefaultIfEmpty(defaultRight)
+                   select resultSelector(leftValue, rightValue, key);
         }
 
         // https://codereview.stackexchange.com/a/90531/151882
@@ -132,9 +132,9 @@ namespace SteamDatabaseBackend
         {
             var HexAsBytes = new byte[str.Length / 2];
 
-            for (int index = 0; index < HexAsBytes.Length; index++)
+            for (var index = 0; index < HexAsBytes.Length; index++)
             {
-                string byteValue = str.Substring(index * 2, 2);
+                var byteValue = str.Substring(index * 2, 2);
                 HexAsBytes[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             }
 
@@ -158,7 +158,7 @@ namespace SteamDatabaseBackend
                 return aEmpty == bEmpty;
             }
 
-            for (int i = 0; i < SHA1_LENGTH; ++i)
+            for (var i = 0; i < SHA1_LENGTH; ++i)
             {
                 if (a[i] != b[i])
                 {
@@ -195,7 +195,7 @@ namespace SteamDatabaseBackend
         {
             w.WriteStartObject();
 
-            foreach (KeyValue keyval in keys)
+            foreach (var keyval in keys)
             {
                 if (keyval.Children.Count > 0)
                 {
@@ -214,7 +214,7 @@ namespace SteamDatabaseBackend
 
     }
 
-    class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
+    internal class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
     {
         public TKey Key { get; set; }
 

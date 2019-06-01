@@ -10,7 +10,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    class BlogCommand : Command
+    internal class BlogCommand : Command
     {
         public BlogCommand()
         {

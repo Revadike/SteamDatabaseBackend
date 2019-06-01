@@ -16,7 +16,7 @@ using SteamKit2.Unified.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class PubFileCommand : Command
+    internal class PubFileCommand : Command
     {
         private readonly SteamUnifiedMessages.UnifiedService<IPublishedFile> PublishedFiles;
         private readonly Regex SharedFileMatch;

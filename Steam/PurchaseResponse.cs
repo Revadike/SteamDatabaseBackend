@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using SteamKit2;

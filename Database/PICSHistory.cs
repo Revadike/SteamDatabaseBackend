@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class PICSHistory
+    internal class PICSHistory
     {
         public uint ID { get; set; } // AppID or SubID 
         public uint ChangeID { get; set; }

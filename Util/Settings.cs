@@ -4,13 +4,12 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.IO;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
-    static class Settings
+    internal static class Settings
     {
         public static SettingsJson Current { get; private set; } = new SettingsJson();
 
@@ -18,7 +17,7 @@ namespace SteamDatabaseBackend
 
         public static void Load()
         {
-            string settingsFile = Path.Combine(Application.Path, "settings.json");
+            var settingsFile = Path.Combine(Application.Path, "settings.json");
 
             if (!File.Exists(settingsFile))
             {

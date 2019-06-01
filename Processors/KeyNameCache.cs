@@ -4,7 +4,6 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    static class KeyNameCache
+    internal static class KeyNameCache
     {
         private static Dictionary<string, uint> App;
         private static Dictionary<string, uint> Sub;

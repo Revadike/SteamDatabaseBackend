@@ -6,14 +6,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SteamIDCommand : Command
+    internal class SteamIDCommand : Command
     {
         private enum EVanityURLType
         {
@@ -141,7 +140,7 @@ namespace SteamDatabaseBackend
             steamID = new SteamID();
 
             if (steamID.SetFromString(input, EUniverse.Public)
-            ||  steamID.SetFromSteam3String(input))
+            || steamID.SetFromSteam3String(input))
             {
                 return true;
             }
@@ -197,7 +196,7 @@ namespace SteamDatabaseBackend
          */
         private static string ExpandSteamID(SteamID input)
         {
-            string displayInstance = input.AccountInstance.ToString();
+            var displayInstance = input.AccountInstance.ToString();
 
             switch (input.AccountInstance)
             {

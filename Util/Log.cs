@@ -9,7 +9,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class Log
+    internal static class Log
     {
         private static readonly string LogDirectoryPath;
 

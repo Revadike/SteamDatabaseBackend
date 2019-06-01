@@ -8,7 +8,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class DepotFile
+    internal class DepotFile
     {
         public uint DepotID { get; set; }
         public uint ID { get; set; }

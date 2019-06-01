@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct App
+    internal struct App
     {
         public uint AppID { get; set; }
         public uint AppType { get; set; } // Not EAppType

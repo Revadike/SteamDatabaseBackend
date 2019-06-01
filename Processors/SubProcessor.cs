@@ -6,7 +6,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -14,7 +13,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class SubProcessor : BaseProcessor
+    internal class SubProcessor : BaseProcessor
     {
         public const string HistoryQuery = "INSERT INTO `SubsHistory` (`ChangeID`, `SubID`, `Action`, `Key`, `OldValue`, `NewValue`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue)";
 
@@ -117,7 +116,7 @@ namespace SteamDatabaseBackend
                             // Is this appid's type the same?
                             if (apps[appID] != type)
                             {
-                                await DbConnection.ExecuteAsync("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new {SubID, AppID = appID, Type = type});
+                                await DbConnection.ExecuteAsync("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new { SubID, AppID = appID, Type = type });
                                 await MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
 
                                 appAddedToThisPackage = true;
@@ -156,10 +155,10 @@ namespace SteamDatabaseBackend
                                 await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
                                     new PICSHistory
                                     {
-                                        ID       = appID,
+                                        ID = appID,
                                         ChangeID = ChangeNumber,
                                         NewValue = SubID.ToString(),
-                                        Action   = "added_to_sub"
+                                        Action = "added_to_sub"
                                     }
                                 );
                             }
@@ -168,10 +167,10 @@ namespace SteamDatabaseBackend
                                 await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
                                     new DepotHistory
                                     {
-                                        DepotID  = appID,
+                                        DepotID = appID,
                                         ChangeID = ChangeNumber,
                                         NewValue = SubID,
-                                        Action   = "added_to_sub"
+                                        Action = "added_to_sub"
                                     }
                                 );
                             }
@@ -238,10 +237,10 @@ namespace SteamDatabaseBackend
                     await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
                         new PICSHistory
                         {
-                            ID       = app.Key,
+                            ID = app.Key,
                             ChangeID = ChangeNumber,
                             OldValue = SubID.ToString(),
-                            Action   = "removed_from_sub"
+                            Action = "removed_from_sub"
                         }
                     );
                 }
@@ -250,10 +249,10 @@ namespace SteamDatabaseBackend
                     await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
                         new DepotHistory
                         {
-                            DepotID  = app.Key,
+                            DepotID = app.Key,
                             ChangeID = ChangeNumber,
                             OldValue = SubID,
-                            Action   = "removed_from_sub"
+                            Action = "removed_from_sub"
                         }
                     );
                 }
@@ -286,11 +285,11 @@ namespace SteamDatabaseBackend
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {
-                    ID       = SubID,
+                    ID = SubID,
                     ChangeID = ChangeNumber,
-                    Key      = x.Key,
+                    Key = x.Key,
                     OldValue = x.Value,
-                    Action   = "removed_key"
+                    Action = "removed_key"
                 }));
             }
 
@@ -377,12 +376,12 @@ namespace SteamDatabaseBackend
             return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
-                    ID       = SubID,
+                    ID = SubID,
                     ChangeID = ChangeNumber,
-                    Key      = keyNameID,
+                    Key = keyNameID,
                     OldValue = oldValue,
                     NewValue = newValue,
-                    Action   = action
+                    Action = action
                 }
             );
         }

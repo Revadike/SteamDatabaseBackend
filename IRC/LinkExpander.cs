@@ -9,11 +9,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Dapper;
-using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class LinkExpander
+    internal class LinkExpander
     {
         private readonly Regex SteamLinkMatch;
 
@@ -72,7 +71,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                string priceInfo = isPackage ? string.Empty : GetFormattedPrices(id);
+                var priceInfo = isPackage ? string.Empty : GetFormattedPrices(id);
 
                 IRC.Instance.SendReply(command.Recipient,
                     string.Format("{0}» {1}{2} {3} —{4} {5}{6}{7}",
@@ -92,7 +91,7 @@ namespace SteamDatabaseBackend
 
         public static string GetFormattedPrices(uint appID)
         {
-            string priceInfo = string.Empty;
+            var priceInfo = string.Empty;
 
             if (!Settings.Current.CanQueryStore)
             {

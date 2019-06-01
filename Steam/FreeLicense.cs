@@ -17,9 +17,9 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class FreeLicense : SteamHandler
+    internal class FreeLicense : SteamHandler
     {
-        const int REQUEST_RATE_LIMIT = 25; // Steam actually limits at 50, but we're not in a hurry
+        private const int REQUEST_RATE_LIMIT = 25; // Steam actually limits at 50, but we're not in a hurry
 
         private static int AppsRequestedInHour;
         private static Timer FreeLicenseTimer;
@@ -175,7 +175,7 @@ namespace SteamDatabaseBackend
                 startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list.Select(x => x.Key) }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
             }
 
-            foreach (var (subId, _) in list)
+            foreach ((var subId, var _) in list)
             {
                 if (startTimes.TryGetValue(subId, out var startTime) && startTime > now)
                 {

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace SteamDatabaseBackend
 {
-    static class TaskManager
+    internal static class TaskManager
     {
         private static readonly ConcurrentDictionary<Task, byte> Tasks = new ConcurrentDictionary<Task, byte>();
         public static CancellationTokenSource TaskCancellationToken { get; } = new CancellationTokenSource();

@@ -4,15 +4,13 @@
  * found in the LICENSE file.
  */
 
-using System;
 using System.Linq;
 using Dapper;
 using SteamKit2;
-using System.Collections.Generic;
 
 namespace SteamDatabaseBackend
 {
-    class MarketingMessage : SteamHandler
+    internal class MarketingMessage : SteamHandler
     {
         public MarketingMessage(CallbackManager manager)
         {
@@ -28,7 +26,7 @@ namespace SteamDatabaseBackend
 
             using (var db = await Database.GetConnectionAsync())
             {
-                var items = (await db.QueryAsync<RSS.GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new {Ids = callback.Messages.Select(x => x.URL)})).ToDictionary(x => x.Link, _ => (byte)1);
+                var items = (await db.QueryAsync<RSS.GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = callback.Messages.Select(x => x.URL) })).ToDictionary(x => x.Link, _ => (byte)1);
                 var newMessages = callback.Messages.Where(item => !items.ContainsKey(item.URL));
 
                 foreach (var message in newMessages)

@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    class Price
+    internal class Price
     {
         public string Country { get; set; }
         public uint PriceFinal { get; set; }
@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
 
         public string Format()
         {
-            double cents = PriceFinal / 100.0;
+            var cents = PriceFinal / 100.0;
             var discount = PriceDiscount > 0 ? string.Format(" at -{0}%", PriceDiscount) : string.Empty;
 
             switch (Country)

@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class LicenseList : SteamHandler
+    internal class LicenseList : SteamHandler
     {
         public static Dictionary<uint, byte> OwnedApps { get; private set; }
         public static Dictionary<uint, byte> OwnedSubs { get; private set; }

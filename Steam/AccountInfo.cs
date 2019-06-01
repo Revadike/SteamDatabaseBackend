@@ -4,19 +4,12 @@
  * found in the LICENSE file.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 using SteamKit2;
 using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    class AccountInfo : SteamHandler
+    internal class AccountInfo : SteamHandler
     {
         public static string Country { get; private set; }
 

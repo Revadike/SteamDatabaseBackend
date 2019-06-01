@@ -15,7 +15,7 @@ using Dapper;
 
 namespace SteamDatabaseBackend
 {
-    class RSS : IDisposable
+    internal class RSS : IDisposable
     {
         private class Build
         {
@@ -227,7 +227,7 @@ namespace SteamDatabaseBackend
             {
                 if (reader.NodeType == XmlNodeType.Element)
                 {
-                    string name = reader.Name.ToLowerInvariant();
+                    var name = reader.Name.ToLowerInvariant();
 
                     if (name == "item" || name == "entry")
                     {

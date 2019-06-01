@@ -5,7 +5,7 @@
  */
 namespace SteamDatabaseBackend
 {
-    struct BlogPost
+    internal struct BlogPost
     {
         public uint ID { get; set; }
         public string Title { get; set; }

@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class BinariesCommand : Command
+    internal class BinariesCommand : Command
     {
         private const string CDN = "https://steamcdn-a.akamaihd.net/client/";
 
@@ -44,7 +44,7 @@ namespace SteamDatabaseBackend
             }
 
             var args = command.Message.Split(' ');
-            string os = args[0];
+            var os = args[0];
 
             if (SystemAliases.TryGetValue(os, out var aliasTarget))
             {

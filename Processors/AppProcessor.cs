@@ -14,7 +14,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class AppProcessor : BaseProcessor
+    internal class AppProcessor : BaseProcessor
     {
         public const string HistoryQuery = "INSERT INTO `AppsHistory` (`ChangeID`, `AppID`, `Action`, `Key`, `OldValue`, `NewValue`, `Diff`) VALUES (@ChangeID, @ID, @Action, @Key, @OldValue, @NewValue, @Diff)";
 
@@ -214,11 +214,11 @@ namespace SteamDatabaseBackend
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, data.Select(x => new PICSHistory
                 {
-                    ID       = AppID,
+                    ID = AppID,
                     ChangeID = ChangeNumber,
-                    Key      = x.Key,
+                    Key = x.Key,
                     OldValue = x.Value,
-                    Action   = "removed_key"
+                    Action = "removed_key"
                 }));
             }
 
@@ -226,10 +226,10 @@ namespace SteamDatabaseBackend
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, new PICSHistory
                 {
-                    ID       = AppID,
+                    ID = AppID,
                     ChangeID = ChangeNumber,
                     OldValue = name,
-                    Action   = "deleted_app"
+                    Action = "deleted_app"
                 });
             }
 
@@ -338,11 +338,11 @@ namespace SteamDatabaseBackend
             return DbConnection.ExecuteAsync(HistoryQuery,
                 new PICSHistory
                 {
-                    ID       = AppID,
+                    ID = AppID,
                     ChangeID = ChangeNumber,
-                    Key      = keyNameId,
-                    Diff     = diff,
-                    Action   = "modified_key"
+                    Key = keyNameId,
+                    Diff = diff,
+                    Action = "modified_key"
                 }
             );
         }

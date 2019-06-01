@@ -11,7 +11,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    static class DiffKeyValues
+    internal static class DiffKeyValues
     {
         public class ComparedValue
         {

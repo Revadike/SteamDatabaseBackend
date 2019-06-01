@@ -10,7 +10,7 @@ using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    class UGCCommand : Command
+    internal class UGCCommand : Command
     {
         private readonly SteamCloud Cloud;
 
@@ -67,8 +67,8 @@ namespace SteamDatabaseBackend
                 return "0B";
             }
 
-            int place = Convert.ToInt32(Math.Floor(Math.Log(size, 1024)));
-            double num = Math.Round(size / Math.Pow(1024, place), 1);
+            var place = Convert.ToInt32(Math.Floor(Math.Log(size, 1024)));
+            var num = Math.Round(size / Math.Pow(1024, place), 1);
             return (Math.Sign(size) * num) + suf[place];
         }
     }
