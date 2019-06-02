@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `Depots` (
 CREATE TABLE IF NOT EXISTS `DepotsFiles` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DepotID` int(7) UNSIGNED NOT NULL,
-  `File` varchar(255) CHARACTER SET utf8mb4 NOT NULL,
+  `File` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `Hash` binary(20) DEFAULT NULL,
   `Size` bigint(20) UNSIGNED NOT NULL,
   `Flags` smallint(5) UNSIGNED NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `DepotID` int(7) UNSIGNED NOT NULL,
   `Time` timestamp NOT NULL DEFAULT current_timestamp(),
   `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `File` varchar(300) CHARACTER SET utf8mb4 NOT NULL,
+  `File` varchar(300) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `OldValue` bigint(20) UNSIGNED NOT NULL,
   `NewValue` bigint(20) UNSIGNED NOT NULL,
   PRIMARY KEY (`ID`),
@@ -171,6 +171,12 @@ CREATE TABLE IF NOT EXISTS `KeyNamesSubs` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `Name` (`Name`),
   KEY `Type` (`Type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `LocalConfig` (
+  `ConfigKey` varchar(256) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `Value` varchar(5120) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`ConfigKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `PICSTokens` (
