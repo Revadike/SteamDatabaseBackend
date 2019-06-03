@@ -94,6 +94,7 @@ namespace SteamDatabaseBackend
                 LoginKey = LocalConfig.Current.LoginKey,
                 LoginID = 0x78_50_61_77,
             });
+            AuthCode = null;
         }
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
@@ -151,10 +152,7 @@ namespace SteamDatabaseBackend
 
             if (LocalConfig.Current.CellID != cellId)
             {
-                Log.WriteDebug("Local Config", "CellID differs, {0} != {1}, forcing server refetch", LocalConfig.Current.CellID, cellId);
-
                 LocalConfig.Current.CellID = cellId;
-
                 LocalConfig.Save();
             }
 
