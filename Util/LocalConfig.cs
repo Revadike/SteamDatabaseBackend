@@ -72,7 +72,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var token in Current.CDNAuthTokens)
                 {
-                    if (time > token.Value.Expiration || string.IsNullOrEmpty(token.Value.Token))
+                    if (time > token.Value.Expiration)
                     {
                         Current.CDNAuthTokens.TryRemove(token.Key, out _);
                         removed++;
