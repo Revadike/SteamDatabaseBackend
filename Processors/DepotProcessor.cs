@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
             CDNClient = new CDNClient(client);
             CDNServers = new List<CDNClient.Server>
             {
-                new DnsEndPoint("valve500.steamcontent.com", 443)
+                new DnsEndPoint("valve500.steamcontent.com", 80)
             };
 
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
@@ -109,7 +109,7 @@ namespace SteamDatabaseBackend
             // which are hosted in Seattle, and most likely are the source of truth for
             // game content, perhaps we should filter to these. But the latency is poor from Europe.
 
-            var newServers = response["serverlist"].Children.Select(x => (CDNClient.Server)new DnsEndPoint(x.Value.ToString(), 443)).ToList();
+            var newServers = response["serverlist"].Children.Select(x => (CDNClient.Server)new DnsEndPoint(x.Value.ToString(), 80)).ToList();
 
             if (newServers.Count > 0)
             {
