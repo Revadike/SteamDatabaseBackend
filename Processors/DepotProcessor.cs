@@ -163,7 +163,7 @@ namespace SteamDatabaseBackend
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
-                        using (var db = Database.Get())
+                        using (var db = await Database.GetConnectionAsync())
                         {
                             await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `DepotID` = VALUES(`DepotID`)", new { request.DepotID, request.DepotName });
                         }
@@ -200,8 +200,12 @@ namespace SteamDatabaseBackend
                     appID
                 });
 
-                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @Depots", new { Depots = requests.Select(x => x.DepotID) }))
+                var depotIds = requests.Select(x => x.DepotID).ToList();
+                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @depotIds", new { depotIds }))
                     .ToDictionary(x => x.DepotID, x => x);
+
+                var decryptionKeys = (await db.QueryAsync<DepotKey>("SELECT `DepotID`, `Key` FROM `DepotsKeys` WHERE `DepotID` IN @depotIds", new { depotIds }))
+                    .ToDictionary(x => x.DepotID, x => Utils.StringToByteArray(x.Key));
 
                 foreach (var request in requests)
                 {
@@ -235,6 +239,8 @@ namespace SteamDatabaseBackend
                     {
                         dbDepot = new Depot();
                     }
+
+                    decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
 
                     if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || !request.DepotName.Equals(dbDepot.Name))
                     {
@@ -291,24 +297,14 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task<byte[]> GetDepotDecryptionKey(SteamApps instance, uint depotID, uint appID)
+        private async Task GetDepotDecryptionKey(SteamApps instance, ManifestJob depot, uint appID)
         {
-            using (var db = Database.Get())
+            if (!LicenseList.OwnedApps.ContainsKey(depot.DepotID))
             {
-                var currentDecryptionKey = await db.ExecuteScalarAsync<string>("SELECT `Key` FROM `DepotsKeys` WHERE `DepotID` = @DepotID", new { depotID });
-
-                if (currentDecryptionKey != null)
-                {
-                    return Utils.StringToByteArray(currentDecryptionKey);
-                }
+                return;
             }
 
-            if (!LicenseList.OwnedApps.ContainsKey(depotID))
-            {
-                return null;
-            }
-
-            var task = instance.GetDepotDecryptionKey(depotID, appID);
+            var task = instance.GetDepotDecryptionKey(depot.DepotID, appID);
             task.Timeout = TimeSpan.FromMinutes(15);
 
             SteamApps.DepotKeyCallback callback;
@@ -319,29 +315,29 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                Log.WriteWarn("Depot Processor", "Decryption key timed out for {0}", depotID);
+                Log.WriteWarn("Depot Processor", $"Decryption key timed out for {depot.DepotID}");
 
-                return null;
+                return;
             }
 
             if (callback.Result != EResult.OK)
             {
                 if (callback.Result != EResult.AccessDenied)
                 {
-                    Log.WriteWarn("Depot Processor", "No access to depot {0} ({1})", depotID, callback.Result);
+                    Log.WriteWarn("Depot Processor", $"No access to depot {depot.DepotID} ({callback.Result})");
                 }
 
-                return null;
+                return;
             }
 
-            Log.WriteDebug("Depot Downloader", "Got a new depot key for depot {0}", depotID);
+            Log.WriteDebug("Depot Downloader", $"Got a new depot key for depot {depot.DepotID}");
 
-            using (var db = Database.Get())
+            using (var db = await Database.GetConnectionAsync())
             {
-                await db.ExecuteAsync("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
+                await db.ExecuteAsync("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depot.DepotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
             }
 
-            return callback.DepotKey;
+            depot.DepotKey = callback.DepotKey;
         }
 
         private async Task<string> GetCDNAuthToken(SteamApps instance, uint appID, uint depotID)
@@ -416,13 +412,16 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in depots)
             {
-                depot.DepotKey = await GetDepotDecryptionKey(Steam.Instance.Apps, depot.DepotID, appID);
-
                 if (depot.DepotKey == null)
                 {
-                    RemoveLock(depot.DepotID);
+                    await GetDepotDecryptionKey(Steam.Instance.Apps, depot, appID);
 
-                    continue;
+                    if (depot.DepotKey == null)
+                    {
+                        RemoveLock(depot.DepotID);
+
+                        continue;
+                    }
                 }
 
                 var cdnToken = await GetCDNAuthToken(Steam.Instance.Apps, appID, depot.DepotID);
