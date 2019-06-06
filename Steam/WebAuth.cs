@@ -32,10 +32,12 @@ namespace SteamDatabaseBackend
         public static async Task<bool> AuthenticateUser()
         {
             SteamUser.WebAPIUserNonceCallback nonce;
+            ulong steamid;
 
             try
             {
                 nonce = await Steam.Instance.User.RequestWebAPIUserNonce();
+                steamid = Steam.Instance.Client.SteamID.ConvertToUInt64();
             }
             catch (Exception e)
             {
@@ -69,7 +71,7 @@ namespace SteamDatabaseBackend
                     result = await userAuth.CallAsync(HttpMethod.Post, "AuthenticateUser", 1,
                         new Dictionary<string, object>
                         {
-                            { "steamid", Steam.Instance.Client.SteamID.ConvertToUInt64() },
+                            { "steamid", steamid },
                             { "sessionkey", encryptedSessionKey },
                             { "encrypted_loginkey", encryptedLoginKey },
                         }
