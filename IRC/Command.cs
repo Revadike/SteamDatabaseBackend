@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                     {
                         if (!notice)
                         {
-                            message = string.Format("{0}{1}{2}: {3}", Colors.LIGHTGRAY, Nickname, Colors.NORMAL, message);
+                            message = $"{Nickname}{Colors.NORMAL}, {message}";
                         }
                         else
                         {
