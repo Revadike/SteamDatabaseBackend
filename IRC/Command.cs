@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                     {
                         if (!notice)
                         {
-                            message = $"{Nickname}{Colors.NORMAL}, {message}";
+                            message = $"{Nickname}: {message}";
                         }
                         else
                         {
