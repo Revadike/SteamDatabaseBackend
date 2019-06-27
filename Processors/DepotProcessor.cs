@@ -58,7 +58,9 @@ namespace SteamDatabaseBackend
 
             FileDownloader.SetCDNClient(CDNClient);
 
-            manager.Subscribe<SteamClient.ServerListCallback>(OnServerList);
+            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
+
+            TaskManager.RunAsync(UpdateContentServerList);
         }
 
         public void Dispose()
@@ -70,7 +72,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void OnServerList(SteamClient.ServerListCallback callback)
+        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             TaskManager.RunAsync(UpdateContentServerList);
         }
