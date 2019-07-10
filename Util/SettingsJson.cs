@@ -104,6 +104,9 @@ namespace SteamDatabaseBackend
 
         [JsonProperty(Required = Required.Always)]
         public bool CanQueryStore;
+
+        [JsonProperty(Required = Required.Always)]
+        public uint BuiltInHttpServerPort;
     }
 #pragma warning restore 0649
 }

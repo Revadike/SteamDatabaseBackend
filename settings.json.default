@@ -8,6 +8,7 @@
 	"SteamKitDebug": false,
 	"LogToFile": true,
 	"CanQueryStore": false,
+	"BuiltInHttpServerPort": 0,
 	
 	"Steam":
 	{
