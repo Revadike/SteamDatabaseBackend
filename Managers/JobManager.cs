@@ -87,7 +87,15 @@ namespace SteamDatabaseBackend
             foreach (var job in Jobs)
             {
                 TryRemoveJob(job.Key);
-                AddJob(job.Value.Action, job.Value.Command);
+
+                if (job.Value.Command == null)
+                {
+                    AddJob(job.Value.Action);
+                }
+                else
+                {
+                    AddJob(job.Value.Action, job.Value.Command);
+                }
             }
         }
     }
