@@ -16,6 +16,12 @@ namespace SteamDatabaseBackend
 {
     internal class PICSChanges : SteamHandler
     {
+        private class IrcChangelistGroup
+        {
+            public List<uint> Apps { get; } = new List<uint>();
+            public List<uint> Packages { get; } = new List<uint>();
+        }
+
         public uint PreviousChangeNumber { get; private set; }
 
         private readonly uint BillingTypeKey;
@@ -385,46 +391,53 @@ namespace SteamDatabaseBackend
                 ChangelistBurstCount = 0;
             }
 
-            // Group apps and package changes by changelist, this will seperate into individual changelists
-            var appGrouping = callback.AppChanges.Values.GroupBy(a => a.ChangeNumber);
-            var packageGrouping = callback.PackageChanges.Values.GroupBy(p => p.ChangeNumber);
+            // Group apps and package changes by changelist number
+            var changelists = new Dictionary<uint, IrcChangelistGroup>();
 
-            // Join apps and packages back together based on changelist number
-            var changeLists = Utils.FullOuterJoin(appGrouping, packageGrouping, a => a.Key, p => p.Key, (a, p, key) => new
+            foreach (var app in callback.AppChanges.Values)
             {
-                ChangeNumber = key,
+                if (!changelists.ContainsKey(app.ChangeNumber))
+                {
+                    changelists[app.ChangeNumber] = new IrcChangelistGroup();
+                }
 
-                Apps = a.ToList(),
-                Packages = p.ToList(),
-            },
-                                  new EmptyGrouping<uint, SteamApps.PICSChangesCallback.PICSChangeData>(),
-                                  new EmptyGrouping<uint, SteamApps.PICSChangesCallback.PICSChangeData>())
-                .OrderBy(c => c.ChangeNumber);
+                changelists[app.ChangeNumber].Apps.Add(app.ID);
+            }
 
-            foreach (var changeList in changeLists)
+            foreach (var package in callback.PackageChanges.Values)
+            {
+                if (!changelists.ContainsKey(package.ChangeNumber))
+                {
+                    changelists[package.ChangeNumber] = new IrcChangelistGroup();
+                }
+
+                changelists[package.ChangeNumber].Packages.Add(package.ID);
+            }
+
+            foreach (var (changeNumber, changeList) in changelists.OrderBy(x => x.Key))
             {
                 var appCount = changeList.Apps.Count;
                 var packageCount = changeList.Packages.Count;
 
-                var message = $"Changelist {Colors.BLUE}{changeList.ChangeNumber}{Colors.NORMAL} {Colors.DARKGRAY}({appCount:N0} apps and {packageCount:N0} packages)";
+                var message = $"Changelist {Colors.BLUE}{changeNumber}{Colors.NORMAL} {Colors.DARKGRAY}({appCount:N0} apps and {packageCount:N0} packages)";
 
                 var changesCount = appCount + packageCount;
 
                 if (changesCount >= 50)
                 {
-                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistURL(changeList.ChangeNumber)}");
+                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistURL(changeNumber)}");
                 }
 
                 if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN || changesCount > 300)
                 {
                     if (appCount > 0)
                     {
-                        message += $" (Apps: {string.Join(", ", changeList.Apps.Select(x => x.ID))})";
+                        message += $" (Apps: {string.Join(", ", changeList.Apps)})";
                     }
 
                     if (packageCount > 0)
                     {
-                        message += $" (Packages: {string.Join(", ", changeList.Packages.Select(x => x.ID))})";
+                        message += $" (Packages: {string.Join(", ", changeList.Packages)})";
                     }
 
                     IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} {message}");
@@ -440,18 +453,14 @@ namespace SteamDatabaseBackend
 
                     using (var db = Database.Get())
                     {
-                        apps = (await db.QueryAsync<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps.Select(x => x.ID) })).ToDictionary(x => x.AppID, x => x);
+                        apps = (await db.QueryAsync<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps })).ToDictionary(x => x.AppID, x => x);
                     }
 
-                    foreach (var app in changeList.Apps)
+                    foreach (var appId in changeList.Apps)
                     {
-                        apps.TryGetValue(app.ID, out var data);
+                        apps.TryGetValue(appId, out var data);
 
-                        IRC.Instance.SendAnnounce("  App: {0}{1}{2} - {3}{4}",
-                            Colors.BLUE, app.ID, Colors.NORMAL,
-                            Steam.FormatAppName(app.ID, data),
-                            app.NeedsToken ? SteamDB.StringNeedToken : string.Empty
-                        );
+                        IRC.Instance.SendAnnounce($"  App: {Colors.BLUE}{appId}{Colors.NORMAL} - {Steam.FormatAppName(appId, data)}");
                     }
                 }
 
@@ -461,18 +470,14 @@ namespace SteamDatabaseBackend
 
                     using (var db = Database.Get())
                     {
-                        packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages.Select(x => x.ID) })).ToDictionary(x => x.SubID, x => x);
+                        packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages })).ToDictionary(x => x.SubID, x => x);
                     }
 
-                    foreach (var package in changeList.Packages)
+                    foreach (var packageId in changeList.Packages)
                     {
-                        packages.TryGetValue(package.ID, out var data);
+                        packages.TryGetValue(packageId, out var data);
 
-                        IRC.Instance.SendAnnounce("  Package: {0}{1}{2} - {3}{4}",
-                            Colors.BLUE, package.ID, Colors.NORMAL,
-                            Steam.FormatPackageName(package.ID, data),
-                            package.NeedsToken ? SteamDB.StringNeedToken : string.Empty
-                        );
+                        IRC.Instance.SendAnnounce($"  Package: {Colors.BLUE}{packageId}{Colors.NORMAL} - {Steam.FormatPackageName(packageId, data)}");
                     }
                 }
             }

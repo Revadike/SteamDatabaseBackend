@@ -34,31 +34,6 @@ namespace SteamDatabaseBackend
             HttpClient.Timeout = TimeSpan.FromSeconds(10);
         }
 
-        // Adapted from http://stackoverflow.com/a/13503860/139147
-        // Mono doesn't really like method extensions
-        public static IEnumerable<TResult> FullOuterJoin<TLeft, TRight, TKey, TResult>(
-            /*            this*/ IEnumerable<TLeft> left,
-            IEnumerable<TRight> right,
-            Func<TLeft, TKey> leftKeySelector,
-            Func<TRight, TKey> rightKeySelector,
-            Func<TLeft, TRight, TKey, TResult> resultSelector,
-            TLeft defaultLeft = default,
-            TRight defaultRight = default)
-        {
-            var leftLookup = left.ToLookup(leftKeySelector);
-            var rightLookup = right.ToLookup(rightKeySelector);
-
-            var leftKeys = leftLookup.Select(l => l.Key);
-            var rightKeys = rightLookup.Select(r => r.Key);
-
-            var keySet = new HashSet<TKey>(leftKeys.Union(rightKeys));
-
-            return from key in keySet
-                   from leftValue in leftLookup[key].DefaultIfEmpty(defaultLeft)
-                   from rightValue in rightLookup[key].DefaultIfEmpty(defaultRight)
-                   select resultSelector(leftValue, rightValue, key);
-        }
-
         public static IEnumerable<IEnumerable<T>> Split<T>(this IEnumerable<T> fullBatch, int chunkSize)
         {
             while (fullBatch.Any())
