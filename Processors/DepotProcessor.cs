@@ -350,6 +350,7 @@ namespace SteamDatabaseBackend
 
             var processTasks = new List<Task<EResult>>();
             var anyFilesDownloaded = false;
+            var willDownloadFiles = false;
 
             foreach (var depot in depots)
             {
@@ -420,6 +421,8 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                willDownloadFiles = true;
+
                 task = TaskManager.Run(async () =>
                 {
                     var result = EResult.Fail;
@@ -456,18 +459,13 @@ namespace SteamDatabaseBackend
             Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count);
 
             // TODO: use ContinueWith on tasks
-            if (!anyFilesDownloaded)
+            if (!anyFilesDownloaded && !willDownloadFiles)
             {
                 foreach (var depot in depots)
                 {
                     RemoveLock(depot.DepotID);
                 }
 
-                return;
-            }
-
-            if (!File.Exists(UpdateScript))
-            {
                 return;
             }
 
@@ -496,7 +494,7 @@ namespace SteamDatabaseBackend
                 // Only commit changes if all depots downloaded
                 if (processTasks.All(x => x.Result == EResult.OK || x.Result == EResult.Ignored))
                 {
-                    if (!RunUpdateScript(appID, depots[0].BuildID))
+                    if (!RunUpdateScriptForApp(appID, depots[0].BuildID))
                     {
                         RunUpdateScript(UpdateScript, "0");
                     }
@@ -514,8 +512,13 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private void RunUpdateScript(string script, string arg)
+        private bool RunUpdateScript(string script, string arg)
         {
+            if (!File.Exists(script))
+            {
+                return false;
+            }
+
             Log.WriteDebug("Depot Downloader", $"Running update script: {script} {arg}");
 
             using (var process = new System.Diagnostics.Process())
@@ -528,9 +531,11 @@ namespace SteamDatabaseBackend
                 process.Start();
                 process.WaitForExit(120000);
             }
+
+            return true;
         }
 
-        private bool RunUpdateScript(uint appID, int buildID)
+        private bool RunUpdateScriptForApp(uint appID, int buildID)
         {
             var downloadFolder = FileDownloader.GetAppDownloadFolder(appID);
 
@@ -541,14 +546,7 @@ namespace SteamDatabaseBackend
 
             var updateScript = Path.Combine(Application.Path, "files", downloadFolder, "update.sh");
 
-            if (!File.Exists(updateScript))
-            {
-                return false;
-            }
-
-            RunUpdateScript(updateScript, buildID.ToString());
-
-            return true;
+            return RunUpdateScript(updateScript, buildID.ToString());
         }
 
         private async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
