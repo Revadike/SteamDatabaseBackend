@@ -26,7 +26,6 @@ namespace SteamDatabaseBackend
             public int BuildID;
             public ulong ManifestID;
             public string DepotName;
-            public string CDNToken;
             public CDNClient.Server Server;
             public byte[] DepotKey;
             public EResult Result = EResult.Fail;
@@ -342,69 +341,6 @@ namespace SteamDatabaseBackend
             depot.DepotKey = callback.DepotKey;
         }
 
-        private async Task<string> GetCDNAuthToken(SteamApps instance, uint appID, uint depotID)
-        {
-            if (LocalConfig.Current.CDNAuthTokens.ContainsKey(depotID))
-            {
-                var token = LocalConfig.Current.CDNAuthTokens[depotID];
-
-                if (DateTime.Now < token.Expiration)
-                {
-                    return token.Token;
-                }
-
-#if DEBUG
-                Log.WriteDebug("Depot Downloader", "Token for depot {0} expired, will request a new one", depotID);
-            }
-            else
-            {
-                Log.WriteDebug("Depot Downloader", "Requesting a new token for depot {0}", depotID);
-#endif
-            }
-
-            var task = instance.GetCDNAuthToken(appID, depotID, "steampipe.steamcontent.com");
-            task.Timeout = TimeSpan.FromMinutes(15);
-
-            SteamApps.CDNAuthTokenCallback tokenCallback;
-
-            try
-            {
-                tokenCallback = await task;
-            }
-            catch (TaskCanceledException)
-            {
-                Log.WriteWarn("Depot Processor", "CDN auth token timed out for {0}", depotID);
-
-                return null;
-            }
-
-#if DEBUG
-            Log.WriteDebug("Depot Downloader", $"Token for depot {depotID} result: {tokenCallback.Result} ({tokenCallback.Token})");
-#endif
-
-            if (tokenCallback.Result != EResult.OK)
-            {
-                return string.Empty;
-            }
-
-            if (string.IsNullOrEmpty(tokenCallback.Token))
-            {
-                Log.WriteWarn("Depot Downloader", $"Token for depot {depotID} is an empty string");
-            }
-
-            var newToken = new LocalConfig.CDNAuthToken
-            {
-                Token = tokenCallback.Token,
-                Expiration = tokenCallback.Expiration.Subtract(TimeSpan.FromMinutes(1))
-            };
-
-            LocalConfig.Current.CDNAuthTokens[depotID] = newToken;
-
-            SaveLocalConfig = true;
-
-            return tokenCallback.Token;
-        }
-
         private async Task DownloadDepots(uint appID, List<ManifestJob> depots)
         {
             Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
@@ -426,18 +362,6 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                var cdnToken = await GetCDNAuthToken(Steam.Instance.Apps, appID, depot.DepotID);
-
-                if (cdnToken == null)
-                {
-                    RemoveLock(depot.DepotID);
-
-                    Log.WriteDebug("Depot Downloader", "Got a depot key for depot {0} but no cdn auth token", depot.DepotID);
-
-                    continue;
-                }
-
-                depot.CDNToken = cdnToken;
                 depot.Server = GetContentServer();
 
                 DepotManifest depotManifest = null;
@@ -447,7 +371,7 @@ namespace SteamDatabaseBackend
                 {
                     try
                     {
-                        depotManifest = await CDNClient.DownloadManifestAsync(depot.DepotID, depot.ManifestID, depot.Server, depot.CDNToken, depot.DepotKey);
+                        depotManifest = await CDNClient.DownloadManifestAsync(depot.DepotID, depot.ManifestID, depot.Server, string.Empty, depot.DepotKey);
 
                         break;
                     }
@@ -458,7 +382,6 @@ namespace SteamDatabaseBackend
                         Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
                     }
 
-                    // TODO: get new auth key if auth fails
                     depot.Server = GetContentServer();
 
                     if (depotManifest == null)
@@ -469,7 +392,6 @@ namespace SteamDatabaseBackend
 
                 if (depotManifest == null)
                 {
-                    LocalConfig.Current.CDNAuthTokens.TryRemove(depot.DepotID, out _);
                     RemoveLock(depot.DepotID);
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
@@ -556,9 +478,7 @@ namespace SteamDatabaseBackend
                     }
                     else if (depot.Result != EResult.Ignored)
                     {
-                        Log.WriteWarn("Depot Processor", "Dropping stored token for {0} due to download failures", depot.DepotID);
-
-                        LocalConfig.Current.CDNAuthTokens.TryRemove(depot.DepotID, out _);
+                        Log.WriteWarn("Depot Processor", $"Download failed for {depot.DepotID}");
 
                         using (var db = Database.Get())
                         {

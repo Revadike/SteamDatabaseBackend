@@ -17,16 +17,6 @@ namespace SteamDatabaseBackend
         private static readonly JsonSerializerSettings JsonFormatted = new JsonSerializerSettings { Formatting = Formatting.Indented };
 
         [JsonObject(MemberSerialization.OptIn)]
-        public class CDNAuthToken
-        {
-            [JsonProperty]
-            public string Token { get; set; }
-
-            [JsonProperty]
-            public DateTime Expiration { get; set; }
-        }
-
-        [JsonObject(MemberSerialization.OptIn)]
         public class LocalConfigJson
         {
             [JsonProperty]
@@ -45,14 +35,10 @@ namespace SteamDatabaseBackend
             public string LoginKey { get; set; }
 
             [JsonProperty]
-            public ConcurrentDictionary<uint, CDNAuthToken> CDNAuthTokens { get; set; }
-
-            [JsonProperty]
             public Dictionary<uint, uint> FreeLicensesToRequest { get; set; }
 
             public LocalConfigJson()
             {
-                CDNAuthTokens = new ConcurrentDictionary<uint, CDNAuthToken>();
                 FreeLicensesToRequest = new Dictionary<uint, uint>();
             }
         }
@@ -66,23 +52,6 @@ namespace SteamDatabaseBackend
             if (File.Exists(ConfigPath))
             {
                 Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(ConfigPath));
-
-                var time = DateTime.Now;
-                var removed = 0;
-
-                foreach (var token in Current.CDNAuthTokens)
-                {
-                    if (time > token.Value.Expiration)
-                    {
-                        Current.CDNAuthTokens.TryRemove(token.Key, out _);
-                        removed++;
-                    }
-                }
-
-                if (removed > 0)
-                {
-                    Log.WriteInfo("Local Config", $"Removing {removed} expired depot tokens");
-                }
             }
 
             if (Current.FreeLicensesToRequest.Count > 0)
