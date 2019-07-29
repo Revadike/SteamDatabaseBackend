@@ -42,6 +42,7 @@ namespace SteamDatabaseBackend
         private bool SaveLocalConfig;
 
         public int DepotLocksCount => DepotLocks.Count;
+        public DateTime LastServerRefreshTime { get; private set; } = DateTime.Now;
 
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
@@ -76,8 +77,10 @@ namespace SteamDatabaseBackend
             TaskManager.RunAsync(UpdateContentServerList);
         }
 
-        private async void UpdateContentServerList()
+        public async void UpdateContentServerList()
         {
+            LastServerRefreshTime = DateTime.Now;
+
             KeyValue response;
 
             using (var steamDirectory = Steam.Configuration.GetAsyncWebAPIInterface("ISteamDirectory"))
