@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
@@ -171,6 +172,8 @@ namespace SteamDatabaseBackend
 
                         // dashes (CS:GO mainly)
                         item.Content = new Regex("^(?:-|&#(?:8208|8209|8210|8211|8212|8213);) ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
+
+                        item.Content = WebUtility.HtmlDecode(item.Content);
 
                         Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
 
