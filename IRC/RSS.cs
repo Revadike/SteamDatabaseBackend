@@ -200,9 +200,11 @@ namespace SteamDatabaseBackend
 
         private static async Task<GenericFeed> LoadRSS(Uri url)
         {
+            var requestUri = $"{url.ToString()}?_={DateTime.UtcNow.Ticks}";
+
             try
             {
-                using (var reader = new XmlTextReader(await Utils.HttpClient.GetStreamAsync(url)))
+                using (var reader = new XmlTextReader(await Utils.HttpClient.GetStreamAsync(requestUri)))
                 {
                     return ReadFeedItems(reader);
                 }
