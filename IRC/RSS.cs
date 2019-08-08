@@ -177,6 +177,8 @@ namespace SteamDatabaseBackend
 
                         Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
 
+                        var accountId = Steam.Instance.Client?.SteamID?.AccountID ?? 0;
+
                         await db.ExecuteAsync(
                             "INSERT INTO `Patchnotes` (`BuildID`, `AppID`, `ChangeID`, `Date`, `Official`, `OfficialURL`) " +
                             "VALUES (@BuildID, @AppID, @ChangeID, @Date, @Content, @Link) ON DUPLICATE KEY UPDATE `Official` = VALUES(`Official`), `OfficialURL` = VALUES(`OfficialURL`), `LastEditor` = @AccountID",
@@ -188,7 +190,7 @@ namespace SteamDatabaseBackend
                                 Date = build.Date.AddSeconds(1).ToString("yyyy-MM-dd HH:mm:ss"),
                                 item.Content,
                                 item.Link,
-                                Steam.Instance.Client.SteamID.AccountID
+                                accountId
                             }
                         );
 
