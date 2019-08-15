@@ -165,21 +165,5 @@ namespace SteamDatabaseBackend
 
             w.WriteEndObject();
         }
-
-    }
-
-    internal class EmptyGrouping<TKey, TValue> : IGrouping<TKey, TValue>
-    {
-        public TKey Key { get; set; }
-
-        IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
-        {
-            return Enumerable.Empty<TValue>().GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return Enumerable.Empty<TValue>().GetEnumerator();
-        }
     }
 }
