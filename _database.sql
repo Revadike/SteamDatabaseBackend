@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `AppsHistory` (
 CREATE TABLE IF NOT EXISTS `AppsInfo` (
   `AppID` int(7) UNSIGNED NOT NULL,
   `Key` smallint(4) UNSIGNED NOT NULL,
-  `Value` mediumtext COLLATE utf8mb4_bin NOT NULL,
+  `Value` longtext COLLATE utf8mb4_bin NOT NULL,
   UNIQUE KEY `AppID` (`AppID`,`Key`),
   KEY `Key` (`Key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `Depots` (
 CREATE TABLE IF NOT EXISTS `DepotsFiles` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DepotID` int(7) UNSIGNED NOT NULL,
-  `File` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `File` varchar(300) COLLATE utf8mb4_bin NOT NULL,
   `Hash` binary(20) DEFAULT NULL,
   `Size` bigint(20) UNSIGNED NOT NULL,
   `Flags` smallint(5) UNSIGNED NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `DepotID` int(7) UNSIGNED NOT NULL,
   `Time` timestamp NOT NULL DEFAULT current_timestamp(),
   `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `File` varchar(300) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `File` varchar(300) COLLATE utf8mb4_bin NOT NULL,
   `OldValue` bigint(20) UNSIGNED NOT NULL,
   `NewValue` bigint(20) UNSIGNED NOT NULL,
   PRIMARY KEY (`ID`),
@@ -189,10 +189,10 @@ CREATE TABLE IF NOT EXISTS `PICSTokens` (
 CREATE TABLE IF NOT EXISTS `RSS` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `Title` varchar(255) COLLATE utf8mb4_bin NOT NULL,
-  `Link` varchar(300) COLLATE utf8mb4_bin NOT NULL,
+  `Link` varchar(190) COLLATE utf8mb4_bin NOT NULL,
   `Date` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`ID`),
-  UNIQUE KEY `Link` (`Link`(255)) USING BTREE
+  UNIQUE KEY `Link` (`Link`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `Subs` (
@@ -222,8 +222,8 @@ CREATE TABLE IF NOT EXISTS `SubsHistory` (
   `Time` timestamp NOT NULL DEFAULT current_timestamp(),
   `Action` enum('created_sub','deleted_sub','created_key','removed_key','modified_key','created_info','modified_info','removed_info','modified_price','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `Key` smallint(4) UNSIGNED NOT NULL,
-  `OldValue` mediumtext COLLATE utf8mb4_bin NOT NULL,
-  `NewValue` mediumtext COLLATE utf8mb4_bin NOT NULL,
+  `OldValue` text COLLATE utf8mb4_bin NOT NULL,
+  `NewValue` text COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`ID`),
   KEY `SubID` (`SubID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
