@@ -566,7 +566,7 @@ namespace SteamDatabaseBackend
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
 
-            foreach (var file in depotManifest.Files)
+            foreach (var file in depotManifest.Files.OrderByDescending(x => x.FileName))
             {
                 var name = file.FileName.Replace('\\', '/');
                 byte[] hash = null;
