@@ -456,7 +456,7 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks).ConfigureAwait(false);
 
-            Log.WriteDebug("Depot Downloader", "{0} depot downloads finished", depots.Count);
+            Log.WriteDebug("Depot Downloader", $"{depots.Count} depot downloads finished for app {appID}");
 
             // TODO: use ContinueWith on tasks
             if (!anyFilesDownloaded && !willDownloadFiles)
