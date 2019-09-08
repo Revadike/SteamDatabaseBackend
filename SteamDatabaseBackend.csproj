@@ -12,7 +12,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="1.60.6" />
+    <PackageReference Include="Dapper" Version="2.0.4" />
     <PackageReference Include="MySqlConnector" Version="0.56.0" />
     <PackageReference Include="NetIrc2" Version="1.0.0">
       <NoWarn>NU1701</NoWarn>
