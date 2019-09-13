@@ -591,9 +591,11 @@ namespace SteamDatabaseBackend
                 // game with a big node_modules path, so we're safeguarding by limiting it.
                 if (name.Length > 260)
                 {
-                    using var sha = new System.Security.Cryptography.SHA1Managed();
-                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
-                    name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
+                    using (var sha = new System.Security.Cryptography.SHA1Managed())
+                    {
+                        var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
+                        name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
+                    }
                 }
 
                 if (filesOld.ContainsKey(name))
