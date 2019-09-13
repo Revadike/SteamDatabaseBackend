@@ -584,12 +584,16 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                // safe guard
-                if (name.Length > 1024)
+                // Limit path names to 260 characters (default windows max length)
+                // File column is varchar(260) and not higher to prevent reducing performance
+                // See https://stackoverflow.com/questions/1962310/importance-of-varchar-length-in-mysql-table/1962329#1962329
+                // Until 2019 there hasn't been a single file that went over this limit, so far there has been only one
+                // game with a big node_modules path, so we're safeguarding by limiting it.
+                if (name.Length > 260)
                 {
-                    ErrorReporter.Notify("Depot Processor", new OverflowException(string.Format("File \"{0}\" in depot {1} is too long", name, request.DepotID)));
-
-                    continue;
+                    using var sha = new System.Security.Cryptography.SHA1Managed();
+                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
+                    name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
                 }
 
                 if (filesOld.ContainsKey(name))
