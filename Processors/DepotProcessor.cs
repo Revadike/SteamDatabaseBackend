@@ -585,7 +585,7 @@ namespace SteamDatabaseBackend
                 }
 
                 // safe guard
-                if (name.Length > 255)
+                if (name.Length > 1024)
                 {
                     ErrorReporter.Notify("Depot Processor", new OverflowException(string.Format("File \"{0}\" in depot {1} is too long", name, request.DepotID)));
 
