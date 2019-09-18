@@ -326,6 +326,8 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(chunkTasks).ConfigureAwait(false);
 
+            chunkCancellation.Dispose();
+
             using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
                 fs.Seek(0, SeekOrigin.Begin);
