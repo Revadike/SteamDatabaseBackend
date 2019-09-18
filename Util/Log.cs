@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
                 DateTime.Now.ToString("HH:mm:ss"),
                 category,
                 component,
-                string.Format(format, args),
+                args.Length > 0 ? string.Format(format, args) : format,
                 Environment.NewLine
             );
 
