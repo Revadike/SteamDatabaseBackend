@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             public EResult Result = EResult.Fail;
         }
 
-        public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
+        public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ManifestID`, `ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ManifestID, @ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
 
         private static readonly object UpdateScriptLock = new object();
 
@@ -651,6 +651,7 @@ namespace SteamDatabaseBackend
                 await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                 {
                     DepotID = request.DepotID,
+                    ManifestID = request.ManifestID,
                     ChangeID = request.ChangeNumber,
                     Action = "removed",
                     File = x.Value.File,
@@ -667,6 +668,7 @@ namespace SteamDatabaseBackend
                     await db.ExecuteAsync(HistoryQuery, filesAdded.Select(x => new DepotHistory
                     {
                         DepotID = request.DepotID,
+                        ManifestID = request.ManifestID,
                         ChangeID = request.ChangeNumber,
                         Action = "added",
                         File = x.File,
@@ -686,6 +688,7 @@ namespace SteamDatabaseBackend
                 new DepotHistory
                 {
                     DepotID = request.DepotID,
+                    ManifestID = request.ManifestID,
                     ChangeID = request.ChangeNumber,
                     Action = action,
                     File = file,

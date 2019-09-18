@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS `DepotsFiles` (
 CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `ChangeID` int(9) UNSIGNED NOT NULL,
+  `ManifestID` bigint(20) UNSIGNED NOT NULL,
   `DepotID` int(7) UNSIGNED NOT NULL,
   `Time` timestamp NOT NULL DEFAULT current_timestamp(),
   `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

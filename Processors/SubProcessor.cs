@@ -136,6 +136,7 @@ namespace SteamDatabaseBackend
                                     new DepotHistory
                                     {
                                         DepotID = appID,
+                                        ManifestID = 0,
                                         ChangeID = ChangeNumber,
                                         OldValue = SubID,
                                         Action = isAppSection ? "removed_from_sub" : "added_to_sub"
@@ -168,6 +169,7 @@ namespace SteamDatabaseBackend
                                     new DepotHistory
                                     {
                                         DepotID = appID,
+                                        ManifestID = 0,
                                         ChangeID = ChangeNumber,
                                         NewValue = SubID,
                                         Action = "added_to_sub"
@@ -250,6 +252,7 @@ namespace SteamDatabaseBackend
                         new DepotHistory
                         {
                             DepotID = app.Key,
+                            ManifestID = 0,
                             ChangeID = ChangeNumber,
                             OldValue = SubID,
                             Action = "removed_from_sub"

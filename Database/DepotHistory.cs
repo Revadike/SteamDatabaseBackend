@@ -9,6 +9,7 @@ namespace SteamDatabaseBackend
     {
         public uint DepotID { get; set; }
         public uint ChangeID { get; set; }
+        public ulong ManifestID { get; set; }
         public string Action { get; set; }
         public ulong OldValue { get; set; }
         public ulong NewValue { get; set; }
