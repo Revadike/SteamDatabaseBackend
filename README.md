@@ -1,4 +1,4 @@
-# SteamDB Updater *(and IRC bot)* [![Build Status](https://travis-ci.com/SteamDatabase/SteamDatabaseBackend.svg)](https://travis-ci.com/SteamDatabase/SteamDatabaseBackend)
+# Steam Database Backend
 
 The application that keeps [SteamDB](https://steamdb.info/) up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on [Freenode](https://freenode.net/).
 
