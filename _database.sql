@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `Depots` (
 CREATE TABLE IF NOT EXISTS `DepotsFiles` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DepotID` int(7) UNSIGNED NOT NULL,
-  `File` varchar(300) COLLATE utf8mb4_bin NOT NULL,
+  `File` varchar(260) COLLATE utf8mb4_bin NOT NULL,
   `Hash` binary(20) DEFAULT NULL,
   `Size` bigint(20) UNSIGNED NOT NULL,
   `Flags` smallint(5) UNSIGNED NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `DepotID` int(7) UNSIGNED NOT NULL,
   `Time` timestamp NOT NULL DEFAULT current_timestamp(),
   `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `File` varchar(300) COLLATE utf8mb4_bin NOT NULL,
+  `File` varchar(260) COLLATE utf8mb4_bin NOT NULL,
   `OldValue` bigint(20) UNSIGNED NOT NULL,
   `NewValue` bigint(20) UNSIGNED NOT NULL,
   PRIMARY KEY (`ID`),
