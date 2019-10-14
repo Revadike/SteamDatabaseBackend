@@ -162,6 +162,8 @@ namespace SteamDatabaseBackend
 
             IRC.Instance.SendEmoteAnnounce("logged in. Valve time: {0}", callback.ServerTime.ToString("R"));
 
+            JobManager.RestartJobsIfAny();
+
             if (Settings.IsFullRun)
             {
                 if (Settings.Current.FullRun == FullRunState.ImportantOnly)
@@ -178,8 +180,6 @@ namespace SteamDatabaseBackend
             {
                 Steam.Instance.PICSChanges.StartTick();
             }
-
-            JobManager.RestartJobsIfAny();
         }
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
