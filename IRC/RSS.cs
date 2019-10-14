@@ -113,6 +113,12 @@ namespace SteamDatabaseBackend
                         else if (item.Title == "Team Fortress 2 Update Released")
                         {
                             appID = 440;
+
+                            // tf2 changelog cleanup
+                            item.Content = item.Content.Replace("<br/>", "\n");
+                            item.Content = item.Content.Replace("<ul style=\"padding-bottom: 0px; margin-bottom: 0px;\">", "\n");
+                            item.Content = item.Content.Replace("</ul>", "\n");
+                            item.Content = item.Content.Replace("<li>", "* ");
                         }
                         else if (item.Title == "Left 4 Dead 2 - Update")
                         {
