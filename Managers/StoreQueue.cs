@@ -42,10 +42,8 @@ namespace SteamDatabaseBackend
 
             var items = ids.Select(x => new StoreUpdateQueue { ID = x, Type = type });
 
-            using (var db = Database.Get())
-            {
-                await db.ExecuteAsync("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@ID, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`", items);
-            }
+            using var db = Database.Get();
+            await db.ExecuteAsync("INSERT INTO `StoreUpdateQueue` (`ID`, `Type`) VALUES (@ID, @Type) ON DUPLICATE KEY UPDATE `ID` = `ID`", items);
         }
     }
 }

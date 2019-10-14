@@ -96,12 +96,10 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo("PICSTokens", "New token for appid {0}", id);
 
-                using (var db = Database.Get())
-                {
-                    db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
-                        new { AppID = id, Token = accessToken }
-                    );
-                }
+                using var db = Database.Get();
+                db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
+                    new { AppID = id, Token = accessToken }
+                );
             }
             else if (SecretTokens[id] != accessToken)
             {

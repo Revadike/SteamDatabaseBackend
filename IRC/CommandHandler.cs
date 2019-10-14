@@ -166,7 +166,7 @@ namespace SteamDatabaseBackend
         {
             var message = commandData.Message;
             var i = message.IndexOf(' ');
-            var inputCommand = i == -1 ? message.Substring(1) : message.Substring(1, i - 1);
+            var inputCommand = i == -1 ? message.Substring(1) : message[1..i];
 
             var command = RegisteredCommands.Find(cmd => cmd.Trigger.Equals(inputCommand));
 

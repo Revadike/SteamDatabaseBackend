@@ -167,10 +167,8 @@ namespace SteamDatabaseBackend
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
-                        using (var db = await Database.GetConnectionAsync())
-                        {
-                            await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `DepotID` = VALUES(`DepotID`)", new { request.DepotID, request.DepotName });
-                        }
+                        using var db = await Database.GetConnectionAsync();
+                        await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `DepotID` = VALUES(`DepotID`)", new { request.DepotID, request.DepotName });
 
                         continue;
                     }
@@ -301,7 +299,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task GetDepotDecryptionKey(SteamApps instance, ManifestJob depot, uint appID)
+        private static async Task GetDepotDecryptionKey(SteamApps instance, ManifestJob depot, uint appID)
         {
             if (!LicenseList.OwnedApps.ContainsKey(depot.DepotID))
             {
@@ -481,11 +479,9 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteWarn("Depot Processor", $"Download failed for {depot.DepotID}");
 
-                        using (var db = Database.Get())
-                        {
-                            // Mark this depot for redownload
-                            db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
-                        }
+                        // Mark this depot for redownload
+                        using var db = Database.Get();
+                        db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
                     }
 
                     RemoveLock(depot.DepotID);
@@ -512,7 +508,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private bool RunUpdateScript(string script, string arg)
+        private static bool RunUpdateScript(string script, string arg)
         {
             if (!File.Exists(script))
             {
@@ -535,7 +531,7 @@ namespace SteamDatabaseBackend
             return true;
         }
 
-        private bool RunUpdateScriptForApp(uint appID, int buildID)
+        private static bool RunUpdateScriptForApp(uint appID, int buildID)
         {
             var downloadFolder = FileDownloader.GetAppDownloadFolder(appID);
 
@@ -549,18 +545,17 @@ namespace SteamDatabaseBackend
             return RunUpdateScript(updateScript, buildID.ToString());
         }
 
-        private async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
+        private static async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
         {
-            using (var db = await Database.GetConnectionAsync())
-            using (var transaction = await db.BeginTransactionAsync())
-            {
-                var result = await ProcessDepotAfterDownload(db, transaction, request, depotManifest);
-                await transaction.CommitAsync();
-                return result;
-            }
+            using var db = await Database.GetConnectionAsync();
+            using var transaction = await db.BeginTransactionAsync();
+
+            var result = await ProcessDepotAfterDownload(db, transaction, request, depotManifest);
+            await transaction.CommitAsync();
+            return result;
         }
 
-        private async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, IDbTransaction transaction, ManifestJob request, DepotManifest depotManifest)
+        private static async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, IDbTransaction transaction, ManifestJob request, DepotManifest depotManifest)
         {
             var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
             var filesAdded = new List<DepotFile>();
@@ -591,11 +586,9 @@ namespace SteamDatabaseBackend
                 // game with a big node_modules path, so we're safeguarding by limiting it.
                 if (name.Length > 260)
                 {
-                    using (var sha = new System.Security.Cryptography.SHA1Managed())
-                    {
-                        var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
-                        name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
-                    }
+                    using var sha = new System.Security.Cryptography.SHA1Managed();
+                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
+                    name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
                 }
 
                 if (filesOld.ContainsKey(name))

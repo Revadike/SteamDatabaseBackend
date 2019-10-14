@@ -133,33 +133,31 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (var db = Database.Get())
+            // Skip packages that have a store name to avoid messing up history
+            using var db = Database.Get();
+            var packageData = await db.QueryAsync<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
+
+            foreach (var package in packageData)
             {
-                // Skip packages that have a store name to avoid messing up history
-                var packageData = await db.QueryAsync<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
+                var newName = names[package.SubID];
 
-                foreach (var package in packageData)
+                if (package.LastKnownName != newName)
                 {
-                    var newName = names[package.SubID];
+                    Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
 
-                    if (package.LastKnownName != newName)
-                    {
-                        Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
+                    await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
 
-                        await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
-
-                        await db.ExecuteAsync(
-                            SubProcessor.HistoryQuery,
-                            new PICSHistory
-                            {
-                                ID = package.SubID,
-                                Key = SteamDB.DATABASE_NAME_TYPE,
-                                OldValue = "free on demand; account page",
-                                NewValue = newName,
-                                Action = "created_info"
-                            }
-                        );
-                    }
+                    await db.ExecuteAsync(
+                        SubProcessor.HistoryQuery,
+                        new PICSHistory
+                        {
+                            ID = package.SubID,
+                            Key = SteamDB.DATABASE_NAME_TYPE,
+                            OldValue = "free on demand; account page",
+                            NewValue = newName,
+                            Action = "created_info"
+                        }
+                    );
                 }
             }
         }

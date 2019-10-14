@@ -117,23 +117,21 @@ namespace SteamDatabaseBackend
                     cookies += cookie.ToString() + ";";
                 }
 
-                using (var requestMessage = new HttpRequestMessage(method, uri))
+                using var requestMessage = new HttpRequestMessage(method, uri);
+                requestMessage.Headers.Add("Cookie", cookies); // Can't pass cookie container into a single req message
+
+                response = await Utils.HttpClient.SendAsync(requestMessage);
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
                 {
-                    requestMessage.Headers.Add("Cookie", cookies); // Can't pass cookie container into a single req message
+                    Log.WriteDebug(nameof(WebAuth), $"Got status code {response.StatusCode}");
 
-                    response = await Utils.HttpClient.SendAsync(requestMessage);
+                    IsAuthorized = false;
 
-                    if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
-                    {
-                        Log.WriteDebug(nameof(WebAuth), $"Got status code {response.StatusCode}");
-
-                        IsAuthorized = false;
-
-                        continue;
-                    }
-
-                    response.EnsureSuccessStatusCode();
+                    continue;
                 }
+
+                response.EnsureSuccessStatusCode();
 
                 break;
             }

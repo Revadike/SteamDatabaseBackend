@@ -24,26 +24,24 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            using (var db = await Database.GetConnectionAsync())
+            using var db = await Database.GetConnectionAsync();
+            var items = (await db.QueryAsync<RSS.GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = callback.Messages.Select(x => x.URL) })).ToDictionary(x => x.Link, _ => (byte)1);
+            var newMessages = callback.Messages.Where(item => !items.ContainsKey(item.URL));
+
+            foreach (var message in newMessages)
             {
-                var items = (await db.QueryAsync<RSS.GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = callback.Messages.Select(x => x.URL) })).ToDictionary(x => x.Link, _ => (byte)1);
-                var newMessages = callback.Messages.Where(item => !items.ContainsKey(item.URL));
+                Log.WriteInfo("Marketing", $"{message.ID} {message.URL} ({message.Flags})");
 
-                foreach (var message in newMessages)
+                if (message.Flags == EMarketingMessageFlags.None)
                 {
-                    Log.WriteInfo("Marketing", $"{message.ID} {message.URL} ({message.Flags})");
-
-                    if (message.Flags == EMarketingMessageFlags.None)
-                    {
-                        IRC.Instance.SendMain($"New marketing message:{Colors.DARKBLUE} {message.URL}");
-                    }
-                    else
-                    {
-                        IRC.Instance.SendMain($"New marketing message:{Colors.DARKBLUE} {message.URL} {Colors.DARKGRAY}({message.Flags.ToString().Replace("Platform", string.Empty)})");
-                    }
-
-                    await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@URL, @Title)", new { message.URL, Title = $"Marketing #{message.ID}" });
+                    IRC.Instance.SendMain($"New marketing message:{Colors.DARKBLUE} {message.URL}");
                 }
+                else
+                {
+                    IRC.Instance.SendMain($"New marketing message:{Colors.DARKBLUE} {message.URL} {Colors.DARKGRAY}({message.Flags.ToString().Replace("Platform", string.Empty)})");
+                }
+
+                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@URL, @Title)", new { message.URL, Title = $"Marketing #{message.ID}" });
             }
         }
     }

@@ -236,42 +236,41 @@ namespace SteamDatabaseBackend
                 {
                     var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(File.ReadAllText(oldChunksFile), JsonHandleAllReferences);
 
-                    using (var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read))
+                    using var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read);
+
+                    foreach (var chunk in chunks)
                     {
-                        foreach (var chunk in chunks)
+                        var oldChunk = oldChunks.Find(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+
+                        if (oldChunk != null)
                         {
-                            var oldChunk = oldChunks.Find(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+                            var oldData = new byte[oldChunk.UncompressedLength];
+                            fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
+                            fsOld.Read(oldData, 0, oldData.Length);
 
-                            if (oldChunk != null)
+                            var existingChecksum = Utils.AdlerHash(oldData);
+
+                            if (existingChecksum.SequenceEqual(chunk.Checksum))
                             {
-                                var oldData = new byte[oldChunk.UncompressedLength];
-                                fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
-                                fsOld.Read(oldData, 0, oldData.Length);
-
-                                var existingChecksum = Utils.AdlerHash(oldData);
-
-                                if (existingChecksum.SequenceEqual(chunk.Checksum))
-                                {
-                                    fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                                    fs.Write(oldData, 0, oldData.Length);
+                                fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                                fs.Write(oldData, 0, oldData.Length);
 
 #if DEBUG
-                                    Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), not downloading");
+                                Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), not downloading");
 #endif
-                                }
-                                else
-                                {
-                                    neededChunks.Add(chunk);
-
-#if DEBUG
-                                    Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), but checksum differs");
-#endif
-                                }
                             }
                             else
                             {
                                 neededChunks.Add(chunk);
+
+#if DEBUG
+                                Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} Found chunk ({chunk.Offset}), but checksum differs");
+#endif
                             }
+                        }
+                        else
+                        {
+                            neededChunks.Add(chunk);
                         }
                     }
                 }
@@ -281,8 +280,8 @@ namespace SteamDatabaseBackend
                 }
             }
 
+            using var chunkCancellation = new CancellationTokenSource();
             var downloadedSize = file.TotalSize - (ulong)neededChunks.Sum(x => x.UncompressedLength);
-            var chunkCancellation = new CancellationTokenSource();
             var chunkTasks = new Task[neededChunks.Count];
 
             Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({downloadedSize} bytes, {neededChunks.Count} out of {chunks.Count} chunks)");
@@ -326,16 +325,12 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(chunkTasks).ConfigureAwait(false);
 
-            chunkCancellation.Dispose();
-
             using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
                 fs.Seek(0, SeekOrigin.Begin);
 
-                using (var sha = SHA1.Create())
-                {
-                    checksum = sha.ComputeHash(fs);
-                }
+                using var sha = SHA1.Create();
+                checksum = sha.ComputeHash(fs);
             }
 
             if (!file.FileHash.SequenceEqual(checksum))

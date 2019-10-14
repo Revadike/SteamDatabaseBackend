@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private async Task ProcessAsync(HttpListenerContext context)
+        private static async Task ProcessAsync(HttpListenerContext context)
         {
             Log.WriteInfo(nameof(HttpServer), $"Processing {context.Request.RawUrl}");
 
@@ -97,12 +97,10 @@ namespace SteamDatabaseBackend
             context.Response.Close();
         }
 
-        private async Task WriteJsonResponse(object value, HttpListenerResponse response)
+        private static Task WriteJsonResponse(object value, HttpListenerResponse response)
         {
-            using (var stringInMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value, Formatting.Indented))))
-            {
-                await stringInMemoryStream.CopyToAsync(response.OutputStream);
-            }
+            using var stringInMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value, Formatting.Indented)));
+            return stringInMemoryStream.CopyToAsync(response.OutputStream);
         }
     }
 }

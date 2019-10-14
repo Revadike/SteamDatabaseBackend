@@ -256,24 +256,20 @@ namespace SteamDatabaseBackend
             PrintImportants(callback);
         }
 
-        private async Task HandleApps(SteamApps.PICSChangesCallback callback)
+        private static async Task HandleApps(SteamApps.PICSChangesCallback callback)
         {
             await StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
 
-            using (var db = await Database.GetConnectionAsync())
-            {
-                await db.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
-                await db.ExecuteAsync("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
-            }
+            using var db = await Database.GetConnectionAsync();
+            await db.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
+            await db.ExecuteAsync("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
         }
 
-        private async Task HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
+        private static async Task HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
         {
-            using (var db = await Database.GetConnectionAsync())
-            {
-                await db.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
-                await db.ExecuteAsync("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
-            }
+            using var db = await Database.GetConnectionAsync();
+            await db.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
+            await db.ExecuteAsync("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
         }
 
         private async Task HandlePackages(SteamApps.PICSChangesCallback callback)
@@ -329,7 +325,7 @@ namespace SteamDatabaseBackend
             await StoreQueue.AddPackageToQueue(subids);
         }
 
-        private async Task HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
+        private static async Task HandleChangeNumbers(SteamApps.PICSChangesCallback callback)
         {
             var changeNumbers = callback.AppChanges.Values
                 .Select(x => x.ChangeNumber)
@@ -343,13 +339,11 @@ namespace SteamDatabaseBackend
             // Silly thing
             var changeLists = changeNumbers.Select(x => new Changelist { ChangeID = x });
 
-            using (var db = Database.Get())
-            {
-                await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
-            }
+            using var db = Database.Get();
+            await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
         }
 
-        private void PrintImportants(SteamApps.PICSChangesCallback callback)
+        private static void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
             // Apps
             var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
