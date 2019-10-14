@@ -11,7 +11,7 @@ namespace SteamDatabaseBackend
 {
     internal static class Log
     {
-        private static readonly string LogDirectoryPath;
+        private static readonly string LogDirectoryPath = InitializeLogDirectory();
 
         private enum Category
         {
@@ -31,17 +31,19 @@ namespace SteamDatabaseBackend
 
         private static readonly object logLock = new object();
 
-        static Log()
+        private static string InitializeLogDirectory()
         {
             if (!Settings.Current.LogToFile)
             {
-                return;
+                return null;
             }
+
+            string path = null;
 
             try
             {
-                LogDirectoryPath = Path.Combine(Application.Path, "logs");
-                Directory.CreateDirectory(LogDirectoryPath);
+                path = Path.Combine(Application.Path, "logs");
+                Directory.CreateDirectory(path);
             }
             catch (Exception ex)
             {
@@ -49,6 +51,8 @@ namespace SteamDatabaseBackend
 
                 WriteError("Unable to create logs directory: {0}", ex.Message);
             }
+
+            return path;
         }
 
         public static void WriteDebug(string component, string format, params object[] args) => WriteLine(Category.DEBUG, component, format, args);

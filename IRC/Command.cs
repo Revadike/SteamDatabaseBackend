@@ -92,16 +92,12 @@ namespace SteamDatabaseBackend
 
         public override string ToString()
         {
-            switch (CommandType)
+            return CommandType switch
             {
-                case ECommandType.IRC:
-                    return string.Format("IRC User \"{0}\" in \"{1}\"", SenderIdentity, Recipient);
-
-                case ECommandType.SteamIndividual:
-                    return string.Format("Steam User \"{0}\"", SenderID.Render(true));
-            }
-
-            return base.ToString();
+                ECommandType.IRC => string.Format("IRC User \"{0}\" in \"{1}\"", SenderIdentity, Recipient),
+                ECommandType.SteamIndividual => string.Format("Steam User \"{0}\"", SenderID.Render(true)),
+                _ => base.ToString(),
+            };
         }
     }
 }

@@ -16,14 +16,13 @@ namespace SteamDatabaseBackend
             var cents = PriceFinal / 100.0;
             var discount = PriceDiscount > 0 ? string.Format(" at -{0}%", PriceDiscount) : string.Empty;
 
-            switch (Country)
+            return Country switch
             {
-                case "uk": return string.Format("£{0:0.00}{1}", cents, discount);
-                case "us": return string.Format("${0:0.00}{1}", cents, discount);
-                case "eu": return string.Format("{0:0.00}€{1}", cents, discount).Replace('.', ',').Replace(",00", ",--");
-            }
-
-            return string.Format("{1}: {0}", cents, Country);
+                "uk" => string.Format("£{0:0.00}{1}", cents, discount),
+                "us" => string.Format("${0:0.00}{1}", cents, discount),
+                "eu" => string.Format("{0:0.00}€{1}", cents, discount).Replace('.', ',').Replace(",00", ",--"),
+                _ => string.Format("{1}: {0}", cents, Country),
+            };
         }
     }
 }
