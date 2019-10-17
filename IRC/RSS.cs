@@ -116,6 +116,7 @@ namespace SteamDatabaseBackend
                         // tf2 changelog cleanup
                         item.Content = item.Content.Replace("<br/>", "\n");
                         item.Content = item.Content.Replace("<ul style=\"padding-bottom: 0px; margin-bottom: 0px;\">", "\n");
+                        item.Content = item.Content.Replace("<ul style=\"padding-bottom: 0px; margin-bottom: 0px;\" >", "\n");
                         item.Content = item.Content.Replace("</ul>", "\n");
                         item.Content = item.Content.Replace("<li>", "* ");
                     }
