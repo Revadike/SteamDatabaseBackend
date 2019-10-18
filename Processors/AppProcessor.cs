@@ -165,18 +165,21 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
+            // If app gets hidden but we already have data, do not delete the already existing app info
+            if (newAppName != null)
             {
-                await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
-                await MakeHistory("removed_key", data.Key, data.Value);
-
-                if (newAppName != null && data.KeyName.Equals("common_section_type") && data.Value.Equals("ownersonly"))
+                foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
                 {
-                    IRC.Instance.SendMain("Removed ownersonly from: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                    await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
+                    await MakeHistory("removed_key", data.Key, data.Value);
+
+                    if (data.KeyName.Equals("common_section_type") && data.Value.Equals("ownersonly"))
+                    {
+                        IRC.Instance.SendMain("Removed ownersonly from: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                    }
                 }
             }
-
-            if (newAppName == null)
+            else
             {
                 if (string.IsNullOrEmpty(app.Name)) // We don't have the app in our database yet
                 {
