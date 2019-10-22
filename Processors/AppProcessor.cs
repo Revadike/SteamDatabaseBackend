@@ -72,6 +72,7 @@ namespace SteamDatabaseBackend
                 var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLower();
 
                 var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
+                var modifiedNameOrType = false;
 
                 if (newAppType == -1)
                 {
@@ -94,18 +95,14 @@ namespace SteamDatabaseBackend
                     await MakeHistory("created_app");
                     await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
 
-                    if ((newAppType > 9 && newAppType != 13 && newAppType != 17) || Triggers.Any(newAppName.Contains))
-                    {
-                        IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
-                            currentType,
-                            Colors.BLUE, newAppName, Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
-                    }
+                    modifiedNameOrType = true;
                 }
                 else if (!app.Name.Equals(newAppName))
                 {
                     await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
                     await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
+
+                    modifiedNameOrType = true;
                 }
 
                 if (app.AppType == 0 || app.AppType != newAppType)
@@ -119,6 +116,19 @@ namespace SteamDatabaseBackend
                     else
                     {
                         await MakeHistory("modified_info", SteamDB.DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
+                    }
+
+                    modifiedNameOrType = true;
+                }
+
+                if (modifiedNameOrType)
+                {
+                    if ((newAppType > 9 && newAppType != 13 && newAppType != 15 && newAppType != 17) || Triggers.Any(newAppName.Contains))
+                    {
+                        IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
+                            currentType,
+                            Colors.BLUE, newAppName, Colors.NORMAL,
+                            Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
                     }
                 }
             }
