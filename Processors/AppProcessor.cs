@@ -172,11 +172,6 @@ namespace SteamDatabaseBackend
                 {
                     await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
                     await MakeHistory("removed_key", data.Key, data.Value);
-
-                    if (data.KeyName.Equals("common_section_type") && data.Value.Equals("ownersonly"))
-                    {
-                        IRC.Instance.SendMain("Removed ownersonly from: {0}{1}{2} -{3} {4}", Colors.BLUE, app.Name, Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
-                    }
                 }
             }
             else
