@@ -145,9 +145,13 @@ namespace SteamDatabaseBackend
                 {
                     await Steam.Instance.Apps.PICSGetChangesSince(PreviousChangeNumber, true, true);
                 }
-                catch (Exception e)
+                catch (OperationCanceledException)
                 {
-                    Log.WriteError(nameof(PICSChanges), $"PICSGetChangesSince failed: {e.Message}");
+                    Log.WriteError(nameof(PICSChanges), "PICSGetChangesSince task was cancelled");
+                }
+                catch (AsyncJobFailedException)
+                {
+                    Log.WriteError(nameof(PICSChanges), "PICSGetChangesSince async job failed");
                 }
             }
 
