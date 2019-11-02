@@ -105,11 +105,12 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-
-            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds...", RETRY_DELAY);
+            
+            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds... {1}", RETRY_DELAY, callback.UserInitiated ? " (user initiated)" : "");
 
             IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);
 
+            Steam.Instance.PICSChanges.StopTick();
             ReconnectionTimer.Start();
         }
 

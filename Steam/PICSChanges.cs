@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
         }
 
         public uint PreviousChangeNumber { get; private set; }
-
+        private uint TickerHash;
         private readonly uint BillingTypeKey;
 
         private static readonly List<EBillingType> IgnorableBillingTypes = new List<EBillingType>
@@ -124,14 +124,22 @@ namespace SteamDatabaseBackend
 
         public void StartTick()
         {
+            TickerHash++;
             TaskManager.Run(Tick);
+        }
+
+        public void StopTick()
+        {
+            TickerHash++;
         }
 
         private async Task Tick()
         {
-            Log.WriteDebug(nameof(PICSChanges), "Thread started");
+            var currentHash = TickerHash;
 
-            while (Steam.Instance.Client.IsConnected)
+            Log.WriteDebug(nameof(PICSChanges), $"Thread started #{currentHash}");
+
+            while (currentHash == TickerHash)
             {
                 try
                 {
@@ -143,7 +151,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            Log.WriteDebug(nameof(PICSChanges), "Thread stopped");
+            Log.WriteDebug(nameof(PICSChanges), $"Thread stopped #{currentHash}");
         }
 
         private static bool IsBusy()
