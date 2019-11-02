@@ -18,14 +18,20 @@ namespace SteamDatabaseBackend
             DEBUG,
             INFO,
             WARN,
-            ERROR
+            ERROR,
+            STEAMKIT,
         }
 
         public class SteamKitLogger : IDebugListener
         {
             public void WriteLine(string category, string msg)
             {
-                WriteDebug(category, msg);
+                if (msg.StartsWith("Sent ->", StringComparison.InvariantCulture) || msg.StartsWith("<- Recv'd", StringComparison.InvariantCulture))
+                {
+                    return;
+                }
+
+                Log.WriteLine(Category.STEAMKIT, category, msg);
             }
         }
 
@@ -89,6 +95,12 @@ namespace SteamDatabaseBackend
                 else if (category == Category.WARN)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write(logLine);
+                    Console.ResetColor();
+                }
+                else if (category == Category.STEAMKIT)
+                {
+                    Console.ForegroundColor = ConsoleColor.Magenta;
                     Console.Write(logLine);
                     Console.ResetColor();
                 }
