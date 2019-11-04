@@ -75,7 +75,7 @@ namespace SteamDatabaseBackend
                 await MakeHistory("created_sub");
                 await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
             }
-            else if (!PackageName.Equals(newPackageName))
+            else if (PackageName != newPackageName)
             {
                 if (newPackageName.StartsWith("Steam Sub ", StringComparison.Ordinal))
                 {
@@ -91,19 +91,19 @@ namespace SteamDatabaseBackend
 
             foreach (var section in ProductInfo.KeyValues.Children)
             {
-                var sectionName = section.Name.ToLower();
+                var sectionName = section.Name.ToLowerInvariant();
 
-                if (string.IsNullOrEmpty(sectionName) || sectionName.Equals("packageid") || sectionName.Equals("changenumber") || sectionName.Equals("name"))
+                if (string.IsNullOrEmpty(sectionName) || sectionName == "packageid" || sectionName == "changenumber" || sectionName == "name")
                 {
                     // Ignore common keys
                     continue;
                 }
 
-                if (sectionName.Equals("appids") || sectionName.Equals("depotids"))
+                if (sectionName == "appids" || sectionName == "depotids")
                 {
                     // Remove "ids", so we get "app" from appids and "depot" from depotids
                     var type = sectionName.Replace("ids", string.Empty);
-                    var isAppSection = type.Equals("app");
+                    var isAppSection = type == "app";
                     var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
                     foreach (var childrenApp in section.Children)
@@ -117,7 +117,7 @@ namespace SteamDatabaseBackend
                             if (apps[appID] != type)
                             {
                                 await DbConnection.ExecuteAsync("UPDATE `SubsApps` SET `Type` = @Type WHERE `SubID` = @SubID AND `AppID` = @AppID", new { SubID, AppID = appID, Type = type });
-                                await MakeHistory("added_to_sub", typeID, apps[appID].Equals("app") ? "0" : "1", childrenApp.Value);
+                                await MakeHistory("added_to_sub", typeID, apps[appID] == "app" ? "0" : "1", childrenApp.Value);
 
                                 appAddedToThisPackage = true;
 
@@ -186,7 +186,7 @@ namespace SteamDatabaseBackend
                         }
                     }
                 }
-                else if (sectionName.Equals("extended"))
+                else if (sectionName == "extended")
                 {
                     foreach (var children in section.Children)
                     {
@@ -228,7 +228,7 @@ namespace SteamDatabaseBackend
             {
                 await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new { SubID, AppID = app.Key, Type = app.Value });
 
-                var isAppSection = app.Value.Equals("app");
+                var isAppSection = app.Value == "app";
 
                 var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
@@ -323,7 +323,7 @@ namespace SteamDatabaseBackend
             // All keys in PICS are supposed to be lower case.
             // But currently some keys in packages are not lowercased,
             // this lowercases everything to make sure nothing breaks in future
-            keyName = keyName.ToLower().Trim();
+            keyName = keyName.ToLowerInvariant().Trim();
 
             if (!CurrentData.ContainsKey(keyName))
             {
@@ -365,7 +365,7 @@ namespace SteamDatabaseBackend
 
             CurrentData[keyName] = data;
 
-            if (data.Value.Equals(value))
+            if (data.Value == value)
             {
                 return;
             }

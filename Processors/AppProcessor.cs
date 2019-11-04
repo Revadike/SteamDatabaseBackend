@@ -69,7 +69,7 @@ namespace SteamDatabaseBackend
 
             if (newAppName != null)
             {
-                var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLower();
+                var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLowerInvariant();
 
                 var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
                 var modifiedNameOrType = false;
@@ -97,7 +97,7 @@ namespace SteamDatabaseBackend
 
                     modifiedNameOrType = true;
                 }
-                else if (!app.Name.Equals(newAppName))
+                else if (app.Name != newAppName)
                 {
                     await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
                     await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
@@ -135,7 +135,7 @@ namespace SteamDatabaseBackend
 
             foreach (var section in ProductInfo.KeyValues.Children)
             {
-                var sectionName = section.Name.ToLower();
+                var sectionName = section.Name.ToLowerInvariant();
 
                 if (sectionName == "appid" || sectionName == "public_only" || sectionName == "change_number")
                 {
@@ -148,7 +148,7 @@ namespace SteamDatabaseBackend
                     {
                         var keyName = string.Format("{0}_{1}", sectionName, keyvalue.Name);
 
-                        if (keyName.Equals("common_type") || keyName.Equals("common_gameid") || keyName.Equals("common_name") || keyName.Equals("extended_order"))
+                        if (keyName == "common_type" || keyName == "common_gameid" || keyName == "common_name" || keyName == "extended_order")
                         {
                             // Ignore common keys that are either duplicated or serve no real purpose
                             continue;
@@ -168,7 +168,7 @@ namespace SteamDatabaseBackend
                 {
                     sectionName = string.Format("root_{0}", sectionName);
 
-                    if (await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName.Equals("root_depots"))
+                    if (await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName == "root_depots")
                     {
                         await DbConnection.ExecuteAsync("UPDATE `Apps` SET `LastDepotUpdate` = CURRENT_TIMESTAMP() WHERE `AppID` = @AppID", new { AppID });
                     }
@@ -260,7 +260,7 @@ namespace SteamDatabaseBackend
             }
 
             // All keys in PICS are supposed to be lower case
-            keyName = keyName.ToLower().Trim();
+            keyName = keyName.ToLowerInvariant().Trim();
 
             if (!CurrentData.ContainsKey(keyName))
             {
@@ -315,7 +315,7 @@ namespace SteamDatabaseBackend
 
             CurrentData[keyName] = data;
 
-            if (data.Value.Equals(value))
+            if (data.Value == value)
             {
                 return false;
             }

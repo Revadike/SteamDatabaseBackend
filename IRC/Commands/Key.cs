@@ -95,7 +95,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var key = command.Message.Trim().ToUpper();
+            var key = command.Message.Trim().ToUpperInvariant();
 
             if (key.Length < 17)
             {

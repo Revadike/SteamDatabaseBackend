@@ -110,7 +110,7 @@ namespace SteamDatabaseBackend
 
             trigger = trigger.Substring(1);
 
-            var command = RegisteredCommands.Find(cmd => cmd.Trigger.Equals(trigger));
+            var command = RegisteredCommands.Find(cmd => cmd.Trigger == trigger);
 
             if (command == null)
             {
@@ -168,7 +168,7 @@ namespace SteamDatabaseBackend
             var i = message.IndexOf(' ');
             var inputCommand = i == -1 ? message.Substring(1) : message[1..i];
 
-            var command = RegisteredCommands.Find(cmd => cmd.Trigger.Equals(inputCommand));
+            var command = RegisteredCommands.Find(cmd => cmd.Trigger == inputCommand);
 
             if (command == null)
             {

@@ -229,7 +229,7 @@ namespace SteamDatabaseBackend
                         if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun != FullRunState.WithForcedDepots)
                         {
                             // Update depot name if changed
-                            if (!request.DepotName.Equals(dbDepot.Name))
+                            if (request.DepotName != dbDepot.Name)
                             {
                                 await db.ExecuteAsync("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
                             }
@@ -244,7 +244,7 @@ namespace SteamDatabaseBackend
 
                     decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
 
-                    if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || !request.DepotName.Equals(dbDepot.Name))
+                    if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || request.DepotName != dbDepot.Name)
                     {
                         await db.ExecuteAsync(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
                                     ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = VALUES(`Name`), `BuildID` = VALUES(`BuildID`), `ManifestID` = VALUES(`ManifestID`)",
