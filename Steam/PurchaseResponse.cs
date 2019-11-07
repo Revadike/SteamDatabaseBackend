@@ -57,7 +57,7 @@ namespace SteamDatabaseBackend
     {
         public override void HandleMsg(IPacketMsg packetMsg)
         {
-            if (packetMsg.MsgType != EMsg.ClientPurchaseResponse)
+            if (packetMsg?.MsgType != EMsg.ClientPurchaseResponse)
             {
                 return;
             }

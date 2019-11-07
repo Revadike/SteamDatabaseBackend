@@ -44,6 +44,7 @@ namespace SteamDatabaseBackend
         }
 
         private static readonly string ConfigPath = Path.Combine(Application.Path, "files", ".support", "localconfig.json");
+        private static readonly object saveLock = new object();
 
         public static LocalConfigJson Current { get; private set; } = new LocalConfigJson();
 
@@ -68,7 +69,7 @@ namespace SteamDatabaseBackend
 
             var data = JsonConvert.SerializeObject(Current, JsonFormatted);
 
-            lock (ConfigPath)
+            lock (saveLock)
             {
                 File.WriteAllText(ConfigPath, data);
             }
