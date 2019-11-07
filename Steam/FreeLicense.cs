@@ -186,11 +186,13 @@ namespace SteamDatabaseBackend
 
             LocalConfig.Save();
 
-            AppsRequestedInHour = list.Count;
+            var appids = list.Select(x => x.Value).Distinct();
 
-            Log.WriteDebug(nameof(FreeLicense), $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran");
+            AppsRequestedInHour = appids.Count();
 
-            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(list.Select(x => x.Value)));
+            Log.WriteDebug(nameof(FreeLicense), $"Requesting {AppsRequestedInHour} free apps as the rate limit timer ran: {string.Join(", ", appids)}");
+
+            JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appids));
 
             if (LocalConfig.Current.FreeLicensesToRequest.Count > 0)
             {
