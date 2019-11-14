@@ -73,7 +73,6 @@ namespace SteamDatabaseBackend
 
             if (!Settings.IsFullRun)
             {
-                Handlers.Add(new MarketingMessage(CallbackManager));
                 Handlers.Add(new ClanState(CallbackManager));
 
                 WatchdogHandle = new Watchdog();
