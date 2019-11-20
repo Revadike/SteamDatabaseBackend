@@ -99,6 +99,8 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(SteamClient.DisconnectedCallback callback)
         {
+            Steam.Instance.PICSChanges.StopTick();
+
             if (!Steam.Instance.IsRunning)
             {
                 Log.WriteInfo("Steam", "Disconnected from Steam");
@@ -110,7 +112,6 @@ namespace SteamDatabaseBackend
 
             IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);
 
-            Steam.Instance.PICSChanges.StopTick();
             ReconnectionTimer.Start();
         }
 
