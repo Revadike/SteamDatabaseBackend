@@ -134,6 +134,14 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public void SendAnnounce(string str)
+        {
+            if (Settings.Current.IRC.Enabled)
+            {
+                Client.Message(Settings.Current.IRC.Channel.Announce, str);
+            }
+        }
+
         public void SendMain(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
@@ -142,11 +150,27 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public void SendMain(string str)
+        {
+            if (Settings.Current.IRC.Enabled)
+            {
+                Client.Message(Settings.Current.IRC.Channel.Main, string.Concat(Settings.Current.IRC.PrioritySendPrefix, str));
+            }
+        }
+
         public void SendOps(string format, params object[] args)
         {
             if (Settings.Current.IRC.Enabled)
             {
                 Client.Message(Settings.Current.IRC.Channel.Ops, string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args)));
+            }
+        }
+
+        public void SendOps(string str)
+        {
+            if (Settings.Current.IRC.Enabled)
+            {
+                Client.Message(Settings.Current.IRC.Channel.Ops, string.Concat(Settings.Current.IRC.PrioritySendPrefix, str));
             }
         }
 
