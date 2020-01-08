@@ -137,7 +137,6 @@ namespace SteamDatabaseBackend
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
-                    DepotName = depot["name"].AsString()
                 };
 
                 // Ignore keys that aren't integers, for example "branches"
@@ -145,6 +144,8 @@ namespace SteamDatabaseBackend
                 {
                     continue;
                 }
+
+                request.DepotName = depot["name"].AsString() ?? $"SteamDB Unnamed Depot {request.DepotID}";
 
                 // TODO: instead of locking we could wait for current process to finish
                 if (DepotLocks.ContainsKey(request.DepotID))
