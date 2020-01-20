@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS `Apps` (
   `Name` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SteamDB Unknown App',
   `StoreName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `LastKnownName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `LastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
-  `LastDepotUpdate` timestamp NULL DEFAULT NULL,
+  `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
+  `LastDepotUpdate` datetime DEFAULT NULL,
   PRIMARY KEY (`AppID`) USING BTREE,
   KEY `LastUpdated` (`LastUpdated`),
   KEY `AppType` (`AppType`)
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS `AppsHistory` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `ChangeID` int(9) UNSIGNED NOT NULL DEFAULT 0,
   `AppID` int(7) UNSIGNED NOT NULL,
-  `Time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Time` datetime NOT NULL DEFAULT current_timestamp(),
   `Action` enum('created_app','deleted_app','created_key','removed_key','modified_key','created_info','modified_info','removed_info','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `Key` smallint(4) UNSIGNED NOT NULL DEFAULT 0,
   `OldValue` longtext COLLATE utf8mb4_bin NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS `Builds` (
 
 CREATE TABLE IF NOT EXISTS `Changelists` (
   `ChangeID` int(11) UNSIGNED NOT NULL,
-  `Date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Date` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`ChangeID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS `Depots` (
   `BuildID` int(7) UNSIGNED NOT NULL DEFAULT 0,
   `ManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Displayed on the website, used for history',
   `LastManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Only updated after file list was successfully updated',
-  `LastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`DepotID`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -125,13 +125,14 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `ChangeID` int(9) UNSIGNED NOT NULL,
   `ManifestID` bigint(20) UNSIGNED NOT NULL,
   `DepotID` int(7) UNSIGNED NOT NULL,
-  `Time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Time` datetime NOT NULL DEFAULT current_timestamp(),
   `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `File` varchar(260) COLLATE utf8mb4_bin NOT NULL,
   `OldValue` bigint(20) UNSIGNED NOT NULL,
   `NewValue` bigint(20) UNSIGNED NOT NULL,
   PRIMARY KEY (`ID`),
-  KEY `DepotID` (`DepotID`)
+  KEY `DepotID` (`DepotID`),
+  KEY `ManifestID` (`ManifestID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `DepotsKeys` (
@@ -183,7 +184,7 @@ CREATE TABLE IF NOT EXISTS `LocalConfig` (
 CREATE TABLE IF NOT EXISTS `PICSTokens` (
   `AppID` int(7) NOT NULL,
   `Token` bigint(20) UNSIGNED NOT NULL,
-  `Date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Date` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`AppID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
@@ -191,7 +192,7 @@ CREATE TABLE IF NOT EXISTS `RSS` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `Title` varchar(255) COLLATE utf8mb4_bin NOT NULL,
   `Link` varchar(190) COLLATE utf8mb4_bin NOT NULL,
-  `Date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Date` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`ID`),
   UNIQUE KEY `Link` (`Link`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -201,7 +202,7 @@ CREATE TABLE IF NOT EXISTS `Subs` (
   `Name` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SteamDB Unknown Package',
   `StoreName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `LastKnownName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `LastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`SubID`) USING BTREE,
   KEY `LastUpdated` (`LastUpdated`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
@@ -220,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `SubsHistory` (
   `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `ChangeID` int(9) UNSIGNED NOT NULL DEFAULT 0,
   `SubID` int(7) UNSIGNED NOT NULL,
-  `Time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `Time` datetime NOT NULL DEFAULT current_timestamp(),
   `Action` enum('created_sub','deleted_sub','created_key','removed_key','modified_key','created_info','modified_info','removed_info','modified_price','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `Key` smallint(4) UNSIGNED NOT NULL,
   `OldValue` text COLLATE utf8mb4_bin NOT NULL,
