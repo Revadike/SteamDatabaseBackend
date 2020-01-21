@@ -52,11 +52,6 @@ namespace SteamDatabaseBackend
 
             foreach (var groupEvent in callback.Events)
             {
-                if (!groupEvent.JustPosted)
-                {
-                    continue;
-                }
-
                 message = string.Format(
                     "{0}{1}{2} event: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/events/{8} {9}({10})",
                     Colors.BLUE, groupName, Colors.NORMAL,
@@ -67,7 +62,7 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendMain(message);
 
-                Log.WriteInfo("Group Announcement", "{0} Event \"{1}\"", groupName, groupEvent.Headline);
+                Log.WriteInfo("Group Announcement", "{0} Event \"{1}\" {3}", groupName, groupEvent.Headline, groupEvent.JustPosted ? "just posted" : "old?");
             }
         }
     }
