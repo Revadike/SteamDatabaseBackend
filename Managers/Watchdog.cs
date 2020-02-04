@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
                 Connection.Reconnect(null, null);
             }
 
-            if (DateTime.Now.Subtract(Steam.Instance.DepotProcessor.LastServerRefreshTime).TotalHours >= 6.0)
+            if (DateTime.Now.Subtract(Steam.Instance.DepotProcessor.LastServerRefreshTime).TotalHours >= 2.0)
             {
                 Log.WriteWarn("Watchdog", "Refreshing depot cdn servers");
 

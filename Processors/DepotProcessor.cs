@@ -83,37 +83,43 @@ namespace SteamDatabaseBackend
 
             KeyValue response;
 
-            using (var steamDirectory = Steam.Configuration.GetAsyncWebAPIInterface("ISteamDirectory"))
+            using (var steamDirectory = Steam.Configuration.GetAsyncWebAPIInterface("IContentServerDirectoryService"))
             {
                 steamDirectory.Timeout = TimeSpan.FromSeconds(30);
 
                 try
                 {
-                    response = await steamDirectory.CallAsync(HttpMethod.Get, "GetCSList", 1,
+                    response = await steamDirectory.CallAsync(HttpMethod.Get, "GetServersForSteamPipe", 1,
                         new Dictionary<string, object>
                         {
-                            { "cellid", LocalConfig.Current.CellID },
-                            { "maxcount", "20" } // Use the first 20 servers as they're sorted by cellid and we want low latency
+                            { "cell_id", LocalConfig.Current.CellID },
+                            { "max_servers", "100" }
                         });
 
-                    if ((EResult)response["result"].AsInteger() != EResult.OK)
+                    if (response["servers"] == KeyValue.Invalid)
                     {
-                        throw new Exception($"GetCSList result is EResult.${response["result"]}");
+                        throw new Exception($"response.servers is invalid");
                     }
                 }
                 catch (Exception e)
                 {
-                    ErrorReporter.Notify("Depot Downloader", e);
+                    Log.WriteError("Depot Processor", $"Failed to get server list: {e.Message}");
 
                     return;
                 }
             }
 
-            // Note: There are servers like `origin5-sea1.steamcontent.com`
-            // which are hosted in Seattle, and most likely are the source of truth for
-            // game content, perhaps we should filter to these. But the latency is poor from Europe.
+            var newServers = new List<CDNClient.Server>();
 
-            var newServers = response["serverlist"].Children.Select(x => (CDNClient.Server)new DnsEndPoint(x.Value.ToString(), 80)).ToList();
+            foreach (var server in response["servers"].Children)
+            {
+                if (server["type"].AsString() != "SteamCache" || server["https_support"].AsString() == "mandatory")
+                {
+                    continue;
+                }
+
+                newServers.Add(new DnsEndPoint(server["host"].AsString(), 80));
+            }
 
             if (newServers.Count > 0)
             {
@@ -384,6 +390,8 @@ namespace SteamDatabaseBackend
 
                         Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
                     }
+
+                    RemoveErroredServer(depot.Server);
 
                     depot.Server = GetContentServer();
 
@@ -701,6 +709,22 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
                 }
+            }
+        }
+
+        private void RemoveErroredServer(CDNClient.Server server)
+        {
+            // Let the watchdog update the server list in next check
+            LastServerRefreshTime = DateTime.MinValue;
+
+            Log.WriteWarn("Depot Downloader", $"Removing {server.ToString()} due to a download error");
+
+            CDNServers.Remove(server);
+
+            // Always have one server in the list in case we run out
+            if (CDNServers.Count == 0)
+            {
+                CDNServers.Add(new DnsEndPoint("valve500.steamcontent.com", 80));
             }
         }
 
