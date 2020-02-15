@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
 
             if (!File.Exists(settingsFile))
             {
-                throw new FileNotFoundException("settings.json file does not exist. Rename and edit settings.json.default file.");
+                throw new FileNotFoundException($"\"{settingsFile}\" does not exist. Rename and edit settings.json.default file.");
             }
 
             Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
