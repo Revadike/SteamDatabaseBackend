@@ -6,4 +6,4 @@ cd "$(dirname "$0")"
 
 rm -r bin/ obj/
 
-dotnet build -c Release
+dotnet publish --configuration Release -p:PublishSingleFile=true --runtime linux-x64
