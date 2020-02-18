@@ -122,11 +122,9 @@ namespace SteamDatabaseBackend
             }
             else if (callback.FriendID.IsIndividualAccount)
             {
-                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/ {5}(Last login: {6}, Last logoff: {7})",
+                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/",
                     Colors.BLUE, callback.Name, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(), Colors.DARKGRAY,
-                    callback.LastLogOn.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss"),
-                    callback.LastLogOff.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64()
                 );
             }
             else
