@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
                     "{0}{1}{2} announcement: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/announcements/detail/{8}",
                     Colors.BLUE, groupName, Colors.NORMAL,
                     Colors.OLIVE, announcement.Headline, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.ClanID.ConvertToUInt64(), announcement.ID
+                    Colors.DARKBLUE, callback.ClanID.AccountID, announcement.ID
                 );
 
                 IRC.Instance.SendMain(message);
@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
             
             foreach (var groupEvent in callback.Events)
             {
-                var link = $"https://steamcommunity.com/gid/{callback.ClanID.ConvertToUInt64()}/events/{groupEvent.ID}";
+                var link = $"https://steamcommunity.com/gid/{callback.ClanID.AccountID}/events/{groupEvent.ID}";
                 var id = await db.ExecuteScalarAsync<int>("SELECT `ID` FROM `RSS` WHERE `Link` = @Link", new { Link = link });
 
                 if (id > 0)
