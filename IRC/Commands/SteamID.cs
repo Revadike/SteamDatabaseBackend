@@ -227,8 +227,11 @@ namespace SteamDatabaseBackend
                     break;
             }
 
-            return string.Format("{0} / {1} {2}(UInt64: {3}, AccountID: {4}, IsValid: {5}, Universe: {6}, Instance: {7}, Type: {8})",
-                input.Render(true), input.Render(false), Colors.DARKGRAY, input.ConvertToUInt64(), input.AccountID, input.IsValid, input.AccountUniverse, displayInstance, input.AccountType);
+            return string.Format("{0} / {1} {2}(AccountID: {3}, Universe: {4}, Instance: {5}, Type: {6}){7}",
+                input.Render(true), input.ConvertToUInt64(), Colors.DARKGRAY,
+                input.AccountID, input.AccountUniverse, displayInstance, input.AccountType,
+                input.IsValid ? "" : $"{Colors.RED} (not valid)"
+            );
         }
 
         /*
