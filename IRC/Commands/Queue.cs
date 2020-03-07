@@ -34,21 +34,16 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string name;
-
             switch (s[0])
             {
                 case "app":
-                    using (var db = Database.Get())
-                    {
-                        name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = id });
-                    }
+                    var appName = Steam.GetAppName(id);
 
-                    if (!string.IsNullOrEmpty(name))
+                    if (!string.IsNullOrEmpty(appName))
                     {
                         await StoreQueue.AddAppToQueue(id);
 
-                        command.Reply("App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
+                        command.Reply("App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, appName);
 
                         return;
                     }
@@ -66,16 +61,13 @@ namespace SteamDatabaseBackend
                         return;
                     }
 
-                    using (var db = Database.Get())
-                    {
-                        name = await db.ExecuteScalarAsync<string>("SELECT `Name` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = id });
-                    }
+                    var subName = Steam.GetPackageName(id);
 
-                    if (!string.IsNullOrEmpty(name))
+                    if (!string.IsNullOrEmpty(subName))
                     {
                         await StoreQueue.AddPackageToQueue(id);
 
-                        command.Reply("Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, Utils.RemoveControlCharacters(name));
+                        command.Reply("Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, subName);
 
                         return;
                     }

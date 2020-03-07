@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
 
             if (info.KeyValues["common"]["name"].Value != null)
             {
-                name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString());
+                name = Utils.RemoveControlCharacters(info.KeyValues["common"]["name"].AsString()).Substring(0, 100);
             }
             else
             {

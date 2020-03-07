@@ -164,10 +164,10 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase))
             {
-                return string.Format("{0} {1}({2}){3}", name, Colors.DARKGRAY, nameLast, Colors.NORMAL);
+                return string.Format("{0} {1}({2}){3}", name.Substring(0, 100), Colors.DARKGRAY, nameLast.Substring(0, 100), Colors.NORMAL);
             }
 
-            return name;
+            return name.Substring(0, 100);
         }
 
         public static string FormatPackageName(uint subID, Package data)
@@ -188,15 +188,15 @@ namespace SteamDatabaseBackend
 
             if (string.IsNullOrEmpty(nameLast))
             {
-                return name;
+                return name.Substring(0, 100);
             }
 
             if (!name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase) && !name.StartsWith("Steam Sub ", StringComparison.Ordinal))
             {
-                return string.Format("{0} {1}({2}){3}", nameLast, Colors.DARKGRAY, name, Colors.NORMAL);
+                return string.Format("{0} {1}({2}){3}", nameLast.Substring(0, 100), Colors.DARKGRAY, name.Substring(0, 100), Colors.NORMAL);
             }
 
-            return nameLast;
+            return nameLast.Substring(0, 100);
         }
     }
 }

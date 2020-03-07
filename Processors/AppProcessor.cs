@@ -127,7 +127,7 @@ namespace SteamDatabaseBackend
                     {
                         IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
                             currentType,
-                            Colors.BLUE, newAppName, Colors.NORMAL,
+                            Colors.BLUE, newAppName.Substring(0, 100), Colors.NORMAL,
                             Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
                     }
                 }

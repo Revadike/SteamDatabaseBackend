@@ -62,7 +62,7 @@ namespace SteamDatabaseBackend
                     }
 
                     name = string.IsNullOrEmpty(data.LastKnownName) ? data.Name : data.LastKnownName;
-                    name = Utils.RemoveControlCharacters(name);
+                    name = Utils.RemoveControlCharacters(name).Substring(0, 100);
                     appType = data.AppTypeString;
                 }
 
