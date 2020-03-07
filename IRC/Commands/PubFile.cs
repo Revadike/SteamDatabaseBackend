@@ -108,7 +108,7 @@ namespace SteamDatabaseBackend
                         Utils.RemoveControlCharacters(title),
                         Colors.NORMAL,
                         Colors.BLUE,
-                        Utils.RemoveControlCharacters(details.app_name).Substring(0, 100),
+                        Utils.LimitStringLength(Utils.RemoveControlCharacters(details.app_name)),
                         Colors.LIGHTGRAY,
                         details.views,
                         votesUp,

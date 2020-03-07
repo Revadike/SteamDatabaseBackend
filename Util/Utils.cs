@@ -128,6 +128,16 @@ namespace SteamDatabaseBackend
             return new string(input.Where(c => !char.IsControl(c)).ToArray());
         }
 
+        public static string LimitStringLength(string input)
+        {
+            if (input.Length <= 100)
+            {
+                return input;
+            }
+
+            return input.Substring(0, 100) + "…";
+        }
+
         public static string JsonifyKeyValue(KeyValue keys)
         {
             string value;
