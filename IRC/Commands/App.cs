@@ -141,13 +141,20 @@ namespace SteamDatabaseBackend
                 requestMessage.Headers.Add("X-Algolia-Application-Id", "94HE6YATEI");
                 requestMessage.Headers.Add("X-Algolia-API-Key", "2414d3366df67739fe6e73dad3f51a43");
 
-                var response = await Utils.HttpClient.SendAsync(requestMessage);
-                var data = await response.Content.ReadAsStringAsync();
-                var json = JsonConvert.DeserializeObject<AlgoliaSearchAppHits>(data);
-
-                if (json.Hits.Length > 0)
+                try
                 {
-                    appID = json.Hits[0].AppID;
+                    var response = await Utils.HttpClient.SendAsync(requestMessage);
+                    var data = await response.Content.ReadAsStringAsync();
+                    var json = JsonConvert.DeserializeObject<AlgoliaSearchAppHits>(data);
+
+                    if (json.Hits.Length > 0)
+                    {
+                        appID = json.Hits[0].AppID;
+                    }
+                }
+                catch (Exception e)
+                {
+                    ErrorReporter.Notify("Algolia search", e);
                 }
             }
 
