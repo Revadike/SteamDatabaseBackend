@@ -131,26 +131,46 @@ namespace SteamDatabaseBackend
                                 appAddedToThisPackage = true;
 
                                 // Log relevant add/remove history events for depot and app
-                                await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
-                                    new PICSHistory
-                                    {
-                                        ID = appID,
-                                        ChangeID = ChangeNumber,
-                                        NewValue = SubID.ToString(),
-                                        Action = isAppSection ? "added_to_sub" : "removed_from_sub"
-                                    }
-                                );
+                                var appHistory = new PICSHistory
+                                {
+                                    ID = appID,
+                                    ChangeID = ChangeNumber,
+                                };
 
-                                await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
-                                    new DepotHistory
-                                    {
-                                        DepotID = appID,
-                                        ManifestID = 0,
-                                        ChangeID = ChangeNumber,
-                                        OldValue = SubID,
-                                        Action = isAppSection ? "removed_from_sub" : "added_to_sub"
-                                    }
-                                );
+                                if (isAppSection)
+                                {
+                                    appHistory.NewValue = SubID.ToString();
+                                    appHistory.Action = "added_to_sub";
+                                }
+                                else
+                                {
+                                    appHistory.OldValue = SubID.ToString();
+                                    appHistory.Action = "removed_from_sub";
+                                }
+
+                                await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery, appHistory);
+
+                                var depotHistory = new DepotHistory
+                                {
+                                    DepotID = appID,
+                                    ManifestID = 0,
+                                    ChangeID = ChangeNumber,
+                                    OldValue = SubID,
+                                    Action = isAppSection ? "removed_from_sub" : "added_to_sub"
+                                };
+
+                                if (isAppSection)
+                                {
+                                    depotHistory.OldValue = SubID;
+                                    depotHistory.Action = "removed_from_sub";
+                                }
+                                else
+                                {
+                                    depotHistory.NewValue = SubID;
+                                    depotHistory.Action = "added_to_sub";
+                                }
+
+                                await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery, depotHistory);
                             }
 
                             apps.Remove(appID);
