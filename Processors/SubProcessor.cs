@@ -61,6 +61,7 @@ namespace SteamDatabaseBackend
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
             var newPackageName = ProductInfo.KeyValues["name"].AsString();
             var apps = (await DbConnection.QueryAsync<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.AppID, x => x.Type);
+            var alreadySeenAppIds = new HashSet<uint>();
 
             // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
             if (newPackageName == null)
@@ -109,6 +110,14 @@ namespace SteamDatabaseBackend
                     foreach (var childrenApp in section.Children)
                     {
                         var appID = uint.Parse(childrenApp.Value);
+
+                        if (alreadySeenAppIds.Contains(appID))
+                        {
+                            Log.WriteWarn("Sub Processor", $"Package {SubID} has a duplicate app: {appID}");
+                            continue;
+                        }
+
+                        alreadySeenAppIds.Add(appID);
 
                         // Is this appid already in this package?
                         if (apps.ContainsKey(appID))
