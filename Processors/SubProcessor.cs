@@ -109,7 +109,11 @@ namespace SteamDatabaseBackend
 
                     foreach (var childrenApp in section.Children)
                     {
-                        var appID = uint.Parse(childrenApp.Value);
+                        if (!uint.TryParse(childrenApp.Value, out var appID))
+                        {
+                            Log.WriteWarn("Sub Processor", $"Package {SubID} has an invalid uint: {childrenApp.Value}");
+                            continue;
+                        }
 
                         if (alreadySeenAppIds.Contains(appID))
                         {
