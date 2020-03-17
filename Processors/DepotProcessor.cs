@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -25,10 +26,12 @@ namespace SteamDatabaseBackend
             public uint DepotID;
             public int BuildID;
             public ulong ManifestID;
+            public ulong LastManifestID;
             public string DepotName;
             public CDNClient.Server Server;
             public byte[] DepotKey;
             public EResult Result = EResult.Fail;
+            public bool StoredFilenamesEncrypted;
         }
 
         public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ManifestID`, `ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ManifestID, @ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
@@ -210,7 +213,7 @@ namespace SteamDatabaseBackend
                 });
 
                 var depotIds = requests.Select(x => x.DepotID).ToList();
-                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID` FROM `Depots` WHERE `DepotID` IN @depotIds", new { depotIds }))
+                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID`, `FilenamesEncrypted` FROM `Depots` WHERE `DepotID` IN @depotIds", new { depotIds }))
                     .ToDictionary(x => x.DepotID, x => x);
 
                 var decryptionKeys = (await db.QueryAsync<DepotKey>("SELECT `DepotID`, `Key` FROM `DepotsKeys` WHERE `DepotID` IN @depotIds", new { depotIds }))
@@ -219,6 +222,8 @@ namespace SteamDatabaseBackend
                 foreach (var request in requests)
                 {
                     Depot dbDepot;
+
+                    decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
 
                     if (dbDepots.ContainsKey(request.DepotID))
                     {
@@ -233,7 +238,10 @@ namespace SteamDatabaseBackend
                             continue;
                         }
 
-                        if (dbDepot.LastManifestID == request.ManifestID && dbDepot.ManifestID == request.ManifestID && Settings.Current.FullRun != FullRunState.WithForcedDepots)
+                        if (dbDepot.LastManifestID == request.ManifestID
+                        && dbDepot.ManifestID == request.ManifestID
+                        && Settings.Current.FullRun != FullRunState.WithForcedDepots
+                        && !dbDepot.FilenamesEncrypted && request.DepotKey != null)
                         {
                             // Update depot name if changed
                             if (request.DepotName != dbDepot.Name)
@@ -243,13 +251,14 @@ namespace SteamDatabaseBackend
 
                             continue;
                         }
+
+                        request.StoredFilenamesEncrypted = dbDepot.FilenamesEncrypted;
+                        request.LastManifestID = dbDepot.LastManifestID;
                     }
                     else
                     {
                         dbDepot = new Depot();
                     }
-
-                    decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
 
                     if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || request.DepotName != dbDepot.Name)
                     {
@@ -363,7 +372,7 @@ namespace SteamDatabaseBackend
                 {
                     await GetDepotDecryptionKey(Steam.Instance.Apps, depot, appID);
 
-                    if (depot.DepotKey == null)
+                    if (depot.DepotKey == null && depot.LastManifestID == depot.ManifestID)
                     {
                         RemoveLock(depot.DepotID);
 
@@ -570,9 +579,50 @@ namespace SteamDatabaseBackend
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
 
+            if (request.StoredFilenamesEncrypted && !depotManifest.FilenamesEncrypted)
+            {
+                Log.WriteInfo(nameof(DepotProcessor), $"Depot {request.DepotID} will decrypt stored filenames");
+
+                var decryptedFilesOld = new Dictionary<string, DepotFile>();
+
+                foreach (var file in filesOld.Values)
+                {
+                    file.File = DecryptFilename(file.File, request.DepotKey);
+
+                    decryptedFilesOld.Add(file.File, file);
+
+                    await db.ExecuteAsync("UPDATE `DepotsFiles` SET `File` = @File WHERE `ID` = @ID", new DepotFile
+                    {
+                        ID = file.ID,
+                        File = file.File,
+                    }, transaction);
+                }
+
+                filesOld = decryptedFilesOld;
+
+                var history = await db.QueryAsync<DepotFile>("SELECT `ID`, `File` FROM `DepotsHistory` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction);
+
+                foreach (var file in history)
+                {
+                    if (file.File.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    file.File = DecryptFilename(file.File, request.DepotKey);
+
+                    await db.ExecuteAsync("UPDATE `DepotsHistory` SET `File` = @File WHERE `ID` = @ID", new DepotFile
+                    {
+                        ID = file.ID,
+                        File = file.File,
+                    }, transaction);
+                }
+            }
+
             foreach (var file in depotManifest.Files.OrderByDescending(x => x.FileName))
             {
-                var name = file.FileName.Replace('\\', '/');
+                var name = depotManifest.FilenamesEncrypted ? file.FileName.Replace("\n", "") : file.FileName.Replace('\\', '/');
+
                 byte[] hash = null;
 
                 // Store empty hashes as NULL (e.g. an empty file)
@@ -588,6 +638,11 @@ namespace SteamDatabaseBackend
                 // game with a big node_modules path, so we're safeguarding by limiting it.
                 if (name.Length > 260)
                 {
+                    if (depotManifest.FilenamesEncrypted)
+                    {
+                        continue;
+                    }
+
                     using var sha = new System.Security.Cryptography.SHA1Managed();
                     var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
                     name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
@@ -672,9 +727,24 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            await db.ExecuteAsync("UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID", new { request.DepotID, request.ManifestID }, transaction: transaction);
+            await db.ExecuteAsync(
+                "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP(), `FilenamesEncrypted` = @FilenamesEncrypted WHERE `DepotID` = @DepotID",
+                new
+                {
+                    request.DepotID,
+                    request.ManifestID,
+                    depotManifest.FilenamesEncrypted,
+                }, transaction: transaction);
 
             return EResult.OK;
+        }
+
+        private static string DecryptFilename(string name, byte[] depotKey)
+        {
+            var encryptedFilename = Convert.FromBase64String(name);
+            var decryptedFilename = CryptoHelper.SymmetricDecrypt(encryptedFilename, depotKey);
+
+            return Encoding.UTF8.GetString(decryptedFilename).TrimEnd(new[] { '\0' }).Replace('\\', '/');
         }
 
         private static Task MakeHistory(IDbConnection db, IDbTransaction transaction, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)

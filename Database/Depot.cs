@@ -12,5 +12,6 @@ namespace SteamDatabaseBackend
         public uint BuildID { get; set; }
         public ulong ManifestID { get; set; }
         public ulong LastManifestID { get; set; }
+        public bool FilenamesEncrypted { get; set; }
     }
 }
