@@ -576,16 +576,9 @@ namespace SteamDatabaseBackend
                 byte[] hash = null;
 
                 // Store empty hashes as NULL (e.g. an empty file)
-                if (file.FileHash.Length > 0 && (file.Flags & EDepotFileFlag.Directory) == 0)
+                if ((file.Flags & EDepotFileFlag.Directory) == 0 && file.FileHash.Length > 0 && file.FileHash.Any(c => c != 0))
                 {
-                    for (var i = 0; i < file.FileHash.Length; ++i)
-                    {
-                        if (file.FileHash[i] != 0)
-                        {
-                            hash = file.FileHash;
-                            break;
-                        }
-                    }
+                    hash = file.FileHash;
                 }
 
                 // Limit path names to 260 characters (default windows max length)
