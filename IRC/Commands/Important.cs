@@ -75,7 +75,7 @@ namespace SteamDatabaseBackend
                                         Application.ImportantApps.Add(id, new List<string> { channel });
                                     }
 
-                                    using (var db = Database.Get())
+                                    await using (var db = await Database.GetConnectionAsync())
                                     {
                                         await db.ExecuteAsync("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new { AppID = id, Channel = channel });
                                     }
@@ -94,7 +94,7 @@ namespace SteamDatabaseBackend
                                 {
                                     Application.ImportantSubs.Add(id, 1);
 
-                                    using (var db = Database.Get())
+                                    await using (var db = await Database.GetConnectionAsync())
                                     {
                                         await db.ExecuteAsync("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new { SubID = id });
                                     }
@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
                                         Application.ImportantApps.Remove(id);
                                     }
 
-                                    using (var db = Database.Get())
+                                    await using (var db = await Database.GetConnectionAsync())
                                     {
                                         db.Execute("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
                                     }
@@ -155,7 +155,7 @@ namespace SteamDatabaseBackend
                                 {
                                     Application.ImportantSubs.Remove(id);
 
-                                    using (var db = Database.Get())
+                                    await using (var db = await Database.GetConnectionAsync())
                                     {
                                         await db.ExecuteAsync("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new { SubID = id });
                                     }

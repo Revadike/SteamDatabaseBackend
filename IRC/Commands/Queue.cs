@@ -5,7 +5,6 @@
  */
 
 using System.Threading.Tasks;
-using Dapper;
 
 namespace SteamDatabaseBackend
 {

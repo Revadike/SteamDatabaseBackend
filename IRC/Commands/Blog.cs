@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
         {
             BlogPost post;
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 post = (await db.QueryAsync<BlogPost>("SELECT `ID`, `Slug`, `Title` FROM `Blog` WHERE `IsHidden` = 0 ORDER BY `Time` DESC LIMIT 1")).SingleOrDefault();
             }

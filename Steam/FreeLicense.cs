@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
             }
 
             // Skip packages that have a store name to avoid messing up history
-            using var db = Database.Get();
+            await using var db = await Database.GetConnectionAsync();
             var packageData = await db.QueryAsync<Package>("SELECT `SubID`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids AND `StoreName` = ''", new { Ids = names.Keys });
 
             foreach (var package in packageData)
@@ -173,7 +173,7 @@ namespace SteamDatabaseBackend
                 startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list.Select(x => x.Key) }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
             }
 
-            foreach ((var subId, var _) in list)
+            foreach (var (subId, _) in list)
             {
                 if (startTimes.TryGetValue(subId, out var startTime) && startTime > now)
                 {

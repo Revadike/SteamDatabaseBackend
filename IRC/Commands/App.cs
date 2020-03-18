@@ -111,7 +111,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public async static Task<uint> TrySearchAppId(CommandArguments command)
+        public static async Task<uint> TrySearchAppId(CommandArguments command)
         {
             uint appID = 0;
             var name = command.Message;
@@ -163,7 +163,7 @@ namespace SteamDatabaseBackend
                 return appID;
             }
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
             }

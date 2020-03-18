@@ -190,7 +190,7 @@ namespace SteamDatabaseBackend
             {
                 if (!finalPath.Exists)
                 {
-                    using (var _ = finalPath.Create())
+                    await using (var _ = finalPath.Create())
                     {
                         // FileInfo.Create returns a stream but we don't need it
                     }
@@ -228,7 +228,7 @@ namespace SteamDatabaseBackend
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
             var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(checksum)));
 
-            using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            await using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
                 fs.SetLength((long)file.TotalSize);
 
@@ -236,7 +236,7 @@ namespace SteamDatabaseBackend
                 {
                     var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(File.ReadAllText(oldChunksFile), JsonHandleAllReferences);
 
-                    using var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read);
+                    await using var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read);
 
                     foreach (var chunk in chunks)
                     {
@@ -325,7 +325,7 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(chunkTasks).ConfigureAwait(false);
 
-            using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
+            await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
                 fs.Seek(0, SeekOrigin.Begin);
 
@@ -371,7 +371,7 @@ namespace SteamDatabaseBackend
                 {
                     var chunkData = await CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, string.Empty, job.DepotKey);
 
-                    using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
+                    await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
                     {
                         fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
                         await fs.WriteAsync(chunkData.Data, 0, chunkData.Data.Length);

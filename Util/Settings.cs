@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
             }
 
             // Test database connection, it will throw if connection is unable to be made
-            using (var connection = Database.Get())
+            using (Database.Get())
             {
                 //
             }

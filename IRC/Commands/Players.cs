@@ -28,8 +28,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string name;
-
             if (!uint.TryParse(command.Message, out var appID))
             {
                 appID = await AppCommand.TrySearchAppId(command);
@@ -49,7 +47,7 @@ namespace SteamDatabaseBackend
                 appID = 753;
             }
 
-            name = Steam.GetAppName(appID, out var appType);
+            var name = Steam.GetAppName(appID, out var appType);
 
             if (callback.Result != EResult.OK)
             {
@@ -60,7 +58,7 @@ namespace SteamDatabaseBackend
 
             uint dailyPlayers;
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 dailyPlayers = await db.ExecuteScalarAsync<uint>("SELECT `MaxDailyPlayers` FROM `OnlineStats` WHERE `AppID` = @appID", new { appID });
             }

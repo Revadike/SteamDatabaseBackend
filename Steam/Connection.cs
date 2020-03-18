@@ -171,7 +171,7 @@ namespace SteamDatabaseBackend
                 if (Settings.Current.FullRun == FullRunState.ImportantOnly)
                 {
                     JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Enumerable.Empty<uint>()));
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), Application.ImportantSubs.Keys.Select(package => Utils.NewPICSRequest(package))));
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), Application.ImportantSubs.Keys.Select(Utils.NewPICSRequest)));
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
                 {

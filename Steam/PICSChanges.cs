@@ -324,7 +324,7 @@ namespace SteamDatabaseBackend
             List<uint> appids;
 
             // Queue all the apps in the package as well
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 appids = (await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `SubID` IN @Ids AND `Type` = 'app'", new { Ids = subids })).ToList();
             }
@@ -351,7 +351,7 @@ namespace SteamDatabaseBackend
             // Silly thing
             var changeLists = changeNumbers.Select(x => new Changelist { ChangeID = x });
 
-            using var db = Database.Get();
+            await using var db = await Database.GetConnectionAsync();
             await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeID) ON DUPLICATE KEY UPDATE `Date` = `Date`", changeLists);
         }
 
@@ -457,7 +457,7 @@ namespace SteamDatabaseBackend
                 {
                     Dictionary<uint, App> apps;
 
-                    using (var db = Database.Get())
+                    await using (var db = await Database.GetConnectionAsync())
                     {
                         apps = (await db.QueryAsync<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps })).ToDictionary(x => x.AppID, x => x);
                     }
@@ -474,7 +474,7 @@ namespace SteamDatabaseBackend
                 {
                     Dictionary<uint, Package> packages;
 
-                    using (var db = Database.Get())
+                    await using (var db = await Database.GetConnectionAsync())
                     {
                         packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages })).ToDictionary(x => x.SubID, x => x);
                     }

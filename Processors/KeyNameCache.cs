@@ -18,7 +18,7 @@ namespace SteamDatabaseBackend
 
         public static async Task Init()
         {
-            using var db = Database.Get();
+            await using var db = await Database.GetConnectionAsync();
             App = (await db.QueryAsync<KeyName>("SELECT `Name`, `ID` FROM `KeyNames`")).ToDictionary(x => x.Name, x => x.ID);
             Sub = (await db.QueryAsync<KeyName>("SELECT `Name`, `ID` FROM `KeyNamesSubs`")).ToDictionary(x => x.Name, x => x.ID);
         }
@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
         {
             uint newKey;
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 await db.ExecuteAsync("INSERT INTO `KeyNames` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new
                 {
@@ -65,7 +65,7 @@ namespace SteamDatabaseBackend
         {
             uint newKey;
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 await db.ExecuteAsync("INSERT INTO `KeyNamesSubs` (`Name`, `Type`, `DisplayName`) VALUES(@Name, @Type, @DisplayName)", new
                 {

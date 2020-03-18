@@ -101,7 +101,7 @@ namespace SteamDatabaseBackend
 
                     if (response["servers"] == KeyValue.Invalid)
                     {
-                        throw new Exception($"response.servers is invalid");
+                        throw new Exception("response.servers is invalid");
                     }
                 }
                 catch (Exception e)
@@ -498,7 +498,7 @@ namespace SteamDatabaseBackend
                         Log.WriteWarn("Depot Processor", $"Download failed for {depot.DepotID}");
 
                         // Mark this depot for redownload
-                        using var db = Database.Get();
+                        var db = Database.Get();
                         db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
                     }
 
@@ -644,7 +644,7 @@ namespace SteamDatabaseBackend
                     }
 
                     using var sha = new System.Security.Cryptography.SHA1Managed();
-                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(name)));
+                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(Encoding.UTF8.GetBytes(name)));
                     name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
                 }
 
