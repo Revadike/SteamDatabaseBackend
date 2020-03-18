@@ -272,14 +272,14 @@ namespace SteamDatabaseBackend
         {
             await StoreQueue.AddAppToQueue(callback.AppChanges.Values.Select(x => x.ID));
 
-            using var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             await db.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", callback.AppChanges.Values);
             await db.ExecuteAsync("UPDATE `Apps` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `AppID` IN @Ids", new { Ids = callback.AppChanges.Values.Select(x => x.ID) });
         }
 
         private static async Task HandlePackagesChangelists(SteamApps.PICSChangesCallback callback)
         {
-            using var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             await db.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @ID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", callback.PackageChanges.Values);
             await db.ExecuteAsync("UPDATE `Subs` SET `LastUpdated` = CURRENT_TIMESTAMP() WHERE `SubID` IN @Ids", new { Ids = callback.PackageChanges.Values.Select(x => x.ID) });
         }
@@ -288,7 +288,7 @@ namespace SteamDatabaseBackend
         {
             Dictionary<uint, byte> ignoredPackages;
 
-            using (var db = await Database.GetConnectionAsync())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 ignoredPackages = (await db.QueryAsync("SELECT `SubID`, `SubID` FROM `SubsInfo` WHERE `SubID` IN @Subs AND `Key` = @Key AND `Value` IN @Types",
                     new

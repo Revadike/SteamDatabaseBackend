@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
             }
 
-            using var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             
             foreach (var groupEvent in callback.Events)
             {

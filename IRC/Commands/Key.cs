@@ -133,9 +133,9 @@ namespace SteamDatabaseBackend
                 return EPurchaseResultDetail.Timeout;
             }
 
-            using (var db = Database.Get())
-            using (var sha = new SHA1CryptoServiceProvider())
+            await using (var db = await Database.GetConnectionAsync())
             {
+                using var sha = new SHA1CryptoServiceProvider();
                 await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @PurchaseResultDetail WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
                     new
                     {
@@ -168,7 +168,7 @@ namespace SteamDatabaseBackend
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
 
-            using (var db = await Database.GetConnectionAsync())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 var apps = await db.QueryAsync<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = job.Packages.Keys });
 

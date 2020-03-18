@@ -177,7 +177,7 @@ namespace SteamDatabaseBackend
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
-                        using var db = await Database.GetConnectionAsync();
+                        await using var db = await Database.GetConnectionAsync();
                         await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `DepotID` = VALUES(`DepotID`)", new { request.DepotID, request.DepotName });
 
                         continue;
@@ -202,7 +202,7 @@ namespace SteamDatabaseBackend
 
             var depotsToDownload = new List<ManifestJob>();
 
-            using (var db = await Database.GetConnectionAsync())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
                 new
@@ -350,7 +350,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteDebug("Depot Downloader", $"Got a new depot key for depot {depot.DepotID}");
 
-            using (var db = await Database.GetConnectionAsync())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 await db.ExecuteAsync("INSERT INTO `DepotsKeys` (`DepotID`, `Key`) VALUES (@DepotID, @Key) ON DUPLICATE KEY UPDATE `Key` = VALUES(`Key`)", new { depot.DepotID, Key = Utils.ByteArrayToString(callback.DepotKey) });
             }
@@ -565,8 +565,8 @@ namespace SteamDatabaseBackend
 
         private static async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
         {
-            using var db = await Database.GetConnectionAsync();
-            using var transaction = await db.BeginTransactionAsync();
+            await using var db = await Database.GetConnectionAsync();
+            await using var transaction = await db.BeginTransactionAsync();
 
             var result = await ProcessDepotAfterDownload(db, transaction, request, depotManifest);
             await transaction.CommitAsync();
