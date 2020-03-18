@@ -699,7 +699,7 @@ namespace SteamDatabaseBackend
             {
                 await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.File) }, transaction);
 
-                if (!depotManifest.FilenamesEncrypted)
+                if (shouldHistorize)
                 {
                     await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                     {
