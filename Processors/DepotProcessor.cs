@@ -577,7 +577,7 @@ namespace SteamDatabaseBackend
         {
             var filesOld = (await db.QueryAsync<DepotFile>("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
             var filesAdded = new List<DepotFile>();
-            var shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
+            var shouldHistorize = filesOld.Count > 0 && !depotManifest.FilenamesEncrypted; // Don't historize file additions if we didn't have any data before
 
             if (request.StoredFilenamesEncrypted && !depotManifest.FilenamesEncrypted)
             {
@@ -602,6 +602,7 @@ namespace SteamDatabaseBackend
 
                 filesOld = decryptedFilesOld;
 
+#if false
                 var history = await db.QueryAsync<DepotHistory>("SELECT `ID`, `File` FROM `DepotsHistory` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction);
 
                 foreach (var file in history)
@@ -615,6 +616,7 @@ namespace SteamDatabaseBackend
 
                     await db.ExecuteAsync("UPDATE `DepotsHistory` SET `File` = @File WHERE `ID` = @ID", new { file.ID, file.File }, transaction);
                 }
+#endif
             }
 
             foreach (var file in depotManifest.Files.OrderByDescending(x => x.FileName))
@@ -696,15 +698,19 @@ namespace SteamDatabaseBackend
             if (filesOld.Count > 0)
             {
                 await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.File) }, transaction);
-                await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
+
+                if (!depotManifest.FilenamesEncrypted)
                 {
-                    DepotID = request.DepotID,
-                    ManifestID = request.ManifestID,
-                    ChangeID = request.ChangeNumber,
-                    Action = "removed",
-                    File = x.Value.File,
-                    OldValue = x.Value.Size
-                }), transaction);
+                    await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
+                    {
+                        DepotID = request.DepotID,
+                        ManifestID = request.ManifestID,
+                        ChangeID = request.ChangeNumber,
+                        Action = "removed",
+                        File = x.Value.File,
+                        OldValue = x.Value.Size
+                    }), transaction);
+                }
             }
 
             if (filesAdded.Count > 0)
@@ -721,7 +727,7 @@ namespace SteamDatabaseBackend
                         Action = "added",
                         File = x.File,
                         NewValue = x.Size
-                    }), transaction: transaction);
+                    }), transaction);
                 }
             }
 
@@ -732,7 +738,7 @@ namespace SteamDatabaseBackend
                     request.DepotID,
                     request.ManifestID,
                     depotManifest.FilenamesEncrypted,
-                }, transaction: transaction);
+                }, transaction);
 
             return EResult.OK;
         }
