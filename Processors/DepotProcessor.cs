@@ -400,7 +400,10 @@ namespace SteamDatabaseBackend
                         Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
                     }
 
-                    RemoveErroredServer(depot.Server);
+                    if (depot.DepotKey != null)
+                    {
+                        RemoveErroredServer(depot.Server);
+                    }
 
                     depot.Server = GetContentServer();
 
@@ -420,7 +423,7 @@ namespace SteamDatabaseBackend
                             Colors.OLIVE, depot.DepotName, Colors.NORMAL, lastError);
                     }
 
-                    if (!Settings.IsFullRun)
+                    if (!Settings.IsFullRun && depot.DepotKey != null)
                     {
                         JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
                     }
