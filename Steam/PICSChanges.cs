@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
                 if (Settings.Current.FullRun == FullRunState.Enumerate)
                 {
                     // TODO: Remove WHERE when normal appids approach 2mil
-                    var lastAppID = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` WHERE `AppID` != 2032727 ORDER BY `AppID` DESC LIMIT 1");
+                    var lastAppID = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` WHERE `AppID` < 2000000 ORDER BY `AppID` DESC LIMIT 1");
                     var lastSubID = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
 
                     Log.WriteInfo("Full Run", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
