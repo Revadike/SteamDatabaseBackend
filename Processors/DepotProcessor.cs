@@ -575,7 +575,7 @@ namespace SteamDatabaseBackend
 
         private static async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, IDbTransaction transaction, ManifestJob request, DepotManifest depotManifest)
         {
-            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `ID`, `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
+            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Count > 0; // Don't historize file additions if we didn't have any data before
 
@@ -587,20 +587,22 @@ namespace SteamDatabaseBackend
 
                 foreach (var file in filesOld.Values)
                 {
-                    file.File = DecryptFilename(file.File, request.DepotKey);
+                    var oldFile = file.File;
+                    file.File = DecryptFilename(oldFile, request.DepotKey);
 
                     decryptedFilesOld.Add(file.File, file);
 
-                    await db.ExecuteAsync("UPDATE `DepotsFiles` SET `File` = @File WHERE `ID` = @ID", new DepotFile
+                    await db.ExecuteAsync("UPDATE `DepotsFiles` SET `File` = @File WHERE `DepotID` = @DepotID AND `File` = @OldFile", new
                     {
-                        ID = file.ID,
-                        File = file.File,
+                        request.DepotID,
+                        file.File,
+                        OldFile = oldFile
                     }, transaction);
                 }
 
                 filesOld = decryptedFilesOld;
 
-                var history = await db.QueryAsync<DepotFile>("SELECT `ID`, `File` FROM `DepotsHistory` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction);
+                var history = await db.QueryAsync<DepotHistory>("SELECT `ID`, `File` FROM `DepotsHistory` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction);
 
                 foreach (var file in history)
                 {
@@ -611,11 +613,7 @@ namespace SteamDatabaseBackend
 
                     file.File = DecryptFilename(file.File, request.DepotKey);
 
-                    await db.ExecuteAsync("UPDATE `DepotsHistory` SET `File` = @File WHERE `ID` = @ID", new DepotFile
-                    {
-                        ID = file.ID,
-                        File = file.File,
-                    }, transaction);
+                    await db.ExecuteAsync("UPDATE `DepotsHistory` SET `File` = @File WHERE `ID` = @ID", new { file.ID, file.File }, transaction);
                 }
             }
 
@@ -669,14 +667,14 @@ namespace SteamDatabaseBackend
 
                     if (updateFile)
                     {
-                        await db.ExecuteAsync("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `ID` = @ID", new DepotFile
+                        await db.ExecuteAsync("UPDATE `DepotsFiles` SET `Hash` = @Hash, `Size` = @Size, `Flags` = @Flags WHERE `DepotID` = @DepotID AND `File` = @File", new DepotFile
                         {
-                            ID = oldFile.ID,
                             DepotID = request.DepotID,
+                            File = name,
                             Hash = hash,
                             Size = file.TotalSize,
                             Flags = file.Flags
-                        }, transaction: transaction);
+                        }, transaction);
                     }
 
                     filesOld.Remove(name);
@@ -697,7 +695,7 @@ namespace SteamDatabaseBackend
 
             if (filesOld.Count > 0)
             {
-                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `ID` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.ID) }, transaction: transaction);
+                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.File) }, transaction);
                 await db.ExecuteAsync(HistoryQuery, filesOld.Select(x => new DepotHistory
                 {
                     DepotID = request.DepotID,
@@ -706,7 +704,7 @@ namespace SteamDatabaseBackend
                     Action = "removed",
                     File = x.Value.File,
                     OldValue = x.Value.Size
-                }), transaction: transaction);
+                }), transaction);
             }
 
             if (filesAdded.Count > 0)

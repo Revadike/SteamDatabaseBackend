@@ -11,7 +11,6 @@ namespace SteamDatabaseBackend
     internal class DepotFile
     {
         public uint DepotID { get; set; }
-        public uint ID { get; set; }
         public string File { get; set; }
         public byte[] Hash { get; set; }
         public ulong Size { get; set; }

@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS `Apps` (
   `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
   `LastDepotUpdate` datetime DEFAULT NULL,
   PRIMARY KEY (`AppID`) USING BTREE,
-  KEY `LastUpdated` (`LastUpdated`),
-  KEY `AppType` (`AppType`)
+  KEY `AppType` (`AppType`),
+  KEY `LastUpdated` (`LastUpdated`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `AppsHistory` (
@@ -105,19 +105,18 @@ CREATE TABLE IF NOT EXISTS `Depots` (
   `BuildID` int(7) UNSIGNED NOT NULL DEFAULT 0,
   `ManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Displayed on the website, used for history',
   `LastManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Only updated after file list was successfully updated',
+  `FilenamesEncrypted` tinyint(1) NOT NULL DEFAULT 0,
   `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`DepotID`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `DepotsFiles` (
-  `ID` int(9) UNSIGNED NOT NULL AUTO_INCREMENT,
   `DepotID` int(7) UNSIGNED NOT NULL,
   `File` varchar(260) COLLATE utf8mb4_bin NOT NULL,
   `Hash` binary(20) DEFAULT NULL,
   `Size` bigint(20) UNSIGNED NOT NULL,
   `Flags` smallint(5) UNSIGNED NOT NULL,
-  PRIMARY KEY (`ID`),
-  UNIQUE KEY `File` (`DepotID`,`File`)
+  PRIMARY KEY (`DepotID`,`File`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `DepotsHistory` (
