@@ -154,7 +154,12 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                request.DepotName = depot["name"].AsString() ?? $"SteamDB Unnamed Depot {request.DepotID}";
+                request.DepotName = depot["name"].AsString();
+
+                if (string.IsNullOrEmpty(request.DepotName))
+                {
+                    request.DepotName = $"SteamDB Unnamed Depot {request.DepotID}";
+                }
 
                 // TODO: instead of locking we could wait for current process to finish
                 if (DepotLocks.ContainsKey(request.DepotID))
