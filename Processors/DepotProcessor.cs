@@ -435,7 +435,7 @@ namespace SteamDatabaseBackend
 
                 processTasks.Add(task);
 
-                if (!FileDownloader.IsImportantDepot(depot.DepotID))
+                if (!FileDownloader.IsImportantDepot(depot.DepotID) || depot.DepotKey == null)
                 {
                     continue;
                 }
