@@ -241,7 +241,7 @@ namespace SteamDatabaseBackend
         {
             Steam.Instance.Friends.RequestFriendInfo(steamID,
                 steamID.IsClanAccount ?
-                    EClientPersonaStateFlag.PlayerName | EClientPersonaStateFlag.ClanTag :
+                    EClientPersonaStateFlag.PlayerName | EClientPersonaStateFlag.ClanData :
                     EClientPersonaStateFlag.PlayerName | EClientPersonaStateFlag.LastSeen
             );
 
