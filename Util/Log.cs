@@ -26,11 +26,6 @@ namespace SteamDatabaseBackend
         {
             public void WriteLine(string category, string msg)
             {
-                if (msg.StartsWith("Sent ->", StringComparison.InvariantCulture) || msg.StartsWith("<- Recv'd", StringComparison.InvariantCulture))
-                {
-                    return;
-                }
-
                 Log.WriteLine(Category.STEAMKIT, category, msg);
             }
         }

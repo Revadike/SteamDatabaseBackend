@@ -44,7 +44,7 @@ namespace SteamDatabaseBackend
                 .WithWebAPIKey(Settings.Current.Steam.WebAPIKey)
             );
 
-            Client = new SteamClient(Configuration);
+            Client = new SteamClient(Configuration, "SteamDB");
 
             User = Client.GetHandler<SteamUser>();
             Apps = Client.GetHandler<SteamApps>();
