@@ -573,6 +573,12 @@ namespace SteamDatabaseBackend
 
         private static async Task<EResult> ProcessDepotAfterDownload(ManifestJob request, DepotManifest depotManifest)
         {
+            if (depotManifest.FilenamesEncrypted && request.DepotKey != null)
+            {
+                Log.WriteError(nameof(DepotProcessor), $"Depot key for depot {request.DepotID} is invalid?");
+                IRC.Instance.SendOps($"[Tokens] Looks like the depot key for depot {request.DepotID} is invalid");
+            }
+
             await using var db = await Database.GetConnectionAsync();
             await using var transaction = await db.BeginTransactionAsync();
 
