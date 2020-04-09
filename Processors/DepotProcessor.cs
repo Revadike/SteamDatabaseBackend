@@ -711,7 +711,18 @@ namespace SteamDatabaseBackend
 
             if (filesOld.Count > 0)
             {
-                await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` IN @Files", new { request.DepotID, Files = filesOld.Select(x => x.Value.File) }, transaction);
+                // Chunk file deletion queries so it doesn't go over max_allowed_packet
+                var filesOldChunks = filesOld.Select(x => x.Value.File).Split(1000);
+
+                foreach (var filesOldChunk in filesOldChunks)
+                {
+                    await db.ExecuteAsync("DELETE FROM `DepotsFiles` WHERE `DepotID` = @DepotID AND `File` IN @Files",
+                        new
+                        {
+                            request.DepotID,
+                            Files = filesOldChunk,
+                        }, transaction);
+                }
 
                 if (shouldHistorize)
                 {
