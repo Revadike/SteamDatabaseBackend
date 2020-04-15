@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
 
             if (oldSubTokens != null)
             {
-                subs = AppTokens
+                subs = PackageTokens
                     .Where(x => !oldSubTokens.ContainsKey(x.Key))
                     .Select(sub => NewPackageRequest(sub.Key, sub.Value));
             }
