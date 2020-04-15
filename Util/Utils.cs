@@ -55,21 +55,6 @@ namespace SteamDatabaseBackend
             return ((1 << i) * 1000) + NextRandom(1001);
         }
 
-        public static SteamApps.PICSRequest NewPICSRequest(uint id)
-        {
-            return new SteamApps.PICSRequest(id, PICSTokens.GetToken(id), false);
-        }
-
-        public static SteamApps.PICSRequest NewPICSRequest(uint id, ulong accessToken)
-        {
-            if (accessToken > 0)
-            {
-                PICSTokens.HandleToken(id, accessToken);
-            }
-
-            return new SteamApps.PICSRequest(id, accessToken, false);
-        }
-
         public static byte[] AdlerHash(byte[] input)
         {
             uint a = 0, b = 0;

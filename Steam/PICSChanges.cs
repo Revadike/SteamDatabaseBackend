@@ -192,11 +192,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var packages = packageIDs.Select(Utils.NewPICSRequest).ToList();
-
-            foreach (var list in packages.Split(1000))
+            foreach (var list in packageIDs.Split(1000))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list));
 
                 do
                 {
@@ -242,14 +240,14 @@ namespace SteamDatabaseBackend
 
             if (callback.PackageChanges.Count > appsPerJob)
             {
-                foreach (var list in callback.PackageChanges.Keys.Select(Utils.NewPICSRequest).Split(appsPerJob))
+                foreach (var list in callback.PackageChanges.Keys.Split(appsPerJob))
                 {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list));
+                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list));
                 }
             }
             else if (callback.PackageChanges.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), callback.PackageChanges.Keys.Select(Utils.NewPICSRequest)));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), callback.PackageChanges.Keys));
             }
 
             if (callback.AppChanges.Count > 0)

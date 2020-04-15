@@ -16,10 +16,12 @@ namespace SteamDatabaseBackend
         private class PICSToken
         {
             public uint AppID { get; set; }
+            public uint SubID { get; set; }
             public ulong Token { get; set; }
         }
 
-        private static Dictionary<uint, ulong> SecretTokens;
+        private static Dictionary<uint, ulong> AppTokens;
+        private static Dictionary<uint, ulong> PackageTokens;
 
         public PICSTokens(CallbackManager manager)
         {
@@ -32,79 +34,144 @@ namespace SteamDatabaseBackend
         {
             Reload();
 
-            command.Notice("Reloaded {0} token overrides", SecretTokens.Count);
+            command.Notice($"Reloaded {AppTokens.Count} app tokens and {PackageTokens.Count} package tokens");
         }
 
         private static void Reload()
         {
-            var oldTokens = SecretTokens;
+            var oldAppTokens = AppTokens;
+            var oldSubTokens = PackageTokens;
 
             using (var db = Database.Get())
             {
-                SecretTokens = db.Query<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
+                AppTokens = db.Query<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
+                PackageTokens = db.Query<PICSToken>("SELECT `SubID`, `Token` FROM `PICSTokensSubs`").ToDictionary(x => x.SubID, x => x.Token);
             }
 
-            if (oldTokens == null)
+            var apps = Enumerable.Empty<SteamApps.PICSRequest>();
+            var subs = Enumerable.Empty<SteamApps.PICSRequest>();
+
+            if (oldAppTokens != null)
             {
-                return;
+                apps = AppTokens
+                    .Where(x => !oldAppTokens.ContainsKey(x.Key))
+                    .Select(app => NewAppRequest(app.Key, app.Value));
             }
 
-            var apps = SecretTokens
-                .Where(x => !oldTokens.ContainsKey(x.Key))
-                .Select(app => Utils.NewPICSRequest(app.Key, app.Value));
+            if (oldSubTokens != null)
+            {
+                subs = AppTokens
+                    .Where(x => !oldSubTokens.ContainsKey(x.Key))
+                    .Select(sub => NewPackageRequest(sub.Key, sub.Value));
+            }
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
+            if (apps.Any() || subs.Any())
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, subs));
+            }
         }
 
         private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
             JobManager.TryRemoveJob(callback.JobID);
 
-            Log.WriteDebug("PICSTokens", "Tokens granted: {0} - Tokens denied: {1}", callback.AppTokens.Count, callback.AppTokensDenied.Count);
+            Log.WriteDebug(nameof(PICSTokens), $"App tokens: {callback.AppTokens.Count} ({callback.AppTokensDenied.Count} denied) - Package tokens: {callback.PackageTokens.Count} ({callback.PackageTokensDenied.Count} denied)" );
 
             var apps = callback.AppTokensDenied
-                .Select(Utils.NewPICSRequest)
-                .Concat(callback.AppTokens.Select(app => Utils.NewPICSRequest(app.Key, app.Value)));
+                .Select(NewAppRequest)
+                .Concat(callback.AppTokens.Select(app => NewAppRequest(app.Key, app.Value)));
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, Enumerable.Empty<SteamApps.PICSRequest>()));
+            var subs = callback.PackageTokensDenied
+                .Select(NewPackageRequest)
+                .Concat(callback.PackageTokens.Select(sub => NewPackageRequest(sub.Key, sub.Value)));
+
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, subs));
         }
 
-        public static bool HasToken(uint id)
-        {
-            return SecretTokens.ContainsKey(id);
-        }
+        public static bool HasAppToken(uint id) => AppTokens.ContainsKey(id);
 
-        public static ulong GetToken(uint id)
+        public static bool HasPackageToken(uint id) => PackageTokens.ContainsKey(id);
+
+        private static void HandleAppToken(uint id, ulong accessToken)
         {
-            if (SecretTokens.ContainsKey(id))
+            if (!AppTokens.ContainsKey(id))
             {
-                Log.WriteInfo("PICSTokens", "Using an overriden token for appid {0}", id);
+                AppTokens.Add(id, accessToken);
 
-                return SecretTokens[id];
-            }
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new app token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetAppName(id)})");
 
-            return 0;
-        }
-
-        public static void HandleToken(uint id, ulong accessToken)
-        {
-            if (!SecretTokens.ContainsKey(id))
-            {
-                SecretTokens.Add(id, accessToken);
-
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetAppName(id)})");
-
-                Log.WriteInfo("PICSTokens", "New token for appid {0}", id);
+                Log.WriteInfo(nameof(PICSTokens), "New token for appid {0}", id);
 
                 using var db = Database.Get();
                 db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
-                    new { AppID = id, Token = accessToken }
+                    new PICSToken { AppID = id, Token = accessToken }
                 );
             }
-            else if (SecretTokens[id] != accessToken)
+            else if (AppTokens[id] != accessToken)
             {
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got a token that mismatches the one in database: {SecretTokens[id]} != {accessToken}");
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got an app token that mismatches the one in database: {AppTokens[id]} != {accessToken}");
             }
+        }
+
+        private static void HandlePackageToken(uint id, ulong accessToken)
+        {
+            if (!PackageTokens.ContainsKey(id))
+            {
+                PackageTokens.Add(id, accessToken);
+
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new package token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetPackageName(id)})");
+
+                Log.WriteInfo(nameof(PICSTokens), "New token for subid {0}", id);
+
+                using var db = Database.Get();
+                db.Execute("INSERT INTO `PICSTokensSubs` (`SubID`, `Token`) VALUES(@SubID, @Token)",
+                    new PICSToken { SubID = id, Token = accessToken }
+                );
+            }
+            else if (PackageTokens[id] != accessToken)
+            {
+                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got a package token that mismatches the one in database: {PackageTokens[id]} != {accessToken}");
+            }
+        }
+
+        public static SteamApps.PICSRequest NewAppRequest(uint id)
+        {
+            if (AppTokens.TryGetValue(id, out var token))
+            {
+                Log.WriteInfo(nameof(PICSTokens), "Using an overriden token for appid {0}", id);
+            }
+
+            return new SteamApps.PICSRequest(id, token, false);
+        }
+
+        public static SteamApps.PICSRequest NewPackageRequest(uint id)
+        {
+            if (PackageTokens.TryGetValue(id, out var token))
+            {
+                Log.WriteInfo(nameof(PICSTokens), "Using an overriden token for subid {0}", id);
+            }
+
+            return new SteamApps.PICSRequest(id, token, false);
+        }
+
+        public static SteamApps.PICSRequest NewAppRequest(uint id, ulong accessToken)
+        {
+            if (accessToken > 0)
+            {
+                HandleAppToken(id, accessToken);
+            }
+
+            return new SteamApps.PICSRequest(id, accessToken, false);
+        }
+
+        public static SteamApps.PICSRequest NewPackageRequest(uint id, ulong accessToken)
+        {
+            if (accessToken > 0)
+            {
+                HandlePackageToken(id, accessToken);
+            }
+
+            return new SteamApps.PICSRequest(id, accessToken, false);
         }
     }
 }

@@ -5,9 +5,11 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -28,9 +30,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var task = Steam.Instance.Apps.PICSGetProductInfo(null, subID, false, false);
-            task.Timeout = TimeSpan.FromSeconds(10);
-            var job = await task;
+            var tokenTask = Steam.Instance.Apps.PICSGetAccessTokens(null, subID);
+            tokenTask.Timeout = TimeSpan.FromSeconds(10);
+            var tokenCallback = await tokenTask;
+            SteamApps.PICSRequest request;
+
+            if (tokenCallback.PackageTokens.ContainsKey(subID))
+            {
+                request = PICSTokens.NewPackageRequest(subID, tokenCallback.PackageTokens[subID]);
+            }
+            else
+            {
+                request = PICSTokens.NewPackageRequest(subID);
+            }
+
+            var infoTask = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), new List<SteamApps.PICSRequest> { request });
+            infoTask.Timeout = TimeSpan.FromSeconds(10);
+            var job = await infoTask;
             var callback = job.Results.FirstOrDefault(x => x.Packages.ContainsKey(subID));
 
             if (callback == null)

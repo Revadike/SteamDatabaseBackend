@@ -166,7 +166,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
             }
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), job.Packages.Keys.Select(Utils.NewPICSRequest)));
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), job.Packages.Keys));
 
             await using (var db = await Database.GetConnectionAsync())
             {

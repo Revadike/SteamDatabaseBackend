@@ -71,7 +71,7 @@ namespace SteamDatabaseBackend
 
             if (packageIDs.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<uint>(), packageIDs));
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), packageIDs));
 
                 TaskManager.RunAsync(async () =>
                 {

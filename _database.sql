@@ -187,6 +187,13 @@ CREATE TABLE IF NOT EXISTS `PICSTokens` (
   PRIMARY KEY (`AppID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
+CREATE TABLE IF NOT EXISTS `PICSTokensSubs` (
+  `SubID` int(7) NOT NULL,
+  `Token` bigint(20) UNSIGNED NOT NULL,
+  `Date` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`SubID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 CREATE TABLE IF NOT EXISTS `RSS` (
   `ID` int(11) NOT NULL AUTO_INCREMENT,
   `Title` varchar(255) COLLATE utf8mb4_bin NOT NULL,

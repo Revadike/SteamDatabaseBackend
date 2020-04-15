@@ -205,9 +205,9 @@ namespace SteamDatabaseBackend
                 await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }
 
-            if (ProductInfo.MissingToken && PICSTokens.HasToken(AppID))
+            if (ProductInfo.MissingToken && PICSTokens.HasAppToken(AppID))
             {
-                Log.WriteError("PICSTokens", $"Overriden token for appid {AppID} is invalid?");
+                Log.WriteError(nameof(PICSTokens), $"Overriden token for appid {AppID} is invalid?");
                 IRC.Instance.SendOps($"[Tokens] Looks like the overriden token for appid {AppID} ({newAppName}) is invalid");
             }
         }

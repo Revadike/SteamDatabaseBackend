@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
 
         protected override AsyncJob RefreshSteam()
         {
-            return Steam.Instance.Apps.PICSGetProductInfo(null, SubID, false, false);
+            return Steam.Instance.Apps.PICSGetAccessTokens(null, SubID);
         }
 
         protected override async Task LoadData()
@@ -308,6 +308,12 @@ namespace SteamDatabaseBackend
             if (appAddedToThisPackage && !Settings.IsFullRun && !string.IsNullOrEmpty(PackageName))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(ProductInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
+            }
+
+            if (ProductInfo.MissingToken && PICSTokens.HasPackageToken(SubID))
+            {
+                Log.WriteError(nameof(PICSTokens), $"Overriden token for subid {SubID} is invalid?");
+                IRC.Instance.SendOps($"[Tokens] Looks like the overriden token for subid {SubID} ({newPackageName}) is invalid");
             }
         }
 

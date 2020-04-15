@@ -65,11 +65,11 @@ namespace SteamDatabaseBackend
 
             if (tokenCallback.AppTokens.ContainsKey(appID))
             {
-                request = Utils.NewPICSRequest(appID, tokenCallback.AppTokens[appID]);
+                request = PICSTokens.NewAppRequest(appID, tokenCallback.AppTokens[appID]);
             }
             else
             {
-                request = Utils.NewPICSRequest(appID);
+                request = PICSTokens.NewAppRequest(appID);
             }
 
             var infoTask = Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
