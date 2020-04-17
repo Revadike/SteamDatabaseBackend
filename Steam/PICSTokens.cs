@@ -75,7 +75,14 @@ namespace SteamDatabaseBackend
         {
             JobManager.TryRemoveJob(callback.JobID);
 
-            Log.WriteDebug(nameof(PICSTokens), $"App tokens: {callback.AppTokens.Count} ({callback.AppTokensDenied.Count} denied) - Package tokens: {callback.PackageTokens.Count} ({callback.PackageTokensDenied.Count} denied)" );
+            if (callback.AppTokens.Count > 0 || callback.AppTokensDenied.Count > 0)
+            {
+                Log.WriteInfo(nameof(PICSTokens), $"App tokens: {callback.AppTokens.Count} received, {callback.AppTokensDenied.Count} denied" );
+            }
+            else
+            {
+                Log.WriteInfo(nameof(PICSTokens), $"Package tokens: {callback.PackageTokens.Count} received, {callback.PackageTokensDenied.Count} denied" );
+            }
 
             var apps = callback.AppTokensDenied
                 .Select(NewAppRequest)
