@@ -16,15 +16,10 @@ namespace SteamDatabaseBackend
     internal class CommandHandler
     {
         private readonly List<Command> RegisteredCommands;
-        private readonly PubFileCommand PubFileHandler;
-        private readonly LinkExpander LinkExpander;
         private readonly Regex DiscordRelayMessageRegex;
 
         public CommandHandler()
         {
-            LinkExpander = new LinkExpander();
-            PubFileHandler = new PubFileCommand();
-
             RegisteredCommands = new List<Command>
             {
                 new BlogCommand(),
@@ -33,7 +28,7 @@ namespace SteamDatabaseBackend
                 new PackageCommand(),
                 new SteamIDCommand(),
                 new GIDCommand(),
-                PubFileHandler,
+                new PubFileCommand(),
                 new UGCCommand(),
                 new EnumCommand(),
                 new ServersCommand(),
@@ -82,15 +77,6 @@ namespace SteamDatabaseBackend
                 // Remove IRC colors, remove control characters, remove zero width space, add @ and a space
                 commandData.Nickname = $"@{Utils.RemoveControlCharacters(Colors.StripColors(match.Groups["name"].Value.Replace("\u200B", "")))} ";
                 commandData.Message = match.Groups["message"].Value;
-            }
-            else
-            {
-                if (Steam.Instance.Client.IsConnected)
-                {
-                    PubFileHandler.OnMessage(commandData);
-                }
-
-                LinkExpander.OnMessage(commandData);
             }
 
             if (commandData.Message[0] != Settings.Current.IRC.CommandPrefix)

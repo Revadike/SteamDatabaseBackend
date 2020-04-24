@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            IRC.Instance.SendLinuxAnnouncement($"\U0001F427 {name} now lists Linux{LinkExpander.GetFormattedPrices(AppID)} - {SteamDB.GetAppURL(AppID, "history")} - https://store.steampowered.com/app/{AppID}/");
+            IRC.Instance.SendLinuxAnnouncement($"\U0001F427 {name} now lists Linux - {SteamDB.GetAppURL(AppID, "history")}");
         }
 
         public override string ToString()
