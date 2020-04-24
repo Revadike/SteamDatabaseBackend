@@ -15,8 +15,8 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Dapper" Version="2.0.30" />
-    <PackageReference Include="MySqlConnector" Version="0.63.0" />
+    <PackageReference Include="Dapper" Version="2.0.35" />
+    <PackageReference Include="MySqlConnector" Version="0.64.0" />
     <PackageReference Include="NetIrc2" Version="1.0.0">
       <NoWarn>NU1701</NoWarn>
     </PackageReference>
