@@ -1,6 +1,10 @@
 # Steam Database Backend
 
-The application that keeps [SteamDB](https://steamdb.info/) up to date with the latest changes, additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on [Freenode](https://freenode.net/).
+The application that keeps [SteamDB](https://steamdb.info/) up to date with the latest changes directly from Steam,
+additionally it runs an IRC bot and announces various Steam stuff in #steamdb and #steamdb-announce on [Freenode](https://freenode.net/).
+
+This source code is provided as-is for reference. It is highly tuned for SteamDB's direct needs and is not a generic application.
+If you plan on running this yourself, keep in mind that we won't provide support for it.
 
 ## Requirements
 * [.NET Core](https://dot.net)
