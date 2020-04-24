@@ -114,7 +114,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var cookie in Cookies.GetCookies(uri))
                 {
-                    cookies += cookie.ToString() + ";";
+                    cookies += cookie + ";";
                 }
 
                 using var requestMessage = new HttpRequestMessage(method, uri);

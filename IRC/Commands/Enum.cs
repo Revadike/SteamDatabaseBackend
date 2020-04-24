@@ -115,7 +115,7 @@ namespace SteamDatabaseBackend
                 enumValues = enumValues.Take(10);
             }
 
-            var formatted = string.Join(", ", enumValues.Select(@enum => string.Format("{0}{1}{2} ({3})", Colors.BLUE, @enum.ToString(), Colors.NORMAL, Enum.Format(enumType, @enum, "D"))));
+            var formatted = string.Join(", ", enumValues.Select(value => $"{Colors.BLUE}{value}{Colors.NORMAL} ({Enum.Format(enumType, value, "D")})"));
 
             if (count > 10)
             {

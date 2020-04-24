@@ -809,7 +809,7 @@ namespace SteamDatabaseBackend
             // Let the watchdog update the server list in next check
             LastServerRefreshTime = DateTime.MinValue;
 
-            Log.WriteWarn("Depot Downloader", $"Removing {server.ToString()} due to a download error");
+            Log.WriteWarn("Depot Downloader", $"Removing {server} due to a download error");
 
             CDNServers.Remove(server);
 
