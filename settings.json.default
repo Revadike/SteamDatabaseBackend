@@ -5,7 +5,6 @@
 	"BaseURL": "http://example.com",
 	
 	"FullRun": 0,
-	"SteamKitDebug": false,
 	"LogToFile": true,
 	"CanQueryStore": false,
 	"BuiltInHttpServerPort": 0,

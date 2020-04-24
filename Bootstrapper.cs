@@ -36,11 +36,8 @@ namespace SteamDatabaseBackend
             Settings.Initialize();
             LocalConfig.Load();
 
-            if (Settings.Current.SteamKitDebug)
-            {
-                DebugLog.AddListener(new Log.SteamKitLogger());
-                DebugLog.Enabled = true;
-            }
+            DebugLog.AddListener(new Log.SteamKitLogger());
+            DebugLog.Enabled = true;
 
             Console.CancelKeyPress += OnCancelKey;
 
