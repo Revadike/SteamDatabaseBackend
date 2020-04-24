@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
+using SteamKit2.Unified.Internal;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
@@ -373,7 +374,7 @@ namespace SteamDatabaseBackend
                     {
                         chat_group_id = 1147,
                         chat_id = 10208600,
-                        message = $"[Changelist {callback.CurrentChangeNumber}] {appType} update: {appName}\n{SteamDB.GetAppURL(app, "history")}?utm_source=Steam&utm_medium=Steam&utm_campaign=SteamDB%20Group%20Chat"
+                        message = $"{appType} update: {appName}\n<{SteamDB.GetAppURL(app, "history")}?changeid={callback.CurrentChangeNumber}>"
                     });
                 }
             }
