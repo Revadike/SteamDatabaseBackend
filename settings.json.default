@@ -7,7 +7,6 @@
 	"FullRun": 0,
 	"LogToFile": true,
 	"CanQueryStore": false,
-	"BuiltInHttpServerPort": 0,
 	
 	"Steam":
 	{

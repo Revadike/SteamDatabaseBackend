@@ -18,8 +18,6 @@ namespace SteamDatabaseBackend
 
         private static RSS RssReader;
 
-        private static HttpServer HttpServer;
-
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
         public static Dictionary<uint, byte> ImportantSubs { get; private set; }
 
@@ -48,11 +46,6 @@ namespace SteamDatabaseBackend
             {
                 thread,
             };
-
-            if (Settings.Current.BuiltInHttpServerPort > 0)
-            {
-                HttpServer = new HttpServer(Settings.Current.BuiltInHttpServerPort);
-            }
 
             if (Settings.IsFullRun)
             {
@@ -135,11 +128,6 @@ namespace SteamDatabaseBackend
             catch (Exception e)
             {
                 ErrorReporter.Notify("Bootstrapper", e);
-            }
-
-            if (Settings.Current.BuiltInHttpServerPort > 0)
-            {
-                HttpServer.Dispose();
             }
 
             if (Settings.Current.IRC.Enabled)
