@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
 
         static Application()
         {
-            Path = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+            Path = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName);
         }
 
         public static void Init()

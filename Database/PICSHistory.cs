@@ -13,6 +13,6 @@ namespace SteamDatabaseBackend
         public string Action { get; set; }
         public string OldValue { get; set; } = "";
         public string NewValue { get; set; } = "";
-        public string Diff { get; set; } = null;
+        public string Diff { get; set; }
     }
 }

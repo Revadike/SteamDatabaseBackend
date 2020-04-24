@@ -6,7 +6,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Timers;
 using SteamKit2;

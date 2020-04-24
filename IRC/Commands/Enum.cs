@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
             Trigger = "enum";
 
             SteamKitEnums = typeof(CMClient).Assembly.GetTypes()
-                .Where(x => x.IsEnum && x.Namespace.StartsWith("SteamKit2", StringComparison.Ordinal))
+                .Where(x => x.IsEnum && x.Namespace != null && x.Namespace.StartsWith("SteamKit2", StringComparison.Ordinal))
                 // some inner namespaces have enums that have matching names, but we (most likely) want to match against the root enums
                 // so we order by having the root enums first
                 .OrderByDescending(x => x.Namespace == "SteamKit2");
