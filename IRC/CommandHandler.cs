@@ -26,6 +26,7 @@ namespace SteamDatabaseBackend
                 new PlayersCommand(),
                 new AppCommand(),
                 new PackageCommand(),
+                new DepotCommand(),
                 new SteamIDCommand(),
                 new GIDCommand(),
                 new PubFileCommand(),

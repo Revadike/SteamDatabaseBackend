@@ -64,6 +64,8 @@ namespace SteamDatabaseBackend
         {
             return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
         }
+        
+        public static string GetDepotUrl(uint depotId) => new Uri(Settings.Current.BaseURL, $"/depot/{depotId}/").AbsoluteUri;
 
         public static string GetPatchnotesURL(uint buildID)
         {
