@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.GZip,
             });
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", SteamDB.USERAGENT);
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", SteamDB.UserAgent);
             HttpClient.Timeout = TimeSpan.FromSeconds(10);
         }
 

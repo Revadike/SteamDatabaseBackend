@@ -81,26 +81,26 @@ namespace SteamDatabaseBackend
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
-                    IRC.Instance.SendOps("New app type: {0}{1}{2} - {3}", Colors.BLUE, currentType, Colors.NORMAL, SteamDB.GetAppURL(AppID, "history"));
+                    IRC.Instance.SendOps("New app type: {0}{1}{2} - {3}", Colors.BLUE, currentType, Colors.NORMAL, SteamDB.GetAppUrl(AppID, "history"));
 
                     newAppType = await DbConnection.ExecuteScalarAsync<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                 }
 
-                if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal))
                 {
                     await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `LastKnownName` = VALUES(`LastKnownName`), `AppType` = VALUES(`AppType`)",
                         new { AppID, Type = newAppType, AppName = newAppName }
                     );
 
                     await MakeHistory("created_app");
-                    await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newAppName);
+                    await MakeHistory("created_info", SteamDB.DatabaseNameType, string.Empty, newAppName);
 
                     modifiedNameOrType = true;
                 }
                 else if (app.Name != newAppName)
                 {
                     await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `LastKnownName` = @AppName WHERE `AppID` = @AppID", new { AppID, AppName = newAppName });
-                    await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, app.Name, newAppName);
+                    await MakeHistory("modified_info", SteamDB.DatabaseNameType, app.Name, newAppName);
 
                     modifiedNameOrType = true;
                 }
@@ -111,11 +111,11 @@ namespace SteamDatabaseBackend
 
                     if (app.AppType == 0)
                     {
-                        await MakeHistory("created_info", SteamDB.DATABASE_APPTYPE, string.Empty, newAppType.ToString());
+                        await MakeHistory("created_info", SteamDB.DatabaseAppType, string.Empty, newAppType.ToString());
                     }
                     else
                     {
-                        await MakeHistory("modified_info", SteamDB.DATABASE_APPTYPE, app.AppType.ToString(), newAppType.ToString());
+                        await MakeHistory("modified_info", SteamDB.DatabaseAppType, app.AppType.ToString(), newAppType.ToString());
                     }
 
                     modifiedNameOrType = true;
@@ -128,7 +128,7 @@ namespace SteamDatabaseBackend
                         IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
                             currentType,
                             Colors.BLUE, Utils.LimitStringLength(newAppName), Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                            Colors.DARKBLUE, SteamDB.GetAppUrl(AppID, "history"));
                     }
                 }
             }
@@ -188,11 +188,11 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(app.Name)) // We don't have the app in our database yet
                 {
-                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
+                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UnknownAppName, AppID) });
                 }
-                else if (!app.Name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal)) // We do have the app, replace it with default name
+                else if (!app.Name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UNKNOWN_APP, AppID) });
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UnknownAppName, AppID) });
                     await MakeHistory("deleted_app", 0, app.Name);
                 }
             }
@@ -230,7 +230,7 @@ namespace SteamDatabaseBackend
                 }));
             }
 
-            if (!string.IsNullOrEmpty(name) && !name.StartsWith(SteamDB.UNKNOWN_APP, StringComparison.Ordinal))
+            if (!string.IsNullOrEmpty(name) && !name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal))
             {
                 await DbConnection.ExecuteAsync(HistoryQuery, new PICSHistory
                 {
@@ -280,7 +280,7 @@ namespace SteamDatabaseBackend
                         return false;
                     }
 
-                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetAppURL(AppID, "history"));
+                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetAppUrl(AppID, "history"));
                 }
 
                 await DbConnection.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
@@ -291,7 +291,7 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendOps("New {0}=Valve app: {1}{2}{3} -{4} {5}",
                         displayName,
                         Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL,
-                        Colors.DARKBLUE, SteamDB.GetAppURL(AppID, "history"));
+                        Colors.DARKBLUE, SteamDB.GetAppUrl(AppID, "history"));
                 }
 
                 if (keyName == "common_oslist" && value.Contains("linux"))
@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            IRC.Instance.SendLinuxAnnouncement($"\U0001F427 {name} now lists Linux - {SteamDB.GetAppURL(AppID, "history")}");
+            IRC.Instance.SendLinuxAnnouncement($"\U0001F427 {name} now lists Linux - {SteamDB.GetAppUrl(AppID, "history")}");
         }
 
         public override string ToString()

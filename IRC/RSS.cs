@@ -200,7 +200,7 @@ namespace SteamDatabaseBackend
                         }
                     );
 
-                    IRC.Instance.SendMain($"\u2699 Official patch notes:{Colors.BLUE} {Steam.GetAppName(build.AppID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPatchnotesURL(build.BuildID)}");
+                    IRC.Instance.SendMain($"\u2699 Official patch notes:{Colors.BLUE} {Steam.GetAppName(build.AppID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPatchnotesUrl(build.BuildID)}");
                 }
             }
         }

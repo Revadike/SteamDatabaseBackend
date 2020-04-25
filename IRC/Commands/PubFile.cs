@@ -91,7 +91,7 @@ namespace SteamDatabaseBackend
                 Colors.NORMAL,
                 Colors.BLUE, details.hcontent_file, Colors.NORMAL,
                 Colors.BLUE, details.hcontent_preview, Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetUGCURL(details.publishedfileid)
+                Colors.DARKBLUE, SteamDB.GetPublishedFileRawUrl(details.publishedfileid)
             );
 
             command.Notice("{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);

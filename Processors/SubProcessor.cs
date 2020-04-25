@@ -74,7 +74,7 @@ namespace SteamDatabaseBackend
                 await DbConnection.ExecuteAsync("INSERT INTO `Subs` (`SubID`, `Name`, `LastKnownName`) VALUES (@SubID, @Name, @Name)", new { SubID, Name = newPackageName });
 
                 await MakeHistory("created_sub");
-                await MakeHistory("created_info", SteamDB.DATABASE_NAME_TYPE, string.Empty, newPackageName);
+                await MakeHistory("created_info", SteamDB.DatabaseNameType, string.Empty, newPackageName);
             }
             else if (PackageName != newPackageName)
             {
@@ -87,7 +87,7 @@ namespace SteamDatabaseBackend
                     await DbConnection.ExecuteAsync("UPDATE `Subs` SET `Name` = @Name, `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID, Name = newPackageName });
                 }
 
-                await MakeHistory("modified_info", SteamDB.DATABASE_NAME_TYPE, PackageName, newPackageName);
+                await MakeHistory("modified_info", SteamDB.DatabaseNameType, PackageName, newPackageName);
             }
 
             foreach (var section in ProductInfo.KeyValues.Children)
@@ -382,7 +382,7 @@ namespace SteamDatabaseBackend
                         return;
                     }
 
-                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetPackageURL(SubID, "history"));
+                    IRC.Instance.SendOps("New package keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetPackageUrl(SubID, "history"));
                 }
 
                 await DbConnection.ExecuteAsync("INSERT INTO `SubsInfo` (`SubID`, `Key`, `Value`) VALUES (@SubID, @Key, @Value)", new { SubID, Key = key, Value = value });

@@ -366,7 +366,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.AnnounceImportantAppUpdate(app, "{0} update: {1}{2}{3} -{4} {5}",
                     appType,
                     Colors.BLUE, appName, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppURL(app, "history"));
+                    Colors.DARKBLUE, SteamDB.GetAppUrl(app, "history"));
 
                 if (Settings.Current.CanQueryStore)
                 {
@@ -374,7 +374,7 @@ namespace SteamDatabaseBackend
                     {
                         chat_group_id = 1147,
                         chat_id = 10208600,
-                        message = $"{appType} update: {appName}\n<{SteamDB.GetAppURL(app, "history")}?changeid={callback.CurrentChangeNumber}>"
+                        message = $"{appType} update: {appName}\n<{SteamDB.GetAppUrl(app, "history")}?changeid={callback.CurrentChangeNumber}>"
                     });
                 }
             }
@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.Instance.AnnounceImportantPackageUpdate("Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageURL(package, "history"));
+                IRC.Instance.AnnounceImportantPackageUpdate("Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageUrl(package, "history"));
             }
         }
 
@@ -430,7 +430,7 @@ namespace SteamDatabaseBackend
 
                 if (changesCount >= 50)
                 {
-                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistURL(changeNumber)}");
+                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistUrl(changeNumber)}");
                 }
 
                 if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN || changesCount > 300)

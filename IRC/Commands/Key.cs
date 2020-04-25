@@ -189,7 +189,7 @@ namespace SteamDatabaseBackend
                         new PICSHistory
                         {
                             ID = package.Key,
-                            Key = SteamDB.DATABASE_NAME_TYPE,
+                            Key = SteamDB.DatabaseNameType,
                             OldValue = "key activation",
                             NewValue = package.Value,
                             Action = "created_info"

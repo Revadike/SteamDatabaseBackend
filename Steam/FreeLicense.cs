@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
                     {
                         IRC.Instance.SendAnnounce("New free license granted: {0}{1}{2} -{3} {4}",
                             Colors.BLUE, Steam.GetPackageName(subID), Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetPackageURL(subID)
+                            Colors.DARKBLUE, SteamDB.GetPackageUrl(subID)
                         );
                     }
                 });
@@ -152,7 +152,7 @@ namespace SteamDatabaseBackend
                         new PICSHistory
                         {
                             ID = package.SubID,
-                            Key = SteamDB.DATABASE_NAME_TYPE,
+                            Key = SteamDB.DatabaseNameType,
                             OldValue = "free on demand; account page",
                             NewValue = newName,
                             Action = "created_info"

@@ -10,66 +10,36 @@ namespace SteamDatabaseBackend
 {
     internal static class SteamDB
     {
-        public const uint DATABASE_APPTYPE   = 9;
-        public const uint DATABASE_NAME_TYPE = 10;
+        public const uint DatabaseAppType   = 9;
+        public const uint DatabaseNameType = 10;
 
-        public const string USERAGENT = "Steam Database (https://github.com/SteamDatabase/SteamDatabaseBackend)";
+        public const string UserAgent = "Steam Database (https://github.com/SteamDatabase/SteamDatabaseBackend)";
 
-        public const string UNKNOWN_APP = "SteamDB Unknown App";
+        public const string UnknownAppName = "SteamDB Unknown App";
 
-        public static readonly string StringNeedToken = string.Format(" {0}(needs token){1}", Colors.DARKGRAY, Colors.NORMAL);
-        public static readonly string StringCheckmark = string.Format(" {0}✓{1}", Colors.DARKGRAY, Colors.NORMAL);
+        public static readonly string StringNeedToken = $" {Colors.DARKGRAY}(needs token){Colors.NORMAL}";
+        public static readonly string StringCheckmark = $" {Colors.DARKGRAY}✓{Colors.NORMAL}";
 
-        public static string GetBlogURL(string postID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/blog/{0}/", postID)).AbsoluteUri;
-        }
+        public static string GetBlogUrl(string postId) => new Uri(Settings.Current.BaseURL, $"/blog/{postId}/").AbsoluteUri;
 
-        public static string GetChangelistURL(uint changeNumber)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/changelist/{0}/", changeNumber)).AbsoluteUri;
-        }
+        public static string GetChangelistUrl(uint changeNumber) => new Uri(Settings.Current.BaseURL, $"/changelist/{changeNumber}/").AbsoluteUri;
 
-        public static string GetRawAppURL(uint appID)
-        {
-            return new Uri(Settings.Current.RawBaseURL, string.Format("/app/{0}.vdf", appID)).AbsoluteUri;
-        }
+        public static string GetRawAppUrl(uint appId) => new Uri(Settings.Current.RawBaseURL, $"/app/{appId}.vdf").AbsoluteUri;
 
-        public static string GetRawPackageURL(uint subID)
-        {
-            return new Uri(Settings.Current.RawBaseURL, string.Format("/sub/{0}.vdf", subID)).AbsoluteUri;
-        }
+        public static string GetRawPackageUrl(uint subId) => new Uri(Settings.Current.RawBaseURL, $"/sub/{subId}.vdf").AbsoluteUri;
 
-        public static string GetUGCURL(ulong id)
-        {
-            return new Uri(Settings.Current.RawBaseURL, string.Format("/ugc/{0}.json", id)).AbsoluteUri;
-        }
+        public static string GetPublishedFileRawUrl(ulong id) => new Uri(Settings.Current.RawBaseURL, $"/ugc/{id}.json").AbsoluteUri;
 
-        public static string GetAppURL(uint appID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/", appID)).AbsoluteUri;
-        }
+        public static string GetAppUrl(uint appId) => new Uri(Settings.Current.BaseURL, $"/app/{appId}/").AbsoluteUri;
 
-        public static string GetAppURL(uint appID, string section)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/app/{0}/{1}/", appID, section)).AbsoluteUri;
-        }
+        public static string GetAppUrl(uint appId, string section) => new Uri(Settings.Current.BaseURL, $"/app/{appId}/{section}/").AbsoluteUri;
 
-        public static string GetPackageURL(uint subID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/", subID)).AbsoluteUri;
-        }
+        public static string GetPackageUrl(uint subId) => new Uri(Settings.Current.BaseURL, $"/sub/{subId}/").AbsoluteUri;
 
-        public static string GetPackageURL(uint subID, string section)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/sub/{0}/{1}/", subID, section)).AbsoluteUri;
-        }
-        
+        public static string GetPackageUrl(uint subId, string section) => new Uri(Settings.Current.BaseURL, $"/sub/{subId}/{section}/").AbsoluteUri;
+
         public static string GetDepotUrl(uint depotId) => new Uri(Settings.Current.BaseURL, $"/depot/{depotId}/").AbsoluteUri;
 
-        public static string GetPatchnotesURL(uint buildID)
-        {
-            return new Uri(Settings.Current.BaseURL, string.Format("/patchnotes/{0}/", buildID)).AbsoluteUri;
-        }
+        public static string GetPatchnotesUrl(uint buildId) => new Uri(Settings.Current.BaseURL, $"/patchnotes/{buildId}/").AbsoluteUri;
     }
 }

@@ -62,8 +62,8 @@ namespace SteamDatabaseBackend
 
             command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetPackageURL(info.ID), Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetRawPackageURL(info.ID), Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetPackageUrl(info.ID), Colors.NORMAL,
+                Colors.DARKBLUE, SteamDB.GetRawPackageUrl(info.ID), Colors.NORMAL,
                 info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
                 LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
             );

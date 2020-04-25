@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                command.Reply($"Unable to request player count for {Colors.BLUE}{name}{Colors.NORMAL}: {Colors.RED}{callback.Result}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}");
+                command.Reply($"Unable to request player count for {Colors.BLUE}{name}{Colors.NORMAL}: {Colors.RED}{callback.Result}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(appID, "graphs")}");
 
                 return;
             }
@@ -104,7 +104,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply(
-                $"{Colors.OLIVE}{numPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name}{Colors.NORMAL} - 24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppURL(appID, "graphs")}"
+                $"{Colors.OLIVE}{numPlayers:N0}{Colors.NORMAL} {type} {Colors.BLUE}{name}{Colors.NORMAL} - 24h:{Colors.GREEN} {dailyPlayers:N0}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(appID, "graphs")}"
             );
         }
     }
