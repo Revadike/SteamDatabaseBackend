@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
 CREATE TABLE IF NOT EXISTS `DepotsKeys` (
   `DepotID` int(7) UNSIGNED NOT NULL,
   `Key` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `LastUpdate` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `Date` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`DepotID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
