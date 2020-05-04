@@ -154,6 +154,15 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteError(nameof(PICSChanges), "PICSGetChangesSince async job failed");
                 }
+
+#if !DEBUG
+                if (!Settings.Current.CanQueryStore)
+                {
+#endif
+                    await Task.Delay(10000);
+#if !DEBUG
+                }
+#endif
             }
 
             Log.WriteDebug(nameof(PICSChanges), $"Thread stopped #{currentHash}");
