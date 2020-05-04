@@ -10,7 +10,7 @@
 	
 	"Steam":
 	{
-		"Username": "steam-username",
+		"Username": "anonymous",
 		"Password": "steam-password",
 		"WebAPIKey": ""
 	},
