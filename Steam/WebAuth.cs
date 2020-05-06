@@ -54,7 +54,7 @@ namespace SteamDatabaseBackend
             byte[] encryptedSessionKey;
 
             // ... which is then encrypted with RSA using the Steam system's public key
-            using (var rsa = new RSACrypto(KeyDictionary.GetPublicKey(Steam.Instance.Client.Universe)))
+            using (var rsa = new RSACrypto(KeyDictionary.GetPublicKey(Steam.Instance.Client.Universe)!))
             {
                 encryptedSessionKey = rsa.Encrypt(sessionKey);
             }

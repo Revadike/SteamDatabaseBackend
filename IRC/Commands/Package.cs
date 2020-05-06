@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
             var infoTask = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), new List<SteamApps.PICSRequest> { request });
             infoTask.Timeout = TimeSpan.FromSeconds(10);
             var job = await infoTask;
-            var callback = job.Results.FirstOrDefault(x => x.Packages.ContainsKey(subID));
+            var callback = job.Results?.FirstOrDefault(x => x.Packages.ContainsKey(subID));
 
             if (callback == null)
             {

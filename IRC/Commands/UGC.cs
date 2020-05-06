@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
             }
 
             command.Reply("Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
-                Colors.BLUE, callback.Creator.Render(true), Colors.NORMAL,
+                Colors.BLUE, callback.Creator.Render(), Colors.NORMAL,
                 Colors.BLUE, callback.AppID, Colors.NORMAL,
                 Colors.BLUE, callback.FileName, Colors.NORMAL,
                 Colors.BLUE, GetByteSizeString(callback.FileSize), Colors.NORMAL,

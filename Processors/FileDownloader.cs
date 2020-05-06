@@ -102,7 +102,7 @@ namespace SteamDatabaseBackend
 
             if (File.Exists(hashesFile))
             {
-                hashes = JsonConvert.DeserializeObject<ConcurrentDictionary<string, byte[]>>(File.ReadAllText(hashesFile));
+                hashes = JsonConvert.DeserializeObject<ConcurrentDictionary<string, byte[]>>(await File.ReadAllTextAsync(hashesFile));
             }
             else
             {
@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
 
             if (downloadState == EResult.OK)
             {
-                File.WriteAllText(hashesFile, JsonConvert.SerializeObject(hashes));
+                await File.WriteAllTextAsync(hashesFile, JsonConvert.SerializeObject(hashes));
 
                 job.Result = EResult.OK;
             }
@@ -234,7 +234,7 @@ namespace SteamDatabaseBackend
 
                 if (finalPath.Exists && File.Exists(oldChunksFile))
                 {
-                    var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(File.ReadAllText(oldChunksFile), JsonHandleAllReferences);
+                    var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(await File.ReadAllTextAsync(oldChunksFile), JsonHandleAllReferences);
 
                     await using var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read);
 
@@ -353,7 +353,7 @@ namespace SteamDatabaseBackend
 
             if (chunks.Count > 1)
             {
-                File.WriteAllText(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences));
+                await File.WriteAllTextAsync(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences), chunkCancellation.Token);
             }
             else if (File.Exists(oldChunksFile))
             {
@@ -371,11 +371,9 @@ namespace SteamDatabaseBackend
                 {
                     var chunkData = await CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, string.Empty, job.DepotKey);
 
-                    await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
-                    {
-                        fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                        await fs.WriteAsync(chunkData.Data, 0, chunkData.Data.Length);
-                    }
+                    await using var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+                    fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
+                    await fs.WriteAsync(chunkData.Data, 0, chunkData.Data.Length);
 
                     return true;
                 }

@@ -138,7 +138,7 @@ namespace SteamDatabaseBackend
 
                                     await using (var db = await Database.GetConnectionAsync())
                                     {
-                                        db.Execute("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
+                                        await db.ExecuteAsync("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
                                     }
 
                                     command.Reply("Removed app {0}{1}{2} ({3}) from the important list in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);

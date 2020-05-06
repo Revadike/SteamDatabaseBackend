@@ -8,9 +8,6 @@ namespace SteamDatabaseBackend
 {
     internal abstract class SteamHandler
     {
-        protected SteamHandler()
-        {
-            // This is just an empty class, steamkit callbacks extend this
-        }
+        // This is just an empty class, steamkit callbacks extend this
     }
 }

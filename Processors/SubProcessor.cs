@@ -64,10 +64,7 @@ namespace SteamDatabaseBackend
             var alreadySeenAppIds = new HashSet<uint>();
 
             // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
-            if (newPackageName == null)
-            {
-                newPackageName = string.Concat("Steam Sub ", SubID);
-            }
+            newPackageName ??= string.Concat("Steam Sub ", SubID);
 
             if (string.IsNullOrEmpty(PackageName))
             {

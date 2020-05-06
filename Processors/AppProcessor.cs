@@ -200,7 +200,7 @@ namespace SteamDatabaseBackend
             // Close the connection as it's no longer needed going into depot processor
             DbConnection.Close();
 
-            if (ProductInfo.KeyValues["depots"] != null)
+            if (ProductInfo.KeyValues["depots"].Children.Any())
             {
                 await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }

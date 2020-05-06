@@ -124,19 +124,11 @@ namespace SteamDatabaseBackend
 
         public static string JsonifyKeyValue(KeyValue keys)
         {
-            string value;
+            using var sw = new StringWriter(new StringBuilder());
+            using JsonWriter w = new JsonTextWriter(sw);
+            JsonifyKeyValue(w, keys.Children);
 
-            using (var sw = new StringWriter(new StringBuilder()))
-            {
-                using (JsonWriter w = new JsonTextWriter(sw))
-                {
-                    JsonifyKeyValue(w, keys.Children);
-                }
-
-                value = sw.ToString();
-            }
-
-            return value;
+            return sw.ToString();
         }
 
         private static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)

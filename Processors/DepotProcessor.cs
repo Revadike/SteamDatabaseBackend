@@ -543,16 +543,16 @@ namespace SteamDatabaseBackend
 
             Log.WriteDebug("Depot Downloader", $"Running update script: {script} {arg}");
 
-            using (var process = new System.Diagnostics.Process())
+            using var process = new System.Diagnostics.Process
             {
-                process.StartInfo = new System.Diagnostics.ProcessStartInfo
+                StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = script,
                     Arguments = arg,
-                };
-                process.Start();
-                process.WaitForExit(120000);
-            }
+                }
+            };
+            process.Start();
+            process.WaitForExit(120000);
 
             return true;
         }

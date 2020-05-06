@@ -104,8 +104,8 @@ namespace SteamDatabaseBackend
         {
             return CommandType switch
             {
-                ECommandType.IRC => string.Format("IRC User \"{0}\" in \"{1}\"", SenderIdentity, Recipient),
-                ECommandType.SteamIndividual => string.Format("Steam User \"{0}\"", SenderID.Render(true)),
+                ECommandType.IRC => $"IRC User \"{SenderIdentity}\" in \"{Recipient}\"",
+                ECommandType.SteamIndividual => $"Steam User \"{SenderID.Render()}\"",
                 _ => base.ToString(),
             };
         }

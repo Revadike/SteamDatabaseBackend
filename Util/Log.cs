@@ -64,14 +64,7 @@ namespace SteamDatabaseBackend
         private static void WriteLine(Category category, string component, string format, params object[] args)
         {
             var date = DateTime.Now;
-            var logLine = string.Format(
-                "{0} [{1}] {2}: {3}{4}",
-                DateTime.Now.ToString("HH:mm:ss"),
-                category,
-                component,
-                args.Length > 0 ? string.Format(format, args) : format,
-                Environment.NewLine
-            );
+            var logLine =  $"{DateTime.Now:HH:mm:ss} [{category}] {component}: {(args.Length > 0 ? string.Format(format, args) : format)}{Environment.NewLine}";
 
             lock (logLock)
             {
@@ -112,7 +105,7 @@ namespace SteamDatabaseBackend
 
             Task.Run(() =>
             {
-                var logFile = Path.Combine(LogDirectoryPath, string.Format("{0}.log", date.ToString("MMMM_dd_yyyy")));
+                var logFile = Path.Combine(LogDirectoryPath, $"{date:MMMM_dd_yyyy}.log");
 
                 lock (logLock)
                 {
