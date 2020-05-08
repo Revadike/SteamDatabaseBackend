@@ -58,6 +58,17 @@ namespace SteamDatabaseBackend
 
             var info = callback.Packages[subID];
 
+            if (!info.KeyValues.Children.Any())
+            {
+                command.Reply("No package info returned for SubID: {0}{1}{2}{3}",
+                    Colors.BLUE, subID,
+                    info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
+                    LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty
+                );
+
+                return;
+            }
+
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
 
             command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
