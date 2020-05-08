@@ -757,7 +757,9 @@ namespace SteamDatabaseBackend
             }
 
             await db.ExecuteAsync(
-                "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `LastUpdated` = CURRENT_TIMESTAMP(), `FilenamesEncrypted` = @FilenamesEncrypted WHERE `DepotID` = @DepotID",
+                request.LastManifestID == request.ManifestID ?
+                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `FilenamesEncrypted` = @FilenamesEncrypted WHERE `DepotID` = @DepotID" :
+                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `FilenamesEncrypted` = @FilenamesEncrypted, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID",
                 new
                 {
                     request.DepotID,
