@@ -7,7 +7,6 @@ namespace SteamDatabaseBackend
 {
     internal class DepotHistory
     {
-        public uint ID { get; set; }
         public uint DepotID { get; set; }
         public uint ChangeID { get; set; }
         public ulong ManifestID { get; set; }

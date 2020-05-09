@@ -615,22 +615,6 @@ namespace SteamDatabaseBackend
                 }
 
                 filesOld = decryptedFilesOld;
-
-#if false
-                var history = await db.QueryAsync<DepotHistory>("SELECT `ID`, `File` FROM `DepotsHistory` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction);
-
-                foreach (var file in history)
-                {
-                    if (file.File.Length == 0)
-                    {
-                        continue;
-                    }
-
-                    file.File = DecryptFilename(file.File, request.DepotKey);
-
-                    await db.ExecuteAsync("UPDATE `DepotsHistory` SET `File` = @File WHERE `ID` = @ID", new { file.ID, file.File }, transaction);
-                }
-#endif
             }
 
             foreach (var file in depotManifest.Files.OrderByDescending(x => x.FileName))
