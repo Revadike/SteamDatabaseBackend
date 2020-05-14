@@ -13,6 +13,12 @@ namespace SteamDatabaseBackend
 {
     internal class PICSTokens : SteamHandler
     {
+        public class RequestedTokens
+        {
+            public List<uint> Apps;
+            public List<uint> Packages;
+        }
+
         private class PICSToken
         {
             public uint AppID { get; set; }
@@ -73,24 +79,54 @@ namespace SteamDatabaseBackend
 
         private static void OnPICSTokens(SteamApps.PICSTokensCallback callback)
         {
-            JobManager.TryRemoveJob(callback.JobID);
+            JobManager.TryRemoveJob(callback.JobID, out var job);
 
             if (callback.AppTokens.Count > 0 || callback.AppTokensDenied.Count > 0)
             {
-                Log.WriteInfo(nameof(PICSTokens), $"App tokens: {callback.AppTokens.Count} received, {callback.AppTokensDenied.Count} denied" );
+                Log.WriteInfo(nameof(PICSTokens), $"App tokens: {callback.AppTokens.Count} received, {callback.AppTokensDenied.Count} denied");
             }
             else
             {
-                Log.WriteInfo(nameof(PICSTokens), $"Package tokens: {callback.PackageTokens.Count} received, {callback.PackageTokensDenied.Count} denied" );
+                Log.WriteInfo(nameof(PICSTokens), $"Package tokens: {callback.PackageTokens.Count} received, {callback.PackageTokensDenied.Count} denied");
             }
 
             var apps = callback.AppTokensDenied
                 .Select(NewAppRequest)
-                .Concat(callback.AppTokens.Select(app => NewAppRequest(app.Key, app.Value)));
+                .Concat(callback.AppTokens.Select(app => NewAppRequest(app.Key, app.Value)))
+                .ToList();
 
             var subs = callback.PackageTokensDenied
                 .Select(NewPackageRequest)
-                .Concat(callback.PackageTokens.Select(sub => NewPackageRequest(sub.Key, sub.Value)));
+                .Concat(callback.PackageTokens.Select(sub => NewPackageRequest(sub.Key, sub.Value)))
+                .ToList();
+
+            if (job?.Metadata != default)
+            {
+                var requested = (RequestedTokens)job.Metadata;
+
+                if (requested.Apps != null)
+                {
+                    foreach (var appid in requested.Apps.Where(app =>
+                        !callback.AppTokens.ContainsKey(app) && !callback.AppTokensDenied.Contains(app)))
+                    {
+                        Log.WriteError(nameof(PICSTokens), $"Requested token for app {appid} but Steam did not return it");
+                        IRC.Instance.SendOps($"[TOKENS] Requested token for app {appid} but Steam did not return it");
+
+                        apps.Add(NewAppRequest(appid));
+                    }
+                }
+
+                if (requested.Packages != null)
+                {
+                    foreach (var subid in requested.Packages.Where(sub =>
+                        !callback.PackageTokens.ContainsKey(sub) && !callback.PackageTokensDenied.Contains(sub)))
+                    {
+                        Log.WriteError(nameof(PICSTokens), $"Requested token for package {subid} but Steam did not return it");
+
+                        subs.Add(NewAppRequest(subid));
+                    }
+                }
+            }
 
             JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, subs));
         }

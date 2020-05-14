@@ -304,7 +304,14 @@ namespace SteamDatabaseBackend
             // Re-queue apps in this package so we can update depots and whatnot
             if (appAddedToThisPackage && !Settings.IsFullRun && !string.IsNullOrEmpty(PackageName))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(ProductInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()), Enumerable.Empty<uint>()));
+                var appsToRequest = ProductInfo.KeyValues["appids"].Children.Select(x => (uint)x.AsInteger()).ToList();
+
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(appsToRequest, Enumerable.Empty<uint>()),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Apps = appsToRequest
+                    });
             }
 
             if (ProductInfo.MissingToken && PICSTokens.HasPackageToken(SubID))

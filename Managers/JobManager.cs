@@ -14,6 +14,7 @@ namespace SteamDatabaseBackend
     {
         public Func<JobID> Action;
         public CommandArguments Command;
+        public object Metadata;
     }
 
     internal static class JobManager
@@ -33,6 +34,23 @@ namespace SteamDatabaseBackend
 
 #if DEBUG
             Log.WriteDebug("Job Manager", "New job: {0}", jobID);
+#endif
+
+            Jobs.TryAdd(jobID, job);
+        }
+
+        public static void AddJob(Func<JobID> action, object metadata)
+        {
+            var jobID = action();
+
+            var job = new JobAction
+            {
+                Action = action,
+                Metadata = metadata,
+            };
+
+#if DEBUG
+            Log.WriteDebug("Job Manager", "New job: {0} (with data)", jobID);
 #endif
 
             Jobs.TryAdd(jobID, job);

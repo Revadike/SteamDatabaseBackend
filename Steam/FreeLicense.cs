@@ -59,7 +59,12 @@ namespace SteamDatabaseBackend
 
             if (appIDs.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appIDs, Enumerable.Empty<uint>()));
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(appIDs, Enumerable.Empty<uint>()),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Apps = appIDs.ToList()
+                    });
 
                 foreach (var appid in appIDs)
                 {
@@ -71,7 +76,12 @@ namespace SteamDatabaseBackend
 
             if (packageIDs.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), packageIDs));
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), packageIDs),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Packages = packageIDs.ToList()
+                    });
 
                 TaskManager.RunAsync(async () =>
                 {

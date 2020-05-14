@@ -188,7 +188,12 @@ namespace SteamDatabaseBackend
 
             foreach (var list in appIDs.Split(200))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Apps = list.ToList()
+                    });
 
                 do
                 {
@@ -204,7 +209,12 @@ namespace SteamDatabaseBackend
 
             foreach (var list in packageIDs.Split(1000))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list));
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Packages = list.ToList()
+                    });
 
                 do
                 {
@@ -240,34 +250,44 @@ namespace SteamDatabaseBackend
             {
                 foreach (var list in callback.AppChanges.Keys.Split(appsPerJob))
                 {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()));
+                    JobManager.AddJob(
+                        () => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()),
+                        new PICSTokens.RequestedTokens
+                        {
+                            Apps = list.ToList()
+                        });
                 }
             }
             else if (callback.AppChanges.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()));
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(callback.AppChanges.Keys, Enumerable.Empty<uint>()),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Apps = callback.AppChanges.Keys.ToList()
+                    });
             }
 
             if (callback.PackageChanges.Count > appsPerJob)
             {
                 foreach (var list in callback.PackageChanges.Keys.Split(appsPerJob))
                 {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list));
+                    JobManager.AddJob(
+                        () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list),
+                        new PICSTokens.RequestedTokens
+                        {
+                            Packages = list.ToList()
+                        });
                 }
             }
             else if (callback.PackageChanges.Count > 0)
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), callback.PackageChanges.Keys));
-            }
-
-            // PICSGetAccessTokens response does not have sub 0 anywhere
-            if (callback.PackageChanges.ContainsKey(0))
-            {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(
-                    Enumerable.Empty<SteamApps.PICSRequest>(), new List<SteamApps.PICSRequest>
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), callback.PackageChanges.Keys),
+                    new PICSTokens.RequestedTokens
                     {
-                        PICSTokens.NewPackageRequest(0)
-                    }));
+                        Packages = callback.PackageChanges.Keys.ToList()
+                    });
             }
 
             if (callback.AppChanges.Count > 0)

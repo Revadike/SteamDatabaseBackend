@@ -6,6 +6,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Timers;
 using SteamKit2;
@@ -169,7 +170,13 @@ namespace SteamDatabaseBackend
             {
                 if (Settings.Current.FullRun == FullRunState.ImportantOnly)
                 {
-                    JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Application.ImportantSubs.Keys));
+                    JobManager.AddJob(
+                        () => Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Application.ImportantSubs.Keys),
+                        new PICSTokens.RequestedTokens
+                        {
+                            Apps = Application.ImportantApps.Keys.ToList(),
+                            Packages = Application.ImportantSubs.Keys.ToList(),
+                        });
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
                 {

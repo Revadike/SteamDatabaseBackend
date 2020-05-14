@@ -85,7 +85,12 @@ namespace SteamDatabaseBackend
             using var db = Database.Get();
             var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = newSubs });
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
+            JobManager.AddJob(
+                () => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()),
+                new PICSTokens.RequestedTokens
+                {
+                    Apps = apps.ToList()
+                });
         }
 
         public static void RefreshApps()
