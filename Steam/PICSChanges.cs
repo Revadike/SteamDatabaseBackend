@@ -260,6 +260,16 @@ namespace SteamDatabaseBackend
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), callback.PackageChanges.Keys));
             }
 
+            // PICSGetAccessTokens response does not have sub 0 anywhere
+            if (callback.PackageChanges.ContainsKey(0))
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(
+                    Enumerable.Empty<SteamApps.PICSRequest>(), new List<SteamApps.PICSRequest>
+                    {
+                        PICSTokens.NewPackageRequest(0)
+                    }));
+            }
+
             if (callback.AppChanges.Count > 0)
             {
                 _ = TaskManager.RunAsync(async () => await HandleApps(callback));
