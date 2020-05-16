@@ -8,7 +8,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using SteamKit2;
-using SteamKit2.Unified.Internal;
+using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {

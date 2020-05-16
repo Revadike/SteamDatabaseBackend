@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SteamKit2;
-using SteamKit2.Unified.Internal;
+using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {

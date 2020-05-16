@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
-using SteamKit2.Unified.Internal;
+using SteamKit2.Internal;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
