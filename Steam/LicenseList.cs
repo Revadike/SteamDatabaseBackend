@@ -49,6 +49,11 @@ namespace SteamDatabaseBackend
 
             foreach (var license in licenseList.LicenseList)
             {
+                if (license.AccessToken > 0)
+                {
+                    PICSTokens.NewPackageRequest(license.PackageID, license.AccessToken);
+                }
+
                 // Expired licenses block access to depots, so we have no use in these
                 if ((license.LicenseFlags & ELicenseFlags.Expired) != 0)
                 {
@@ -86,10 +91,11 @@ namespace SteamDatabaseBackend
             var apps = db.Query<uint>("SELECT `AppID` FROM `SubsApps` WHERE `Type` = \"app\" AND `SubID` IN @Ids", new { Ids = newSubs });
 
             JobManager.AddJob(
-                () => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()),
+                () => Steam.Instance.Apps.PICSGetAccessTokens(apps, newSubs),
                 new PICSTokens.RequestedTokens
                 {
-                    Apps = apps.ToList()
+                    Apps = apps.ToList(),
+                    Packages = newSubs,
                 });
         }
 
