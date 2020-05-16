@@ -377,7 +377,7 @@ namespace SteamDatabaseBackend
                 {
                     await GetDepotDecryptionKey(Steam.Instance.Apps, depot, appID);
 
-                    if (depot.DepotKey == null && depot.LastManifestID == depot.ManifestID)
+                    if (depot.DepotKey == null && (depot.LastManifestID == depot.ManifestID || Settings.Current.OnlyOwnedDepots))
                     {
                         RemoveLock(depot.DepotID);
 

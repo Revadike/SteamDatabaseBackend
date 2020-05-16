@@ -7,6 +7,7 @@
 	"FullRun": 0,
 	"LogToFile": true,
 	"CanQueryStore": false,
+	"OnlyOwnedDepots": true,
 	
 	"Steam":
 	{
