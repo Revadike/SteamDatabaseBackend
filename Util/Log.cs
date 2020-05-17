@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
         private static void WriteLine(Category category, string component, string format, params object[] args)
         {
             var date = DateTime.Now;
-            var logLine =  $"{DateTime.Now:HH:mm:ss} [{category}] {component}: {(args.Length > 0 ? string.Format(format, args) : format)}{Environment.NewLine}";
+            var logLine =  $"{date:HH:mm:ss} [{category}] {component}: {(args.Length > 0 ? string.Format(format, args) : format)}{Environment.NewLine}";
 
             lock (logLock)
             {
