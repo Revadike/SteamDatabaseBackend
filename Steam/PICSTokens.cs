@@ -179,7 +179,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteWarn(nameof(PICSTokens), $"New token for subid {id} that mismatches the existing one ({existingToken} != {accessToken})");
 
-                IRC.Instance.SendOps($"{Colors.RED}[Tokens] Bot got a package token that mismatches the one in database:{Colors.BLUE} {id} ({existingToken} != {accessToken})");
+                IRC.Instance.SendOps($"{Colors.RED}[Tokens] Bot got a package token that mismatches the one in database:{Colors.BLUE} {id} {Colors.NORMAL}({existingToken} != {accessToken})");
 
                 PackageTokens[id] = accessToken;
 
