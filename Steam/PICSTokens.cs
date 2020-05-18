@@ -137,7 +137,7 @@ namespace SteamDatabaseBackend
 
         private static void HandleAppToken(uint id, ulong accessToken)
         {
-            if (!AppTokens.ContainsKey(id))
+            if (!AppTokens.TryGetValue(id, out var existingToken))
             {
                 AppTokens.Add(id, accessToken);
 
@@ -150,15 +150,19 @@ namespace SteamDatabaseBackend
                     new PICSToken { AppID = id, Token = accessToken }
                 );
             }
-            else if (AppTokens[id] != accessToken)
+            else if (existingToken != accessToken)
             {
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got an app token that mismatches the one in database: {AppTokens[id]} != {accessToken}");
+                Log.WriteWarn(nameof(PICSTokens), $"New token for appid {id} that mismatches the existing one ({existingToken} != {accessToken})");
+
+                IRC.Instance.SendOps($"{Colors.RED}[Tokens] Bot got an app token that mismatches the one in database:{Colors.BLUE} {id} {Colors.NORMAL}({existingToken} != {accessToken})");
+
+                AppTokens[id] = accessToken;
             }
         }
 
         private static void HandlePackageToken(uint id, ulong accessToken)
         {
-            if (!PackageTokens.ContainsKey(id))
+            if (!PackageTokens.TryGetValue(id, out var existingToken))
             {
                 PackageTokens.Add(id, accessToken);
 
@@ -171,9 +175,18 @@ namespace SteamDatabaseBackend
                     new PICSToken { SubID = id, Token = accessToken }
                 );
             }
-            else if (PackageTokens[id] != accessToken)
+            else if (existingToken != accessToken)
             {
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Bot got a package token that mismatches the one in database: {PackageTokens[id]} != {accessToken}");
+                Log.WriteWarn(nameof(PICSTokens), $"New token for subid {id} that mismatches the existing one ({existingToken} != {accessToken})");
+
+                IRC.Instance.SendOps($"{Colors.RED}[Tokens] Bot got a package token that mismatches the one in database:{Colors.BLUE} {id} ({existingToken} != {accessToken})");
+
+                PackageTokens[id] = accessToken;
+
+                using var db = Database.Get();
+                db.Execute("UPDATE `PICSTokensSubs` SET `Token` = @Token WHERE `SubID` = @SubID",
+                    new PICSToken { SubID = id, Token = accessToken }
+                );
             }
         }
 
