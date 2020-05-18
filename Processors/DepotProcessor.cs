@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -37,12 +38,13 @@ namespace SteamDatabaseBackend
         public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ManifestID`, `ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ManifestID, @ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
 
         private static readonly object UpdateScriptLock = new object();
+        
+        private readonly Dictionary<uint, byte> DepotLocks = new Dictionary<uint, byte>();
+        private readonly SemaphoreSlim ManifestDownloadSemaphore = new SemaphoreSlim(15);
+        private readonly string UpdateScript;
 
         private CDNClient CDNClient;
-        private readonly Dictionary<uint, byte> DepotLocks;
         private List<CDNClient.Server> CDNServers;
-        private readonly string UpdateScript;
-        private bool SaveLocalConfig;
 
         public int DepotLocksCount => DepotLocks.Count;
         public DateTime LastServerRefreshTime { get; private set; } = DateTime.Now;
@@ -50,7 +52,6 @@ namespace SteamDatabaseBackend
         public DepotProcessor(SteamClient client, CallbackManager manager)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
-            DepotLocks = new Dictionary<uint, byte>();
             CDNClient = new CDNClient(client);
             CDNServers = new List<CDNClient.Server>
             {
@@ -394,6 +395,8 @@ namespace SteamDatabaseBackend
                 {
                     try
                     {
+                        await ManifestDownloadSemaphore.WaitAsync(TaskManager.TaskCancellationToken.Token).ConfigureAwait(false);
+
                         depotManifest = await CDNClient.DownloadManifestAsync(depot.DepotID, depot.ManifestID, depot.Server, string.Empty, depot.DepotKey);
 
                         break;
@@ -403,6 +406,10 @@ namespace SteamDatabaseBackend
                         lastError = e.Message;
 
                         Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
+                    }
+                    finally
+                    {
+                        ManifestDownloadSemaphore.Release();
                     }
 
                     if (depot.DepotKey != null)
@@ -469,13 +476,6 @@ namespace SteamDatabaseBackend
                 }).Unwrap();
 
                 processTasks.Add(task);
-            }
-
-            if (SaveLocalConfig)
-            {
-                SaveLocalConfig = false;
-
-                LocalConfig.Save();
             }
 
             await Task.WhenAll(processTasks).ConfigureAwait(false);
