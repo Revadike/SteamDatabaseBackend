@@ -177,7 +177,7 @@ namespace SteamDatabaseBackend
                     item.Content = new Regex(@"<br( \/)?>\r?\n?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "\n");
 
                     // dashes (CS:GO mainly)
-                    item.Content = new Regex("^(?:-|&#(?:8208|8209|8210|8211|8212|8213);) ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
+                    item.Content = new Regex("^(?:-|&#(?:8208|8209|8210|8211|8212|8213);|–|—) ?", RegexOptions.Multiline | RegexOptions.CultureInvariant).Replace(item.Content, "* ");
 
                     item.Content = WebUtility.HtmlDecode(item.Content);
 
