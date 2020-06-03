@@ -58,13 +58,16 @@ namespace SteamDatabaseBackend
             await ProcessKey("root_changenumber", "changenumber", ChangeNumber.ToString());
 
             var appAddedToThisPackage = false;
+            var hasPackageInfo = ProductInfo.KeyValues.Children.Count > 0;
             var packageOwned = LicenseList.OwnedSubs.ContainsKey(SubID);
-            var newPackageName = ProductInfo.KeyValues["name"].AsString();
+            var newPackageName = ProductInfo.KeyValues["name"].AsString() ?? string.Concat("Steam Sub ", SubID);
             var apps = (await DbConnection.QueryAsync<PackageApp>("SELECT `AppID`, `Type` FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID })).ToDictionary(x => x.AppID, x => x.Type);
             var alreadySeenAppIds = new HashSet<uint>();
 
-            // TODO: Ideally this should be SteamDB Unknown Package and proper checks like app processor does
-            newPackageName ??= string.Concat("Steam Sub ", SubID);
+            if (!hasPackageInfo)
+            {
+                ProductInfo.KeyValues.Children.Add(new KeyValue("steamdb_requires_token", "1"));
+            }
 
             if (string.IsNullOrEmpty(PackageName))
             {
@@ -246,59 +249,63 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
+            // If this package no longer returns any package info, keep the existing info we have
+            if (hasPackageInfo)
             {
-                await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new { SubID, data.Key });
-                await MakeHistory("removed_key", data.Key, data.Value);
-            }
-
-            var appsRemoved = apps.Count > 0;
-
-            foreach (var app in apps)
-            {
-                await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new { SubID, AppID = app.Key, Type = app.Value });
-
-                var isAppSection = app.Value == "app";
-
-                var typeID = (uint)(isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
-
-                await MakeHistory("removed_from_sub", typeID, app.Key.ToString());
-
-                if (isAppSection)
+                foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
                 {
-                    await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
-                        new PICSHistory
-                        {
-                            ID = app.Key,
-                            ChangeID = ChangeNumber,
-                            OldValue = SubID.ToString(),
-                            Action = "removed_from_sub"
-                        }
-                    );
+                    await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID AND `Key` = @Key", new {SubID, data.Key});
+                    await MakeHistory("removed_key", data.Key, data.Value);
                 }
-                else
+
+                var appsRemoved = apps.Count > 0;
+
+                foreach (var app in apps)
                 {
-                    await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
-                        new DepotHistory
-                        {
-                            DepotID = app.Key,
-                            ManifestID = 0,
-                            ChangeID = ChangeNumber,
-                            OldValue = SubID,
-                            Action = "removed_from_sub"
-                        }
-                    );
+                    await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new {SubID, AppID = app.Key, Type = app.Value});
+
+                    var isAppSection = app.Value == "app";
+
+                    var typeID = (uint) (isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
+
+                    await MakeHistory("removed_from_sub", typeID, app.Key.ToString());
+
+                    if (isAppSection)
+                    {
+                        await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
+                            new PICSHistory
+                            {
+                                ID = app.Key,
+                                ChangeID = ChangeNumber,
+                                OldValue = SubID.ToString(),
+                                Action = "removed_from_sub"
+                            }
+                        );
+                    }
+                    else
+                    {
+                        await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
+                            new DepotHistory
+                            {
+                                DepotID = app.Key,
+                                ManifestID = 0,
+                                ChangeID = ChangeNumber,
+                                OldValue = SubID,
+                                Action = "removed_from_sub"
+                            }
+                        );
+                    }
                 }
-            }
 
-            if (appsRemoved)
-            {
-                LicenseList.RefreshApps();
-            }
+                if (appsRemoved)
+                {
+                    LicenseList.RefreshApps();
+                }
 
-            if (!packageOwned && SubID != 17906 && Settings.Current.CanQueryStore)
-            {
-                FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
+                if (!packageOwned && SubID != 17906 && Settings.Current.CanQueryStore)
+                {
+                    FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
+                }
             }
 
             // Re-queue apps in this package so we can update depots and whatnot
