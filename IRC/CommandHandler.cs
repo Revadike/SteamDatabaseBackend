@@ -120,7 +120,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("CommandHandler", "Handling IRC command \"{0}\" for {1}", message, commandData);
+            Log.WriteInfo("CommandHandler", "Handling IRC command \"{0}\" for {1}", Utils.RemoveControlCharacters(Colors.StripColors(message)), commandData);
 
             TryCommand(command, commandData);
         }
