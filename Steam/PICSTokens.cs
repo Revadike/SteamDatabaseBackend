@@ -26,8 +26,8 @@ namespace SteamDatabaseBackend
             public ulong Token { get; set; }
         }
 
-        private static Dictionary<uint, ulong> AppTokens;
-        private static Dictionary<uint, ulong> PackageTokens;
+        public static Dictionary<uint, ulong> AppTokens { get; private set; }
+        public static Dictionary<uint, ulong> PackageTokens { get; private set; }
 
         public PICSTokens(CallbackManager manager)
         {

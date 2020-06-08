@@ -14,5 +14,6 @@ namespace SteamDatabaseBackend
         ImportantOnly = 3,
         Enumerate = 4,
         PackagesNormal = 5,
+        TokensOnly = 6,
     }
 }

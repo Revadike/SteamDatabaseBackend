@@ -103,6 +103,13 @@ namespace SteamDatabaseBackend
                     apps = Enumerable.Range(0, lastAppID).Reverse().Select(i => (uint)i).ToList();
                     packages = Enumerable.Range(0, lastSubID).Reverse().Select(i => (uint)i).ToList();
                 }
+                else if (Settings.Current.FullRun == FullRunState.TokensOnly)
+                {
+                    Log.WriteInfo("Full Run", $"Enumerating {PICSTokens.AppTokens.Count} apps and {PICSTokens.PackageTokens.Count} packages that have a token.");
+
+                    apps = PICSTokens.AppTokens.Keys.ToList();
+                    packages = PICSTokens.PackageTokens.Keys.ToList();
+                }
                 else
                 {
                     Log.WriteInfo("Full Run", "Doing a full run on all apps and packages in the database.");
