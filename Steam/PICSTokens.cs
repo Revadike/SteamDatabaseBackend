@@ -184,7 +184,7 @@ namespace SteamDatabaseBackend
                 PackageTokens[id] = accessToken;
 
                 using var db = Database.Get();
-                db.Execute("UPDATE `PICSTokensSubs` SET `Token` = @Token WHERE `SubID` = @SubID",
+                db.Execute("UPDATE `PICSTokensSubs` SET `Token` = @Token, `Date` = NOW() WHERE `SubID` = @SubID",
                     new PICSToken { SubID = id, Token = accessToken }
                 );
             }
