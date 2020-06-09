@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteError(nameof(PICSTokens), $"Requested token for package {subid} but Steam did not return it");
 
-                        subs.Add(NewAppRequest(subid));
+                        subs.Add(NewPackageRequest(subid));
                     }
                 }
             }
