@@ -65,10 +65,10 @@ namespace SteamDatabaseBackend
         {
             Log.WriteDebug("Local Config", "Saving...");
 
-            var data = JsonConvert.SerializeObject(Current, JsonFormatted);
-
             lock (saveLock)
             {
+                var data = JsonConvert.SerializeObject(Current, JsonFormatted);
+
                 File.WriteAllText(ConfigPath, data);
             }
         }
