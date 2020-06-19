@@ -111,6 +111,8 @@ namespace SteamDatabaseBackend
                 }
                 while (IsBusy());
             }
+
+            LocalConfig.Save();
         }
 
         public static async Task FullUpdateAppsMetadata()
