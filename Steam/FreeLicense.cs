@@ -180,7 +180,14 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                startTimes = db.Query("SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = (SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = \"extended_starttime\") AND `SubID` IN @Ids", new { Ids = list.Select(x => x.Key) }).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
+                startTimes = db.Query(
+                    "SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = @Key AND `SubID` IN @Ids",
+                    new
+                    {
+                        Key = KeyNameCache.GetSubKeyID("extended_starttime"),
+                        Ids = list.Select(x => x.Key)
+                    }
+                ).ToDictionary(x => (uint)x.SubID, x => Convert.ToUInt64((string)x.Value));
             }
 
             foreach (var (subId, _) in list)
@@ -290,8 +297,8 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_releasestate\") WHERE `Apps`.`AppID` = @AppID", new { AppID = appId });
-                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = (SELECT `ID` FROM `KeyNames` WHERE `Name` = \"common_parent\") AND `Apps`.`AppID` = @AppID AND `AppType` NOT IN (3, 15)", new { AppID = appId });
+                available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = @Key WHERE `Apps`.`AppID` = @AppID", new { Key = KeyNameCache.GetAppKeyID("common_releasestate"), AppID = appId });
+                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = @Key AND `Apps`.`AppID` = @AppID AND `AppType` NOT IN (3, 15)", new { Key = KeyNameCache.GetAppKeyID("common_parent"), AppID = appId });
             }
 
             if (!available)

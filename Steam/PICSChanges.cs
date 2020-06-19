@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
 
             using (var db = Database.Get())
             {
-                BillingTypeKey = db.ExecuteScalar<uint>("SELECT `ID` FROM `KeyNamesSubs` WHERE `Name` = 'root_billingtype'");
+                BillingTypeKey = KeyNameCache.GetSubKeyID("root_billingtype");
 
                 if (LocalConfig.Current.ChangeNumber == 0)
                 {
