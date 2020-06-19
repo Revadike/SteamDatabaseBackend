@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
 
             if (callback.MetaDataOnly)
             {
-                Log.WriteDebug(nameof(PICSProductInfo), "Received metadata only product info");
+                TaskManager.RunAsync(async () => await FullUpdateProcessor.HandleMetadataInfo(callback));
                 return;
             }
 

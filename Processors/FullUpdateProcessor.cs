@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -97,6 +99,72 @@ namespace SteamDatabaseBackend
                     await Task.Delay(100);
                 }
                 while (IsBusy());
+            }
+        }
+
+        public static async Task HandleMetadataInfo(SteamApps.PICSProductInfoCallback callback)
+        {
+            Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps and {callback.Packages.Count} packages");
+            
+            var apps = new List<uint>();
+            var subs = new List<uint>();
+            var db = await Database.GetConnectionAsync();
+
+            if (callback.Apps.Any())
+            {
+                var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
+                    "SELECT `AppID`, `Value` FROM `AppsInfo` WHERE `Key` = @ChangeNumberKey AND `AppID` IN @Apps",
+                    new
+                    {
+                        ChangeNumberKey = KeyNameCache.GetAppKeyID("root_changenumber"),
+                        Apps = callback.Apps.Keys
+                    }
+                )).ToDictionary(x => x.Item1, x => x.Item2);
+
+                foreach (var app in callback.Apps.Values)
+                {
+                    currentChangeNumbers.TryGetValue(app.ID, out var currentChangeNumber);
+
+                    if (currentChangeNumber != app.ChangeNumber)
+                    {
+                        Log.WriteInfo(nameof(FullUpdateProcessor), $"App {app.ID} - Change: {currentChangeNumber} -> {app.ChangeNumber}");
+                        apps.Add(app.ID);
+                    }
+                }
+            }
+
+            if (callback.Packages.Any())
+            {
+                var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
+                    "SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = @ChangeNumberKey AND `SubID` IN @Subs",
+                    new
+                    {
+                        ChangeNumberKey = KeyNameCache.GetSubKeyID("root_changenumber"),
+                        Subs = callback.Packages.Keys
+                    }
+                )).ToDictionary(x => x.Item1, x => x.Item2);
+
+                foreach (var sub in callback.Packages.Values)
+                {
+                    currentChangeNumbers.TryGetValue(sub.ID, out var currentChangeNumber);
+
+                    if (currentChangeNumber != sub.ChangeNumber)
+                    {
+                        Log.WriteInfo(nameof(FullUpdateProcessor), $"Package {sub.ID} - Change: {currentChangeNumber} -> {sub.ChangeNumber}");
+                        subs.Add(sub.ID);
+                    }
+                }
+            }
+
+            if (apps.Any() || subs.Any())
+            {
+                JobManager.AddJob(
+                    () => Steam.Instance.Apps.PICSGetAccessTokens(apps, subs),
+                    new PICSTokens.RequestedTokens
+                    {
+                        Apps = apps,
+                        Packages = subs,
+                    });
             }
         }
 
