@@ -1,6 +1,10 @@
-﻿using System;
+﻿/*
+ * Copyright (c) 2013-present, SteamDB. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -12,6 +16,17 @@ namespace SteamDatabaseBackend
     {
         public static void PerformSync()
         {
+            if (Settings.Current.FullRun == FullRunState.NormalUsingMetadata)
+            {
+                TaskManager.RunAsync(async () =>
+                {
+                    await FullUpdateAppsMetadata();
+                    await FullUpdatePackagesMetadata();
+                });
+
+                return;
+            }
+
             List<uint> apps;
             List<uint> packages;
 
@@ -60,15 +75,12 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
 
-            var metadataOnly = Settings.Current.FullRun == FullRunState.NormalUsingMetadata;
-
-            foreach (var list in appIDs.Split(metadataOnly ? 10000 : 200))
+            foreach (var list in appIDs.Split(200))
             {
                 JobManager.AddJob(
                     () => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()),
                     new PICSTokens.RequestedTokens
                     {
-                        MetadataOnly = metadataOnly,
                         Apps = list.ToList()
                     });
 
@@ -84,19 +96,56 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            foreach (var list in packageIDs.Split(metadataOnly ? 10000 : 1000))
+            foreach (var list in packageIDs.Split(1000))
             {
                 JobManager.AddJob(
                     () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list),
                     new PICSTokens.RequestedTokens
                     {
-                        MetadataOnly = metadataOnly,
                         Packages = list.ToList()
                     });
 
                 do
                 {
                     await Task.Delay(100);
+                }
+                while (IsBusy());
+            }
+        }
+
+        public static async Task FullUpdateAppsMetadata()
+        {
+            Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for apps using metadata requests");
+
+            var db = await Database.GetConnectionAsync();
+            var apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
+
+            foreach (var list in apps.Split(10000))
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true));
+
+                do
+                {
+                    await Task.Delay(500);
+                }
+                while (IsBusy());
+            }
+        }
+
+        public static async Task FullUpdatePackagesMetadata()
+        {
+            Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for packages using metadata requests");
+
+            var db = await Database.GetConnectionAsync();
+            var subs = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
+
+            foreach (var list in subs.Split(10000))
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true));
+
+                do
+                {
+                    await Task.Delay(500);
                 }
                 while (IsBusy());
             }
