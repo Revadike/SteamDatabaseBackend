@@ -323,8 +323,8 @@ namespace SteamDatabaseBackend
 
             if (ProductInfo.MissingToken && PICSTokens.HasPackageToken(SubID))
             {
-                Log.WriteError(nameof(PICSTokens), $"Overriden token for subid {SubID} is invalid?");
-                IRC.Instance.SendOps($"[Tokens] Looks like the overriden token for subid {SubID} ({newPackageName}) is invalid");
+                Log.WriteError(nameof(PICSTokens), $"Overridden token for subid {SubID} is invalid?");
+                IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for subid {SubID} ({newPackageName}) is invalid");
             }
         }
 

@@ -207,8 +207,8 @@ namespace SteamDatabaseBackend
 
             if (ProductInfo.MissingToken && PICSTokens.HasAppToken(AppID))
             {
-                Log.WriteError(nameof(PICSTokens), $"Overriden token for appid {AppID} is invalid?");
-                IRC.Instance.SendOps($"[Tokens] Looks like the overriden token for appid {AppID} ({newAppName}) is invalid");
+                Log.WriteError(nameof(PICSTokens), $"Overridden token for appid {AppID} is invalid?");
+                IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for appid {AppID} ({newAppName}) is invalid");
             }
         }
 

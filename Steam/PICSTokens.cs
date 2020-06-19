@@ -196,21 +196,13 @@ namespace SteamDatabaseBackend
 
         public static SteamApps.PICSRequest NewAppRequest(uint id)
         {
-            if (AppTokens.TryGetValue(id, out var token))
-            {
-                Log.WriteInfo(nameof(PICSTokens), "Using an overriden token for appid {0}", id);
-            }
-
+            AppTokens.TryGetValue(id, out var token);
             return new SteamApps.PICSRequest(id, token, false);
         }
 
         public static SteamApps.PICSRequest NewPackageRequest(uint id)
         {
-            if (PackageTokens.TryGetValue(id, out var token))
-            {
-                Log.WriteInfo(nameof(PICSTokens), "Using an overriden token for subid {0}", id);
-            }
-
+            PackageTokens.TryGetValue(id, out var token);
             return new SteamApps.PICSRequest(id, token, false);
         }
 
