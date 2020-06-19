@@ -38,6 +38,12 @@ namespace SteamDatabaseBackend
         {
             JobManager.TryRemoveJob(callback.JobID);
 
+            if (callback.MetaDataOnly)
+            {
+                Log.WriteDebug(nameof(PICSProductInfo), "Received metadata only product info");
+                return;
+            }
+
             var processors = new List<BaseProcessor>(
                 callback.Apps.Count +
                 callback.Packages.Count +

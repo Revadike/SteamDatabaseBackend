@@ -15,6 +15,7 @@ namespace SteamDatabaseBackend
     {
         public class RequestedTokens
         {
+            public bool MetadataOnly;
             public List<uint> Apps;
             public List<uint> Packages;
         }
@@ -100,9 +101,12 @@ namespace SteamDatabaseBackend
                 .Concat(callback.PackageTokens.Select(sub => NewPackageRequest(sub.Key, sub.Value)))
                 .ToList();
 
+            var metadataOnly = false;
+
             if (job?.Metadata != default)
             {
                 var requested = (RequestedTokens)job.Metadata;
+                metadataOnly = requested.MetadataOnly;
 
                 if (requested.Apps != null)
                 {
@@ -128,7 +132,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, subs));
+            JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(apps, subs, metadataOnly));
         }
 
         public static bool HasAppToken(uint id) => AppTokens.ContainsKey(id);

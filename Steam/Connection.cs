@@ -180,7 +180,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
                 {
-                    Steam.Instance.PICSChanges.PerformSync();
+                    FullUpdateProcessor.PerformSync();
                 }
             }
             else
