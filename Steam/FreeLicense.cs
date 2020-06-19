@@ -283,9 +283,16 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (startTime > now)
+            if (startTime > 0)
             {
-                AddToQueue(subId, appId);
+                if (startTime < now)
+                {
+                    QueueRequest(subId, appId);
+                }
+                else
+                {
+                    AddToQueue(subId, appId);
+                }
 
                 Log.WriteDebug(nameof(FreeLicense), $"Package {subId} has not reached starttime yet, added to queue");
 
