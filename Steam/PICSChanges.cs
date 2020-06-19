@@ -72,13 +72,13 @@ namespace SteamDatabaseBackend
                     PreviousChangeNumber = LocalConfig.Current.ChangeNumber;
                 }
 
-                Log.WriteInfo("PICSChanges", "Previous changelist was {0}", PreviousChangeNumber);
+                Log.WriteInfo(nameof(PICSChanges), "Previous changelist was {0}", PreviousChangeNumber);
             }
 
             if (PreviousChangeNumber == 0)
             {
-                Log.WriteWarn("PICSChanges", "Looks like there are no changelists in the database.");
-                Log.WriteWarn("PICSChanges", "If you want to fill up your database first, restart with \"FullRun\" setting set to {0}.", (int)FullRunState.Enumerate);
+                Log.WriteWarn(nameof(PICSChanges), "Looks like there are no changelists in the database.");
+                Log.WriteWarn(nameof(PICSChanges), "If you want to fill up your database first, restart with \"FullRun\" setting set to {0}.", (int)FullRunState.Enumerate);
             }
         }
 
@@ -233,12 +233,17 @@ namespace SteamDatabaseBackend
 
         private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
+            if (callback.RequiresFullUpdate)
+            {
+                IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} has force_full_update set");
+            }
+
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {
                 return;
             }
 
-            Log.WriteInfo("PICSChanges", $"Changelist {PreviousChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
+            Log.WriteInfo(nameof(PICSChanges), $"Changelist {PreviousChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
 
