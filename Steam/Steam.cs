@@ -46,6 +46,10 @@ namespace SteamDatabaseBackend
 
             Client = new SteamClient(Configuration, "SteamDB");
 
+#if DEBUG_NETHOOK
+            Client.DebugNetworkListener = new NetHookNetworkListener();
+#endif
+
             User = Client.GetHandler<SteamUser>();
             Apps = Client.GetHandler<SteamApps>();
             Friends = Client.GetHandler<SteamFriends>();
