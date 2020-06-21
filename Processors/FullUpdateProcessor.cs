@@ -26,34 +26,27 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+            else if (Settings.Current.FullRun == FullRunState.Enumerate)
+            {
+                TaskManager.Run(FullUpdateEnumeration);
+                return;
+            }
 
             List<uint> apps;
             List<uint> packages;
 
             using (var db = Database.Get())
             {
-                if (Settings.Current.FullRun == FullRunState.Enumerate)
+                if (Settings.Current.FullRun == FullRunState.TokensOnly)
                 {
-                    // TODO: Remove WHERE when normal appids approach 2mil
-                    var lastAppID = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` WHERE `AppID` < 2000000 ORDER BY `AppID` DESC LIMIT 1");
-                    var lastSubID = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
-
-                    Log.WriteInfo("Full Run", "Will enumerate {0} apps and {1} packages", lastAppID, lastSubID);
-
-                    // greatest code you've ever seen
-                    apps = Enumerable.Range(0, lastAppID).Reverse().Select(i => (uint)i).ToList();
-                    packages = Enumerable.Range(0, lastSubID).Reverse().Select(i => (uint)i).ToList();
-                }
-                else if (Settings.Current.FullRun == FullRunState.TokensOnly)
-                {
-                    Log.WriteInfo("Full Run", $"Enumerating {PICSTokens.AppTokens.Count} apps and {PICSTokens.PackageTokens.Count} packages that have a token.");
+                    Log.WriteInfo(nameof(FullUpdateProcessor), $"Enumerating {PICSTokens.AppTokens.Count} apps and {PICSTokens.PackageTokens.Count} packages that have a token.");
 
                     apps = PICSTokens.AppTokens.Keys.ToList();
                     packages = PICSTokens.PackageTokens.Keys.ToList();
                 }
                 else
                 {
-                    Log.WriteInfo("Full Run", "Doing a full run on all apps and packages in the database.");
+                    Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update on all apps and packages in the database.");
 
                     if (Settings.Current.FullRun == FullRunState.PackagesNormal)
                     {
@@ -73,7 +66,7 @@ namespace SteamDatabaseBackend
 
         private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
-            Log.WriteInfo("Full Run", "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
+            Log.WriteInfo(nameof(FullUpdateProcessor), "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
 
             foreach (var list in appIDs.Split(200))
             {
@@ -155,14 +148,14 @@ namespace SteamDatabaseBackend
 
         public static async Task HandleMetadataInfo(SteamApps.PICSProductInfoCallback callback)
         {
-            Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps and {callback.Packages.Count} packages");
-            
             var apps = new List<uint>();
             var subs = new List<uint>();
             var db = await Database.GetConnectionAsync();
 
             if (callback.Apps.Any())
             {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps");
+
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `AppID`, `Value` FROM `AppsInfo` WHERE `Key` = @ChangeNumberKey AND `AppID` IN @Apps",
                     new
@@ -186,6 +179,8 @@ namespace SteamDatabaseBackend
 
             if (callback.Packages.Any())
             {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Packages.Count} packages");
+
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = @ChangeNumberKey AND `SubID` IN @Subs",
                     new
@@ -221,7 +216,7 @@ namespace SteamDatabaseBackend
 
         public static bool IsBusy()
         {
-            Log.WriteInfo("Full Run", "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
+            Log.WriteInfo(nameof(FullUpdateProcessor), "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
                 JobManager.JobsCount,
                 TaskManager.TasksCount,
                 PICSProductInfo.CurrentlyProcessingCount,
@@ -231,6 +226,45 @@ namespace SteamDatabaseBackend
                    || JobManager.JobsCount > 0
                    || PICSProductInfo.CurrentlyProcessingCount > 50
                    || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
+        }
+
+        private static async Task FullUpdateEnumeration()
+        {
+            var db = await Database.GetConnectionAsync();
+            var lastAppId = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC LIMIT 1");
+            var lastSubId = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
+
+            Log.WriteInfo(nameof(FullUpdateProcessor), "Will enumerate {0} apps and {1} packages", lastAppId, lastSubId);
+
+            // greatest code you've ever seen
+            var apps = Enumerable.Range(0, lastAppId).Reverse().Select(i => (uint)i);
+            var subs = Enumerable.Range(0, lastSubId).Reverse().Select(i => (uint)i);
+
+            foreach (var list in apps.Split(10000))
+            {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting app range: {list.First()}-{list.Last()}");
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true));
+
+                do
+                {
+                    await Task.Delay(500);
+                }
+                while (IsBusy());
+            }
+
+            foreach (var list in subs.Split(10000))
+            {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting package range: {list.First()}-{list.Last()}");
+
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true));
+
+                do
+                {
+                    await Task.Delay(500);
+                }
+                while (IsBusy());
+            }
         }
     }
 }
