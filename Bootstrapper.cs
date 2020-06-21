@@ -7,6 +7,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -21,6 +22,7 @@ namespace SteamDatabaseBackend
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
             AppDomain.CurrentDomain.UnhandledException += OnSillyCrashHandler;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
             Console.Title = "Steam Database";
 
@@ -88,6 +90,16 @@ namespace SteamDatabaseBackend
 
                 Application.Cleanup();
             }
+        }
+
+        private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
+        {
+            args.Exception?.Flatten().Handle(e =>
+            {
+                ErrorReporter.Notify("Bootstrapper", e);
+
+                return true;
+            });
         }
     }
 }
