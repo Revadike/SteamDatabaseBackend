@@ -18,22 +18,20 @@ namespace SteamDatabaseBackend
 
         public static int TasksCount => Tasks.Count;
 
-        public static Task<T> Run<T>(Func<T> function)
+        public static Task<TResult> Run<TResult>(Func<Task<TResult>> function)
         {
             var t = Task.Run(function, TaskCancellationToken.Token);
 
             AddTask(t);
-            RegisterErrorHandler(t);
 
             return t;
         }
 
-        public static Task RunAsync(Action action)
+        public static Task Run(Func<Task> action)
         {
             var t = Task.Run(action, TaskCancellationToken.Token);
 
             AddTask(t);
-            RegisterErrorHandler(t);
 
             return t;
         }
@@ -42,20 +40,17 @@ namespace SteamDatabaseBackend
         {
             Tasks.TryAdd(t, 1);
 
-            t.ContinueWith(task => Tasks.TryRemove(task, out _));
-        }
-
-        public static void RegisterErrorHandler(Task t)
-        {
             t.ContinueWith(task =>
             {
-                task.Exception.Flatten().Handle(e =>
+                task.Exception?.Flatten().Handle(e =>
                 {
                     ErrorReporter.Notify("Task Manager", e);
 
                     return false;
                 });
             }, TaskContinuationOptions.OnlyOnFaulted);
+
+            t.ContinueWith(task => Tasks.TryRemove(task, out _));
         }
 
         public static void CancelAllTasks()

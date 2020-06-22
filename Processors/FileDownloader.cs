@@ -150,10 +150,7 @@ namespace SteamDatabaseBackend
                     {
                         downloadState = fileState;
                     }
-                }).Unwrap();
-
-                // Register error handler on inner task
-                TaskManager.RegisterErrorHandler(fileTasks[i]);
+                });
             }
 
             await Task.WhenAll(fileTasks).ConfigureAwait(false);
@@ -317,10 +314,7 @@ namespace SteamDatabaseBackend
                     {
                         ChunkDownloadingSemaphore.Release();
                     }
-                }).Unwrap();
-
-                // Register error handler on inner task
-                TaskManager.RegisterErrorHandler(chunkTasks[i]);
+                });
             }
 
             await Task.WhenAll(chunkTasks).ConfigureAwait(false);

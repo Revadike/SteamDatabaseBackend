@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
 
             if (callback.MetaDataOnly)
             {
-                TaskManager.RunAsync(async () => await FullUpdateProcessor.HandleMetadataInfo(callback));
+                TaskManager.Run(async () => await FullUpdateProcessor.HandleMetadataInfo(callback));
                 return;
             }
 
@@ -97,16 +97,14 @@ namespace SteamDatabaseBackend
                     }
 
                     return processor;
-                }).Unwrap();
+                });
 
                 lock (CurrentlyProcessing)
                 {
                     CurrentlyProcessing[processor.Id] = workerItem;
                 }
 
-                // Register error handler on inner task and the continuation
-                TaskManager.RegisterErrorHandler(workerItem);
-                TaskManager.RegisterErrorHandler(workerItem.ContinueWith(RemoveProcessorLock, TaskManager.TaskCancellationToken.Token));
+                workerItem.ContinueWith(RemoveProcessorLock, TaskManager.TaskCancellationToken.Token);
             }
         }
 

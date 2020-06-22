@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
             ImportantSubs = new Dictionary<uint, byte>();
 
             ReloadImportant();
-            TaskManager.RunAsync(async () => await KeyNameCache.Init());
+            TaskManager.Run(KeyNameCache.Init);
 
             var thread = new Thread(Steam.Instance.Tick)
             {

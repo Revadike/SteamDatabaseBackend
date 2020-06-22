@@ -200,16 +200,16 @@ namespace SteamDatabaseBackend
 
             if (callback.AppChanges.Count > 0)
             {
-                _ = TaskManager.RunAsync(async () => await HandleApps(callback));
+                _ = TaskManager.Run(async () => await HandleApps(callback));
             }
 
             if (callback.PackageChanges.Count > 0)
             {
-                _ = TaskManager.RunAsync(async () => await HandlePackages(callback));
-                _ = TaskManager.RunAsync(async () => await HandlePackagesChangelists(callback));
+                _ = TaskManager.Run(async () => await HandlePackages(callback));
+                _ = TaskManager.Run(async () => await HandlePackagesChangelists(callback));
             }
 
-            _ = TaskManager.RunAsync(async () => await SendChangelistsToIRC(callback));
+            _ = TaskManager.Run(async () => await SendChangelistsToIRC(callback));
 
             PrintImportants(callback);
         }

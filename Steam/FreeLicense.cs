@@ -83,7 +83,7 @@ namespace SteamDatabaseBackend
                         Packages = packageIDs.ToList()
                     });
 
-                TaskManager.RunAsync(async () =>
+                TaskManager.Run(async () =>
                 {
                     await RefreshPackageNames();
 

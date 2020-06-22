@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteWarn("Watchdog", "Refreshing depot cdn servers");
 
-                TaskManager.RunAsync(Steam.Instance.DepotProcessor.UpdateContentServerList);
+                TaskManager.Run(Steam.Instance.DepotProcessor.UpdateContentServerList);
             }
         }
     }

@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
 
             manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
 
-            TaskManager.RunAsync(UpdateContentServerList);
+            TaskManager.Run(UpdateContentServerList);
         }
 
         public void Dispose()
@@ -78,10 +78,10 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            TaskManager.RunAsync(UpdateContentServerList);
+            TaskManager.Run(UpdateContentServerList);
         }
 
-        public async void UpdateContentServerList()
+        public async Task UpdateContentServerList()
         {
             LastServerRefreshTime = DateTime.Now;
 
@@ -473,7 +473,7 @@ namespace SteamDatabaseBackend
                     }
 
                     return result;
-                }).Unwrap();
+                });
 
                 processTasks.Add(task);
             }

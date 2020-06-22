@@ -14,28 +14,26 @@ namespace SteamDatabaseBackend
 {
     internal static class FullUpdateProcessor
     {
-        public static void PerformSync()
+        public static async Task PerformSync()
         {
             if (Settings.Current.FullRun == FullRunState.NormalUsingMetadata)
             {
-                TaskManager.RunAsync(async () =>
-                {
-                    await FullUpdateAppsMetadata();
-                    await FullUpdatePackagesMetadata();
-                });
+                await FullUpdateAppsMetadata();
+                await FullUpdatePackagesMetadata();
 
                 return;
             }
             else if (Settings.Current.FullRun == FullRunState.Enumerate)
             {
-                TaskManager.Run(FullUpdateEnumeration);
+                await FullUpdateEnumeration();
+
                 return;
             }
 
             List<uint> apps;
             List<uint> packages;
 
-            using (var db = Database.Get())
+            await using (var db = await Database.GetConnectionAsync())
             {
                 if (Settings.Current.FullRun == FullRunState.TokensOnly)
                 {
@@ -54,14 +52,14 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
+                        apps = (await db.QueryAsync<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC")).ToList();
                     }
 
-                    packages = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
+                    packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC")).ToList();
                 }
             }
 
-            TaskManager.RunAsync(async () => await RequestUpdateForList(apps, packages));
+            await RequestUpdateForList(apps, packages);
         }
 
         private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)

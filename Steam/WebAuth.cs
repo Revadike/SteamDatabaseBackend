@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
-            TaskManager.RunAsync(async () => await AuthenticateUser());
+            TaskManager.Run(AuthenticateUser);
         }
 
         public static async Task<bool> AuthenticateUser()
