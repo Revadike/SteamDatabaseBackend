@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -46,11 +47,11 @@ namespace SteamDatabaseBackend
 
         public static LocalConfigJson Current { get; private set; } = new LocalConfigJson();
 
-        public static void Load()
+        public static async Task Load()
         {
             if (File.Exists(ConfigPath))
             {
-                Current = JsonConvert.DeserializeObject<LocalConfigJson>(File.ReadAllText(ConfigPath));
+                Current = JsonConvert.DeserializeObject<LocalConfigJson>(await File.ReadAllTextAsync(ConfigPath));
             }
 
             if (Current.FreeLicensesToRequest.Count > 0)

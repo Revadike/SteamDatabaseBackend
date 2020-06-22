@@ -5,6 +5,7 @@
  */
 
 using System.IO;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -15,7 +16,7 @@ namespace SteamDatabaseBackend
 
         public static bool IsFullRun { get; private set; }
 
-        public static void Load()
+        public static async Task Load()
         {
             var settingsFile = Path.Combine(Application.Path, "settings.json");
 
@@ -24,10 +25,10 @@ namespace SteamDatabaseBackend
                 throw new FileNotFoundException($"\"{settingsFile}\" does not exist. Rename and edit settings.json.default file.");
             }
 
-            Current = JsonConvert.DeserializeObject<SettingsJson>(File.ReadAllText(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
+            Current = JsonConvert.DeserializeObject<SettingsJson>(await File.ReadAllTextAsync(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
         }
 
-        public static void Initialize()
+        public static async Task Initialize()
         {
             if (string.IsNullOrWhiteSpace(Current.Steam.Username) || string.IsNullOrWhiteSpace(Current.Steam.Password))
             {
@@ -35,7 +36,7 @@ namespace SteamDatabaseBackend
             }
 
             // Test database connection, it will throw if connection is unable to be made
-            using (Database.Get())
+            await using (await Database.GetConnectionAsync())
             {
                 //
             }

@@ -16,7 +16,7 @@ namespace SteamDatabaseBackend
     {
         private static bool CleaningUp;
 
-        public static void Main()
+        public static async Task Main()
         {
             CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
             Console.Title = "Steam Database";
 
             // Load settings file before logging as it can be enabled in settings
-            Settings.Load();
+            await Settings.Load();
 
             Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
 
@@ -35,15 +35,15 @@ namespace SteamDatabaseBackend
             var filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
             Directory.CreateDirectory(filesDir);
 
-            Settings.Initialize();
-            LocalConfig.Load();
+            await Settings.Initialize();
+            await LocalConfig.Load();
 
             DebugLog.AddListener(new Log.SteamKitLogger());
             DebugLog.Enabled = true;
 
             Console.CancelKeyPress += OnCancelKey;
 
-            Application.Init();
+            await Application.Init();
         }
 
         private static void OnCancelKey(object sender, ConsoleCancelEventArgs e)

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Dapper;
 
 namespace SteamDatabaseBackend
@@ -28,13 +29,13 @@ namespace SteamDatabaseBackend
             Path = System.IO.Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName);
         }
 
-        public static void Init()
+        public static async Task Init()
         {
             ImportantApps = new Dictionary<uint, List<string>>();
             ImportantSubs = new Dictionary<uint, byte>();
 
-            ReloadImportant();
-            TaskManager.Run(KeyNameCache.Init);
+            await ReloadImportant();
+            await KeyNameCache.Init();
 
             var thread = new Thread(Steam.Instance.Tick)
             {
@@ -72,22 +73,18 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static void ReloadImportant(CommandArguments command)
+        public static async Task ReloadImportant(CommandArguments command)
         {
-            ReloadImportant();
+            await ReloadImportant();
 
             command.Notice("Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
         }
 
-        private static void ReloadImportant()
+        private static async Task ReloadImportant()
         {
-            List<Important> importantApps;
-
-            using (var db = Database.Get())
-            {
-                importantApps = db.Query<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`").ToList();
-                ImportantSubs = db.Query<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`").ToDictionary(x => x.ID, _ => (byte)1);
-            }
+            await using var db = await Database.GetConnectionAsync();
+            var importantApps = (await db.QueryAsync<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`")).ToList();
+            ImportantSubs = (await db.QueryAsync<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`")).ToDictionary(x => x.ID, _ => (byte)1);
 
             lock (ImportantApps)
             {

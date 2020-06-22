@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
                 switch (s[0])
                 {
                     case "reload":
-                        Application.ReloadImportant(command);
+                        await Application.ReloadImportant(command);
                         PICSTokens.Reload(command);
                         FileDownloader.ReloadFileList();
 
