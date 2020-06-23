@@ -377,6 +377,11 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
+                CurrentData[keyName] = new PICSInfo
+                {
+                    Processed = true,
+                };
+
                 var key = KeyNameCache.GetSubKeyID(keyName);
 
                 if (key == 0)

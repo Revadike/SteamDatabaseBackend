@@ -264,6 +264,11 @@ namespace SteamDatabaseBackend
 
             if (!CurrentData.ContainsKey(keyName))
             {
+                CurrentData[keyName] = new PICSInfo
+                {
+                    Processed = true,
+                };
+
                 var key = KeyNameCache.GetAppKeyID(keyName);
 
                 if (key == 0)
