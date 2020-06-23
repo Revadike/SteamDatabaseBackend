@@ -31,12 +31,12 @@ namespace SteamDatabaseBackend
         {
             if (licenseList.Result != EResult.OK)
             {
-                Log.WriteError("LicenseList", "Failed: {0}", licenseList.Result);
+                Log.WriteError(nameof(LicenseList), "Failed: {0}", licenseList.Result);
 
                 return;
             }
 
-            Log.WriteInfo("LicenseList", "Received {0} licenses from Steam", licenseList.LicenseList.Count);
+            Log.WriteInfo(nameof(LicenseList), "Received {0} licenses from Steam", licenseList.LicenseList.Count);
 
             if (licenseList.LicenseList.Count == 0)
             {
@@ -63,14 +63,16 @@ namespace SteamDatabaseBackend
                 // For some obscure reason license list can contain duplicates
                 if (ownedSubs.ContainsKey(license.PackageID))
                 {
-                    Log.WriteWarn("LicenseList", "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
+#if DEBUG
+                    Log.WriteWarn(nameof(LicenseList), "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
+#endif
 
                     continue;
                 }
 
                 if (hasAnyLicense && !OwnedSubs.ContainsKey(license.PackageID))
                 {
-                    Log.WriteInfo("LicenseList", $"New license granted: {license.PackageID} ({license.PaymentMethod}, {license.LicenseFlags})");
+                    Log.WriteInfo(nameof(LicenseList), $"New license granted: {license.PackageID} ({license.PaymentMethod}, {license.LicenseFlags})");
 
                     newSubs.Add(license.PackageID);
                 }
