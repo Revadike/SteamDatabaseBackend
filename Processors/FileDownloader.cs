@@ -376,7 +376,10 @@ namespace SteamDatabaseBackend
                     Log.WriteWarn($"FileDownloader {job.DepotID}", $"Exception: {e}");
                 }
 
-                await Task.Delay(Utils.ExponentionalBackoff(i));
+                if (i < 5)
+                {
+                    await Task.Delay(Utils.ExponentionalBackoff(i + 1));
+                }
             }
 
             return false;

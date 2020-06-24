@@ -419,9 +419,9 @@ namespace SteamDatabaseBackend
 
                     depot.Server = GetContentServer();
 
-                    if (depotManifest == null)
+                    if (depotManifest == null && i < 5)
                     {
-                        await Task.Delay(Utils.ExponentionalBackoff(i));
+                        await Task.Delay(Utils.ExponentionalBackoff(i + 1));
                     }
                 }
 
