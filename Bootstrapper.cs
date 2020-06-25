@@ -44,6 +44,8 @@ namespace SteamDatabaseBackend
             Console.CancelKeyPress += OnCancelKey;
 
             await Application.Init();
+
+            Steam.Instance.Tick();
         }
 
         private static void OnCancelKey(object sender, ConsoleCancelEventArgs e)

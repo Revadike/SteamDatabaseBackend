@@ -109,7 +109,7 @@ namespace SteamDatabaseBackend
 
             while (IsRunning)
             {
-                CallbackManager.RunWaitCallbacks(TimeSpan.FromSeconds(1));
+                CallbackManager.RunWaitCallbacks();
             }
         }
 

@@ -15,8 +15,7 @@ namespace SteamDatabaseBackend
 {
     internal static class Application
     {
-        private static List<Thread> Threads;
-
+        private static Thread IrcThread;
         private static RSS RssReader;
 
         public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
@@ -37,17 +36,6 @@ namespace SteamDatabaseBackend
             await ReloadImportant();
             await KeyNameCache.Init();
 
-            var thread = new Thread(Steam.Instance.Tick)
-            {
-                Name = "Steam"
-            };
-            thread.Start();
-
-            Threads = new List<Thread>
-            {
-                thread,
-            };
-
             if (Settings.IsFullRun)
             {
                 return;
@@ -61,13 +49,11 @@ namespace SteamDatabaseBackend
             {
                 RssReader = new RSS();
 
-                thread = new Thread(IRC.Instance.Connect)
+                IrcThread = new Thread(IRC.Instance.Connect)
                 {
                     Name = "IRC"
                 };
-                thread.Start();
-
-                Threads.Add(thread);
+                IrcThread.Start();
 
                 IRC.Instance.RegisterCommandHandlers(commandHandler);
             }
@@ -108,12 +94,6 @@ namespace SteamDatabaseBackend
 
         public static void Cleanup()
         {
-            // If threads is null, app was not yet initialized and there is nothing to cleanup
-            if (Threads == null)
-            {
-                return;
-            }
-
             Log.WriteInfo("Bootstrapper", "Exiting...");
 
             try
@@ -135,20 +115,11 @@ namespace SteamDatabaseBackend
                 RssReader.Dispose();
 
                 IRC.Instance.Close();
-            }
 
-            Log.WriteInfo("Bootstrapper", "Cancelling {0} tasks...", TaskManager.TasksCount);
+                IrcThread.Join(TimeSpan.FromSeconds(5));
+            }
 
             TaskManager.CancelAllTasks();
-
-            foreach (var thread in Threads.Where(thread => thread.ThreadState == ThreadState.Running))
-            {
-                Log.WriteInfo("Bootstrapper", "Joining thread {0}...", thread.Name);
-
-                thread.Join(TimeSpan.FromSeconds(5));
-            }
-
-            Log.WriteInfo("Bootstrapper", "Saving local config...");
 
             LocalConfig.Save();
         }

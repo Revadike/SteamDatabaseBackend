@@ -44,7 +44,7 @@ namespace SteamDatabaseBackend
             {
                 task.Exception?.Flatten().Handle(e =>
                 {
-                    ErrorReporter.Notify("Task Manager", e);
+                    ErrorReporter.Notify(nameof(TaskManager), e);
 
                     return false;
                 });
@@ -55,6 +55,8 @@ namespace SteamDatabaseBackend
 
         public static void CancelAllTasks()
         {
+            Log.WriteInfo(nameof(TaskManager), $"Cancelling {TasksCount} tasks...");
+
             TaskCancellationToken.Cancel();
         }
     }
