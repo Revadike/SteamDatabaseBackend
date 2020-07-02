@@ -14,6 +14,8 @@ namespace SteamDatabaseBackend
 {
     internal static class FullUpdateProcessor
     {
+        private const int IdsPerMetadataRequest = 5000;
+
         public static async Task PerformSync()
         {
             if (Settings.Current.FullRun == FullRunState.NormalUsingMetadata)
@@ -113,7 +115,7 @@ namespace SteamDatabaseBackend
             var db = await Database.GetConnectionAsync();
             var apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
 
-            foreach (var list in apps.Split(10000))
+            foreach (var list in apps.Split(IdsPerMetadataRequest))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true));
 
@@ -132,7 +134,7 @@ namespace SteamDatabaseBackend
             var db = await Database.GetConnectionAsync();
             var subs = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
 
-            foreach (var list in subs.Split(10000))
+            foreach (var list in subs.Split(IdsPerMetadataRequest))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true));
 
@@ -167,10 +169,18 @@ namespace SteamDatabaseBackend
                 {
                     currentChangeNumbers.TryGetValue(app.ID, out var currentChangeNumber);
 
-                    if (currentChangeNumber != app.ChangeNumber)
+                    if (currentChangeNumber == app.ChangeNumber)
                     {
-                        Log.WriteInfo(nameof(FullUpdateProcessor), $"App {app.ID} - Change: {currentChangeNumber} -> {app.ChangeNumber}");
-                        apps.Add(app.ID);
+                        continue;
+                    }
+
+                    Log.WriteInfo(nameof(FullUpdateProcessor), $"App {app.ID} - Change: {currentChangeNumber} -> {app.ChangeNumber}");
+                    apps.Add(app.ID);
+
+                    if (!Settings.IsFullRun)
+                    {
+                        await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { app.ChangeNumber });
+                        await db.ExecuteAsync("INSERT INTO `ChangelistsApps` (`ChangeID`, `AppID`) VALUES (@ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new { AppID = app.ID, app.ChangeNumber });
                     }
                 }
             }
@@ -192,10 +202,18 @@ namespace SteamDatabaseBackend
                 {
                     currentChangeNumbers.TryGetValue(sub.ID, out var currentChangeNumber);
 
-                    if (currentChangeNumber != sub.ChangeNumber)
+                    if (currentChangeNumber == sub.ChangeNumber)
                     {
-                        Log.WriteInfo(nameof(FullUpdateProcessor), $"Package {sub.ID} - Change: {currentChangeNumber} -> {sub.ChangeNumber}");
-                        subs.Add(sub.ID);
+                        continue;
+                    }
+
+                    Log.WriteInfo(nameof(FullUpdateProcessor), $"Package {sub.ID} - Change: {currentChangeNumber} -> {sub.ChangeNumber}");
+                    subs.Add(sub.ID);
+
+                    if (!Settings.IsFullRun)
+                    {
+                        await db.ExecuteAsync("INSERT INTO `Changelists` (`ChangeID`) VALUES (@ChangeNumber) ON DUPLICATE KEY UPDATE `Date` = `Date`", new { sub.ChangeNumber });
+                        await db.ExecuteAsync("INSERT INTO `ChangelistsSubs` (`ChangeID`, `SubID`) VALUES (@ChangeNumber, @SubID) ON DUPLICATE KEY UPDATE `SubID` = `SubID`", new { SubID = sub.ID, sub.ChangeNumber });
                     }
                 }
             }
@@ -238,7 +256,7 @@ namespace SteamDatabaseBackend
             var apps = Enumerable.Range(0, lastAppId).Reverse().Select(i => (uint)i);
             var subs = Enumerable.Range(0, lastSubId).Reverse().Select(i => (uint)i);
 
-            foreach (var list in apps.Split(10000))
+            foreach (var list in apps.Split(IdsPerMetadataRequest))
             {
                 Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting app range: {list.First()}-{list.Last()}");
 
@@ -251,7 +269,7 @@ namespace SteamDatabaseBackend
                 while (IsBusy());
             }
 
-            foreach (var list in subs.Split(10000))
+            foreach (var list in subs.Split(IdsPerMetadataRequest))
             {
                 Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting package range: {list.First()}-{list.Last()}");
 
