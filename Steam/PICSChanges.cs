@@ -127,13 +127,8 @@ namespace SteamDatabaseBackend
             Log.WriteDebug(nameof(PICSChanges), $"Thread stopped #{currentHash}");
         }
 
-        private async void OnPICSChanges(SteamApps.PICSChangesCallback callback)
+        private void OnPICSChanges(SteamApps.PICSChangesCallback callback)
         {
-            if (callback.RequiresFullUpdate)
-            {
-                IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} has force_full_update set");
-            }
-
             if (PreviousChangeNumber == callback.CurrentChangeNumber)
             {
                 return;
@@ -143,7 +138,29 @@ namespace SteamDatabaseBackend
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
 
-            await HandleChangeNumbers(callback);
+            TaskManager.Run(async () => await HandleChangeNumbers(callback));
+
+            if (callback.RequiresFullAppUpdate || callback.RequiresFullPackageUpdate)
+            {
+                // Not using TaskManager.Run here because these full updates use IsBusy()
+                // which will not continue as this task will block it
+                Task.Run(async () =>
+                {
+                    if (callback.RequiresFullAppUpdate)
+                    {
+                        IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} has forced a full app update");
+
+                        await FullUpdateProcessor.FullUpdateAppsMetadata();
+                    }
+
+                    if (callback.RequiresFullPackageUpdate)
+                    {
+                        IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} has forced a full package update");
+
+                        await FullUpdateProcessor.FullUpdatePackagesMetadata();
+                    }
+                }, TaskManager.TaskCancellationToken.Token);
+            }
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {

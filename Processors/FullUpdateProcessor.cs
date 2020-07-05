@@ -238,7 +238,7 @@ namespace SteamDatabaseBackend
                 PICSProductInfo.CurrentlyProcessingCount,
                 Steam.Instance.DepotProcessor.DepotLocksCount);
 
-            return TaskManager.TasksCount > 0
+            return TaskManager.TasksCount > 1
                    || JobManager.JobsCount > 0
                    || PICSProductInfo.CurrentlyProcessingCount > 50
                    || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
