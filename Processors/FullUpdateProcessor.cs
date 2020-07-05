@@ -4,6 +4,7 @@
  * found in the LICENSE file.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -232,16 +233,14 @@ namespace SteamDatabaseBackend
 
         public static bool IsBusy()
         {
-            Log.WriteInfo(nameof(FullUpdateProcessor), "Jobs: {0} - Tasks: {1} - Processing: {2} - Depot locks: {3}",
-                JobManager.JobsCount,
-                TaskManager.TasksCount,
-                PICSProductInfo.CurrentlyProcessingCount,
-                Steam.Instance.DepotProcessor.DepotLocksCount);
+            var jobs = JobManager.JobsCount;
+            var tasks = TaskManager.TasksCount;
+            var processes = PICSProductInfo.CurrentlyProcessingCount;
+            var depots = Steam.Instance.DepotProcessor.DepotLocksCount;
 
-            return TaskManager.TasksCount > 1
-                   || JobManager.JobsCount > 0
-                   || PICSProductInfo.CurrentlyProcessingCount > 50
-                   || Steam.Instance.DepotProcessor.DepotLocksCount > 4;
+            Console.Error.WriteLine($"[{nameof(FullUpdateProcessor)}] Jobs: {jobs} - Tasks: {tasks} - Processing: {processes} - Depot locks: {depots}");
+
+            return tasks > 1 || jobs > 0 || processes > 50 || depots > 4;
         }
 
         private static async Task FullUpdateEnumeration()
