@@ -155,7 +155,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Apps.Any())
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps");
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps ({callback.Apps.First().Key}...{callback.Apps.Last().Key})");
 
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `AppID`, `Value` FROM `AppsInfo` WHERE `Key` = @ChangeNumberKey AND `AppID` IN @Apps",
@@ -188,7 +188,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Packages.Any())
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Packages.Count} packages");
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Packages.Count} packages ({callback.Packages.First().Key}...{callback.Packages.Last().Key})");
 
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = @ChangeNumberKey AND `SubID` IN @Subs",
