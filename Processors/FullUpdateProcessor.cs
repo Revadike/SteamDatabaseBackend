@@ -262,7 +262,8 @@ namespace SteamDatabaseBackend
 
             Console.Error.WriteLine($"[{nameof(FullUpdateProcessor)}] Jobs: {jobs} - Tasks: {tasks} - Processing: {processes} - Depot locks: {depots}");
 
-            return tasks > 1 || jobs > 0 || processes > 50 || depots > 4;
+            // 2 tasks when not full running = PICS ticker and full update task
+            return tasks > 2 || jobs > 0 || processes > 50 || depots > 4;
         }
 
         private static async Task FullUpdateEnumeration()
