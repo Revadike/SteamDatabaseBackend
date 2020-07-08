@@ -142,9 +142,7 @@ namespace SteamDatabaseBackend
 
             if (callback.RequiresFullAppUpdate || callback.RequiresFullPackageUpdate)
             {
-                // Not using TaskManager.Run here because these full updates use IsBusy()
-                // which will not continue as this task will block it
-                Task.Run(async () =>
+                TaskManager.Run(async () =>
                 {
                     if (callback.RequiresFullAppUpdate)
                     {
@@ -159,7 +157,7 @@ namespace SteamDatabaseBackend
 
                         await FullUpdateProcessor.FullUpdatePackagesMetadata();
                     }
-                }, TaskManager.TaskCancellationToken.Token);
+                });
             }
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)

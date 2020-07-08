@@ -118,7 +118,18 @@ namespace SteamDatabaseBackend
 
             foreach (var list in apps.Split(IdsPerMetadataRequest))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true));
+                do
+                {
+                    try
+                    {
+                        await Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
+                        break;
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.WriteWarn(nameof(FullUpdateProcessor), "Apps metadata request timed out");
+                    }
+                } while (true);
 
                 do
                 {
@@ -137,7 +148,18 @@ namespace SteamDatabaseBackend
 
             foreach (var list in subs.Split(IdsPerMetadataRequest))
             {
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true));
+                do
+                {
+                    try
+                    {
+                        await Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
+                        break;
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.WriteWarn(nameof(FullUpdateProcessor), "Package metadata request timed out");
+                    }
+                } while (true);
 
                 do
                 {
