@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
             {
                 IRC.Instance.SendMain($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} https://steamcommunity.com/gid/{callback.ClanID.AccountID}/announcements/detail/{announcement.ID}");
 
-                Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
+                Log.WriteInfo(nameof(ClanState), $"{groupName} \"{announcement.Headline}\"");
             }
 
             await using var db = await Database.GetConnectionAsync();
@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
                     $"{Colors.BLUE}{groupName}{Colors.NORMAL} event: {Colors.OLIVE}{groupEvent.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} {link} {Colors.DARKGRAY}({groupEvent.EventTime.ToString("s", CultureInfo.InvariantCulture).Replace("T", " ")})"
                 );
 
-                Log.WriteInfo("Group Announcement", $"{groupName} Event \"{groupEvent.Headline}\" {link}");
+                Log.WriteInfo(nameof(ClanState), $"{groupName} Event \"{groupEvent.Headline}\" {link}");
 
                 await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { Link = link, Title = groupEvent.Headline });
             }

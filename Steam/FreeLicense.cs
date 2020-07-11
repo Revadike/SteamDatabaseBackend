@@ -54,8 +54,7 @@ namespace SteamDatabaseBackend
             var packageIDs = callback.GrantedPackages;
             var appIDs = callback.GrantedApps;
 
-            Log.WriteDebug(nameof(FreeLicense), "Received free license: {0} ({1} apps: {2}, {3} packages: {4})",
-                callback.Result, appIDs.Count, string.Join(", ", appIDs), packageIDs.Count, string.Join(", ", packageIDs));
+            Log.WriteDebug(nameof(FreeLicense), $"Received free license: {callback.Result} ({appIDs.Count} apps: {string.Join(", ", appIDs)}, {packageIDs.Count} packages: {string.Join(", ", packageIDs)})");
 
             if (appIDs.Count > 0)
             {
@@ -113,7 +112,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                Log.WriteError("FreeLicense", "Failed to fetch account details page: {0}", e.Message);
+                Log.WriteError(nameof(FreeLicense), $"Failed to fetch account details page: {e.Message}");
 
                 return;
             }
@@ -135,7 +134,7 @@ namespace SteamDatabaseBackend
 
             if (names.Count == 0)
             {
-                Log.WriteError("FreeLicense", "Failed to find any package names on licenses page");
+                Log.WriteError(nameof(FreeLicense), "Failed to find any package names on licenses page");
 
                 return;
             }
@@ -150,7 +149,7 @@ namespace SteamDatabaseBackend
 
                 if (package.LastKnownName != newName)
                 {
-                    Log.WriteInfo("FreeLicense", "Changed package name for {0} from \"{1}\" to \"{2}\"", package.SubID, package.LastKnownName, newName);
+                    Log.WriteInfo(nameof(FreeLicense), $"Changed package name for {package.SubID} from \"{package.LastKnownName}\" to \"{newName}\"");
 
                     await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { package.SubID, Name = newName });
 

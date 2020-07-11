@@ -72,13 +72,13 @@ namespace SteamDatabaseBackend
                     PreviousChangeNumber = LocalConfig.Current.ChangeNumber;
                 }
 
-                Log.WriteInfo(nameof(PICSChanges), "Previous changelist was {0}", PreviousChangeNumber);
+                Log.WriteInfo(nameof(PICSChanges), $"Previous changelist was {PreviousChangeNumber}");
             }
 
             if (PreviousChangeNumber == 0)
             {
                 Log.WriteWarn(nameof(PICSChanges), "Looks like there are no changelists in the database.");
-                Log.WriteWarn(nameof(PICSChanges), "If you want to fill up your database first, restart with \"FullRun\" setting set to {0}.", (int)FullRunState.Enumerate);
+                Log.WriteWarn(nameof(PICSChanges), $"If you want to fill up your database first, restart with \"FullRun\" setting set to {(int)FullRunState.Enumerate}.");
             }
         }
 

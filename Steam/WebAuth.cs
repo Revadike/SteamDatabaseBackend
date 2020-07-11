@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
             {
                 IsAuthorized = false;
 
-                Log.WriteWarn("WebAuth", "Failed to get nonce: {0}", e.Message);
+                Log.WriteWarn(nameof(WebAuth), $"Failed to get nonce: {e.Message}");
 
                 return false;
             }
@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
                 {
                     IsAuthorized = false;
 
-                    Log.WriteWarn("WebAuth", "Failed to authenticate: {0}", e.Message);
+                    Log.WriteWarn(nameof(WebAuth), $"Failed to authenticate: {e.Message}");
 
                     return false;
                 }
@@ -93,7 +93,7 @@ namespace SteamDatabaseBackend
 
             IsAuthorized = true;
 
-            Log.WriteInfo("WebAuth", "Authenticated");
+            Log.WriteInfo(nameof(WebAuth), "Authenticated");
 
             return true;
         }

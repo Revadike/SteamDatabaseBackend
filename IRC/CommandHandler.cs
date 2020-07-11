@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
                 RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture
             );
 
-            Log.WriteInfo("CommandHandler", "Registered {0} commands", RegisteredCommands.Count);
+            Log.WriteInfo(nameof(CommandHandler), $"Registered {RegisteredCommands.Count} commands");
         }
 
         public void OnIRCMessage(object sender, ChatMessageEventArgs e)
@@ -120,7 +120,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("CommandHandler", "Handling IRC command \"{0}\" for {1}", Utils.RemoveControlCharacters(Colors.StripColors(message)), commandData);
+            Log.WriteInfo(nameof(CommandHandler), $"Handling IRC command \"{Utils.RemoveControlCharacters(Colors.StripColors(message))}\" for {commandData}");
 
             TryCommand(command, commandData);
         }
@@ -143,7 +143,7 @@ namespace SteamDatabaseBackend
                 Message = callback.Message
             };
 
-            Log.WriteInfo("CommandHandler", "Handling Steam friend command \"{0}\" for {1}", callback.Message, commandData);
+            Log.WriteInfo(nameof(CommandHandler), $"Handling Steam friend command \"{callback.Message}\" for {commandData}");
 
             HandleSteamMessage(commandData);
         }

@@ -143,7 +143,7 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new app token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetAppName(id)})");
 
-                Log.WriteInfo(nameof(PICSTokens), "New token for appid {0}", id);
+                Log.WriteInfo(nameof(PICSTokens), $"New token for appid {id}");
 
                 using var db = Database.Get();
                 db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
@@ -168,7 +168,7 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new package token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetPackageName(id)})");
 
-                Log.WriteInfo(nameof(PICSTokens), "New token for subid {0}", id);
+                Log.WriteInfo(nameof(PICSTokens), $"New token for subid {id}");
 
                 using var db = Database.Get();
                 db.Execute("INSERT INTO `PICSTokensSubs` (`SubID`, `Token`) VALUES(@SubID, @Token)",

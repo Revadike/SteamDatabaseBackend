@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
             // Load settings file before logging as it can be enabled in settings
             await Settings.Load();
 
-            Log.WriteInfo("Bootstrapper", "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
+            Log.WriteInfo(nameof(Bootstrapper), "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
 
             // Just create deepest folder we will use in the app
             var filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
@@ -52,7 +52,7 @@ namespace SteamDatabaseBackend
         {
             if (CleaningUp)
             {
-                Log.WriteInfo("Bootstrapper", "Forcing exit");
+                Log.WriteInfo(nameof(Bootstrapper), "Forcing exit");
 
                 Environment.Exit(0);
 
@@ -74,14 +74,14 @@ namespace SteamDatabaseBackend
             {
                 aggregateException.Flatten().Handle(e =>
                 {
-                    ErrorReporter.Notify("Bootstrapper", e);
+                    ErrorReporter.Notify(nameof(Bootstrapper), e);
 
                     return false;
                 });
             }
             else
             {
-                ErrorReporter.Notify("Bootstrapper", parentException);
+                ErrorReporter.Notify(nameof(Bootstrapper), parentException);
             }
 
             if (args.IsTerminating)
@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
         {
             args.Exception?.Flatten().Handle(e =>
             {
-                ErrorReporter.Notify("Bootstrapper", e);
+                ErrorReporter.Notify(nameof(Bootstrapper), e);
 
                 return true;
             });

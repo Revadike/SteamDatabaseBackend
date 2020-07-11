@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
 
         private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
         {
-            Log.WriteInfo(nameof(FullUpdateProcessor), "Requesting info for {0} apps and {1} packages", appIDs.Count, packageIDs.Count);
+            Log.WriteInfo(nameof(FullUpdateProcessor), $"Requesting info for {appIDs.Count} apps and {packageIDs.Count} packages");
 
             foreach (var list in appIDs.Split(200))
             {
@@ -272,7 +272,7 @@ namespace SteamDatabaseBackend
             var lastAppId = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC LIMIT 1");
             var lastSubId = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
 
-            Log.WriteInfo(nameof(FullUpdateProcessor), "Will enumerate {0} apps and {1} packages", lastAppId, lastSubId);
+            Log.WriteInfo(nameof(FullUpdateProcessor), $"Will enumerate {lastAppId} apps and {lastSubId} packages");
 
             // greatest code you've ever seen
             var apps = Enumerable.Range(0, lastAppId).Reverse().Select(i => (uint)i);

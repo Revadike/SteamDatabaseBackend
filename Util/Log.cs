@@ -50,21 +50,21 @@ namespace SteamDatabaseBackend
             {
                 Settings.Current.LogToFile = false;
 
-                WriteError("Unable to create logs directory: {0}", ex.Message);
+                WriteError(nameof(Log), $"Unable to create logs directory: {ex.Message}");
             }
 
             return path;
         }
 
-        public static void WriteDebug(string component, string format, params object[] args) => WriteLine(Category.DEBUG, component, format, args);
-        public static void WriteInfo(string component, string format, params object[] args) => WriteLine(Category.INFO, component, format, args);
-        public static void WriteWarn(string component, string format, params object[] args) => WriteLine(Category.WARN, component, format, args);
-        public static void WriteError(string component, string format, params object[] args) => WriteLine(Category.ERROR, component, format, args);
+        public static void WriteDebug(string component, string str) => WriteLine(Category.DEBUG, component, str);
+        public static void WriteInfo(string component, string str) => WriteLine(Category.INFO, component, str);
+        public static void WriteWarn(string component, string str) => WriteLine(Category.WARN, component, str);
+        public static void WriteError(string component, string str) => WriteLine(Category.ERROR, component, str);
 
-        private static void WriteLine(Category category, string component, string format, params object[] args)
+        private static void WriteLine(Category category, string component, string str)
         {
             var date = DateTime.Now;
-            var logLine =  $"{date:HH:mm:ss} [{category}] {component}: {(args.Length > 0 ? string.Format(format, args) : format)}{Environment.NewLine}";
+            var logLine =  $"{date:HH:mm:ss} [{category}] {component}: {str}{Environment.NewLine}";
 
             lock (logLock)
             {

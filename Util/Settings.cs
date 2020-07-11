@@ -45,7 +45,7 @@ namespace SteamDatabaseBackend
             {
                 IsFullRun = true;
 
-                Log.WriteInfo("Settings", "Running full update with option \"{0}\"", Current.FullRun);
+                Log.WriteInfo(nameof(Settings), $"Running full update with option \"{Current.FullRun}\"");
 
                 // Don't log full runs, regardless of setting
                 Current.LogToFile = false;
@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
             }
             else if (!Current.LogToFile)
             {
-                Log.WriteInfo("Settings", "File logging is disabled");
+                Log.WriteInfo(nameof(Settings), "File logging is disabled");
             }
 
             Current.IRC.Enabled = CanConnectToIRC();
@@ -65,19 +65,19 @@ namespace SteamDatabaseBackend
         {
             if (!Current.IRC.Enabled)
             {
-                Log.WriteWarn("Settings", "IRC is disabled in settings");
+                Log.WriteWarn(nameof(Settings), "IRC is disabled in settings");
                 return false;
             }
 
             if (string.IsNullOrEmpty(Current.IRC.Server) || Current.IRC.Port <= 0)
             {
-                Log.WriteWarn("Settings", "Missing IRC details in settings file, not connecting");
+                Log.WriteWarn(nameof(Settings), "Missing IRC details in settings file, not connecting");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(Current.IRC.Nickname))
             {
-                Log.WriteError("Settings", "Missing IRC nickname in settings file, not connecting");
+                Log.WriteError(nameof(Settings), "Missing IRC nickname in settings file, not connecting");
                 return false;
             }
 

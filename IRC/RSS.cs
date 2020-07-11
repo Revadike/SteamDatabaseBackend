@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
             if (feed.Items.Count == 0)
             {
-                Log.WriteError("RSS", "Did not find any items in {0}", feedUrl);
+                Log.WriteError(nameof(RSS), $"Did not find any items in {feedUrl}");
                 return;
             }
 
@@ -90,7 +90,7 @@ namespace SteamDatabaseBackend
 
             foreach (var item in newItems)
             {
-                Log.WriteInfo("RSS", $"[{feed.Title}] {item.Title}: {item.Link}");
+                Log.WriteInfo(nameof(RSS), $"[{feed.Title}] {item.Title}: {item.Link}");
 
                 IRC.Instance.SendMain($"{Colors.BLUE}{feed.Title}{Colors.NORMAL}: {item.Title} -{Colors.DARKBLUE} {item.Link}");
 
@@ -161,14 +161,14 @@ namespace SteamDatabaseBackend
 
                     if (DateTime.UtcNow > build.Date.AddMinutes(60))
                     {
-                        Log.WriteDebug("RSS", "Got {0} update patch notes, but there is no build within last 10 minutes. {1}", appID, item.Link);
+                        Log.WriteDebug(nameof(RSS), $"Got {appID} update patch notes, but there is no build within last 10 minutes. {item.Link}");
                         IRC.Instance.SendOps($"{Colors.GREEN}[Patch notes]{Colors.NORMAL} Got {appID} update patch notes, but there is no build within last 10 minutes. {item.Link}");
                         continue;
                     }
 
                     if (build.Official > 0)
                     {
-                        Log.WriteDebug("RSS", "Got {0} update patch notes, but official patch notes is already filled. {1}", appID, item.Link);
+                        Log.WriteDebug(nameof(RSS), $"Got {appID} update patch notes, but official patch notes is already filled. {item.Link}");
                         IRC.Instance.SendOps($"{Colors.GREEN}[Patch notes]{Colors.NORMAL} Got {appID} update patch notes, but official patch notes is already filled. {item.Link}");
                         continue;
                     }
@@ -181,7 +181,7 @@ namespace SteamDatabaseBackend
 
                     item.Content = WebUtility.HtmlDecode(item.Content);
 
-                    Log.WriteDebug("RSS", "Inserting {0} patchnotes for build {1}:\n{2}", build.AppID, build.BuildID, item.Content);
+                    Log.WriteDebug(nameof(RSS), $"Inserting {build.AppID} patchnotes for build {build.BuildID}:\n{item.Content}");
 
                     var accountId = Steam.Instance.Client?.SteamID?.AccountID ?? 0;
 
@@ -222,7 +222,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception ex)
             {
-                Log.WriteError("RSS", "Unable to load RSS feed {0}: {1}", url, ex.Message);
+                Log.WriteError(nameof(RSS), $"Unable to load RSS feed {url}: {ex.Message}");
 
                 return null;
             }

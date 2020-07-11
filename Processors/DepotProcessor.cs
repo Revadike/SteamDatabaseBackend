@@ -107,7 +107,7 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    Log.WriteError("Depot Processor", $"Failed to get server list: {e.Message}");
+                    Log.WriteError(nameof(DepotProcessor), $"Failed to get server list: {e.Message}");
 
                     return;
                 }
@@ -189,7 +189,7 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    Log.WriteDebug("Depot Downloader", "Depot {0} (from {1}) has no public branch, but there is another one", request.DepotID, appID);
+                    Log.WriteDebug(nameof(DepotProcessor), $"Depot {request.DepotID} (from {appID}) has no public branch, but there is another one");
 
                     request.BuildID = depots["branches"][branch.Name]["buildid"].AsInteger();
                 }
@@ -239,7 +239,7 @@ namespace SteamDatabaseBackend
                         {
                             // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
 
-                            Log.WriteDebug("Depot Processor", "Skipping depot {0} due to old buildid: {1} > {2}", request.DepotID, dbDepot.BuildID, request.BuildID);
+                            Log.WriteDebug(nameof(DepotProcessor), $"Skipping depot {request.DepotID} due to old buildid: {dbDepot.BuildID} > {request.BuildID}");
 
                             continue;
                         }
@@ -289,7 +289,7 @@ namespace SteamDatabaseBackend
                         // This doesn't really save us from concurrency issues
                         if (DepotLocks.ContainsKey(request.DepotID))
                         {
-                            Log.WriteWarn("Depot Processor", "Depot {0} was locked in another thread", request.DepotID);
+                            Log.WriteWarn(nameof(DepotProcessor), $"Depot {request.DepotID} was locked in another thread");
                             continue;
                         }
 
@@ -310,7 +310,7 @@ namespace SteamDatabaseBackend
                     }
                     catch (Exception e)
                     {
-                        ErrorReporter.Notify("Depot Processor", e);
+                        ErrorReporter.Notify(nameof(DepotProcessor), e);
                     }
 
                     foreach (var depot in depotsToDownload)
@@ -339,7 +339,7 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                Log.WriteWarn("Depot Processor", $"Decryption key timed out for {depot.DepotID}");
+                Log.WriteWarn(nameof(DepotProcessor), $"Decryption key timed out for {depot.DepotID}");
 
                 return;
             }
@@ -348,13 +348,13 @@ namespace SteamDatabaseBackend
             {
                 if (callback.Result != EResult.AccessDenied)
                 {
-                    Log.WriteWarn("Depot Processor", $"No access to depot {depot.DepotID} ({callback.Result})");
+                    Log.WriteWarn(nameof(DepotProcessor), $"No access to depot {depot.DepotID} ({callback.Result})");
                 }
 
                 return;
             }
 
-            Log.WriteDebug("Depot Downloader", $"Got a new depot key for depot {depot.DepotID}");
+            Log.WriteDebug(nameof(DepotProcessor), $"Got a new depot key for depot {depot.DepotID}");
 
             await using (var db = await Database.GetConnectionAsync())
             {
@@ -366,7 +366,7 @@ namespace SteamDatabaseBackend
 
         private async Task DownloadDepots(uint appID, List<ManifestJob> depots)
         {
-            Log.WriteDebug("Depot Downloader", "Will process {0} depots ({1} depot locks left)", depots.Count, DepotLocks.Count);
+            Log.WriteDebug(nameof(DepotProcessor), $"Will process {depots.Count} depots ({DepotLocks.Count} depot locks left)");
 
             var processTasks = new List<Task<EResult>>();
             var anyFilesDownloaded = false;
@@ -405,7 +405,7 @@ namespace SteamDatabaseBackend
                     {
                         lastError = e.Message;
 
-                        Log.WriteError("Depot Processor", "Failed to download depot manifest for app {0} depot {1} ({2}: {3}) (#{4})", appID, depot.DepotID, depot.Server, lastError, i);
+                        Log.WriteError(nameof(DepotProcessor), $"Failed to download depot manifest for app {appID} depot {depot.DepotID} ({depot.Server}: {lastError}) (#{i})");
                     }
                     finally
                     {
@@ -479,7 +479,7 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(processTasks).ConfigureAwait(false);
 
-            Log.WriteDebug("Depot Downloader", $"{depots.Count} depot downloads finished for app {appID}");
+            Log.WriteDebug(nameof(DepotProcessor), $"{depots.Count} depot downloads finished for app {appID}");
 
             // TODO: use ContinueWith on tasks
             if (!anyFilesDownloaded && !willDownloadFiles)
@@ -502,7 +502,7 @@ namespace SteamDatabaseBackend
                     }
                     else if (depot.Result != EResult.Ignored)
                     {
-                        Log.WriteWarn("Depot Processor", $"Download failed for {depot.DepotID}");
+                        Log.WriteWarn(nameof(DepotProcessor), $"Download failed for {depot.DepotID}");
 
                         // Mark this depot for redownload
                         var db = Database.Get();
@@ -522,7 +522,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    Log.WriteDebug("Depot Processor", "Reprocessing the app {0} because some files failed to download", appID);
+                    Log.WriteDebug(nameof(DepotProcessor), $"Reprocessing the app {appID} because some files failed to download");
 
                     IRC.Instance.SendOps($"{Colors.OLIVE}[{Steam.GetAppName(appID)}]{Colors.NORMAL} Reprocessing the app due to download failures");
 
@@ -538,7 +538,7 @@ namespace SteamDatabaseBackend
                 return false;
             }
 
-            Log.WriteDebug("Depot Downloader", $"Running update script: {script} {arg}");
+            Log.WriteDebug(nameof(DepotProcessor), $"Running update script: {script} {arg}");
 
             using var process = new System.Diagnostics.Process
             {
@@ -781,7 +781,7 @@ namespace SteamDatabaseBackend
             {
                 if (DepotLocks.Remove(depotID))
                 {
-                    Log.WriteInfo("Depot Downloader", "Processed depot {0} ({1} depot locks left)", depotID, DepotLocks.Count);
+                    Log.WriteInfo(nameof(DepotProcessor), $"Processed depot {depotID} ({DepotLocks.Count} depot locks left)");
                 }
             }
         }
@@ -791,7 +791,7 @@ namespace SteamDatabaseBackend
             // Let the watchdog update the server list in next check
             LastServerRefreshTime = DateTime.MinValue;
 
-            Log.WriteWarn("Depot Downloader", $"Removing {server} due to a download error");
+            Log.WriteWarn(nameof(DepotProcessor), $"Removing {server} due to a download error");
 
             CDNServers.Remove(server);
 

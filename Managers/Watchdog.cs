@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled && !IRC.Instance.IsConnected)
             {
-                Log.WriteWarn("Watchdog", "Forcing IRC reconnect.");
+                Log.WriteWarn(nameof(Watchdog), "Forcing IRC reconnect.");
 
                 IRC.Instance.Connect();
             }
@@ -44,14 +44,14 @@ namespace SteamDatabaseBackend
             {
                 IRC.Instance.SendOps("[Watchdog] Forcing a Steam reconnect.");
 
-                Log.WriteWarn("Watchdog", "Forcing a Steam reconnect.");
+                Log.WriteWarn(nameof(Watchdog), "Forcing a Steam reconnect.");
 
                 Connection.Reconnect(null, null);
             }
 
             if (DateTime.Now.Subtract(Steam.Instance.DepotProcessor.LastServerRefreshTime).TotalHours >= 2.0)
             {
-                Log.WriteWarn("Watchdog", "Refreshing depot cdn servers");
+                Log.WriteWarn(nameof(Watchdog), "Refreshing depot cdn servers");
 
                 TaskManager.Run(Steam.Instance.DepotProcessor.UpdateContentServerList);
             }

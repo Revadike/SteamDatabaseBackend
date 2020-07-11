@@ -13,7 +13,7 @@ namespace SteamDatabaseBackend
     {
         public static void Notify(string component, Exception e)
         {
-            Log.WriteError(component, "Exception: {0}", e);
+            Log.WriteError(component, $"Exception: {e}");
 
             var stacktrace = new StackTrace(e, true);
             var frame = stacktrace.GetFrame(stacktrace.FrameCount - 1);

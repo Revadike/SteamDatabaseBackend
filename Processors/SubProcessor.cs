@@ -111,13 +111,13 @@ namespace SteamDatabaseBackend
                     {
                         if (!uint.TryParse(childrenApp.Value, out var appID))
                         {
-                            Log.WriteWarn("Sub Processor", $"Package {SubID} has an invalid uint: {childrenApp.Value}");
+                            Log.WriteWarn(nameof(SubProcessor), $"Package {SubID} has an invalid uint: {childrenApp.Value}");
                             continue;
                         }
 
                         if (alreadySeenAppIds.Contains(appID))
                         {
-                            Log.WriteWarn("Sub Processor", $"Package {SubID} has a duplicate app: {appID}");
+                            Log.WriteWarn(nameof(SubProcessor), $"Package {SubID} has a duplicate app: {appID}");
                             continue;
                         }
 
@@ -365,7 +365,7 @@ namespace SteamDatabaseBackend
         {
             if (keyName.Length > 90)
             {
-                Log.WriteError("Sub Processor", "Key {0} for SubID {1} is too long, not inserting info.", keyName, SubID);
+                Log.WriteError(nameof(SubProcessor), $"Key {keyName} for SubID {SubID} is too long, not inserting info.");
 
                 return;
             }
@@ -393,7 +393,7 @@ namespace SteamDatabaseBackend
                     if (key == 0)
                     {
                         // We can't insert anything because key wasn't created
-                        Log.WriteError("Sub Processor", "Failed to create key {0} for SubID {1}, not inserting info.", keyName, SubID);
+                        Log.WriteError(nameof(SubProcessor), $"Failed to create key {keyName} for SubID {SubID}, not inserting info.");
 
                         return;
                     }
@@ -411,7 +411,7 @@ namespace SteamDatabaseBackend
 
             if (data.Processed)
             {
-                Log.WriteWarn("Sub Processor", "Duplicate key {0} in SubID {1}", keyName, SubID);
+                Log.WriteWarn(nameof(SubProcessor), $"Duplicate key {keyName} in SubID {SubID}");
 
                 return;
             }

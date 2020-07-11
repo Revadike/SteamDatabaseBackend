@@ -56,7 +56,7 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                ErrorReporter.Notify("IRC", e);
+                ErrorReporter.Notify(nameof(IRC), e);
             }
         }
 
@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
 
         private void OnConnected(object sender, EventArgs e)
         {
-            Log.WriteInfo("IRC", "Connected to IRC successfully");
+            Log.WriteInfo(nameof(IRC), "Connected to IRC successfully");
 
             Client.LogIn(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, Settings.Current.IRC.Nickname, "4", null, Settings.Current.IRC.Password);
             Client.Join(Settings.Current.IRC.Channel.Ops);
@@ -91,7 +91,7 @@ namespace SteamDatabaseBackend
 
         private void OnDisconnected(object sender, EventArgs e)
         {
-            Log.WriteInfo("IRC", "Disconnected from IRC");
+            Log.WriteInfo(nameof(IRC), "Disconnected from IRC");
 
             if (!Disconnecting)
             {
@@ -108,7 +108,7 @@ namespace SteamDatabaseBackend
                     return;
             }
 
-            Log.WriteError("IRC", "Error: {0} ({1})", e.Error.ToString(), string.Join(", ", e.Data.Parameters));
+            Log.WriteError(nameof(IRC), $"Error: {e.Error} ({string.Join(", ", e.Data.Parameters)})");
         }
 
         public void SendReply(string recipient, string message, bool notice)

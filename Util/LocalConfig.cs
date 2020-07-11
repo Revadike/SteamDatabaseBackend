@@ -56,7 +56,7 @@ namespace SteamDatabaseBackend
 
             if (Current.FreeLicensesToRequest.Count > 0)
             {
-                Log.WriteInfo("Local Config", $"There are {Current.FreeLicensesToRequest.Count} free licenses to request");
+                Log.WriteInfo(nameof(LocalConfig), $"There are {Current.FreeLicensesToRequest.Count} free licenses to request");
             }
 
             Save();
@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
 
         public static void Save()
         {
-            Log.WriteDebug("Local Config", "Saving...");
+            Log.WriteDebug(nameof(LocalConfig), "Saving...");
 
             lock (saveLock)
             {

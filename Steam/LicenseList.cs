@@ -31,12 +31,12 @@ namespace SteamDatabaseBackend
         {
             if (licenseList.Result != EResult.OK)
             {
-                Log.WriteError(nameof(LicenseList), "Failed: {0}", licenseList.Result);
+                Log.WriteError(nameof(LicenseList), $"Failed: {licenseList.Result}");
 
                 return;
             }
 
-            Log.WriteInfo(nameof(LicenseList), "Received {0} licenses from Steam", licenseList.LicenseList.Count);
+            Log.WriteInfo(nameof(LicenseList), $"Received {licenseList.LicenseList.Count} licenses from Steam");
 
             if (licenseList.LicenseList.Count == 0)
             {
@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
                 if (ownedSubs.ContainsKey(license.PackageID))
                 {
 #if DEBUG
-                    Log.WriteWarn(nameof(LicenseList), "Already contains {0} ({1})", license.PackageID, license.PaymentMethod);
+                    Log.WriteWarn(nameof(LicenseList), $"Already contains {license.PackageID} ({license.PaymentMethod})");
 #endif
 
                     continue;

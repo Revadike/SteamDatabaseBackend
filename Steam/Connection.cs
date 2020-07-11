@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
 
         public static void Reconnect(object sender, ElapsedEventArgs e)
         {
-            Log.WriteDebug("Steam", "Reconnecting...");
+            Log.WriteDebug(nameof(Steam), "Reconnecting...");
 
             Steam.Instance.Client.Connect();
         }
@@ -60,11 +60,11 @@ namespace SteamDatabaseBackend
         {
             ReconnectionTimer.Stop();
 
-            Log.WriteInfo("Steam", $"Connected, logging in to cellid {LocalConfig.Current.CellID}...");
+            Log.WriteInfo(nameof(Steam), $"Connected, logging in to cellid {LocalConfig.Current.CellID}...");
 
             if (Settings.Current.Steam.Username == "anonymous")
             {
-                Log.WriteInfo("Steam", "Using an anonymous account");
+                Log.WriteInfo(nameof(Steam), "Using an anonymous account");
 
                 Steam.Instance.User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
                 {
@@ -102,12 +102,12 @@ namespace SteamDatabaseBackend
 
             if (!Steam.Instance.IsRunning)
             {
-                Log.WriteInfo("Steam", "Disconnected from Steam");
+                Log.WriteInfo(nameof(Steam), "Disconnected from Steam");
 
                 return;
             }
             
-            Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds... {1}", RETRY_DELAY, callback.UserInitiated ? " (user initiated)" : "");
+            Log.WriteInfo(nameof(Steam), $"Disconnected from Steam. Retrying in {RETRY_DELAY} seconds... {(callback.UserInitiated ? " (user initiated)" : "")}");
 
             IRC.Instance.SendEmoteAnnounce($"disconnected from Steam. Retrying in {RETRY_DELAY} seconds…");
 
@@ -118,7 +118,7 @@ namespace SteamDatabaseBackend
         {
             if (callback.Result == EResult.AccountLogonDenied)
             {
-                Console.Write("STEAM GUARD! Please enter the auth code sent to the email at {0}: ", callback.EmailDomain);
+                Console.Write($"STEAM GUARD! Please enter the auth code sent to the email at {callback.EmailDomain}: ");
 
                 IsTwoFactor = false;
                 AuthCode = Console.ReadLine()?.Trim();
@@ -142,7 +142,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                Log.WriteInfo("Steam", "Failed to login: {0}", callback.Result);
+                Log.WriteInfo(nameof(Steam), $"Failed to login: {callback.Result}");
 
                 IRC.Instance.SendEmoteAnnounce($"failed to log in: {callback.Result}");
 
@@ -159,7 +159,7 @@ namespace SteamDatabaseBackend
 
             LastSuccessfulLogin = DateTime.Now;
 
-            Log.WriteInfo("Steam", $"Logged in, current Valve time is {callback.ServerTime:R}");
+            Log.WriteInfo(nameof(Steam), $"Logged in, current Valve time is {callback.ServerTime:R}");
 
             IRC.Instance.SendEmoteAnnounce($"logged in. Valve time: {callback.ServerTime:R}");
 
@@ -190,18 +190,18 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Log.WriteInfo("Steam", $"Logged out of Steam: {callback.Result}");
+            Log.WriteInfo(nameof(Steam), $"Logged out of Steam: {callback.Result}");
 
             IRC.Instance.SendEmoteAnnounce($"logged out of Steam: {callback.Result}");
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
-            Log.WriteInfo("Steam", $"Updating sentry file... {callback.FileName}");
+            Log.WriteInfo(nameof(Steam), $"Updating sentry file... {callback.FileName}");
 
             if (callback.Data.Length != callback.BytesToWrite)
             {
-                ErrorReporter.Notify("Steam", new InvalidDataException($"Data.Length ({callback.Data.Length}) != BytesToWrite ({callback.BytesToWrite}) in OnMachineAuth"));
+                ErrorReporter.Notify(nameof(Steam), new InvalidDataException($"Data.Length ({callback.Data.Length}) != BytesToWrite ({callback.BytesToWrite}) in OnMachineAuth"));
             }
 
             using (var stream = new MemoryStream(callback.BytesToWrite))
@@ -237,7 +237,7 @@ namespace SteamDatabaseBackend
 
         private void OnLoginKey(SteamUser.LoginKeyCallback callback)
         {
-            Log.WriteInfo("Steam", $"Got new login key with unique id {callback.UniqueID}");
+            Log.WriteInfo(nameof(Steam), $"Got new login key with unique id {callback.UniqueID}");
 
             LocalConfig.Current.LoginKey = callback.LoginKey;
             LocalConfig.Save();

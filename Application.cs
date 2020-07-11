@@ -89,12 +89,12 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            Log.WriteInfo("Application", "Loaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+            Log.WriteInfo(nameof(Application), $"Loaded {ImportantApps.Count} important apps and {ImportantSubs.Count} packages");
         }
 
         public static void Cleanup()
         {
-            Log.WriteInfo("Bootstrapper", "Exiting...");
+            Log.WriteInfo(nameof(Application), "Exiting...");
 
             try
             {
@@ -104,12 +104,12 @@ namespace SteamDatabaseBackend
             }
             catch (Exception e)
             {
-                ErrorReporter.Notify("Bootstrapper", e);
+                ErrorReporter.Notify(nameof(Application), e);
             }
 
             if (Settings.Current.IRC.Enabled)
             {
-                Log.WriteInfo("Bootstrapper", "Closing IRC connection...");
+                Log.WriteInfo(nameof(Application), "Closing IRC connection...");
 
                 RssReader.Timer.Stop();
                 RssReader.Dispose();

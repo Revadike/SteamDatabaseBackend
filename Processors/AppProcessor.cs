@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
                     await DbConnection.ExecuteAsync("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
                         new { Name = currentType, DisplayName = ProductInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
 
-                    Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
+                    Log.WriteInfo(nameof(AppProcessor), $"Creating new apptype \"{currentType}\" (AppID {AppID})");
 
                     IRC.Instance.SendOps($"New app type: {Colors.BLUE}{currentType}{Colors.NORMAL} - {SteamDB.GetAppUrl(AppID, "history")}");
 
@@ -257,7 +257,7 @@ namespace SteamDatabaseBackend
         {
             if (keyName.Length > 90)
             {
-                Log.WriteError("App Processor", "Key {0} for AppID {1} is too long, not inserting info.", keyName, AppID);
+                Log.WriteError(nameof(AppProcessor), $"Key {keyName} for AppID {AppID} is too long, not inserting info.");
 
                 return false;
             }
@@ -283,7 +283,7 @@ namespace SteamDatabaseBackend
                     if (key == 0)
                     {
                         // We can't insert anything because key wasn't created
-                        Log.WriteError("App Processor", "Failed to create key {0} for AppID {1}, not inserting info.", keyName, AppID);
+                        Log.WriteError(nameof(AppProcessor), $"Failed to create key {keyName} for AppID {AppID}, not inserting info.");
 
                         return false;
                     }
@@ -311,7 +311,7 @@ namespace SteamDatabaseBackend
 
             if (data.Processed)
             {
-                Log.WriteWarn("App Processor", "Duplicate key {0} in AppID {1}", keyName, AppID);
+                Log.WriteWarn(nameof(AppProcessor), $"Duplicate key {keyName} in AppID {AppID}");
 
                 return false;
             }

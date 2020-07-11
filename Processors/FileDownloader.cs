@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
 
             if (!File.Exists(file))
             {
-                Log.WriteWarn("FileDownloader", "files/depots_mapping.json not found.");
+                Log.WriteWarn(nameof(FileDownloader), "files/depots_mapping.json not found.");
 
                 return;
             }
@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
 
             if (!File.Exists(file))
             {
-                Log.WriteWarn("FileDownloader", "files/files.json not found. No files will be downloaded.");
+                Log.WriteWarn(nameof(FileDownloader), "files/files.json not found. No files will be downloaded.");
 
                 return;
             }
@@ -137,7 +137,7 @@ namespace SteamDatabaseBackend
                     if (fileState != EResult.SameAsPreviousValue)
                     {
                         // Do not write progress info to log file
-                        Console.WriteLine("{1} [{0,6:#00.00}%] {2} files left to download", downloadedFiles / (float)files.Count * 100.0f, job.DepotName, files.Count - downloadedFiles);
+                        Console.WriteLine($"{job.DepotName} [{downloadedFiles / (float) files.Count * 100.0f,6:#00.00}%] {files.Count - downloadedFiles} files left to download");
                     }
 
                     if (downloadState == EResult.DataCorruption)
@@ -301,7 +301,7 @@ namespace SteamDatabaseBackend
                             downloadedSize += chunk.UncompressedLength;
 
                             // Do not write progress info to log file
-                            Console.WriteLine("{2} [{0,6:#00.00}%] {1}", downloadedSize / (float)file.TotalSize * 100.0f, file.FileName, job.DepotName);
+                            Console.WriteLine($"{job.DepotName} [{downloadedSize / (float) file.TotalSize * 100.0f,6:#00.00}%] {file.FileName}");
                         }
                     }
                     finally

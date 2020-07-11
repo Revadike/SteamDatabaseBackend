@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
             };
 
 #if DEBUG
-            Log.WriteDebug("Job Manager", "New job: {0}", jobID);
+            Log.WriteDebug(nameof(JobManager), $"New job: {jobID}");
 #endif
 
             Jobs.TryAdd(jobID, job);
@@ -50,7 +50,7 @@ namespace SteamDatabaseBackend
             };
 
 #if DEBUG
-            Log.WriteDebug("Job Manager", "New job: {0} (with data)", jobID);
+            Log.WriteDebug(nameof(JobManager), $"New job: {jobID} (with data)");
 #endif
 
             Jobs.TryAdd(jobID, job);
@@ -68,7 +68,7 @@ namespace SteamDatabaseBackend
 
 #if DEBUG
             // Chat rooms don't have full message saved
-            Log.WriteDebug("Job Manager", "New chat job: {0} ({1})", jobID, command.Message);
+            Log.WriteDebug(nameof(JobManager), $"New chat job: {jobID} ({command.Message})");
 #endif
 
             Jobs.TryAdd(jobID, job);
@@ -84,7 +84,7 @@ namespace SteamDatabaseBackend
             if (Jobs.TryRemove(jobID, out job))
             {
 #if DEBUG
-                Log.WriteDebug("Job Manager", "Removed job: {0} ({1} jobs left)", jobID, Jobs.Count);
+                Log.WriteDebug(nameof(JobManager), $"Removed job: {jobID} ({Jobs.Count} jobs left)");
 #endif
 
                 return true;
@@ -100,7 +100,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo("Job Manager", "Restarting {0} jobs", Jobs.Count);
+            Log.WriteInfo(nameof(JobManager), $"Restarting {Jobs.Count} jobs");
 
             foreach (var (jobId, job) in Jobs)
             {
