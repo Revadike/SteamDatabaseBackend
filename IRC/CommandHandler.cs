@@ -112,7 +112,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var ident = string.Format("{0}@{1}", e.Sender.Username, e.Sender.Hostname);
+            var ident = $"{e.Sender.Username}@{e.Sender.Hostname}";
             commandData.IsUserAdmin = Settings.Current.IRC.Admins.Contains(ident);
 
             if (command.IsAdminCommand && !commandData.IsUserAdmin)

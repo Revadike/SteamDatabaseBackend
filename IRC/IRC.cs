@@ -116,7 +116,7 @@ namespace SteamDatabaseBackend
             if (notice)
             {
                 // Reset formatting since some clients might put notices in a different color
-                message = string.Format("{0}{1}{2}", Settings.Current.IRC.PrioritySendPrefix, Colors.NORMAL, message);
+                message = $"{Settings.Current.IRC.PrioritySendPrefix}{Colors.NORMAL}{message}";
 
                 Client.Notice(recipient, message);
             }

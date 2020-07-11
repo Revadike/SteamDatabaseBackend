@@ -146,7 +146,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var keyvalue in section.Children)
                     {
-                        var keyName = string.Format("{0}_{1}", sectionName, keyvalue.Name);
+                        var keyName = $"{sectionName}_{keyvalue.Name}";
 
                         if (keyName == "common_type" || keyName == "common_gameid" || keyName == "common_name" || keyName == "extended_order")
                         {
@@ -166,7 +166,7 @@ namespace SteamDatabaseBackend
                 }
                 else
                 {
-                    sectionName = string.Format("root_{0}", sectionName);
+                    sectionName = $"root_{sectionName}";
 
                     if (await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), section) && sectionName == "root_depots")
                     {
@@ -188,11 +188,17 @@ namespace SteamDatabaseBackend
             {
                 if (string.IsNullOrEmpty(app.Name)) // We don't have the app in our database yet
                 {
-                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UnknownAppName, AppID) });
+                    await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `Name`) VALUES (@AppID, @AppName) ON DUPLICATE KEY UPDATE `AppType` = `AppType`", new {
+                        AppID,
+                        AppName = $"{SteamDB.UnknownAppName} {AppID}"
+                    });
                 }
                 else if (!app.Name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new { AppID, AppName = string.Format("{0} {1}", SteamDB.UnknownAppName, AppID) });
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new {
+                        AppID,
+                        AppName = $"{SteamDB.UnknownAppName} {AppID}"
+                    });
                     await MakeHistory("deleted_app", 0, app.Name);
                 }
             }

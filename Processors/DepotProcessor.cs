@@ -499,7 +499,7 @@ namespace SteamDatabaseBackend
                 {
                     if (depot.Result == EResult.OK)
                     {
-                        RunUpdateScript(UpdateScript, string.Format("{0} no-git", depot.DepotID));
+                        RunUpdateScript(UpdateScript, $"{depot.DepotID} no-git");
                     }
                     else if (depot.Result != EResult.Ignored)
                     {
@@ -589,7 +589,7 @@ namespace SteamDatabaseBackend
 
         private static async Task<EResult> ProcessDepotAfterDownload(IDbConnection db, IDbTransaction transaction, ManifestJob request, DepotManifest depotManifest)
         {
-            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction: transaction)).ToDictionary(x => x.File, x => x);
+            var filesOld = (await db.QueryAsync<DepotFile>("SELECT `File`, `Hash`, `Size`, `Flags` FROM `DepotsFiles` WHERE `DepotID` = @DepotID", new { request.DepotID }, transaction)).ToDictionary(x => x.File, x => x);
             var filesAdded = new List<DepotFile>();
             var shouldHistorize = filesOld.Count > 0 && !depotManifest.FilenamesEncrypted; // Don't historize file additions if we didn't have any data before
 
@@ -723,7 +723,7 @@ namespace SteamDatabaseBackend
 
             if (filesAdded.Count > 0)
             {
-                await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded, transaction: transaction);
+                await db.ExecuteAsync("INSERT INTO `DepotsFiles` (`DepotID`, `File`, `Hash`, `Size`, `Flags`) VALUES (@DepotID, @File, @Hash, @Size, @Flags)", filesAdded, transaction);
 
                 if (shouldHistorize)
                 {
@@ -774,7 +774,7 @@ namespace SteamDatabaseBackend
                     OldValue = oldValue,
                     NewValue = newValue
                 },
-                transaction: transaction
+                transaction
             );
         }
 

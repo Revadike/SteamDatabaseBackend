@@ -59,7 +59,7 @@ namespace SteamDatabaseBackend
             }
 
             var isStable = args.Length > 1 && args[1] == "stable";
-            var uri = new Uri(string.Format("{0}steam_client_{1}{2}?_={3}", CDN, isStable ? "" : "publicbeta_", os, DateTime.UtcNow.Ticks));
+            var uri = new Uri($"{CDN}steam_client_{(isStable ? "" : "publicbeta_")}{os}?_={DateTime.UtcNow.Ticks}");
 
             var client = Utils.HttpClient;
             var data = await client.GetStringAsync(uri);

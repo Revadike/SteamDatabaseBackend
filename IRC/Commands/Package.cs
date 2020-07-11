@@ -69,7 +69,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", string.Format("{0}.vdf", info.ID)), false);
+            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", $"{info.ID}.vdf"), false);
 
             command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,

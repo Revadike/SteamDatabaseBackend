@@ -102,17 +102,17 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo("Job Manager", "Restarting {0} jobs", Jobs.Count);
 
-            foreach (var job in Jobs)
+            foreach (var (jobId, job) in Jobs)
             {
-                TryRemoveJob(job.Key);
+                TryRemoveJob(jobId);
 
-                if (job.Value.Command == null)
+                if (job.Command == null)
                 {
-                    AddJob(job.Value.Action);
+                    AddJob(job.Action);
                 }
                 else
                 {
-                    AddJob(job.Value.Action, job.Value.Command);
+                    AddJob(job.Action, job.Command);
                 }
             }
         }

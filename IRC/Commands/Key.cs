@@ -166,24 +166,24 @@ namespace SteamDatabaseBackend
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                foreach (var package in job.Packages)
+                foreach (var (subid, name) in job.Packages)
                 {
-                    var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = package.Key })).FirstOrDefault() ?? string.Empty;
+                    var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subid })).FirstOrDefault() ?? string.Empty;
 
-                    if (databaseName.Equals(package.Value, StringComparison.CurrentCultureIgnoreCase))
+                    if (databaseName.Equals(name, StringComparison.CurrentCultureIgnoreCase))
                     {
                         continue;
                     }
 
-                    await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = package.Key, Name = package.Value });
+                    await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = subid, Name = name });
 
                     await db.ExecuteAsync(SubProcessor.HistoryQuery,
                         new PICSHistory
                         {
-                            ID = package.Key,
+                            ID = subid,
                             Key = SteamDB.DatabaseNameType,
                             OldValue = "key activation",
-                            NewValue = package.Value,
+                            NewValue = name,
                             Action = "created_info"
                         }
                     );

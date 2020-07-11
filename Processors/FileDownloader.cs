@@ -65,15 +65,15 @@ namespace SteamDatabaseBackend
 
             var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), JsonErrorMissing);
 
-            foreach (var depot in files)
+            foreach (var (depotid, fileMatches) in files)
             {
-                var pattern = string.Format("^({0})$", string.Join("|", depot.Value.Select(ConvertFileMatch)));
+                var pattern = $"^({string.Join("|", fileMatches.Select(ConvertFileMatch))})$";
 
-                Files[depot.Key] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+                Files[depotid] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
 
-                if (!DownloadFolders.ContainsKey(depot.Key))
+                if (!DownloadFolders.ContainsKey(depotid))
                 {
-                    throw new InvalidDataException(string.Format("Missing depot mapping for depotid {0}.", depot.Key));
+                    throw new InvalidDataException($"Missing depot mapping for depotid {depotid}.");
                 }
             }
         }
@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
             var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
             var downloadState = EResult.Fail;
 
-            var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", string.Format("{0}.json", job.DepotID));
+            var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", $"{job.DepotID}.json");
             ConcurrentDictionary<string, byte[]> hashes;
 
             if (File.Exists(hashesFile))
@@ -217,7 +217,7 @@ namespace SteamDatabaseBackend
 
             var neededChunks = new List<DepotManifest.ChunkData>();
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
-            var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", string.Format("{0}-{1}.json", job.DepotID, BitConverter.ToString(checksum)));
+            var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", $"{job.DepotID}-{BitConverter.ToString(checksum)}.json");
 
             await using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {

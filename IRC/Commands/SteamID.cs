@@ -112,8 +112,9 @@ namespace SteamDatabaseBackend
 
             if (callback.FriendID.IsClanAccount)
             {
-                var clantag = string.IsNullOrEmpty(callback.ClanTag) ? string.Empty : string.Format(" {0}(Clan tag: {1}{2}{3})",
-                    Colors.NORMAL, Colors.LIGHTGRAY, callback.ClanTag, Colors.NORMAL);
+                var clantag = string.IsNullOrEmpty(callback.ClanTag) ?
+                    string.Empty :
+                    $" {Colors.NORMAL}(Clan tag: {Colors.LIGHTGRAY}{callback.ClanTag}{Colors.NORMAL})";
 
                 command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/gid/{4}/{5}",
                     Colors.BLUE, callback.Name, Colors.NORMAL,
@@ -194,44 +195,19 @@ namespace SteamDatabaseBackend
          */
         private static string ExpandSteamID(SteamID input)
         {
-            var displayInstance = input.AccountInstance.ToString();
-
-            switch (input.AccountInstance)
+            var displayInstance = input.AccountInstance switch
             {
-                case SteamID.AllInstances:
-                    displayInstance = "All";
-                    break;
+                SteamID.AllInstances => "All",
+                SteamID.DesktopInstance => "Desktop",
+                SteamID.ConsoleInstance => "Console",
+                SteamID.WebInstance => "Web",
+                (uint)SteamID.ChatInstanceFlags.Clan => "Clan",
+                (uint)SteamID.ChatInstanceFlags.Lobby => "Lobby",
+                (uint)SteamID.ChatInstanceFlags.MMSLobby => "MMS Lobby",
+                _ => input.AccountInstance.ToString()
+            };
 
-                case SteamID.DesktopInstance:
-                    displayInstance = "Desktop";
-                    break;
-
-                case SteamID.ConsoleInstance:
-                    displayInstance = "Console";
-                    break;
-
-                case SteamID.WebInstance:
-                    displayInstance = "Web";
-                    break;
-
-                case (uint)SteamID.ChatInstanceFlags.Clan:
-                    displayInstance = "Clan";
-                    break;
-
-                case (uint)SteamID.ChatInstanceFlags.Lobby:
-                    displayInstance = "Lobby";
-                    break;
-
-                case (uint)SteamID.ChatInstanceFlags.MMSLobby:
-                    displayInstance = "MMS Lobby";
-                    break;
-            }
-
-            return string.Format("{0} / {1} {2}(AccountID: {3}, Universe: {4}, Instance: {5}, Type: {6}){7}",
-                input.Render(), input.ConvertToUInt64(), Colors.DARKGRAY,
-                input.AccountID, input.AccountUniverse, displayInstance, input.AccountType,
-                input.IsValid ? "" : $"{Colors.RED} (not valid)"
-            );
+            return $"{input.Render()} / {input.ConvertToUInt64()} {Colors.DARKGRAY}(AccountID: {input.AccountID}, Universe: {input.AccountUniverse}, Instance: {displayInstance}, Type: {input.AccountType}){(input.IsValid ? "" : $"{Colors.RED} (not valid)")}";
         }
 
         /*

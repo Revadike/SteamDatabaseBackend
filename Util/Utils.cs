@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
 
         static Utils()
         {
-            HttpClient = new HttpClient(new HttpClientHandler()
+            HttpClient = new HttpClient(new HttpClientHandler
             {
                 AllowAutoRedirect = false,
                 AutomaticDecompression = DecompressionMethods.GZip,

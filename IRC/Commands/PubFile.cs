@@ -80,14 +80,14 @@ namespace SteamDatabaseBackend
 
             var json = JsonConvert.SerializeObject(details, Formatting.Indented);
 
-            await File.WriteAllTextAsync(Path.Combine(Application.Path, "ugc", string.Format("{0}.json", details.publishedfileid)), json, Encoding.UTF8);
+            await File.WriteAllTextAsync(Path.Combine(Application.Path, "ugc", $"{details.publishedfileid}.json"), json, Encoding.UTF8);
 
             command.Reply("{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
                 (EWorkshopFileType)details.file_type,
                 Colors.BLUE, string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title, Colors.NORMAL,
                 Colors.BLUE, new SteamID(details.creator).Render(), Colors.NORMAL,
                 Colors.BLUE, details.creator_appid,
-                details.creator_appid == details.consumer_appid ? "" : string.Format(" (consumer {0})", details.consumer_appid),
+                details.creator_appid == details.consumer_appid ? "" : $" (consumer {details.consumer_appid})",
                 Colors.NORMAL,
                 Colors.BLUE, details.hcontent_file, Colors.NORMAL,
                 Colors.BLUE, details.hcontent_preview, Colors.NORMAL,

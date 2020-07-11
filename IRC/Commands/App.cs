@@ -95,7 +95,7 @@ namespace SteamDatabaseBackend
                 name = Steam.GetAppName(info.ID);
             }
 
-            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", string.Format("{0}.vdf", info.ID)), false);
+            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", $"{info.ID}.vdf"), false);
 
             command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
                 Colors.BLUE, name, Colors.NORMAL,

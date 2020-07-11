@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
 {
-    static class LocalConfig
+    internal static class LocalConfig
     {
         private static readonly JsonSerializerSettings JsonFormatted = new JsonSerializerSettings { Formatting = Formatting.Indented };
 

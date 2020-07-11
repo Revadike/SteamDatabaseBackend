@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
         {
             if (data.AppID == 0)
             {
-                return string.Format("AppID {0}", appID);
+                return $"AppID {appID}";
             }
 
             var name = Utils.RemoveControlCharacters(data.Name);
@@ -168,7 +168,7 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(nameLast) && !name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase))
             {
-                return string.Format("{0} {1}({2}){3}", Utils.LimitStringLength(name), Colors.DARKGRAY, Utils.LimitStringLength(nameLast), Colors.NORMAL);
+                return $"{Utils.LimitStringLength(name)} {Colors.DARKGRAY}({Utils.LimitStringLength(nameLast)}){Colors.NORMAL}";
             }
 
             return Utils.LimitStringLength(name);
@@ -184,7 +184,7 @@ namespace SteamDatabaseBackend
                     return "Steam";
                 }
 
-                return string.Format("SubID {0}", subID);
+                return $"SubID {subID}";
             }
 
             var name = Utils.RemoveControlCharacters(data.Name);
@@ -197,7 +197,7 @@ namespace SteamDatabaseBackend
 
             if (!name.Equals(nameLast, StringComparison.CurrentCultureIgnoreCase) && !name.StartsWith("Steam Sub ", StringComparison.Ordinal))
             {
-                return string.Format("{0} {1}({2}){3}", Utils.LimitStringLength(nameLast), Colors.DARKGRAY, Utils.LimitStringLength(name), Colors.NORMAL);
+                return $"{Utils.LimitStringLength(nameLast)} {Colors.DARKGRAY}({Utils.LimitStringLength(name)}){Colors.NORMAL}";
             }
 
             return Utils.LimitStringLength(nameLast);

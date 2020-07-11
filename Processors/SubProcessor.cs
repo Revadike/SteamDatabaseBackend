@@ -223,7 +223,7 @@ namespace SteamDatabaseBackend
                 {
                     foreach (var children in section.Children)
                     {
-                        var keyName = string.Format("{0}_{1}", sectionName, children.Name);
+                        var keyName = $"{sectionName}_{children.Name}";
 
                         if (children.Children.Count > 0)
                         {
@@ -237,13 +237,13 @@ namespace SteamDatabaseBackend
                 }
                 else if (section.Children.Count > 0)
                 {
-                    sectionName = string.Format("root_{0}", sectionName);
+                    sectionName = $"root_{sectionName}";
 
                     await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(section), true);
                 }
                 else if (!string.IsNullOrEmpty(section.Value))
                 {
-                    var keyName = string.Format("root_{0}", sectionName);
+                    var keyName = $"root_{sectionName}";
 
                     await ProcessKey(keyName, sectionName, section.Value);
                 }
@@ -260,22 +260,22 @@ namespace SteamDatabaseBackend
 
                 var appsRemoved = apps.Count > 0;
 
-                foreach (var app in apps)
+                foreach (var (appid, type) in apps)
                 {
-                    await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new {SubID, AppID = app.Key, Type = app.Value});
+                    await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID AND `AppID` = @AppID AND `Type` = @Type", new {SubID, AppID = appid, Type = type});
 
-                    var isAppSection = app.Value == "app";
+                    var isAppSection = type == "app";
 
                     var typeID = (uint) (isAppSection ? 0 : 1); // 0 = app, 1 = depot; can't store as string because it's in the `key` field
 
-                    await MakeHistory("removed_from_sub", typeID, app.Key.ToString());
+                    await MakeHistory("removed_from_sub", typeID, appid.ToString());
 
                     if (isAppSection)
                     {
                         await DbConnection.ExecuteAsync(AppProcessor.HistoryQuery,
                             new PICSHistory
                             {
-                                ID = app.Key,
+                                ID = appid,
                                 ChangeID = ChangeNumber,
                                 OldValue = SubID.ToString(),
                                 Action = "removed_from_sub"
@@ -287,7 +287,7 @@ namespace SteamDatabaseBackend
                         await DbConnection.ExecuteAsync(DepotProcessor.HistoryQuery,
                             new DepotHistory
                             {
-                                DepotID = app.Key,
+                                DepotID = appid,
                                 ManifestID = 0,
                                 ChangeID = ChangeNumber,
                                 OldValue = SubID,

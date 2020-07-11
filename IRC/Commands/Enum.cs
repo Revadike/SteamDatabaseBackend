@@ -119,7 +119,7 @@ namespace SteamDatabaseBackend
 
             if (count > 10)
             {
-                formatted = string.Format("{0}, and {1} more...", formatted, count - 10);
+                formatted = $"{formatted}, and {count - 10} more...";
             }
 
             command.Reply("{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
@@ -153,7 +153,7 @@ namespace SteamDatabaseBackend
                     }
                     else
                     {
-                        definedFlags.Add(string.Format("{0}(1<<{1}){2}", Colors.RED, currentFlag, Colors.BLUE));
+                        definedFlags.Add($"{Colors.RED}(1<<{currentFlag}){Colors.BLUE}");
                     }
                 }
 

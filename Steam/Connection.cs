@@ -201,7 +201,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Data.Length != callback.BytesToWrite)
             {
-                ErrorReporter.Notify("Steam", new InvalidDataException(string.Format("Data.Length ({0}) != BytesToWrite ({1}) in OnMachineAuth", callback.Data.Length, callback.BytesToWrite)));
+                ErrorReporter.Notify("Steam", new InvalidDataException($"Data.Length ({callback.Data.Length}) != BytesToWrite ({callback.BytesToWrite}) in OnMachineAuth"));
             }
 
             using (var stream = new MemoryStream(callback.BytesToWrite))

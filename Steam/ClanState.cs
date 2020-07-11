@@ -39,14 +39,7 @@ namespace SteamDatabaseBackend
 
             foreach (var announcement in callback.Announcements)
             {
-                var message = string.Format(
-                    "{0}{1}{2} announcement: {3}{4}{5} -{6} https://steamcommunity.com/gid/{7}/announcements/detail/{8}",
-                    Colors.BLUE, groupName, Colors.NORMAL,
-                    Colors.OLIVE, announcement.Headline, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.ClanID.AccountID, announcement.ID
-                );
-
-                IRC.Instance.SendMain(message);
+                IRC.Instance.SendMain($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} https://steamcommunity.com/gid/{callback.ClanID.AccountID}/announcements/detail/{announcement.ID}");
 
                 Log.WriteInfo("Group Announcement", "{0} \"{1}\"", groupName, announcement.Headline);
             }

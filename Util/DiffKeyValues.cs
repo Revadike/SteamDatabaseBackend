@@ -30,38 +30,38 @@ namespace SteamDatabaseBackend
             var newFlat = FlattenKeyValue(newKv.Children, null); // Children because we skip root
             var diff = new Dictionary<string, ComparedValue>();
 
-            foreach (var oldSingle in oldFlat)
+            foreach (var (key, value) in oldFlat)
             {
-                if (newFlat.TryGetValue(oldSingle.Key, out var newValue))
+                if (newFlat.TryGetValue(key, out var newValue))
                 {
-                    if (newValue != oldSingle.Value)
+                    if (newValue != value)
                     {
-                        diff.Add(oldSingle.Key, new ComparedValue
+                        diff.Add(key, new ComparedValue
                         {
                             Type = ComparedValue.TypeModified,
-                            OldValue = oldSingle.Value,
+                            OldValue = value,
                             NewValue = newValue
                         });
                     }
                 }
                 else
                 {
-                    diff.Add(oldSingle.Key, new ComparedValue
+                    diff.Add(key, new ComparedValue
                     {
                         Type = ComparedValue.TypeRemoved,
-                        OldValue = oldSingle.Value
+                        OldValue = value
                     });
                 }
             }
 
-            foreach (var newSingle in newFlat)
+            foreach (var (key, value) in newFlat)
             {
-                if (!oldFlat.ContainsKey(newSingle.Key))
+                if (!oldFlat.ContainsKey(key))
                 {
-                    diff.Add(newSingle.Key, new ComparedValue
+                    diff.Add(key, new ComparedValue
                     {
                         Type = ComparedValue.TypeAdded,
-                        NewValue = newSingle.Value
+                        NewValue = value
                     });
                 }
             }
@@ -78,9 +78,9 @@ namespace SteamDatabaseBackend
             {
                 var flatChildren = FlattenKeyValue(kv.Children, key);
 
-                foreach (var children in flatChildren)
+                foreach (var (childKey, childValue) in flatChildren)
                 {
-                    flat.Add(children.Key, children.Value);
+                    flat.Add(childKey, childValue);
                 }
             }
             else if (kv.Value != null)
