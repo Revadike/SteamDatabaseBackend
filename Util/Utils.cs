@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -20,6 +21,7 @@ namespace SteamDatabaseBackend
     internal static class Utils
     {
         private static readonly Random RandomGenerator = new Random();
+        public static SHA1 Sha1Instance { get; } = SHA1.Create();
         public static HttpClient HttpClient { get; }
 
         static Utils()
@@ -84,27 +86,21 @@ namespace SteamDatabaseBackend
             return BitConverter.ToString(ba).Replace("-", "");
         }
 
-        public static bool IsEqualSHA1(byte[] a, byte[] b)
+        public static bool ByteArrayEquals(byte[] a, byte[] b)
         {
-            const int SHA1_LENGTH = 20;
-
-            var aEmpty = a == null || a.Length < SHA1_LENGTH;
-            var bEmpty = b == null || b.Length < SHA1_LENGTH;
-
-            if (aEmpty || bEmpty)
+            // returns when a and b are both null
+            if (a == b)
             {
-                return aEmpty == bEmpty;
+                return true;
             }
 
-            for (var i = 0; i < SHA1_LENGTH; ++i)
+            // if either is null can't be equal
+            if (a == null || b == null)
             {
-                if (a[i] != b[i])
-                {
-                    return false;
-                }
+                return false;
             }
 
-            return true;
+            return a.SequenceEqual(b);
         }
 
         public static string RemoveControlCharacters(string input)

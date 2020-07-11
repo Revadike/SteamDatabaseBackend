@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -135,14 +134,13 @@ namespace SteamDatabaseBackend
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                using var sha = new SHA1CryptoServiceProvider();
                 await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @PurchaseResultDetail WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
                     new
                     {
                         job.PurchaseResultDetail,
                         SubID = job.Packages.Count > 0 ? (int)job.Packages.First().Key : -1,
                         SteamKey = key,
-                        HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
+                        HashedKey = Utils.ByteArrayToString(Utils.Sha1Instance.ComputeHash(Encoding.ASCII.GetBytes(key)))
                     });
             }
 

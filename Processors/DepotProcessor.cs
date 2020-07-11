@@ -641,8 +641,7 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    using var sha = new System.Security.Cryptography.SHA1Managed();
-                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(Encoding.UTF8.GetBytes(name)));
+                    var nameHash = Utils.ByteArrayToString(Utils.Sha1Instance.ComputeHash(Encoding.UTF8.GetBytes(name)));
                     name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
                 }
 
@@ -651,7 +650,7 @@ namespace SteamDatabaseBackend
                     var oldFile = filesOld[name];
                     var updateFile = false;
 
-                    if (oldFile.Size != file.TotalSize || !Utils.IsEqualSHA1(hash, oldFile.Hash))
+                    if (oldFile.Size != file.TotalSize || !Utils.ByteArrayEquals(hash, oldFile.Hash))
                     {
                         await MakeHistory(db, transaction, request, name, "modified", oldFile.Size, file.TotalSize);
 

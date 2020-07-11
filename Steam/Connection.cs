@@ -7,7 +7,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Timers;
 using SteamKit2;
 
@@ -205,21 +204,11 @@ namespace SteamDatabaseBackend
                 ErrorReporter.Notify("Steam", new InvalidDataException(string.Format("Data.Length ({0}) != BytesToWrite ({1}) in OnMachineAuth", callback.Data.Length, callback.BytesToWrite)));
             }
 
-            int fileSize;
-            byte[] sentryHash;
-
             using (var stream = new MemoryStream(callback.BytesToWrite))
             {
                 stream.Seek(callback.Offset, SeekOrigin.Begin);
                 stream.Write(callback.Data, 0, callback.BytesToWrite);
                 stream.Seek(0, SeekOrigin.Begin);
-
-                fileSize = (int)stream.Length;
-
-                using (var sha = new SHA1CryptoServiceProvider())
-                {
-                    sentryHash = sha.ComputeHash(stream);
-                }
 
                 LocalConfig.Current.Sentry = stream.ToArray();
             }
@@ -234,7 +223,7 @@ namespace SteamDatabaseBackend
                 FileName = callback.FileName,
 
                 BytesWritten = callback.BytesToWrite,
-                FileSize = fileSize,
+                FileSize = LocalConfig.Current.Sentry.Length,
                 Offset = callback.Offset,
 
                 Result = EResult.OK,
@@ -242,7 +231,7 @@ namespace SteamDatabaseBackend
 
                 OneTimePassword = callback.OneTimePassword,
 
-                SentryFileHash = sentryHash
+                SentryFileHash = Utils.Sha1Instance.ComputeHash(LocalConfig.Current.Sentry)
             });
         }
 
