@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} ugc <ugcid>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} ugc <ugcid>");
 
                 return;
             }
@@ -44,18 +44,12 @@ namespace SteamDatabaseBackend
 
             if (callback.Result != EResult.OK)
             {
-                command.Reply("Unable to request UGC info: {0}{1}", Colors.RED, callback.Result);
+                command.Reply($"Unable to request UGC info: {Colors.RED}{callback.Result}");
 
                 return;
             }
 
-            command.Reply("Creator: {0}{1}{2}, App: {3}{4}{5}, File: {6}{7}{8}, Size: {9}{10}{11} -{12} {13}",
-                Colors.BLUE, callback.Creator.Render(), Colors.NORMAL,
-                Colors.BLUE, callback.AppID, Colors.NORMAL,
-                Colors.BLUE, callback.FileName, Colors.NORMAL,
-                Colors.BLUE, GetByteSizeString(callback.FileSize), Colors.NORMAL,
-                Colors.DARKBLUE, callback.URL
-            );
+            command.Reply($"Creator: {Colors.BLUE}{callback.Creator.Render()}{Colors.NORMAL}, App: {Colors.BLUE}{callback.AppID}{Colors.NORMAL}, File: {Colors.BLUE}{callback.FileName}{Colors.NORMAL}, Size: {Colors.BLUE}{GetByteSizeString(callback.FileSize)}{Colors.NORMAL} -{Colors.DARKBLUE} {callback.URL}");
         }
 
         private static string GetByteSizeString(uint size)

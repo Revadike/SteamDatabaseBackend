@@ -126,14 +126,6 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void SendAnnounce(string format, params object[] args)
-        {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Client.Message(Settings.Current.IRC.Channel.Announce, string.Format(format, args));
-            }
-        }
-
         public void SendAnnounce(string str)
         {
             if (Settings.Current.IRC.Enabled)
@@ -142,27 +134,11 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void SendMain(string format, params object[] args)
-        {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Client.Message(Settings.Current.IRC.Channel.Main, string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args)));
-            }
-        }
-
         public void SendMain(string str)
         {
             if (Settings.Current.IRC.Enabled)
             {
                 Client.Message(Settings.Current.IRC.Channel.Main, string.Concat(Settings.Current.IRC.PrioritySendPrefix, str));
-            }
-        }
-
-        public void SendOps(string format, params object[] args)
-        {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Client.Message(Settings.Current.IRC.Channel.Ops, string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args)));
             }
         }
 
@@ -184,15 +160,15 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void SendEmoteAnnounce(string format, params object[] args)
+        public void SendEmoteAnnounce(string str)
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.ChatAction(Settings.Current.IRC.Channel.Announce, string.Format(format, args));
+                Client.ChatAction(Settings.Current.IRC.Channel.Announce, str);
             }
         }
 
-        public void AnnounceImportantAppUpdate(uint appID, string format, params object[] args)
+        public void AnnounceImportantAppUpdate(uint appID, string str)
         {
             if (!Settings.Current.IRC.Enabled)
             {
@@ -204,17 +180,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            format = string.Concat(Settings.Current.IRC.PrioritySendPrefix, string.Format(format, args));
+            str = string.Concat(Settings.Current.IRC.PrioritySendPrefix, str);
 
             foreach (var channel in channels)
             {
-                Client.Message(channel, format); //, Priority.AboveMedium);
+                Client.Message(channel, str);
             }
-        }
-
-        public void AnnounceImportantPackageUpdate(string format, params object[] args)
-        {
-            SendMain(format, args); // TODO
         }
 
         private static readonly char[] ChannelCharacters = { '#', '!', '+', '&' };

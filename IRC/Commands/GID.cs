@@ -22,7 +22,7 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} gid <globalid>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} gid <globalid>");
 
                 return;
             }
@@ -36,13 +36,7 @@ namespace SteamDatabaseBackend
 
             GlobalID gid = uGid;
 
-            command.Reply("{0} (SeqCount: {1}{2}{3}, StartTime: {4}{5}{6}, ProcessID: {7}{8}{9}, BoxID: {10}{11}{12})",
-                (ulong)gid,
-                Colors.LIGHTGRAY, gid.SequentialCount, Colors.NORMAL,
-                Colors.LIGHTGRAY, gid.StartTime, Colors.NORMAL,
-                Colors.LIGHTGRAY, gid.ProcessID, Colors.NORMAL,
-                Colors.LIGHTGRAY, gid.BoxID, Colors.NORMAL
-            );
+            command.Reply($"{(ulong)gid} (SeqCount: {Colors.LIGHTGRAY}{gid.SequentialCount}{Colors.NORMAL}, StartTime: {Colors.LIGHTGRAY}{gid.StartTime}{Colors.NORMAL}, ProcessID: {Colors.LIGHTGRAY}{gid.ProcessID}{Colors.NORMAL}, BoxID: {Colors.LIGHTGRAY}{gid.BoxID}{Colors.NORMAL})");
         }
     }
 }

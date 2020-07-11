@@ -322,8 +322,7 @@ namespace SteamDatabaseBackend
 
             if (!file.FileHash.SequenceEqual(checksum))
             {
-                IRC.Instance.SendOps("{0}[{1}]{2} Failed to correctly download {3}{4}",
-                    Colors.OLIVE, job.DepotName, Colors.NORMAL, Colors.BLUE, file.FileName);
+                IRC.Instance.SendOps($"{Colors.OLIVE}[{job.DepotName}]{Colors.NORMAL} Failed to correctly download {Colors.BLUE}{file.FileName}");
 
                 Log.WriteWarn($"FileDownloader {job.DepotID}", $"Hash check failed for {file.FileName} ({job.Server})");
 

@@ -20,17 +20,12 @@ namespace SteamDatabaseBackend
 
             if (frame == null)
             {
-                IRC.Instance.SendOps("⚠️ {0}[{1} Exception]{3} {4}",
-                    Colors.OLIVE, component, Colors.NORMAL, e.Message
-                );
+                IRC.Instance.SendOps($"⚠️ {Colors.OLIVE}[{component} Exception]{Colors.NORMAL} {e.Message}");
 
                 return;
             }
 
-            IRC.Instance.SendOps("⚠️ {0}[{1} Exception @{2}]{3} {4} {5}({6}#L{7})",
-                Colors.OLIVE, component, frame.GetMethod(), Colors.NORMAL,
-                e.Message, Colors.DARKGRAY, frame.GetFileName(), frame.GetFileLineNumber()
-            );
+            IRC.Instance.SendOps($"⚠️ {Colors.OLIVE}[{component} Exception @{frame.GetMethod()}]{Colors.NORMAL} {e.Message} {Colors.DARKGRAY}({frame.GetFileName()}#L{frame.GetFileLineNumber()})");
         }
     }
 }

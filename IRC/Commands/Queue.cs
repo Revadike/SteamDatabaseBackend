@@ -21,7 +21,7 @@ namespace SteamDatabaseBackend
 
             if (s.Length < 2)
             {
-                command.Reply("Usage:{0} queue <app/sub> <id>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} queue <app/sub> <id>");
 
                 return;
             }
@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
                     {
                         await StoreQueue.AddAppToQueue(id);
 
-                        command.Reply("App {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, appName);
+                        command.Reply($"App {Colors.BLUE}{id}{Colors.NORMAL} ({appName}) has been added to the store update queue.");
 
                         return;
                     }
@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
                     {
                         await StoreQueue.AddPackageToQueue(id);
 
-                        command.Reply("Package {0}{1}{2} ({3}) has been added to the store update queue.", Colors.BLUE, id, Colors.NORMAL, subName);
+                        command.Reply($"Package {Colors.BLUE}{id}{Colors.NORMAL} ({subName}) has been added to the store update queue.");
 
                         return;
                     }

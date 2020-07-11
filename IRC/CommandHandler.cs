@@ -182,17 +182,17 @@ namespace SteamDatabaseBackend
             }
             catch (TaskCanceledException)
             {
-                commandData.Reply("Your {0}{1}{2} command timed out.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
+                commandData.Reply($"Your {Colors.OLIVE}{command.Trigger}{Colors.NORMAL} command timed out.");
             }
             catch (AsyncJobFailedException)
             {
-                commandData.Reply("Steam says this job failed. Unable to execute your {0}{1}{2} command.", Colors.OLIVE, command.Trigger, Colors.NORMAL);
+                commandData.Reply($"Steam says this job failed. Unable to execute your {Colors.OLIVE}{command.Trigger}{Colors.NORMAL} command.");
             }
             catch (Exception e)
             {
                 ErrorReporter.Notify("IRC", e);
 
-                commandData.Reply("Exception: {0}", e.Message);
+                commandData.Reply($"Exception: {e.Message}");
             }
         }
     }

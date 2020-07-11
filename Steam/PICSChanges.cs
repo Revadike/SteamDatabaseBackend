@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
-                IRC.Instance.SendAnnounce("{0}»{1} Changelist {2}{3}{4} (empty)", Colors.RED, Colors.NORMAL, Colors.BLUE, PreviousChangeNumber, Colors.DARKGRAY);
+                IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} Changelist {Colors.BLUE}{PreviousChangeNumber}{Colors.DARKGRAY} (empty)");
 
                 return;
             }
@@ -325,10 +325,7 @@ namespace SteamDatabaseBackend
             {
                 var appName = Steam.GetAppName(app, out var appType);
 
-                IRC.Instance.AnnounceImportantAppUpdate(app, "{0} update: {1}{2}{3} -{4} {5}",
-                    appType,
-                    Colors.BLUE, appName, Colors.NORMAL,
-                    Colors.DARKBLUE, SteamDB.GetAppUrl(app, "history"));
+                IRC.Instance.AnnounceImportantAppUpdate(app, $"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
 
                 if (Settings.Current.CanQueryStore)
                 {
@@ -346,7 +343,7 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.Instance.AnnounceImportantPackageUpdate("Package update: {0}{1}{2} -{3} {4}", Colors.BLUE, Steam.GetPackageName(package), Colors.NORMAL, Colors.DARKBLUE, SteamDB.GetPackageUrl(package, "history"));
+                IRC.Instance.SendMain($"Package update: {Colors.BLUE}{Steam.GetPackageName(package)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
             }
         }
 
@@ -412,7 +409,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                IRC.Instance.SendAnnounce("{0}»{1} {2}", Colors.RED, Colors.NORMAL, message);
+                IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} {message}");
 
                 if (appCount > 0)
                 {

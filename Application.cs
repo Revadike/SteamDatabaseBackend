@@ -63,7 +63,7 @@ namespace SteamDatabaseBackend
         {
             await ReloadImportant();
 
-            command.Notice("Reloaded {0} important apps and {1} packages", ImportantApps.Count, ImportantSubs.Count);
+            command.Notice($"Reloaded {ImportantApps.Count} important apps and {ImportantSubs.Count} packages");
         }
 
         private static async Task ReloadImportant()

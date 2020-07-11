@@ -36,7 +36,7 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} steamid <steamid> [individual/group/gamegroup]", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} steamid <steamid> [individual/group/gamegroup]");
 
                 return;
             }
@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
 
                 if (eResult != EResult.OK)
                 {
-                    command.Reply("Failed to resolve vanity URL: {0}{1}", Colors.RED, eResult.ToString());
+                    command.Reply($"Failed to resolve vanity URL: {Colors.RED}{eResult}");
 
                     return;
                 }
@@ -116,17 +116,11 @@ namespace SteamDatabaseBackend
                     string.Empty :
                     $" {Colors.NORMAL}(Clan tag: {Colors.LIGHTGRAY}{callback.ClanTag}{Colors.NORMAL})";
 
-                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/gid/{4}/{5}",
-                    Colors.BLUE, callback.Name, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64(), clantag
-                );
+                command.Reply($"{Colors.BLUE}{callback.Name}{Colors.NORMAL} -{Colors.DARKBLUE} https://steamcommunity.com/gid/{callback.FriendID.ConvertToUInt64()}/{clantag}");
             }
             else if (callback.FriendID.IsIndividualAccount)
             {
-                command.Reply("{0}{1}{2} -{3} https://steamcommunity.com/profiles/{4}/",
-                    Colors.BLUE, callback.Name, Colors.NORMAL,
-                    Colors.DARKBLUE, callback.FriendID.ConvertToUInt64()
-                );
+                command.Reply($"{Colors.BLUE}{callback.Name}{Colors.NORMAL} -{Colors.DARKBLUE} https://steamcommunity.com/profiles/{callback.FriendID.ConvertToUInt64()}/");
             }
             else
             {

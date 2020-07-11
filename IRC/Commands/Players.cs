@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
         {
             if (string.IsNullOrWhiteSpace(command.Message))
             {
-                command.Reply("Usage:{0} players <appid or partial game name>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} players <appid or partial game name>");
 
                 return;
             }

@@ -20,7 +20,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0 || !uint.TryParse(command.Message, out var depotId))
             {
-                command.Reply("Usage:{0} depot <depotid>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} depot <depotid>");
 
                 return;
             }

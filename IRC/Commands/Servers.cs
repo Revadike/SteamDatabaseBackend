@@ -28,7 +28,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} servers <filter> - See https://developer.valvesoftware.com/wiki/Master_Server_Query_Protocol", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} servers <filter> - See https://developer.valvesoftware.com/wiki/Master_Server_Query_Protocol");
 
                 return;
             }

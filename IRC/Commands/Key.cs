@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
 
             if (key.Length < 17)
             {
-                command.Reply("Usage:{0} key <steam key>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} key <steam key>");
 
                 return;
             }

@@ -60,7 +60,7 @@ namespace SteamDatabaseBackend
         {
             ReconnectionTimer.Stop();
 
-            Log.WriteInfo("Steam", "Connected, logging in to cellid {0}...", LocalConfig.Current.CellID);
+            Log.WriteInfo("Steam", $"Connected, logging in to cellid {LocalConfig.Current.CellID}...");
 
             if (Settings.Current.Steam.Username == "anonymous")
             {
@@ -109,7 +109,7 @@ namespace SteamDatabaseBackend
             
             Log.WriteInfo("Steam", "Disconnected from Steam. Retrying in {0} seconds... {1}", RETRY_DELAY, callback.UserInitiated ? " (user initiated)" : "");
 
-            IRC.Instance.SendEmoteAnnounce("disconnected from Steam. Retrying in {0} seconds…", RETRY_DELAY);
+            IRC.Instance.SendEmoteAnnounce($"disconnected from Steam. Retrying in {RETRY_DELAY} seconds…");
 
             ReconnectionTimer.Start();
         }
@@ -144,7 +144,7 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo("Steam", "Failed to login: {0}", callback.Result);
 
-                IRC.Instance.SendEmoteAnnounce("failed to log in: {0}", callback.Result);
+                IRC.Instance.SendEmoteAnnounce($"failed to log in: {callback.Result}");
 
                 return;
             }
@@ -159,9 +159,9 @@ namespace SteamDatabaseBackend
 
             LastSuccessfulLogin = DateTime.Now;
 
-            Log.WriteInfo("Steam", "Logged in, current Valve time is {0}", callback.ServerTime.ToString("R"));
+            Log.WriteInfo("Steam", $"Logged in, current Valve time is {callback.ServerTime:R}");
 
-            IRC.Instance.SendEmoteAnnounce("logged in. Valve time: {0}", callback.ServerTime.ToString("R"));
+            IRC.Instance.SendEmoteAnnounce($"logged in. Valve time: {callback.ServerTime:R}");
 
             JobManager.RestartJobsIfAny();
 
@@ -190,14 +190,14 @@ namespace SteamDatabaseBackend
 
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
-            Log.WriteInfo("Steam", "Logged out of Steam: {0}", callback.Result);
+            Log.WriteInfo("Steam", $"Logged out of Steam: {callback.Result}");
 
-            IRC.Instance.SendEmoteAnnounce("logged out of Steam: {0}", callback.Result);
+            IRC.Instance.SendEmoteAnnounce($"logged out of Steam: {callback.Result}");
         }
 
         private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
-            Log.WriteInfo("Steam", "Updating sentry file... {0}", callback.FileName);
+            Log.WriteInfo("Steam", $"Updating sentry file... {callback.FileName}");
 
             if (callback.Data.Length != callback.BytesToWrite)
             {

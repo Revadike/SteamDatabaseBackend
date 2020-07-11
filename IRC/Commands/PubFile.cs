@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} pubfile <pubfileid>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} pubfile <pubfileid>");
 
                 return;
             }
@@ -73,7 +73,7 @@ namespace SteamDatabaseBackend
 
             if (result != EResult.OK)
             {
-                command.Reply("Unable to get published file info: {0}{1}", Colors.RED, result);
+                command.Reply($"Unable to get published file info: {Colors.RED}{result}");
 
                 return;
             }
@@ -82,19 +82,9 @@ namespace SteamDatabaseBackend
 
             await File.WriteAllTextAsync(Path.Combine(Application.Path, "ugc", $"{details.publishedfileid}.json"), json, Encoding.UTF8);
 
-            command.Reply("{0}, Title: {1}{2}{3}, Creator: {4}{5}{6}, App: {7}{8}{9}{10}, File UGC: {11}{12}{13}, Preview UGC: {14}{15}{16} -{17} {18}",
-                (EWorkshopFileType)details.file_type,
-                Colors.BLUE, string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title, Colors.NORMAL,
-                Colors.BLUE, new SteamID(details.creator).Render(), Colors.NORMAL,
-                Colors.BLUE, details.creator_appid,
-                details.creator_appid == details.consumer_appid ? "" : $" (consumer {details.consumer_appid})",
-                Colors.NORMAL,
-                Colors.BLUE, details.hcontent_file, Colors.NORMAL,
-                Colors.BLUE, details.hcontent_preview, Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetPublishedFileRawUrl(details.publishedfileid)
-            );
+            command.Reply($"{(EWorkshopFileType)details.file_type}, Title: {Colors.BLUE}{(string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title)}{Colors.NORMAL}, Creator: {Colors.BLUE}{new SteamID(details.creator).Render()}{Colors.NORMAL}, App: {Colors.BLUE}{details.creator_appid}{(details.creator_appid == details.consumer_appid ? "" : $" (consumer {details.consumer_appid})")}{Colors.NORMAL}, File UGC: {Colors.BLUE}{details.hcontent_file}{Colors.NORMAL}, Preview UGC: {Colors.BLUE}{details.hcontent_preview}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPublishedFileRawUrl(details.publishedfileid)}");
 
-            command.Notice("{0} - https://steamcommunity.com/sharedfiles/filedetails/?id={1}", details.file_url, details.publishedfileid);
+            command.Notice($"{details.file_url} - https://steamcommunity.com/sharedfiles/filedetails/?id={details.publishedfileid}");
         }
     }
 }

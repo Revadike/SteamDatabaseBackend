@@ -25,7 +25,7 @@ namespace SteamDatabaseBackend
         {
             if (command.Message.Length == 0 || !uint.TryParse(command.Message, out var subID))
             {
-                command.Reply("Usage:{0} sub <subid>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} sub <subid>");
 
                 return;
             }
@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
 
             if (callback == null)
             {
-                command.Reply("Unknown SubID: {0}{1}{2}", Colors.BLUE, subID, LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty);
+                command.Reply($"Unknown SubID: {Colors.BLUE}{subID}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
 
                 return;
             }
@@ -60,24 +60,14 @@ namespace SteamDatabaseBackend
 
             if (!info.KeyValues.Children.Any())
             {
-                command.Reply("No package info returned for SubID: {0}{1}{2}{3}",
-                    Colors.BLUE, subID,
-                    info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                    LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty
-                );
+                command.Reply($"No package info returned for SubID: {Colors.BLUE}{subID}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
 
                 return;
             }
 
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", $"{info.ID}.vdf"), false);
 
-            command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                Colors.BLUE, Steam.GetPackageName(info.ID), Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetPackageUrl(info.ID), Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetRawPackageUrl(info.ID), Colors.NORMAL,
-                info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
-            );
+            command.Reply($"{Colors.BLUE}{Steam.GetPackageName(info.ID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawPackageUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
         }
     }
 }

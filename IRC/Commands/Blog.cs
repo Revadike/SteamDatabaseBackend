@@ -33,14 +33,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            command.Reply(
-                command.Message.Length > 0 ?
-                    "Blog post:{0} {1}{2} -{3} {4}" :
-                    "Latest blog post:{0} {1}{2} -{3} {4}",
-
-                Colors.BLUE, post.Title, Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetBlogUrl(post.Slug.Length > 0 ? post.Slug : post.ID.ToString())
-            );
+            command.Reply($"Blog post:{Colors.BLUE} {post.Title}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetBlogUrl(post.Slug.Length > 0 ? post.Slug : post.ID.ToString())}");
         }
     }
 }

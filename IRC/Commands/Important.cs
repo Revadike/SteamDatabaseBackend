@@ -62,7 +62,7 @@ namespace SteamDatabaseBackend
 
                                 if (exists && channels.Contains(channel))
                                 {
-                                    command.Reply("App {0}{1}{2} ({3}) is already important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
+                                    command.Reply($"App {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetAppName(id)}) is already important in {Colors.BLUE}{channel}{Colors.NORMAL}.");
                                 }
                                 else
                                 {
@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
                                         await db.ExecuteAsync("INSERT INTO `ImportantApps` (`AppID`, `Channel`) VALUES (@AppID, @Channel)", new { AppID = id, Channel = channel });
                                     }
 
-                                    command.Reply("Marked app {0}{1}{2} ({3}) as important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
+                                    command.Reply($"Marked app {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetAppName(id)}) as important in {Colors.BLUE}{channel}{Colors.NORMAL}.");
                                 }
 
                                 return;
@@ -88,7 +88,7 @@ namespace SteamDatabaseBackend
                             case "sub":
                                 if (Application.ImportantSubs.ContainsKey(id))
                                 {
-                                    command.Reply("Package {0}{1}{2} ({3}) is already important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                    command.Reply($"Package {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetPackageName(id)}) is already important.");
                                 }
                                 else
                                 {
@@ -99,7 +99,7 @@ namespace SteamDatabaseBackend
                                         await db.ExecuteAsync("INSERT INTO `ImportantSubs` (`SubID`) VALUES (@SubID)", new { SubID = id });
                                     }
 
-                                    command.Reply("Marked package {0}{1}{2} ({3}) as important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                    command.Reply($"Marked package {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetPackageName(id)}) as important.");
                                 }
 
                                 return;
@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
                             case "app":
                                 if (!Application.ImportantApps.TryGetValue(id, out var channels) || !channels.Contains(channel))
                                 {
-                                    command.Reply("App {0}{1}{2} ({3}) is not important in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
+                                    command.Reply($"App {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetAppName(id)}) is not important in {Colors.BLUE}{channel}{Colors.NORMAL}.");
                                 }
                                 else
                                 {
@@ -141,7 +141,7 @@ namespace SteamDatabaseBackend
                                         await db.ExecuteAsync("DELETE FROM `ImportantApps` WHERE `AppID` = @AppID AND `Channel` = @Channel", new { AppID = id, Channel = channel });
                                     }
 
-                                    command.Reply("Removed app {0}{1}{2} ({3}) from the important list in {4}{5}{6}.", Colors.BLUE, id, Colors.NORMAL, Steam.GetAppName(id), Colors.BLUE, channel, Colors.NORMAL);
+                                    command.Reply($"Removed app {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetAppName(id)}) from the important list in {Colors.BLUE}{channel}{Colors.NORMAL}.");
                                 }
 
                                 return;
@@ -149,7 +149,7 @@ namespace SteamDatabaseBackend
                             case "sub":
                                 if (!Application.ImportantSubs.ContainsKey(id))
                                 {
-                                    command.Reply("Package {0}{1}{2} ({3}) is not important.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                    command.Reply($"Package {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetPackageName(id)}) is not important.");
                                 }
                                 else
                                 {
@@ -160,7 +160,7 @@ namespace SteamDatabaseBackend
                                         await db.ExecuteAsync("DELETE FROM `ImportantSubs` WHERE `SubID` = @SubID", new { SubID = id });
                                     }
 
-                                    command.Reply("Removed package {0}{1}{2} ({3}) from the important list.", Colors.BLUE, id, Colors.NORMAL, Steam.GetPackageName(id));
+                                    command.Reply($"Removed package {Colors.BLUE}{id}{Colors.NORMAL} ({Steam.GetPackageName(id)}) from the important list.");
                                 }
 
                                 return;
@@ -170,7 +170,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            command.Reply("Usage:{0} important reload {1}or{2} important <add/remove> <app/sub> <id>", Colors.OLIVE, Colors.NORMAL, Colors.OLIVE);
+            command.Reply($"Usage:{Colors.OLIVE} important reload {Colors.NORMAL}or{Colors.OLIVE} important <add/remove> <app/sub> <id>");
         }
     }
 }

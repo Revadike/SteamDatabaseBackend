@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
         {
             if (string.IsNullOrWhiteSpace(command.Message))
             {
-                command.Reply("Usage:{0} app <appid or partial game name>", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} app <appid or partial game name>");
 
                 return;
             }
@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
             if (callback == null)
             {
-                command.Reply("Unknown AppID: {0}{1}{2}", Colors.BLUE, appID, LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty);
+                command.Reply($"Unknown AppID: {Colors.BLUE}{appID}{(LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty)}");
 
                 return;
             }
@@ -97,13 +97,7 @@ namespace SteamDatabaseBackend
 
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", $"{info.ID}.vdf"), false);
 
-            command.Reply("{0}{1}{2} -{3} {4}{5} - Dump:{6} {7}{8}{9}{10}",
-                Colors.BLUE, name, Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetAppUrl(info.ID), Colors.NORMAL,
-                Colors.DARKBLUE, SteamDB.GetRawAppUrl(info.ID), Colors.NORMAL,
-                info.MissingToken ? SteamDB.StringNeedToken : string.Empty,
-                LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty
-            );
+            command.Reply($"{Colors.BLUE}{name}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawAppUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
 
             if (command.IsUserAdmin && !LicenseList.OwnedApps.ContainsKey(info.ID))
             {

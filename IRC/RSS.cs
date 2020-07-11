@@ -90,9 +90,9 @@ namespace SteamDatabaseBackend
 
             foreach (var item in newItems)
             {
-                Log.WriteInfo("RSS", "[{0}] {1}: {2}", feed.Title, item.Title, item.Link);
+                Log.WriteInfo("RSS", $"[{feed.Title}] {item.Title}: {item.Link}");
 
-                IRC.Instance.SendMain("{0}{1}{2}: {3} -{4} {5}", Colors.BLUE, feed.Title, Colors.NORMAL, item.Title, Colors.DARKBLUE, item.Link);
+                IRC.Instance.SendMain($"{Colors.BLUE}{feed.Title}{Colors.NORMAL}: {item.Title} -{Colors.DARKBLUE} {item.Link}");
 
                 await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 

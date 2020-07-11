@@ -431,8 +431,7 @@ namespace SteamDatabaseBackend
 
                     if (FileDownloader.IsImportantDepot(depot.DepotID))
                     {
-                        IRC.Instance.SendOps("{0}[{1}]{2} Failed to download manifest ({3})",
-                            Colors.OLIVE, depot.DepotName, Colors.NORMAL, lastError);
+                        IRC.Instance.SendOps($"{Colors.OLIVE}[{depot.DepotName}]{Colors.NORMAL} Failed to download manifest ({lastError})");
                     }
 
                     if (!Settings.IsFullRun && depot.DepotKey != null)
@@ -525,9 +524,7 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteDebug("Depot Processor", "Reprocessing the app {0} because some files failed to download", appID);
 
-                    IRC.Instance.SendOps("{0}[{1}]{2} Reprocessing the app due to download failures",
-                        Colors.OLIVE, Steam.GetAppName(appID), Colors.NORMAL
-                    );
+                    IRC.Instance.SendOps($"{Colors.OLIVE}[{Steam.GetAppName(appID)}]{Colors.NORMAL} Reprocessing the app due to download failures");
 
                     JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(appID, null));
                 }

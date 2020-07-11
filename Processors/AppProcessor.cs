@@ -81,7 +81,7 @@ namespace SteamDatabaseBackend
 
                     Log.WriteInfo("App Processor", "Creating new apptype \"{0}\" (AppID {1})", currentType, AppID);
 
-                    IRC.Instance.SendOps("New app type: {0}{1}{2} - {3}", Colors.BLUE, currentType, Colors.NORMAL, SteamDB.GetAppUrl(AppID, "history"));
+                    IRC.Instance.SendOps($"New app type: {Colors.BLUE}{currentType}{Colors.NORMAL} - {SteamDB.GetAppUrl(AppID, "history")}");
 
                     newAppType = await DbConnection.ExecuteScalarAsync<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
                 }
@@ -125,10 +125,7 @@ namespace SteamDatabaseBackend
                 {
                     if ((newAppType > 9 && newAppType != 13 && newAppType != 15 && newAppType != 17) || Triggers.Any(newAppName.Contains))
                     {
-                        IRC.Instance.SendOps("New {0}: {1}{2}{3} -{4} {5}",
-                            currentType,
-                            Colors.BLUE, Utils.LimitStringLength(newAppName), Colors.NORMAL,
-                            Colors.DARKBLUE, SteamDB.GetAppUrl(AppID, "history"));
+                        IRC.Instance.SendOps($"New {currentType}: {Colors.BLUE}{Utils.LimitStringLength(newAppName)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(AppID, "history")}");
                     }
                 }
             }
@@ -291,7 +288,7 @@ namespace SteamDatabaseBackend
                         return false;
                     }
 
-                    IRC.Instance.SendOps("New app keyname: {0}{1} {2}(ID: {3}) ({4}) - {5}", Colors.BLUE, keyName, Colors.LIGHTGRAY, key, displayName, SteamDB.GetAppUrl(AppID, "history"));
+                    IRC.Instance.SendOps($"New app keyname: {Colors.BLUE}{keyName} {Colors.LIGHTGRAY}(ID: {key}) ({displayName}) - {SteamDB.GetAppUrl(AppID, "history")}");
                 }
 
                 await DbConnection.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value)", new { AppID, Key = key, Value = value });
@@ -299,10 +296,7 @@ namespace SteamDatabaseBackend
 
                 if ((keyName == "extended_developer" || keyName == "extended_publisher") && value == "Valve")
                 {
-                    IRC.Instance.SendOps("New {0}=Valve app: {1}{2}{3} -{4} {5}",
-                        displayName,
-                        Colors.BLUE, Steam.GetAppName(AppID), Colors.NORMAL,
-                        Colors.DARKBLUE, SteamDB.GetAppUrl(AppID, "history"));
+                    IRC.Instance.SendOps($"New {displayName}=Valve app: {Colors.BLUE}{Steam.GetAppName(AppID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(AppID, "history")}");
                 }
 
                 if (keyName == "common_oslist" && value.Contains("linux"))

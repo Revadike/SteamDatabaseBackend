@@ -40,7 +40,7 @@ namespace SteamDatabaseBackend
 
             if (command.Message.Length == 0)
             {
-                command.Reply("Usage:{0} enum <enumname> [value or substring [deprecated]]", Colors.OLIVE);
+                command.Reply($"Usage:{Colors.OLIVE} enum <enumname> [value or substring [deprecated]]");
 
                 return;
             }
@@ -77,7 +77,7 @@ namespace SteamDatabaseBackend
 
             if (Enum.TryParse(enumType, inputValue, out var enumValue))
             {
-                command.Reply("{0}{1}{2} ({3}) ={4} {5}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, Enum.Format(enumType, enumValue, "D"), Colors.BLUE, ExpandEnumFlagsToString(enumValue));
+                command.Reply($"{Colors.LIGHTGRAY}{enumName}{Colors.NORMAL} ({Enum.Format(enumType, enumValue, "D")}) ={Colors.BLUE} {ExpandEnumFlagsToString(enumValue)}");
 
                 return;
             }
@@ -122,7 +122,7 @@ namespace SteamDatabaseBackend
                 formatted = $"{formatted}, and {count - 10} more...";
             }
 
-            command.Reply("{0}{1}{2}: {3}", Colors.LIGHTGRAY, enumName, Colors.NORMAL, formatted);
+            command.Reply($"{Colors.LIGHTGRAY}{enumName}{Colors.NORMAL}: {formatted}");
         }
 
         private static string ExpandEnumFlagsToString<TEnum>(TEnum enumValue)

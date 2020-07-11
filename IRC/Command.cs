@@ -36,19 +36,9 @@ namespace SteamDatabaseBackend
         public SteamID SenderID { get; set; }
         public bool IsUserAdmin { get; set; }
 
-        public void Notice(string message, params object[] args)
-        {
-            ReplyToCommand(string.Format(message, args), true);
-        }
-
         public void Notice(string message)
         {
             ReplyToCommand(message, true);
-        }
-
-        public void Reply(string message, params object[] args)
-        {
-            ReplyToCommand(string.Format(message, args), false);
         }
 
         public void Reply(string message)
