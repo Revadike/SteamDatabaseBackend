@@ -322,11 +322,21 @@ namespace SteamDatabaseBackend
 
             if (!file.FileHash.SequenceEqual(checksum))
             {
-                IRC.Instance.SendOps($"{Colors.OLIVE}[{job.DepotName}]{Colors.NORMAL} Failed to correctly download {Colors.BLUE}{file.FileName}");
+                if (!job.DownloadCorrupted)
+                {
+                    job.DownloadCorrupted = true;
+
+                    IRC.Instance.SendOps($"{Colors.OLIVE}[{job.DepotName}]{Colors.NORMAL} Failed to correctly download {Colors.BLUE}{file.FileName}");
+                }
 
                 Log.WriteWarn($"FileDownloader {job.DepotID}", $"Hash check failed for {file.FileName} ({job.Server})");
 
                 downloadPath.Delete();
+
+                if (File.Exists(oldChunksFile))
+                {
+                    File.Delete(oldChunksFile);
+                }
 
                 return EResult.DataCorruption;
             }

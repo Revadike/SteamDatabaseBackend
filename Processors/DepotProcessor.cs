@@ -33,6 +33,7 @@ namespace SteamDatabaseBackend
             public byte[] DepotKey;
             public EResult Result = EResult.Fail;
             public bool StoredFilenamesEncrypted;
+            public bool DownloadCorrupted;
         }
 
         public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ManifestID`, `ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ManifestID, @ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
