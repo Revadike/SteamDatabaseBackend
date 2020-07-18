@@ -11,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using SteamKit2;
@@ -21,7 +20,6 @@ namespace SteamDatabaseBackend
     internal static class Utils
     {
         private static readonly Random RandomGenerator = new Random();
-        public static SHA1 Sha1Instance { get; } = SHA1.Create();
         public static HttpClient HttpClient { get; }
 
         static Utils()

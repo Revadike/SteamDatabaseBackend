@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -212,8 +213,9 @@ namespace SteamDatabaseBackend
 
                 return EResult.SameAsPreviousValue;
             }
-
-            var checksum = Utils.Sha1Instance.ComputeHash(Encoding.UTF8.GetBytes(file.FileName));
+            
+            using var sha = SHA1.Create();
+            var checksum = sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName));
 
             var neededChunks = new List<DepotManifest.ChunkData>();
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
@@ -315,9 +317,7 @@ namespace SteamDatabaseBackend
 
             await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
-                fs.Seek(0, SeekOrigin.Begin);
-
-                checksum = Utils.Sha1Instance.ComputeHash(fs);
+                checksum = sha.ComputeHash(fs);
             }
 
             if (!file.FileHash.SequenceEqual(checksum))

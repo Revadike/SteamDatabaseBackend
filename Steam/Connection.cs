@@ -7,6 +7,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Timers;
 using SteamKit2;
 
@@ -216,6 +217,8 @@ namespace SteamDatabaseBackend
             LocalConfig.Current.SentryFileName = callback.FileName;
             LocalConfig.Save();
 
+            using var sha = SHA1.Create();
+
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
             {
                 JobID = callback.JobID,
@@ -231,7 +234,7 @@ namespace SteamDatabaseBackend
 
                 OneTimePassword = callback.OneTimePassword,
 
-                SentryFileHash = Utils.Sha1Instance.ComputeHash(LocalConfig.Current.Sentry)
+                SentryFileHash = sha.ComputeHash(LocalConfig.Current.Sentry)
             });
         }
 

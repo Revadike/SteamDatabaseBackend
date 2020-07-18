@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -639,7 +640,8 @@ namespace SteamDatabaseBackend
                         continue;
                     }
 
-                    var nameHash = Utils.ByteArrayToString(Utils.Sha1Instance.ComputeHash(Encoding.UTF8.GetBytes(name)));
+                    using var sha = SHA1.Create();
+                    var nameHash = Utils.ByteArrayToString(sha.ComputeHash(Encoding.UTF8.GetBytes(name)));
                     name = $"{{SteamDB file name is too long}}/{nameHash}/...{name.Substring(name.Length - 150)}";
                 }
 
