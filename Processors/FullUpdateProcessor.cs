@@ -120,14 +120,18 @@ namespace SteamDatabaseBackend
             {
                 do
                 {
+                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
+
                     try
                     {
-                        await Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
+                        job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
+                        job.Timeout = TimeSpan.FromMinutes(1);
+                        await job;
                         break;
                     }
                     catch (TaskCanceledException)
                     {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), "Apps metadata request timed out");
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Apps metadata request timed out, job: {job?.JobID}");
                     }
                 } while (true);
 
@@ -150,14 +154,18 @@ namespace SteamDatabaseBackend
             {
                 do
                 {
+                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
+                    
                     try
                     {
-                        await Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
+                        job = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
+                        job.Timeout = TimeSpan.FromMinutes(1);
+                        await job;
                         break;
                     }
                     catch (TaskCanceledException)
                     {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), "Package metadata request timed out");
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Package metadata request timed out, job: {job?.JobID}");
                     }
                 } while (true);
 
@@ -177,7 +185,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Apps.Any())
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps ({callback.Apps.First().Key}...{callback.Apps.Last().Key})");
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Apps.Count} apps ({callback.Apps.First().Key}...{callback.Apps.Last().Key}), job: {callback.JobID}");
 
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `AppID`, `Value` FROM `AppsInfo` WHERE `Key` = @ChangeNumberKey AND `AppID` IN @Apps",
@@ -210,7 +218,7 @@ namespace SteamDatabaseBackend
 
             if (callback.Packages.Any())
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Packages.Count} packages ({callback.Packages.First().Key}...{callback.Packages.Last().Key})");
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info for {callback.Packages.Count} packages ({callback.Packages.First().Key}...{callback.Packages.Last().Key}), job: {callback.JobID}");
 
                 var currentChangeNumbers = (await db.QueryAsync<(uint, uint)>(
                     "SELECT `SubID`, `Value` FROM `SubsInfo` WHERE `Key` = @ChangeNumberKey AND `SubID` IN @Subs",
