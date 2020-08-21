@@ -123,7 +123,7 @@ namespace SteamDatabaseBackend
 
                 if (modifiedNameOrType)
                 {
-                    if ((newAppType > 9 && newAppType != 13 && newAppType != 15 && newAppType != 17) || Triggers.Any(newAppName.Contains))
+                    if ((newAppType > 9 && newAppType != 13 && newAppType != 15 && newAppType != 17 && newAppType != 18) || Triggers.Any(newAppName.Contains))
                     {
                         IRC.Instance.SendOps($"New {currentType}: {Colors.BLUE}{Utils.LimitStringLength(newAppName)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(AppID, "history")}");
                     }
