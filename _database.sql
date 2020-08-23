@@ -67,7 +67,8 @@ INSERT INTO `AppsTypes` (`AppType`, `Name`, `DisplayName`) VALUES
 (14, 'plugin', 'Plugin'),
 (15, 'music', 'Music'),
 (16, 'hardware', 'Hardware'),
-(17, 'series', 'Series');
+(17, 'series', 'Series'),
+(18, 'beta', 'Beta');
 
 CREATE TABLE IF NOT EXISTS `Builds` (
   `BuildID` int(8) UNSIGNED NOT NULL,
@@ -106,6 +107,8 @@ CREATE TABLE IF NOT EXISTS `Depots` (
   `ManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Displayed on the website, used for history',
   `LastManifestID` bigint(20) UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Only updated after file list was successfully updated',
   `FilenamesEncrypted` tinyint(1) NOT NULL DEFAULT 0,
+  `SizeOriginal` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `SizeCompressed` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
   `LastUpdated` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`DepotID`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
