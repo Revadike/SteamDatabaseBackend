@@ -55,7 +55,7 @@ namespace SteamDatabaseBackend
 
             if (newKey > 0)
             {
-                App.Add(name, newKey);
+                App[name] = newKey;
             }
 
             return newKey;
@@ -79,7 +79,7 @@ namespace SteamDatabaseBackend
 
             if (newKey > 0)
             {
-                Sub.Add(name, newKey);
+                Sub[name] = newKey;
             }
 
             return newKey;
