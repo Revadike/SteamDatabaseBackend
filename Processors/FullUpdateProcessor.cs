@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
@@ -56,6 +57,36 @@ namespace SteamDatabaseBackend
                     else
                     {
                         apps = (await db.QueryAsync<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC")).ToList();
+                        
+                        try
+                        {
+                            using var steamApps = Steam.Configuration.GetAsyncWebAPIInterface("ISteamApps");
+                            var response = await steamApps.CallAsync(HttpMethod.Get, "GetAppList", 2);
+                            var apiApps = response["apps"].Children.Select(app => app["appid"].AsUnsignedInteger()).ToList();
+
+                            using var steamStore = Steam.Configuration.GetAsyncWebAPIInterface("IStoreService");
+                            var lastAppId = 0u;
+                            var storeApiApps = new List<uint>();
+
+                            do
+                            {
+                                response = await steamStore.CallAsync(HttpMethod.Get, "GetAppList", 1, new Dictionary<string, object>
+                                {
+                                    { "last_appid", lastAppId },
+                                    { "max_results", 50000 },
+                                });
+
+                                storeApiApps.AddRange(response["apps"].Children.Select(app => app["appid"].AsUnsignedInteger()).ToList());
+                                lastAppId = response["last_appid"].AsUnsignedInteger();
+                            }
+                            while (response["have_more_results"].AsBoolean());
+
+                            apps = apps.Union(apiApps).Union(storeApiApps).ToList();
+                        }
+                        catch (Exception)
+                        {
+                            //
+                        }
                     }
 
                     packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC")).ToList();
