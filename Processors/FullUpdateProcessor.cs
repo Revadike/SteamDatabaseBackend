@@ -89,7 +89,9 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC")).ToList();
+                    packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC"))
+                        .Union(LicenseList.OwnedSubs.Keys)
+                        .ToList();
                 }
             }
 
