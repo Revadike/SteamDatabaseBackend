@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            Log.WriteInfo(nameof(PICSChanges), $"Changelist {PreviousChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
+            Log.WriteInfo(nameof(PICSChanges), $"Changelist {callback.LastChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
 
             LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
 
