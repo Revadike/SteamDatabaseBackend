@@ -115,7 +115,7 @@ namespace SteamDatabaseBackend
                 }
 
 #if !DEBUG
-                if (!Settings.Current.CanQueryStore)
+                if (!Settings.IsMillhaven)
                 {
 #endif
                     await Task.Delay(10000);
@@ -327,7 +327,7 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.AnnounceImportantAppUpdate(app, $"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
 
-                if (Settings.Current.CanQueryStore)
+                if (Settings.IsMillhaven)
                 {
                     Steam.Instance.UnifiedMessages.SendMessage("ChatRoom.SendChatMessage#1", new CChatRoom_SendChatMessage_Request
                     {

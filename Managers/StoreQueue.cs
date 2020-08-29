@@ -35,7 +35,7 @@ namespace SteamDatabaseBackend
 
         private static async Task InsertQuery(IEnumerable<uint> ids, string type)
         {
-            if (!Settings.Current.CanQueryStore)
+            if (!Settings.IsMillhaven)
             {
                 return;
             }

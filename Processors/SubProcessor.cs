@@ -302,7 +302,7 @@ namespace SteamDatabaseBackend
                     LicenseList.RefreshApps();
                 }
 
-                if (!packageOwned && SubID != 17906 && Settings.Current.CanQueryStore)
+                if (!packageOwned && SubID != 17906 && Settings.IsMillhaven)
                 {
                     FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
                 }
@@ -355,7 +355,7 @@ namespace SteamDatabaseBackend
             await DbConnection.ExecuteAsync("DELETE FROM `SubsInfo` WHERE `SubID` = @SubID", new { SubID });
             await DbConnection.ExecuteAsync("DELETE FROM `SubsApps` WHERE `SubID` = @SubID", new { SubID });
 
-            if (Settings.Current.CanQueryStore)
+            if (Settings.IsMillhaven)
             {
                 await DbConnection.ExecuteAsync("DELETE FROM `StoreSubs` WHERE `SubID` = @SubID", new { SubID });
             }

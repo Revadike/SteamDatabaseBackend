@@ -96,7 +96,7 @@ namespace SteamDatabaseBackend
 
                 await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 
-                if (!Settings.Current.CanQueryStore)
+                if (!Settings.IsMillhaven)
                 {
                     continue;
                 }

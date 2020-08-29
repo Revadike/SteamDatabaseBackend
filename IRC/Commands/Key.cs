@@ -26,11 +26,6 @@ namespace SteamDatabaseBackend
             Trigger = "key";
             IsSteamCommand = true;
 
-            if (Settings.IsFullRun || !Settings.Current.CanQueryStore)
-            {
-                return;
-            }
-
             ActivationTimer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
             ActivationTimer.Elapsed += OnTimer;
             ActivationTimer.Start();

@@ -247,7 +247,7 @@ namespace SteamDatabaseBackend
             await DbConnection.ExecuteAsync("DELETE FROM `Apps` WHERE `AppID` = @AppID", new { AppID });
             await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID", new { AppID });
 
-            if (Settings.Current.CanQueryStore)
+            if (Settings.IsMillhaven)
             {
                 await DbConnection.ExecuteAsync("DELETE FROM `Store` WHERE `AppID` = @AppID", new { AppID });
             }
@@ -384,7 +384,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (!Settings.Current.CanQueryStore)
+            if (!Settings.IsMillhaven)
             {
                 return;
             }

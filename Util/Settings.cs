@@ -6,6 +6,7 @@
 
 using System.IO;
 using System.Threading.Tasks;
+using Dapper;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -15,6 +16,8 @@ namespace SteamDatabaseBackend
         public static SettingsJson Current { get; private set; } = new SettingsJson();
 
         public static bool IsFullRun { get; private set; }
+
+        public static bool IsMillhaven { get; private set; }
 
         public static async Task Load()
         {
@@ -36,9 +39,9 @@ namespace SteamDatabaseBackend
             }
 
             // Test database connection, it will throw if connection is unable to be made
-            await using (await Database.GetConnectionAsync())
+            await using (var db = await Database.GetConnectionAsync())
             {
-                //
+                IsMillhaven = await db.ExecuteScalarAsync<string>("SHOW TABLES LIKE 'Store'") != null;
             }
 
             if (Current.FullRun != FullRunState.None)

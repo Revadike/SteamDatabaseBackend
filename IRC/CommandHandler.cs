@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
                 new ReloginCommand(),
             };
 
-            if (Settings.Current.CanQueryStore)
+            if (Settings.IsMillhaven)
             {
                 RegisteredCommands.Add(new QueueCommand());
                 RegisteredCommands.Add(new KeyCommand());

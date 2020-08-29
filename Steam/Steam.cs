@@ -70,7 +70,7 @@ namespace SteamDatabaseBackend
                 new WebAuth(CallbackManager)
             };
 
-            if (Settings.Current.CanQueryStore)
+            if (Settings.IsMillhaven)
             {
                 Handlers.Add(new FreeLicense(CallbackManager));
             }
