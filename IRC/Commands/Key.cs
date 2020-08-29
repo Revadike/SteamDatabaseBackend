@@ -26,7 +26,7 @@ namespace SteamDatabaseBackend
             Trigger = "key";
             IsSteamCommand = true;
 
-            if (Settings.IsFullRun)
+            if (Settings.IsFullRun || !Settings.Current.CanQueryStore)
             {
                 return;
             }
