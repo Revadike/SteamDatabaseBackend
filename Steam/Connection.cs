@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Timers;
+using Dapper;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
@@ -57,11 +58,18 @@ namespace SteamDatabaseBackend
             Steam.Instance.Client.Connect();
         }
 
-        private void OnConnected(SteamClient.ConnectedCallback callback)
+        private async void OnConnected(SteamClient.ConnectedCallback callback)
         {
             ReconnectionTimer.Stop();
 
-            Log.WriteInfo(nameof(Steam), $"Connected, logging in to cellid {LocalConfig.Current.CellID}...");
+            await using var db = await Database.GetConnectionAsync();
+            var config = (await db.QueryAsync<(string, string)>(
+                "SELECT `ConfigKey`, `Value` FROM `LocalConfig` WHERE `ConfigKey` IN ('backend.cellid', 'backend.sentryhash', 'backend.loginkey')"
+            )).ToDictionary(x => x.Item1, x => x.Item2);
+
+            var cellid = config.TryGetValue("backend.cellid", out var cellidStr) ? uint.Parse(cellidStr) : 0;
+
+            Log.WriteInfo(nameof(Steam), $"Connected, logging in to cellid {cellid}...");
 
             if (Settings.Current.Steam.Username == "anonymous")
             {
@@ -69,29 +77,22 @@ namespace SteamDatabaseBackend
 
                 Steam.Instance.User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
                 {
-                    CellID = LocalConfig.Current.CellID,
+                    CellID = cellid,
                 });
 
                 return;
-            }
-
-            byte[] sentryHash = null;
-
-            if (LocalConfig.Current.Sentry != null)
-            {
-                sentryHash = CryptoHelper.SHAHash(LocalConfig.Current.Sentry);
             }
 
             Steam.Instance.User.LogOn(new SteamUser.LogOnDetails
             {
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
-                CellID = LocalConfig.Current.CellID,
+                CellID = cellid,
                 AuthCode = IsTwoFactor ? null : AuthCode,
                 TwoFactorCode = IsTwoFactor ? AuthCode : null,
-                SentryFileHash = sentryHash,
                 ShouldRememberPassword = true,
-                LoginKey = LocalConfig.Current.LoginKey,
+                SentryFileHash = config.TryGetValue("backend.sentryhash", out var sentryHash) ? Utils.StringToByteArray(sentryHash) : null,
+                LoginKey = config.TryGetValue("backend.loginkey", out var loginKey) ? loginKey : null,
                 LoginID = 0x78_50_61_77,
             });
             AuthCode = null;
@@ -115,7 +116,7 @@ namespace SteamDatabaseBackend
             ReconnectionTimer.Start();
         }
 
-        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
+        private async void OnLoggedOn(SteamUser.LoggedOnCallback callback)
         {
             if (callback.Result == EResult.AccountLogonDenied)
             {
@@ -138,7 +139,8 @@ namespace SteamDatabaseBackend
 
             if (callback.Result == EResult.InvalidPassword)
             {
-                LocalConfig.Current.LoginKey = null;
+                await using var db = await Database.GetConnectionAsync();
+                await db.ExecuteAsync("DELETE FROM `LocalConfig` WHERE `ConfigKey` = 'backend.loginkey'");
             }
 
             if (callback.Result != EResult.OK)
@@ -150,13 +152,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var cellId = callback.CellID;
-
-            if (LocalConfig.Current.CellID != cellId)
-            {
-                LocalConfig.Current.CellID = cellId;
-                LocalConfig.Save();
-            }
+            await LocalConfig.Update("backend.cellid", callback.CellID.ToString());
 
             LastSuccessfulLogin = DateTime.Now;
 
@@ -180,7 +176,7 @@ namespace SteamDatabaseBackend
                 }
                 else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
                 {
-                    TaskManager.Run(FullUpdateProcessor.PerformSync);
+                    _ = TaskManager.Run(FullUpdateProcessor.PerformSync);
                 }
             }
             else
@@ -196,7 +192,7 @@ namespace SteamDatabaseBackend
             IRC.Instance.SendEmoteAnnounce($"logged out of Steam: {callback.Result}");
         }
 
-        private void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
+        private async void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)
         {
             Log.WriteInfo(nameof(Steam), $"Updating sentry file... {callback.FileName}");
 
@@ -205,19 +201,19 @@ namespace SteamDatabaseBackend
                 ErrorReporter.Notify(nameof(Steam), new InvalidDataException($"Data.Length ({callback.Data.Length}) != BytesToWrite ({callback.BytesToWrite}) in OnMachineAuth"));
             }
 
+            byte[] sentryHash;
+            int sentryFileSize;
+
             using (var stream = new MemoryStream(callback.BytesToWrite))
             {
                 stream.Seek(callback.Offset, SeekOrigin.Begin);
                 stream.Write(callback.Data, 0, callback.BytesToWrite);
                 stream.Seek(0, SeekOrigin.Begin);
-
-                LocalConfig.Current.Sentry = stream.ToArray();
+                
+                using var sha = SHA1.Create();
+                sentryHash = sha.ComputeHash(stream);
+                sentryFileSize = (int)stream.Length;
             }
-
-            LocalConfig.Current.SentryFileName = callback.FileName;
-            LocalConfig.Save();
-
-            using var sha = SHA1.Create();
 
             Steam.Instance.User.SendMachineAuthResponse(new SteamUser.MachineAuthDetails
             {
@@ -226,7 +222,7 @@ namespace SteamDatabaseBackend
                 FileName = callback.FileName,
 
                 BytesWritten = callback.BytesToWrite,
-                FileSize = LocalConfig.Current.Sentry.Length,
+                FileSize = sentryFileSize,
                 Offset = callback.Offset,
 
                 Result = EResult.OK,
@@ -234,16 +230,17 @@ namespace SteamDatabaseBackend
 
                 OneTimePassword = callback.OneTimePassword,
 
-                SentryFileHash = sha.ComputeHash(LocalConfig.Current.Sentry)
+                SentryFileHash = sentryHash,
             });
+
+            await LocalConfig.Update("backend.sentryhash", Utils.ByteArrayToString(sentryHash));
         }
 
-        private void OnLoginKey(SteamUser.LoginKeyCallback callback)
+        private async void OnLoginKey(SteamUser.LoginKeyCallback callback)
         {
             Log.WriteInfo(nameof(Steam), $"Got new login key with unique id {callback.UniqueID}");
 
-            LocalConfig.Current.LoginKey = callback.LoginKey;
-            LocalConfig.Save();
+            await LocalConfig.Update("backend.loginkey", callback.LoginKey);
 
             Steam.Instance.User.AcceptNewLoginKey(callback);
         }

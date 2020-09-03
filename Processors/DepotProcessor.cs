@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
                     response = await steamDirectory.CallAsync(HttpMethod.Get, "GetServersForSteamPipe", 1,
                         new Dictionary<string, object>
                         {
-                            { "cell_id", LocalConfig.Current.CellID },
+                            { "cell_id", Steam.Instance.Client.CellID },
                             { "max_servers", "100" }
                         });
 

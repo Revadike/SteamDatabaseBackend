@@ -7,6 +7,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Dapper;
 using Newtonsoft.Json;
 
 namespace SteamDatabaseBackend
@@ -19,19 +20,7 @@ namespace SteamDatabaseBackend
         public class LocalConfigJson
         {
             [JsonProperty]
-            public uint CellID { get; set; }
-
-            [JsonProperty]
             public uint ChangeNumber { get; set; }
-
-            [JsonProperty]
-            public string SentryFileName { get; set; }
-
-            [JsonProperty]
-            public byte[] Sentry { get; set; }
-
-            [JsonProperty]
-            public string LoginKey { get; set; }
 
             [JsonProperty]
             public Dictionary<uint, uint> FreeLicensesToRequest { get; set; }
@@ -70,6 +59,18 @@ namespace SteamDatabaseBackend
 
                 File.WriteAllText(ConfigPath, data);
             }
+        }
+
+        public static async Task Update(string key, string value)
+        {
+            await using var db = await Database.GetConnectionAsync();
+            await db.ExecuteAsync("INSERT INTO `LocalConfig` (`ConfigKey`, `Value`) VALUES (@ConfigKey, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)",
+                new
+                {
+                    ConfigKey = key,
+                    Value = value,
+                }
+            );
         }
     }
 }
