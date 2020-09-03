@@ -142,14 +142,14 @@ namespace SteamDatabaseBackend
             LocalConfig.Save();
         }
 
-        public static async Task FullUpdateAppsMetadata()
+        public static async Task FullUpdateAppsMetadata(bool fromChangelist = false)
         {
             Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for apps using metadata requests");
 
             var db = await Database.GetConnectionAsync();
             var apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
 
-            foreach (var list in apps.Split(IdsPerMetadataRequest))
+            foreach (var list in apps.Split(fromChangelist ? 1000 : IdsPerMetadataRequest))
             {
                 do
                 {
@@ -158,7 +158,7 @@ namespace SteamDatabaseBackend
                     try
                     {
                         job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
-                        job.Timeout = TimeSpan.FromMinutes(1);
+                        job.Timeout = TimeSpan.FromMinutes(fromChangelist ? 2 : 1);
                         await job;
                         break;
                     }

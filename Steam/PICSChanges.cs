@@ -148,7 +148,9 @@ namespace SteamDatabaseBackend
                     {
                         IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} has forced a full app update");
 
-                        await FullUpdateProcessor.FullUpdateAppsMetadata();
+                        // When full update flag is set, presumably Steam client start hammering the servers
+                        // and the PICS service just does not return any data for a while until it clears up
+                        await FullUpdateProcessor.FullUpdateAppsMetadata(true);
                     }
 
                     if (callback.RequiresFullPackageUpdate)
