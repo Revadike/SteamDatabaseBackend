@@ -7,7 +7,7 @@
 using System;
 using System.Data;
 using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
