@@ -58,8 +58,6 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo(nameof(LocalConfig), $"There are {Current.FreeLicensesToRequest.Count} free licenses to request");
             }
-
-            Save();
         }
 
         public static void Save()

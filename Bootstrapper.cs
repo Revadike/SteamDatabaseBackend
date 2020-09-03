@@ -28,6 +28,7 @@ namespace SteamDatabaseBackend
 
             // Load settings file before logging as it can be enabled in settings
             await Settings.Load();
+            await LocalConfig.Load();
 
             Log.WriteInfo(nameof(Bootstrapper), "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
 
@@ -36,7 +37,6 @@ namespace SteamDatabaseBackend
             Directory.CreateDirectory(filesDir);
 
             await Settings.Initialize();
-            await LocalConfig.Load();
 
             DebugLog.AddListener(new Log.SteamKitLogger());
             DebugLog.Enabled = true;
