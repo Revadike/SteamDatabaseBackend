@@ -42,7 +42,7 @@ namespace SteamDatabaseBackend
         private static readonly object UpdateScriptLock = new object();
         
         private readonly Dictionary<uint, byte> DepotLocks = new Dictionary<uint, byte>();
-        private readonly SemaphoreSlim ManifestDownloadSemaphore = new SemaphoreSlim(15);
+        private SemaphoreSlim ManifestDownloadSemaphore = new SemaphoreSlim(15);
         private readonly string UpdateScript;
 
         private CDNClient CDNClient;
@@ -75,6 +75,12 @@ namespace SteamDatabaseBackend
             {
                 CDNClient.Dispose();
                 CDNClient = null;
+            }
+
+            if (ManifestDownloadSemaphore != null)
+            {
+                ManifestDownloadSemaphore.Dispose();
+                ManifestDownloadSemaphore = null;
             }
         }
 
@@ -507,7 +513,7 @@ namespace SteamDatabaseBackend
                         Log.WriteWarn(nameof(DepotProcessor), $"Download failed for {depot.DepotID}");
 
                         // Mark this depot for redownload
-                        var db = Database.Get();
+                        using var db = Database.Get();
                         db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
                     }
 

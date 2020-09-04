@@ -11,7 +11,7 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    public class PurchaseResponseCallback : CallbackMsg
+    internal class PurchaseResponseCallback : CallbackMsg
     {
         public Dictionary<uint, string> Packages { get; } = new Dictionary<uint, string>();
 
@@ -53,7 +53,7 @@ namespace SteamDatabaseBackend
         }
     }
 
-    public class PurchaseResponse : ClientMsgHandler
+    internal class PurchaseResponse : ClientMsgHandler
     {
         public override void HandleMsg(IPacketMsg packetMsg)
         {

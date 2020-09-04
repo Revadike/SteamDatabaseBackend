@@ -369,7 +369,7 @@ namespace SteamDatabaseBackend
 
                     await using var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                     fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
-                    await fs.WriteAsync(chunkData.Data, 0, chunkData.Data.Length);
+                    await fs.WriteAsync(chunkData.Data);
 
                     return true;
                 }

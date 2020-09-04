@@ -95,7 +95,7 @@ namespace SteamDatabaseBackend
 
         public static void RestartJobsIfAny()
         {
-            if (Jobs.Count == 0)
+            if (Jobs.IsEmpty)
             {
                 return;
             }

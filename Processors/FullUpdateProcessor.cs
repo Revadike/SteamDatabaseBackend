@@ -144,7 +144,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for apps using metadata requests");
 
-            var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             var apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
 
             foreach (var list in apps.Split(fromChangelist ? 1000 : IdsPerMetadataRequest))
@@ -178,7 +178,7 @@ namespace SteamDatabaseBackend
         {
             Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for packages using metadata requests");
 
-            var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             var subs = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
 
             foreach (var list in subs.Split(IdsPerMetadataRequest))
@@ -212,7 +212,7 @@ namespace SteamDatabaseBackend
         {
             var apps = new List<uint>();
             var subs = new List<uint>();
-            var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
 
             if (callback.Apps.Any())
             {
@@ -307,7 +307,7 @@ namespace SteamDatabaseBackend
 
         private static async Task FullUpdateEnumeration()
         {
-            var db = await Database.GetConnectionAsync();
+            await using var db = await Database.GetConnectionAsync();
             var lastAppId = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC LIMIT 1");
             var lastSubId = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
 

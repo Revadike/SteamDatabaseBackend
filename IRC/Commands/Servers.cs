@@ -33,7 +33,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            if (command.Message.IndexOf('\\') == -1)
+            if (!command.Message.Contains('\\', StringComparison.Ordinal))
             {
                 command.Reply("That doesn't look like a filter.");
 

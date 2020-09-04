@@ -91,7 +91,7 @@ namespace SteamDatabaseBackend
 
             if (!string.IsNullOrEmpty(inputValue))
             {
-                enumValues = enumValues.Where(x => x.ToString().IndexOf(inputValue, StringComparison.OrdinalIgnoreCase) >= 0);
+                enumValues = enumValues.Where(x => x.ToString().Contains(inputValue, StringComparison.OrdinalIgnoreCase));
             }
 
             var count = enumValues.Count();
