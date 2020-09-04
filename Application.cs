@@ -121,7 +121,7 @@ namespace SteamDatabaseBackend
 
             TaskManager.CancelAllTasks();
 
-            LocalConfig.Save();
+            LocalConfig.Update("backend.changenumber", Steam.Instance.PICSChanges.PreviousChangeNumber.ToString()).GetAwaiter().GetResult();
         }
     }
 }

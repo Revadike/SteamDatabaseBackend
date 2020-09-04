@@ -62,14 +62,11 @@ namespace SteamDatabaseBackend
             {
                 BillingTypeKey = KeyNameCache.GetSubKeyID("root_billingtype");
 
-                if (LocalConfig.Current.ChangeNumber == 0)
+                PreviousChangeNumber = db.ExecuteScalar<uint>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = 'backend.changenumber'");
+
+                if (PreviousChangeNumber == 0)
                 {
                     PreviousChangeNumber = db.ExecuteScalar<uint>("SELECT `ChangeID` FROM `Changelists` ORDER BY `ChangeID` DESC LIMIT 1");
-                    LocalConfig.Current.ChangeNumber = PreviousChangeNumber;
-                }
-                else
-                {
-                    PreviousChangeNumber = LocalConfig.Current.ChangeNumber;
                 }
 
                 Log.WriteInfo(nameof(PICSChanges), $"Previous changelist was {PreviousChangeNumber}");
@@ -136,7 +133,7 @@ namespace SteamDatabaseBackend
 
             Log.WriteInfo(nameof(PICSChanges), $"Changelist {callback.LastChangeNumber} -> {callback.CurrentChangeNumber} ({callback.AppChanges.Count} apps, {callback.PackageChanges.Count} packages)");
 
-            LocalConfig.Current.ChangeNumber = PreviousChangeNumber = callback.CurrentChangeNumber;
+            PreviousChangeNumber = callback.CurrentChangeNumber;
 
             TaskManager.Run(async () => await HandleChangeNumbers(callback));
 

@@ -20,9 +20,6 @@ namespace SteamDatabaseBackend
         public class LocalConfigJson
         {
             [JsonProperty]
-            public uint ChangeNumber { get; set; }
-
-            [JsonProperty]
             public Dictionary<uint, uint> FreeLicensesToRequest { get; set; }
 
             public LocalConfigJson()
@@ -63,6 +60,8 @@ namespace SteamDatabaseBackend
 
         public static async Task Update(string key, string value)
         {
+            Log.WriteDebug(nameof(LocalConfig), $"Saving {key}");
+
             await using var db = await Database.GetConnectionAsync();
             await db.ExecuteAsync("INSERT INTO `LocalConfig` (`ConfigKey`, `Value`) VALUES (@ConfigKey, @Value) ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)",
                 new
