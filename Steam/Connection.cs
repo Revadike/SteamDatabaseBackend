@@ -64,21 +64,16 @@ namespace SteamDatabaseBackend
 
             await using var db = await Database.GetConnectionAsync();
             var config = (await db.QueryAsync<(string, string)>(
-                "SELECT `ConfigKey`, `Value` FROM `LocalConfig` WHERE `ConfigKey` IN ('backend.cellid', 'backend.sentryhash', 'backend.loginkey')"
+                "SELECT `ConfigKey`, `Value` FROM `LocalConfig` WHERE `ConfigKey` IN ('backend.sentryhash', 'backend.loginkey')"
             )).ToDictionary(x => x.Item1, x => x.Item2);
 
-            var cellid = config.TryGetValue("backend.cellid", out var cellidStr) ? uint.Parse(cellidStr) : 0;
-
-            Log.WriteInfo(nameof(Steam), $"Connected, logging in to cellid {cellid}...");
+            Log.WriteInfo(nameof(Steam), $"Connected, logging in...");
 
             if (Settings.Current.Steam.Username == "anonymous")
             {
                 Log.WriteInfo(nameof(Steam), "Using an anonymous account");
 
-                Steam.Instance.User.LogOnAnonymous(new SteamUser.AnonymousLogOnDetails
-                {
-                    CellID = cellid,
-                });
+                Steam.Instance.User.LogOnAnonymous();
 
                 return;
             }
@@ -87,7 +82,6 @@ namespace SteamDatabaseBackend
             {
                 Username = Settings.Current.Steam.Username,
                 Password = Settings.Current.Steam.Password,
-                CellID = cellid,
                 AuthCode = IsTwoFactor ? null : AuthCode,
                 TwoFactorCode = IsTwoFactor ? AuthCode : null,
                 ShouldRememberPassword = true,
@@ -151,8 +145,6 @@ namespace SteamDatabaseBackend
 
                 return;
             }
-
-            await LocalConfig.Update("backend.cellid", callback.CellID.ToString());
 
             LastSuccessfulLogin = DateTime.Now;
 
