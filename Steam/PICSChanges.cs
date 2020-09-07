@@ -24,6 +24,7 @@ namespace SteamDatabaseBackend
         }
 
         public uint PreviousChangeNumber { get; private set; }
+        private uint LastStoredChangeNumber;
         private uint TickerHash;
         private readonly uint BillingTypeKey;
 
@@ -75,8 +76,10 @@ namespace SteamDatabaseBackend
             if (PreviousChangeNumber == 0)
             {
                 Log.WriteWarn(nameof(PICSChanges), "Looks like there are no changelists in the database.");
-                Log.WriteWarn(nameof(PICSChanges), $"If you want to fill up your database first, restart with \"FullRun\" setting set to {(int)FullRunState.Enumerate}.");
+                Log.WriteWarn(nameof(PICSChanges), $"If you want to fill up your database first, restart with \"FullRun\" setting set to {(int)FullRunState.Normal}.");
             }
+
+            LastStoredChangeNumber = PreviousChangeNumber;
         }
 
         public void StartTick()
@@ -224,6 +227,13 @@ namespace SteamDatabaseBackend
             }
 
             _ = TaskManager.Run(async () => await SendChangelistsToIRC(callback));
+
+            if (PreviousChangeNumber - LastStoredChangeNumber >= 1000)
+            {
+                LastStoredChangeNumber = PreviousChangeNumber;
+
+                _ = TaskManager.Run(async () => await LocalConfig.Update("backend.changenumber", LastStoredChangeNumber.ToString()));
+            }
 
             PrintImportants(callback);
         }
