@@ -209,7 +209,10 @@ namespace SteamDatabaseBackend
 
             if (LocalConfig.Current.FreeLicensesToRequest.Count > 0)
             {
-                FreeLicenseTimer.Start();
+                lock (FreeLicenseTimer)
+                {
+                    FreeLicenseTimer.Start();
+                }
             }
         }
 
@@ -332,17 +335,23 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            FreeLicenseTimer.Stop();
-            FreeLicenseTimer.Start();
+            lock (FreeLicenseTimer)
+            {
+                FreeLicenseTimer.Stop();
+                FreeLicenseTimer.Start();
+            }
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appId));
         }
 
         private static void AddToQueue(uint subId, uint appId)
         {
-            if (!Settings.IsFullRun && !FreeLicenseTimer.Enabled)
+            lock (FreeLicenseTimer)
             {
-                FreeLicenseTimer.Start();
+                if (!Settings.IsFullRun && !FreeLicenseTimer.Enabled)
+                {
+                    FreeLicenseTimer.Start();
+                }
             }
 
             if (LocalConfig.Current.FreeLicensesToRequest.ContainsKey(subId))
