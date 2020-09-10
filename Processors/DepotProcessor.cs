@@ -128,6 +128,8 @@ namespace SteamDatabaseBackend
             {
                 CDNServers = newServers;
             }
+
+            Log.WriteInfo(nameof(DepotProcessor), $"Received {newServers.Count} download servers");
         }
 
         public async Task Process(uint appID, uint changeNumber, KeyValue depots)
