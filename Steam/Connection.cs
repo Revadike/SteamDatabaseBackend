@@ -173,6 +173,8 @@ namespace SteamDatabaseBackend
             }
             else
             {
+                await Steam.Instance.DepotProcessor.UpdateContentServerList();
+
                 Steam.Instance.PICSChanges.StartTick();
             }
         }

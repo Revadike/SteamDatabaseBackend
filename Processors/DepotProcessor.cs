@@ -63,10 +63,6 @@ namespace SteamDatabaseBackend
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
 
             FileDownloader.SetCDNClient(CDNClient);
-
-            manager.Subscribe<SteamUser.LoggedOnCallback>(OnLoggedOn);
-
-            TaskManager.Run(UpdateContentServerList);
         }
 
         public void Dispose()
@@ -82,11 +78,6 @@ namespace SteamDatabaseBackend
                 ManifestDownloadSemaphore.Dispose();
                 ManifestDownloadSemaphore = null;
             }
-        }
-
-        private void OnLoggedOn(SteamUser.LoggedOnCallback callback)
-        {
-            TaskManager.Run(UpdateContentServerList);
         }
 
         public async Task UpdateContentServerList()
@@ -125,12 +116,12 @@ namespace SteamDatabaseBackend
 
             foreach (var server in response["servers"].Children)
             {
-                if (server["type"].AsString() != "SteamCache" || server["https_support"].AsString() == "mandatory")
+                if (server["type"].AsString() != "SteamCache")
                 {
                     continue;
                 }
 
-                newServers.Add(new DnsEndPoint(server["host"].AsString(), 80));
+                newServers.Add(new DnsEndPoint(server["host"].AsString(), server["https_support"].AsString() == "mandatory" ? 443 : 80));
             }
 
             if (newServers.Count > 0)
@@ -799,8 +790,11 @@ namespace SteamDatabaseBackend
 
         private void RemoveErroredServer(CDNClient.Server server)
         {
-            // Let the watchdog update the server list in next check
-            LastServerRefreshTime = DateTime.MinValue;
+            if (CDNServers.Count < 10)
+            {
+                // Let the watchdog update the server list in next check
+                LastServerRefreshTime = DateTime.MinValue;
+            }
 
             Log.WriteWarn(nameof(DepotProcessor), $"Removing {server} due to a download error");
 
