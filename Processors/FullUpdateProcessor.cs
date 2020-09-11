@@ -33,6 +33,12 @@ namespace SteamDatabaseBackend
 
                 return;
             }
+            else if (Settings.Current.FullRun == FullRunState.ImportantOnly)
+            {
+                await RequestUpdateForList(Application.ImportantApps.Keys.ToList(), Application.ImportantSubs.Keys.ToList());
+
+                return;
+            }
 
             List<uint> apps;
             List<uint> packages;

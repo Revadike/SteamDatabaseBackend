@@ -23,7 +23,7 @@ namespace SteamDatabaseBackend
             public List<uint> Packages { get; } = new List<uint>();
         }
 
-        public uint PreviousChangeNumber { get; private set; }
+        public uint PreviousChangeNumber { get; set; }
         private uint LastStoredChangeNumber;
         private uint TickerHash;
         private readonly uint BillingTypeKey;

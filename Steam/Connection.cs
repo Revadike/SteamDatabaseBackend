@@ -156,26 +156,15 @@ namespace SteamDatabaseBackend
 
             JobManager.RestartJobsIfAny();
 
-            if (Settings.IsFullRun)
-            {
-                if (Settings.Current.FullRun == FullRunState.ImportantOnly)
-                {
-                    JobManager.AddJob(
-                        () => Steam.Instance.Apps.PICSGetAccessTokens(Application.ImportantApps.Keys, Application.ImportantSubs.Keys),
-                        new PICSTokens.RequestedTokens
-                        {
-                            Apps = Application.ImportantApps.Keys.ToList(),
-                            Packages = Application.ImportantSubs.Keys.ToList(),
-                        });
-                }
-                else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
-                {
-                    _ = TaskManager.Run(FullUpdateProcessor.PerformSync);
-                }
-            }
-            else
+            if (!Settings.IsFullRun)
             {
                 Steam.Instance.PICSChanges.StartTick();
+            }
+            else if (Steam.Instance.PICSChanges.PreviousChangeNumber == 0)
+            {
+                Steam.Instance.PICSChanges.PreviousChangeNumber = 1;
+
+                _ = TaskManager.Run(FullUpdateProcessor.PerformSync);
             }
         }
 
