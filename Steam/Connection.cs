@@ -152,6 +152,8 @@ namespace SteamDatabaseBackend
 
             IRC.Instance.SendEmoteAnnounce($"logged in. Valve time: {callback.ServerTime:R}");
 
+            await Steam.Instance.DepotProcessor.UpdateContentServerList();
+
             JobManager.RestartJobsIfAny();
 
             if (Settings.IsFullRun)
@@ -173,8 +175,6 @@ namespace SteamDatabaseBackend
             }
             else
             {
-                await Steam.Instance.DepotProcessor.UpdateContentServerList();
-
                 Steam.Instance.PICSChanges.StartTick();
             }
         }
