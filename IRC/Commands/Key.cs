@@ -24,6 +24,7 @@ namespace SteamDatabaseBackend
         public KeyCommand()
         {
             Trigger = "key";
+            IsAdminCommand = true;
             IsSteamCommand = true;
 
             ActivationTimer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
@@ -83,13 +84,6 @@ namespace SteamDatabaseBackend
 
         public override async Task OnCommand(CommandArguments command)
         {
-            if (!command.IsUserAdmin)
-            {
-                command.Reply("Use https://steamdb.info/keys/");
-
-                return;
-            }
-
             var key = command.Message.Trim().ToUpperInvariant();
 
             if (key.Length < 17)
