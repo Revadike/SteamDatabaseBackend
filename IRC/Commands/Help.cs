@@ -30,10 +30,9 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            // TODO: Correctly include commands for admins if an admin uses the command
             var commands = Commands
-                            .Where(cmd => !cmd.IsAdminCommand && cmd != this)
-                            .Select(cmd => cmd.Trigger);
+                .Where(cmd => cmd != this && (!cmd.IsAdminCommand || command.IsUserAdmin))
+                .Select(cmd => cmd.Trigger);
 
             command.Notice($"Available commands: {Colors.OLIVE}{string.Join($"{Colors.NORMAL}, {Colors.OLIVE}", commands)}");
         }
