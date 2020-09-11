@@ -229,10 +229,11 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            // TODO: Put LicenseList.OwnedApps.ContainsKey() in First() search
-            var appId = kv["appids"].Children[0].AsUnsignedInteger();
+            var appId = kv["appids"].Children
+                .Select(id => id.AsUnsignedInteger())
+                .FirstOrDefault(id => !LicenseList.OwnedApps.ContainsKey(id));
 
-            if (LicenseList.OwnedApps.ContainsKey(appId))
+            if (appId == default)
             {
                 return;
             }
