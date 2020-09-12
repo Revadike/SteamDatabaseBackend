@@ -39,6 +39,10 @@ namespace SteamDatabaseBackend
             {
                 Current = JsonConvert.DeserializeObject<LocalConfigJson>(await File.ReadAllTextAsync(ConfigPath));
             }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath));
+            }
 
             if (Current.FreeLicensesToRequest.Count > 0)
             {

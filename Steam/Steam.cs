@@ -38,7 +38,7 @@ namespace SteamDatabaseBackend
         private Steam()
         {
             Configuration = SteamConfiguration.Create(b => b
-                .WithServerListProvider(new FileStorageServerListProvider(Path.Combine(Application.Path, "files", ".support", "servers.bin")))
+                .WithServerListProvider(new FileStorageServerListProvider(Path.Combine(Path.GetTempPath(), "steamdb_steamkit_servers.bin")))
                 .WithProtocolTypes(ProtocolTypes.Tcp)
                 .WithWebAPIKey(Settings.Current.Steam.WebAPIKey)
             );

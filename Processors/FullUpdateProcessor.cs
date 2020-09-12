@@ -20,6 +20,8 @@ namespace SteamDatabaseBackend
 
         public static async Task PerformSync()
         {
+            Log.WriteInfo(nameof(Settings), $"Running full update with option \"{Settings.Current.FullRun}\"");
+
             if (Settings.Current.FullRun == FullRunState.NormalUsingMetadata)
             {
                 await FullUpdateAppsMetadata();

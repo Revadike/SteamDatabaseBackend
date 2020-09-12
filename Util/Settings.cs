@@ -29,6 +29,14 @@ namespace SteamDatabaseBackend
             }
 
             Current = JsonConvert.DeserializeObject<SettingsJson>(await File.ReadAllTextAsync(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
+
+            if (Current.FullRun != FullRunState.None)
+            {
+                IsFullRun = true;
+
+                // Don't log full runs, regardless of setting
+                Current.LogToFile = false;
+            }
         }
 
         public static async Task Initialize()
@@ -43,20 +51,8 @@ namespace SteamDatabaseBackend
             {
                 IsMillhaven = await db.ExecuteScalarAsync<string>("SHOW TABLES LIKE 'Store'") != null;
             }
-
-            if (Current.FullRun != FullRunState.None)
-            {
-                IsFullRun = true;
-
-                Log.WriteInfo(nameof(Settings), $"Running full update with option \"{Current.FullRun}\"");
-
-                // Don't log full runs, regardless of setting
-                Current.LogToFile = false;
-
-                // Don't connect to IRC while doing a full run
-                Current.IRC.Enabled = false;
-            }
-            else if (!Current.LogToFile)
+            
+            if (!Current.LogToFile)
             {
                 Log.WriteInfo(nameof(Settings), "File logging is disabled");
             }
@@ -66,15 +62,21 @@ namespace SteamDatabaseBackend
 
         private static bool CanConnectToIRC()
         {
+            if (Current.FullRun != FullRunState.None)
+            {
+                // Don't connect to IRC while doing a full run
+                return false;
+            }
+
             if (!Current.IRC.Enabled)
             {
-                Log.WriteWarn(nameof(Settings), "IRC is disabled in settings");
+                Log.WriteInfo(nameof(Settings), "IRC is disabled in settings");
                 return false;
             }
 
             if (string.IsNullOrEmpty(Current.IRC.Server) || Current.IRC.Port <= 0)
             {
-                Log.WriteWarn(nameof(Settings), "Missing IRC details in settings file, not connecting");
+                Log.WriteError(nameof(Settings), "Missing IRC details in settings file, not connecting");
                 return false;
             }
 

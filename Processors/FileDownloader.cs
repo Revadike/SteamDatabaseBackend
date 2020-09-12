@@ -37,6 +37,9 @@ namespace SteamDatabaseBackend
 
             var filesDir = Path.Combine(Application.Path, "files", ".support", "hashes");
             Directory.CreateDirectory(filesDir);
+
+            filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
+            Directory.CreateDirectory(filesDir);
         }
 
         public static void ReloadFileList()
