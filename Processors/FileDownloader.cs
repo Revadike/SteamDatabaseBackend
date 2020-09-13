@@ -244,9 +244,9 @@ namespace SteamDatabaseBackend
                             fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
                             fsOld.Read(oldData, 0, oldData.Length);
 
-                            var existingChecksum = Utils.AdlerHash(oldData);
+                            var existingChecksum = sha.ComputeHash(oldData);
 
-                            if (existingChecksum.SequenceEqual(chunk.Checksum))
+                            if (existingChecksum.SequenceEqual(chunk.ChunkID))
                             {
                                 fs.Seek((long)chunk.Offset, SeekOrigin.Begin);
                                 fs.Write(oldData, 0, oldData.Length);

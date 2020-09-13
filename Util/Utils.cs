@@ -55,17 +55,6 @@ namespace SteamDatabaseBackend
             return ((1 << i) * 1000) + NextRandom(1001);
         }
 
-        public static byte[] AdlerHash(byte[] input)
-        {
-            uint a = 0, b = 0;
-            foreach (var t in input)
-            {
-                a = (a + t) % 65521;
-                b = (b + a) % 65521;
-            }
-            return BitConverter.GetBytes(a | (b << 16));
-        }
-
         public static byte[] StringToByteArray(string str)
         {
             var HexAsBytes = new byte[str.Length / 2];
