@@ -29,6 +29,7 @@ namespace SteamDatabaseBackend
 
         public PICSChanges PICSChanges { get; }
         public DepotProcessor DepotProcessor { get; private set; }
+        public FreeLicense FreeLicense { get; private set; }
 
         public bool IsRunning { get; set; }
 
@@ -69,11 +70,6 @@ namespace SteamDatabaseBackend
                 new WebAuth(CallbackManager)
             };
 
-            if (Settings.IsMillhaven)
-            {
-                Handlers.Add(new FreeLicense(CallbackManager));
-            }
-
             if (!Settings.IsFullRun)
             {
                 Handlers.Add(new ClanState(CallbackManager));
@@ -81,6 +77,7 @@ namespace SteamDatabaseBackend
                 WatchdogHandle = new Watchdog();
             }
 
+            FreeLicense = new FreeLicense(CallbackManager);
             PICSChanges = new PICSChanges(CallbackManager);
             DepotProcessor = new DepotProcessor(Client);
 
@@ -99,6 +96,12 @@ namespace SteamDatabaseBackend
             {
                 WatchdogHandle.Dispose();
                 WatchdogHandle = null;
+            }
+
+            if (FreeLicense != null)
+            {
+                FreeLicense.Dispose();
+                FreeLicense = null;
             }
         }
 

@@ -13,13 +13,16 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 using Dapper;
+using Newtonsoft.Json;
 using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
-    internal class FreeLicense : SteamHandler
+    internal class FreeLicense : SteamHandler, IDisposable
     {
         private const int REQUEST_RATE_LIMIT = 25; // Steam actually limits at 50, but we're not in a hurry
+
+        public Dictionary<uint, uint> FreeLicensesToRequest { get; } = new Dictionary<uint, uint>();
 
         private static int AppsRequestedInHour;
         private static Timer FreeLicenseTimer;
@@ -40,10 +43,34 @@ namespace SteamDatabaseBackend
             };
             FreeLicenseTimer.Elapsed += OnTimer;
 
-            if (!Settings.IsFullRun && LocalConfig.Current.FreeLicensesToRequest.Count > 0)
+            var db = Database.Get();
+            var data = db.ExecuteScalar<string>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = 'backend.freelicense.requests'");
+
+            if (data != null)
+            {
+                FreeLicensesToRequest = JsonConvert.DeserializeObject<Dictionary<uint, uint>>(data);
+            }
+
+            if (FreeLicensesToRequest.Count == 0)
+            {
+                return;
+            }
+
+            Log.WriteInfo(nameof(FreeLicense), $"There are {FreeLicensesToRequest.Count} free licenses to request");
+
+            if (!Settings.IsFullRun)
             {
                 AppsRequestedInHour = REQUEST_RATE_LIMIT;
                 FreeLicenseTimer.Start();
+            }
+        }
+
+        public void Dispose()
+        {
+            if (FreeLicenseTimer != null)
+            {
+                FreeLicenseTimer.Dispose();
+                FreeLicenseTimer = null;
             }
         }
 
@@ -65,12 +92,20 @@ namespace SteamDatabaseBackend
                         Apps = appIDs.ToList()
                     });
 
+                var removed = false;
+
                 foreach (var appid in appIDs)
                 {
-                    LocalConfig.Current.FreeLicensesToRequest.Remove(appid);
+                    if (FreeLicensesToRequest.Remove(appid))
+                    {
+                        removed = true;
+                    }
                 }
 
-                LocalConfig.Save();
+                if (removed)
+                {
+                    TaskManager.Run(Save);
+                }
             }
 
             if (packageIDs.Count > 0)
@@ -168,9 +203,9 @@ namespace SteamDatabaseBackend
             }
         }
 
-        private static void OnTimer(object sender, ElapsedEventArgs e)
+        private void OnTimer(object sender, ElapsedEventArgs e)
         {
-            var list = LocalConfig.Current.FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
+            var list = FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
 
@@ -194,10 +229,10 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                LocalConfig.Current.FreeLicensesToRequest.Remove(subId);
+                FreeLicensesToRequest.Remove(subId);
             }
 
-            LocalConfig.Save();
+            TaskManager.Run(Save);
 
             var appids = list.Select(x => x.Value).Distinct();
 
@@ -207,7 +242,7 @@ namespace SteamDatabaseBackend
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appids));
 
-            if (LocalConfig.Current.FreeLicensesToRequest.Count > 0)
+            if (FreeLicensesToRequest.Count > 0)
             {
                 lock (FreeLicenseTimer)
                 {
@@ -216,8 +251,13 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static void RequestFromPackage(uint subId, KeyValue kv)
+        public void RequestFromPackage(uint subId, KeyValue kv)
         {
+            if (!Settings.IsMillhaven)
+            {
+                return;
+            }
+
             if ((EBillingType)kv["billingtype"].AsInteger() != EBillingType.FreeOnDemand)
             {
                 return;
@@ -325,7 +365,7 @@ namespace SteamDatabaseBackend
             QueueRequest(subId, appId);
         }
 
-        private static void QueueRequest(uint subId, uint appId)
+        private void QueueRequest(uint subId, uint appId)
         {
             if (Settings.IsFullRun || AppsRequestedInHour++ >= REQUEST_RATE_LIMIT)
             {
@@ -345,7 +385,7 @@ namespace SteamDatabaseBackend
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appId));
         }
 
-        private static void AddToQueue(uint subId, uint appId)
+        private void AddToQueue(uint subId, uint appId)
         {
             lock (FreeLicenseTimer)
             {
@@ -355,13 +395,18 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            if (LocalConfig.Current.FreeLicensesToRequest.ContainsKey(subId))
+            if (FreeLicensesToRequest.ContainsKey(subId))
             {
                 return;
             }
 
-            LocalConfig.Current.FreeLicensesToRequest.Add(subId, appId);
-            LocalConfig.Save();
+            FreeLicensesToRequest.Add(subId, appId);
+            TaskManager.Run(Save);
+        }
+
+        private Task Save()
+        {
+            return LocalConfig.Update("backend.freelicense.requests", JsonConvert.SerializeObject(FreeLicensesToRequest));
         }
     }
 }

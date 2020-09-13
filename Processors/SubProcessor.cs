@@ -304,7 +304,7 @@ namespace SteamDatabaseBackend
 
                 if (!packageOwned && SubID != 17906 && Settings.IsMillhaven)
                 {
-                    FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
+                    Steam.Instance.FreeLicense.RequestFromPackage(SubID, ProductInfo.KeyValues);
                 }
             }
 

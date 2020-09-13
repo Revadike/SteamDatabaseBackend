@@ -6,7 +6,6 @@
 
 using System;
 using System.Globalization;
-using System.IO;
 using System.Threading.Tasks;
 using SteamKit2;
 
@@ -32,7 +31,6 @@ namespace SteamDatabaseBackend
             Log.WriteInfo(nameof(Bootstrapper), "Copyright (c) 2013-present, SteamDB. See LICENSE file for more information.");
             
             await Settings.Initialize();
-            await LocalConfig.Load();
 
             DebugLog.AddListener(new Log.SteamKitLogger());
             DebugLog.Enabled = true;
