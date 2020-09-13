@@ -51,7 +51,7 @@ namespace SteamDatabaseBackend
         public int DepotLocksCount => DepotLocks.Count;
         public DateTime LastServerRefreshTime { get; private set; } = DateTime.Now;
 
-        public DepotProcessor(SteamClient client, CallbackManager manager)
+        public DepotProcessor(SteamClient client)
         {
             UpdateScript = Path.Combine(Application.Path, "files", "update.sh");
             CDNClient = new CDNClient(client);

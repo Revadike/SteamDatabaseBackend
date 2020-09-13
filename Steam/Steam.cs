@@ -82,7 +82,7 @@ namespace SteamDatabaseBackend
             }
 
             PICSChanges = new PICSChanges(CallbackManager);
-            DepotProcessor = new DepotProcessor(Client, CallbackManager);
+            DepotProcessor = new DepotProcessor(Client);
 
             IsRunning = true;
         }

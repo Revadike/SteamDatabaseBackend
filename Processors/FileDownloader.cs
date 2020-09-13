@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using Newtonsoft.Json;
 using SteamKit2;
 
@@ -21,31 +22,21 @@ namespace SteamDatabaseBackend
 {
     internal static class FileDownloader
     {
-        private static readonly JsonSerializerSettings JsonHandleAllReferences = new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.All };
-        private static readonly JsonSerializerSettings JsonErrorMissing = new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error };
+        private class ExistingFileData
+        {
+            public byte[] FileHash { get; set; }
+            public Dictionary<ulong, byte[]> Chunks { get; set; } = new Dictionary<ulong, byte[]>();
+        }
+
         private static readonly SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
 
-        private static Dictionary<uint, string> DownloadFolders;
-        private static Dictionary<uint, Regex> Files;
+        private static readonly Dictionary<uint, string> DownloadFolders = new Dictionary<uint, string>();
+        private static readonly Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
         private static CDNClient CDNClient;
 
         public static void SetCDNClient(CDNClient cdnClient)
         {
             CDNClient = cdnClient;
-
-            ReloadFileList();
-
-            var filesDir = Path.Combine(Application.Path, "files", ".support", "hashes");
-            Directory.CreateDirectory(filesDir);
-
-            filesDir = Path.Combine(Application.Path, "files", ".support", "chunks");
-            Directory.CreateDirectory(filesDir);
-        }
-
-        public static void ReloadFileList()
-        {
-            Files = new Dictionary<uint, Regex>();
-            DownloadFolders = new Dictionary<uint, string>();
 
             var file = Path.Combine(Application.Path, "files", "depots_mapping.json");
 
@@ -56,7 +47,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            DownloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file), JsonErrorMissing);
+            var downloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file));
 
             file = Path.Combine(Application.Path, "files", "files.json");
 
@@ -67,18 +58,19 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file), JsonErrorMissing);
+            var files = JsonConvert.DeserializeObject<Dictionary<uint, List<string>>>(File.ReadAllText(file));
 
             foreach (var (depotid, fileMatches) in files)
             {
-                var pattern = $"^({string.Join("|", fileMatches.Select(ConvertFileMatch))})$";
-
-                Files[depotid] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
-
-                if (!DownloadFolders.ContainsKey(depotid))
+                if (!downloadFolders.ContainsKey(depotid))
                 {
                     throw new InvalidDataException($"Missing depot mapping for depotid {depotid}.");
                 }
+
+                var pattern = $"^({string.Join("|", fileMatches.Select(ConvertFileMatch))})$";
+
+                Files[depotid] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+                DownloadFolders[depotid] = downloadFolders[depotid];
             }
         }
 
@@ -101,19 +93,23 @@ namespace SteamDatabaseBackend
             var files = depotManifest.Files.Where(x => filesRegex.IsMatch(x.FileName.Replace('\\', '/'))).ToList();
             var downloadState = EResult.Fail;
 
-            var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", $"{job.DepotID}.json");
-            ConcurrentDictionary<string, byte[]> hashes;
+            ConcurrentDictionary<string, ExistingFileData> existingFileData;
 
-            if (File.Exists(hashesFile))
+            await using (var db = await Database.GetConnectionAsync())
             {
-                hashes = JsonConvert.DeserializeObject<ConcurrentDictionary<string, byte[]>>(await File.ReadAllTextAsync(hashesFile));
-            }
-            else
-            {
-                hashes = new ConcurrentDictionary<string, byte[]>();
+                var data = db.ExecuteScalar<string>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = @Key", new { Key = $"depot.{job.DepotID}" });
+
+                if (data != null)
+                {
+                    existingFileData = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ExistingFileData>>(data);
+                }
+                else
+                {
+                    existingFileData = new ConcurrentDictionary<string, ExistingFileData>();
+                }
             }
 
-            foreach (var file in hashes.Keys.Except(files.Select(x => x.FileName)))
+            foreach (var file in existingFileData.Keys.Except(files.Select(x => x.FileName)))
             {
                 Log.WriteWarn(nameof(FileDownloader), $"\"{file}\" no longer exists in manifest");
             }
@@ -128,13 +124,13 @@ namespace SteamDatabaseBackend
                 var file = files[i];
                 fileTasks[i] = TaskManager.Run(async () =>
                 {
-                    hashes.TryGetValue(file.FileName, out var hash);
+                    var existingFile = existingFileData.GetOrAdd(file.FileName, _ => new ExistingFileData());
 
-                    var fileState = await DownloadFile(job, file, hash);
+                    var fileState = await DownloadFile(job, file, existingFile);
 
                     if (fileState == EResult.OK || fileState == EResult.SameAsPreviousValue)
                     {
-                        hashes[file.FileName] = file.FileHash;
+                        existingFile.FileHash = file.FileHash;
 
                         downloadedFiles++;
                     }
@@ -159,25 +155,19 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(fileTasks).ConfigureAwait(false);
 
-            if (downloadState == EResult.OK)
-            {
-                await File.WriteAllTextAsync(hashesFile, JsonConvert.SerializeObject(hashes));
+            await LocalConfig.Update($"depot.{job.DepotID}", JsonConvert.SerializeObject(existingFileData));
 
-                job.Result = EResult.OK;
-            }
-            else if (downloadState == EResult.DataCorruption)
+            job.Result = downloadState switch
             {
-                job.Result = EResult.DataCorruption;
-            }
-            else
-            {
-                job.Result = EResult.Ignored;
-            }
+                EResult.OK => EResult.OK,
+                EResult.DataCorruption => EResult.DataCorruption,
+                _ => EResult.Ignored
+            };
 
             return job.Result;
         }
 
-        private static async Task<EResult> DownloadFile(DepotProcessor.ManifestJob job, DepotManifest.FileData file, byte[] hash)
+        private static async Task<EResult> DownloadFile(DepotProcessor.ManifestJob job, DepotManifest.FileData file, ExistingFileData existingFile)
         {
             var directory = Path.Combine(Application.Path, "files", DownloadFolders[job.DepotID], Path.GetDirectoryName(file.FileName));
             var finalPath = new FileInfo(Path.Combine(directory, Path.GetFileName(file.FileName)));
@@ -209,7 +199,7 @@ namespace SteamDatabaseBackend
                     return EResult.SameAsPreviousValue;
                 }
             }
-            else if (hash != null && file.FileHash.SequenceEqual(hash))
+            else if (existingFile.FileHash != null && file.FileHash.SequenceEqual(existingFile.FileHash))
             {
 #if DEBUG
                 Log.WriteDebug($"FileDownloader {job.DepotID}", $"{file.FileName} already matches the file we have");
@@ -219,30 +209,26 @@ namespace SteamDatabaseBackend
             }
             
             using var sha = SHA1.Create();
-            var checksum = sha.ComputeHash(Encoding.UTF8.GetBytes(file.FileName));
 
             var neededChunks = new List<DepotManifest.ChunkData>();
             var chunks = file.Chunks.OrderBy(x => x.Offset).ToList();
-            var oldChunksFile = Path.Combine(Application.Path, "files", ".support", "chunks", $"{job.DepotID}-{BitConverter.ToString(checksum)}.json");
 
             await using (var fs = downloadPath.Open(FileMode.OpenOrCreate, FileAccess.ReadWrite))
             {
                 fs.SetLength((long)file.TotalSize);
 
-                if (finalPath.Exists && File.Exists(oldChunksFile))
+                if (finalPath.Exists)
                 {
-                    var oldChunks = JsonConvert.DeserializeObject<List<DepotManifest.ChunkData>>(await File.ReadAllTextAsync(oldChunksFile), JsonHandleAllReferences);
-
                     await using var fsOld = finalPath.Open(FileMode.Open, FileAccess.Read);
 
                     foreach (var chunk in chunks)
                     {
-                        var oldChunk = oldChunks.Find(c => c.ChunkID.SequenceEqual(chunk.ChunkID));
+                        var oldChunk = existingFile.Chunks.FirstOrDefault(c => c.Value.SequenceEqual(chunk.ChunkID));
 
-                        if (oldChunk != null)
+                        if (oldChunk.Value != null)
                         {
-                            var oldData = new byte[oldChunk.UncompressedLength];
-                            fsOld.Seek((long)oldChunk.Offset, SeekOrigin.Begin);
+                            var oldData = new byte[chunk.UncompressedLength];
+                            fsOld.Seek((long)oldChunk.Key, SeekOrigin.Begin);
                             fsOld.Read(oldData, 0, oldData.Length);
 
                             var existingChecksum = sha.ComputeHash(oldData);
@@ -281,7 +267,7 @@ namespace SteamDatabaseBackend
             var downloadedSize = file.TotalSize - (ulong)neededChunks.Sum(x => x.UncompressedLength);
             var chunkTasks = new Task[neededChunks.Count];
 
-            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({neededChunks.Count} chunks to download out of {chunks.Count})");
+            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({neededChunks.Count} out of {chunks.Count} chunks to download)");
 
             for (var i = 0; i < chunkTasks.Length; i++)
             {
@@ -319,6 +305,8 @@ namespace SteamDatabaseBackend
 
             await Task.WhenAll(chunkTasks).ConfigureAwait(false);
 
+            byte[] checksum;
+
             await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
                 checksum = sha.ComputeHash(fs);
@@ -336,11 +324,8 @@ namespace SteamDatabaseBackend
                 Log.WriteWarn($"FileDownloader {job.DepotID}", $"Hash check failed for {file.FileName} ({job.Server})");
 
                 downloadPath.Delete();
-
-                if (File.Exists(oldChunksFile))
-                {
-                    File.Delete(oldChunksFile);
-                }
+                existingFile.FileHash = null;
+                existingFile.Chunks.Clear();
 
                 return EResult.DataCorruption;
             }
@@ -353,11 +338,11 @@ namespace SteamDatabaseBackend
 
             if (chunks.Count > 0)
             {
-                await File.WriteAllTextAsync(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences), chunkCancellation.Token);
+                existingFile.Chunks = chunks.ToDictionary(chunk => chunk.Offset, chunk => chunk.ChunkID);
             }
-            else if (File.Exists(oldChunksFile))
+            else
             {
-                File.Delete(oldChunksFile);
+                existingFile.Chunks.Clear();
             }
 
             return EResult.OK;

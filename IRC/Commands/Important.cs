@@ -40,7 +40,6 @@ namespace SteamDatabaseBackend
                     case "reload":
                         await Application.ReloadImportant(command);
                         PICSTokens.Reload(command);
-                        FileDownloader.ReloadFileList();
 
                         return;
 
