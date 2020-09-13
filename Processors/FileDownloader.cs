@@ -280,7 +280,7 @@ namespace SteamDatabaseBackend
             var downloadedSize = file.TotalSize - (ulong)neededChunks.Sum(x => x.UncompressedLength);
             var chunkTasks = new Task[neededChunks.Count];
 
-            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({downloadedSize} bytes, {neededChunks.Count} out of {chunks.Count} chunks)");
+            Log.WriteInfo($"FileDownloader {job.DepotID}", $"Downloading {file.FileName} ({neededChunks.Count} chunks to download out of {chunks.Count})");
 
             for (var i = 0; i < chunkTasks.Length; i++)
             {
@@ -350,7 +350,7 @@ namespace SteamDatabaseBackend
 
             downloadPath.MoveTo(finalPath.FullName);
 
-            if (chunks.Count > 1)
+            if (chunks.Count > 0)
             {
                 await File.WriteAllTextAsync(oldChunksFile, JsonConvert.SerializeObject(chunks, Formatting.None, JsonHandleAllReferences), chunkCancellation.Token);
             }
