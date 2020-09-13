@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS `KeyNamesSubs` (
 
 CREATE TABLE IF NOT EXISTS `LocalConfig` (
   `ConfigKey` varchar(256) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `Value` varchar(5120) COLLATE utf8mb4_bin NOT NULL,
+  `Value` mediumtext COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`ConfigKey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
