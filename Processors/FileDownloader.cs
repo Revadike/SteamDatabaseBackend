@@ -97,7 +97,8 @@ namespace SteamDatabaseBackend
          */
         public static async Task<EResult> DownloadFilesFromDepot(DepotProcessor.ManifestJob job, DepotManifest depotManifest)
         {
-            var files = depotManifest.Files.Where(x => IsFileNameMatching(job.DepotID, x.FileName)).ToList();
+            var filesRegex = Files[job.DepotID];
+            var files = depotManifest.Files.Where(x => filesRegex.IsMatch(x.FileName.Replace('\\', '/'))).ToList();
             var downloadState = EResult.Fail;
 
             var hashesFile = Path.Combine(Application.Path, "files", ".support", "hashes", $"{job.DepotID}.json");
@@ -388,11 +389,6 @@ namespace SteamDatabaseBackend
             }
 
             return false;
-        }
-
-        private static bool IsFileNameMatching(uint depotID, string fileName)
-        {
-            return Files[depotID].IsMatch(fileName.Replace('\\', '/'));
         }
 
         private static string ConvertFileMatch(string input)
