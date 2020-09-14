@@ -28,9 +28,8 @@ namespace SteamDatabaseBackend
         }
 
         private static readonly SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
-
-        private static readonly Dictionary<uint, string> DownloadFolders = new Dictionary<uint, string>();
         private static readonly Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
+        private static Dictionary<uint, string> DownloadFolders = new Dictionary<uint, string>();
         private static CDNClient CDNClient;
 
         public static void SetCDNClient(CDNClient cdnClient)
@@ -46,7 +45,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var downloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file));
+            DownloadFolders = JsonConvert.DeserializeObject<Dictionary<uint, string>>(File.ReadAllText(file));
 
             file = Path.Combine(Application.Path, "files", "files.json");
 
@@ -61,7 +60,7 @@ namespace SteamDatabaseBackend
 
             foreach (var (depotid, fileMatches) in files)
             {
-                if (!downloadFolders.ContainsKey(depotid))
+                if (!DownloadFolders.ContainsKey(depotid))
                 {
                     throw new InvalidDataException($"Missing depot mapping for depotid {depotid}.");
                 }
@@ -69,7 +68,6 @@ namespace SteamDatabaseBackend
                 var pattern = $"^({string.Join("|", fileMatches.Select(ConvertFileMatch))})$";
 
                 Files[depotid] = new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
-                DownloadFolders[depotid] = downloadFolders[depotid];
             }
         }
 
