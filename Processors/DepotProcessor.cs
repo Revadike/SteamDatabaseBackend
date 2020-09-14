@@ -449,6 +449,7 @@ namespace SteamDatabaseBackend
 
                 if (!FileDownloader.IsImportantDepot(depot.DepotID) || depot.DepotKey == null)
                 {
+                    depot.Result = EResult.Ignored;
                     continue;
                 }
 
@@ -503,7 +504,7 @@ namespace SteamDatabaseBackend
                     }
                     else if (depot.Result != EResult.Ignored)
                     {
-                        Log.WriteWarn(nameof(DepotProcessor), $"Download failed for {depot.DepotID}");
+                        Log.WriteWarn(nameof(DepotProcessor), $"Download failed for {depot.DepotID}: {depot.Result}");
 
                         // Mark this depot for redownload
                         using var db = Database.Get();
