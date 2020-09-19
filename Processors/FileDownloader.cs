@@ -27,7 +27,7 @@ namespace SteamDatabaseBackend
             public Dictionary<ulong, byte[]> Chunks { get; set; } = new Dictionary<ulong, byte[]>();
         }
 
-        private static readonly SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(10);
+        private static readonly SemaphoreSlim ChunkDownloadingSemaphore = new SemaphoreSlim(12);
         private static readonly Dictionary<uint, Regex> Files = new Dictionary<uint, Regex>();
         private static Dictionary<uint, string> DownloadFolders = new Dictionary<uint, string>();
         private static CDNClient CDNClient;
@@ -122,8 +122,18 @@ namespace SteamDatabaseBackend
                 fileTasks[i] = TaskManager.Run(async () =>
                 {
                     var existingFile = existingFileData.GetOrAdd(file.FileName, _ => new ExistingFileData());
+                    EResult fileState;
 
-                    var fileState = await DownloadFile(job, file, existingFile);
+                    try
+                    {
+                        await ChunkDownloadingSemaphore.WaitAsync().ConfigureAwait(false);
+
+                        fileState = await DownloadFile(job, file, existingFile);
+                    }
+                    finally
+                    {
+                        ChunkDownloadingSemaphore.Release();
+                    }
 
                     if (fileState == EResult.OK || fileState == EResult.SameAsPreviousValue)
                     {
@@ -271,31 +281,20 @@ namespace SteamDatabaseBackend
                 var chunk = neededChunks[i];
                 chunkTasks[i] = TaskManager.Run(async () =>
                 {
-                    try
+                    var result = await DownloadChunk(job, chunk, downloadPath, chunkCancellation);
+
+                    if (!result)
                     {
-                        chunkCancellation.Token.ThrowIfCancellationRequested();
+                        Log.WriteWarn($"FileDownloader {job.DepotID}", $"Failed to download chunk for {file.FileName} ({chunk.Offset})");
 
-                        await ChunkDownloadingSemaphore.WaitAsync(chunkCancellation.Token).ConfigureAwait(false);
-
-                        var result = await DownloadChunk(job, chunk, downloadPath);
-
-                        if (!result)
-                        {
-                            Log.WriteWarn($"FileDownloader {job.DepotID}", $"Failed to download chunk for {file.FileName} ({chunk.Offset})");
-
-                            chunkCancellation.Cancel();
-                        }
-                        else
-                        {
-                            downloadedSize += chunk.UncompressedLength;
-
-                            // Do not write progress info to log file
-                            Console.WriteLine($"{job.DepotName} [{downloadedSize / (float) file.TotalSize * 100.0f,6:#00.00}%] {file.FileName}");
-                        }
+                        chunkCancellation.Cancel();
                     }
-                    finally
+                    else
                     {
-                        ChunkDownloadingSemaphore.Release();
+                        downloadedSize += chunk.UncompressedLength;
+
+                        // Do not write progress info to log file
+                        Console.WriteLine($"{job.DepotName} [{downloadedSize / (float) file.TotalSize * 100.0f,6:#00.00}%] {file.FileName}");
                     }
                 });
             }
@@ -345,10 +344,14 @@ namespace SteamDatabaseBackend
             return EResult.OK;
         }
 
-        private static async Task<bool> DownloadChunk(DepotProcessor.ManifestJob job, DepotManifest.ChunkData chunk, FileInfo downloadPath)
+        private static async Task<bool> DownloadChunk(DepotProcessor.ManifestJob job, DepotManifest.ChunkData chunk, FileInfo downloadPath, CancellationTokenSource chunkCancellation)
         {
-            for (var i = 0; i <= 5; i++)
+            const int TRIES = 3;
+
+            for (var i = 0; i <= TRIES; i++)
             {
+                chunkCancellation.Token.ThrowIfCancellationRequested();
+
                 try
                 {
                     var chunkData = await CDNClient.DownloadDepotChunkAsync(job.DepotID, chunk, job.Server, string.Empty, job.DepotKey);
@@ -364,7 +367,7 @@ namespace SteamDatabaseBackend
                     Log.WriteWarn($"FileDownloader {job.DepotID}", $"Exception: {e}");
                 }
 
-                if (i < 5)
+                if (i < TRIES)
                 {
                     await Task.Delay(Utils.ExponentionalBackoff(i + 1));
                 }
