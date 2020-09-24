@@ -142,7 +142,7 @@ namespace SteamDatabaseBackend
             {
                 CurrentlyUpdatingNames = true;
 
-                var response = await WebAuth.PerformRequest(HttpMethod.Get, "https://store.steampowered.com/account/licenses/");
+                var response = await WebAuth.PerformRequest(HttpMethod.Get, new Uri("https://store.steampowered.com/account/licenses/"));
                 data = await response.Content.ReadAsStringAsync();
             }
             catch (Exception e)

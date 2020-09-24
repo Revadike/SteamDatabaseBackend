@@ -89,6 +89,7 @@ namespace SteamDatabaseBackend
                 Cookies = new CookieContainer();
                 Cookies.Add(new Cookie("steamLogin", result["token"].AsString(), "/", "store.steampowered.com"));
                 Cookies.Add(new Cookie("steamLoginSecure", result["tokensecure"].AsString(), "/", "store.steampowered.com"));
+                Cookies.Add(new Cookie("sessionid", nameof(SteamDatabaseBackend), "/", "store.steampowered.com"));
             }
 
             IsAuthorized = true;
@@ -98,7 +99,7 @@ namespace SteamDatabaseBackend
             return true;
         }
 
-        public static async Task<HttpResponseMessage> PerformRequest(HttpMethod method, string url)
+        public static async Task<HttpResponseMessage> PerformRequest(HttpMethod method, Uri uri, IEnumerable<KeyValuePair<string, string>> data = null)
         {
             HttpResponseMessage response = null;
 
@@ -109,7 +110,6 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                var uri = new Uri(url);
                 var cookies = string.Empty;
 
                 foreach (var cookie in Cookies.GetCookies(uri))
@@ -120,11 +120,16 @@ namespace SteamDatabaseBackend
                 using var requestMessage = new HttpRequestMessage(method, uri);
                 requestMessage.Headers.Add("Cookie", cookies); // Can't pass cookie container into a single req message
 
+                if (data != null)
+                {
+                    requestMessage.Content = new FormUrlEncodedContent(data);
+                }
+
                 response = await Utils.HttpClient.SendAsync(requestMessage);
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Redirect)
                 {
-                    Log.WriteDebug(nameof(WebAuth), $"Got status code {response.StatusCode}");
+                    Log.WriteDebug(nameof(WebAuth), $"Got status code {response.StatusCode} for {uri}");
 
                     IsAuthorized = false;
 

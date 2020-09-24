@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Dapper;
 using Newtonsoft.Json;
@@ -66,12 +67,13 @@ namespace SteamDatabaseBackend
             var app = (await DbConnection.QueryAsync<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID })).SingleOrDefault();
 
             var newAppName = ProductInfo.KeyValues["common"]["name"].AsString();
+            var newAppType = -1;
 
             if (newAppName != null)
             {
                 var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLowerInvariant();
 
-                var newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
+                newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
                 var modifiedNameOrType = false;
 
                 if (newAppType == -1)
@@ -212,6 +214,30 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteError(nameof(PICSTokens), $"Overridden token for appid {AppID} is invalid?");
                 IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for appid {AppID} ({newAppName}) is invalid");
+            }
+
+            if (Settings.IsMillhaven && app.AppType == 0 && newAppType == 18)
+            {
+                var betaAppId = ProductInfo.KeyValues["extended"]["betaforappid"].AsUnsignedInteger();
+
+                if (betaAppId == 0)
+                {
+                    betaAppId = ProductInfo.KeyValues["common"]["parent"].AsUnsignedInteger();
+                }
+
+                Log.WriteDebug(nameof(AppProcessor), $"Requesting beta access for {AppID} ({betaAppId})");
+                
+                var response = await WebAuth.PerformRequest(
+                    HttpMethod.Post,
+                    new Uri($"https://store.steampowered.com/ajaxrequestplaytestaccess/{betaAppId}"),
+                    new List<KeyValuePair<string, string>>
+                    {
+                        new KeyValuePair<string, string>("sessionid", nameof(SteamDatabaseBackend))
+                    }
+                );
+                var data = await response.Content.ReadAsStringAsync();
+
+                Log.WriteDebug(nameof(AppProcessor), $"Beta {AppID}: {data}");
             }
         }
 
