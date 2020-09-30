@@ -136,7 +136,7 @@ namespace SteamDatabaseBackend
             {
                 var sectionName = section.Name.ToLowerInvariant();
 
-                if (sectionName == "appid" || sectionName == "public_only" || sectionName == "change_number")
+                if (sectionName == "appid" || sectionName == "change_number")
                 {
                     continue;
                 }
@@ -162,6 +162,10 @@ namespace SteamDatabaseBackend
                             await ProcessKey(keyName, keyvalue.Name, keyvalue.Value);
                         }
                     }
+                }
+                else if (sectionName == "public_only")
+                {
+                    await ProcessKey($"root_{sectionName}", section.Name, section.Value);
                 }
                 else
                 {
