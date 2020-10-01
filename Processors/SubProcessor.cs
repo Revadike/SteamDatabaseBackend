@@ -235,6 +235,33 @@ namespace SteamDatabaseBackend
                         }
                     }
                 }
+                else if (sectionName == "appitems" && section.Children.Count > 1)
+                {
+                    sectionName = $"root_{sectionName}";
+
+                    var fixedAppItems = new KeyValue(section.Name);
+
+                    // Valve for some reason creates a new children for each item,
+                    // instead of actually making it an array.
+                    // This causes json_decode in php override the key, thus lose data.
+                    foreach (var item in section.Children)
+                    {
+                        var appItem = fixedAppItems.Children.Find(s => s.Name == item.Name);
+
+                        if (appItem == default)
+                        {
+                            appItem = new KeyValue(item.Name);
+                            fixedAppItems.Children.Add(appItem);
+                        }
+
+                        foreach (var itemId in item.Children)
+                        {
+                            appItem.Children.Add(new KeyValue(itemId.Name, itemId.Value));
+                        }
+                    }
+
+                    await ProcessKey(sectionName, sectionName, Utils.JsonifyKeyValue(fixedAppItems), true);
+                }
                 else if (section.Children.Count > 0)
                 {
                     sectionName = $"root_{sectionName}";
