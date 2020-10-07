@@ -141,8 +141,6 @@ namespace SteamDatabaseBackend
             {
                 AppTokens.Add(id, accessToken);
 
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new app token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetAppName(id)})");
-
                 Log.WriteInfo(nameof(PICSTokens), $"New token for appid {id}");
 
                 using var db = Database.Get();
@@ -165,8 +163,6 @@ namespace SteamDatabaseBackend
             if (!PackageTokens.TryGetValue(id, out var existingToken))
             {
                 PackageTokens.Add(id, accessToken);
-
-                IRC.Instance.SendOps($"{Colors.GREEN}[Tokens]{Colors.NORMAL} Added a new package token that the bot got itself:{Colors.BLUE} {id} {Colors.NORMAL}({Steam.GetPackageName(id)})");
 
                 Log.WriteInfo(nameof(PICSTokens), $"New token for subid {id}");
 
