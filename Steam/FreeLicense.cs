@@ -205,6 +205,16 @@ namespace SteamDatabaseBackend
 
         private void OnTimer(object sender, ElapsedEventArgs e)
         {
+            if (!Steam.Instance.IsLoggedOn)
+            {
+                lock (FreeLicenseTimer)
+                {
+                    FreeLicenseTimer.Start();
+                }
+
+                return;
+            }
+
             var list = FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
