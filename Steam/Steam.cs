@@ -32,6 +32,7 @@ namespace SteamDatabaseBackend
         public FreeLicense FreeLicense { get; private set; }
 
         public bool IsRunning { get; set; }
+        public bool IsLoggedOn => Client.SteamID != null;
 
         private readonly List<SteamHandler> Handlers;
         private Watchdog WatchdogHandle;

@@ -75,7 +75,7 @@ namespace SteamDatabaseBackend
                     break;
 
                 case ECommandType.SteamIndividual:
-                    if (!Steam.Instance.Client.IsConnected)
+                    if (!Steam.Instance.IsLoggedOn)
                     {
                         break;
                     }

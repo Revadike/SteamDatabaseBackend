@@ -105,9 +105,9 @@ namespace SteamDatabaseBackend
 
             commandData.Message = message.Substring(messageArray[0].Length).Trim();
 
-            if (command.IsSteamCommand && !Steam.Instance.Client.IsConnected)
+            if (command.IsSteamCommand && !Steam.Instance.IsLoggedOn)
             {
-                commandData.Reply("Not connected to Steam.");
+                commandData.Reply("Not logged on to Steam.");
 
                 return;
             }

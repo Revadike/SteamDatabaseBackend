@@ -43,7 +43,7 @@ namespace SteamDatabaseBackend
 
         private async void OnTimer(object sender, ElapsedEventArgs e)
         {
-            if (!Steam.Instance.Client.IsConnected)
+            if (!Steam.Instance.IsLoggedOn)
             {
                 return;
             }
