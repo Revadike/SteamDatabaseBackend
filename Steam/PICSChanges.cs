@@ -159,6 +159,8 @@ namespace SteamDatabaseBackend
 
                         await FullUpdateProcessor.FullUpdatePackagesMetadata();
                     }
+
+                    IRC.Instance.SendOps($"Changelist {callback.CurrentChangeNumber} full update has finished");
                 });
             }
 
