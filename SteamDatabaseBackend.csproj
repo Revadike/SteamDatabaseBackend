@@ -8,6 +8,7 @@
     <RepositoryUrl>https://github.com/SteamDatabase/SteamDatabaseBackend</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseUrl>https://github.com/SteamDatabase/SteamDatabaseBackend/blob/master/LICENSE</PackageLicenseUrl>
+    <ApplicationIcon>steamdb.ico</ApplicationIcon>
     <LangVersion>latest</LangVersion>
     <OutputPath>bin</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
