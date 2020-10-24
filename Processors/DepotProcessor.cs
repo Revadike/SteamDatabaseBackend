@@ -116,7 +116,12 @@ namespace SteamDatabaseBackend
 
             foreach (var server in response["servers"].Children)
             {
-                if (server["type"].AsString() != "SteamCache")
+                if (server["allowed_app_ids"] != KeyValue.Invalid)
+                {
+                    continue;
+                }
+
+                if (server["type"].AsString() != "SteamCache" && server["type"].AsString() != "CDN")
                 {
                     continue;
                 }
