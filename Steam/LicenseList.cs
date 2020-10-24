@@ -77,11 +77,9 @@ namespace SteamDatabaseBackend
                     newSubs.Add(license.PackageID);
                 }
 
-                if (Steam.Instance.FreeLicense.FreeLicensesToRequest.ContainsKey(license.PackageID))
+                if (Steam.Instance.FreeLicense.FreeLicensesToRequest.TryRemove(license.PackageID, out _))
                 {
                     Log.WriteInfo(nameof(FreeLicense), $"Package {license.PackageID} was granted, removed from free request");
-
-                    Steam.Instance.FreeLicense.FreeLicensesToRequest.Remove(license.PackageID);
                 }
 
                 ownedSubs.Add(license.PackageID, (byte)license.PaymentMethod);

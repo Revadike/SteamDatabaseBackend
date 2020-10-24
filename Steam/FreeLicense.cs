@@ -5,6 +5,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -22,7 +23,7 @@ namespace SteamDatabaseBackend
     {
         private const int REQUEST_RATE_LIMIT = 25; // Steam actually limits at 50, but we're not in a hurry
 
-        public Dictionary<uint, uint> FreeLicensesToRequest { get; } = new Dictionary<uint, uint>();
+        public ConcurrentDictionary<uint, uint> FreeLicensesToRequest { get; } = new ConcurrentDictionary<uint, uint>();
 
         private static int AppsRequestedInHour;
         private static Timer FreeLicenseTimer;
@@ -48,7 +49,7 @@ namespace SteamDatabaseBackend
 
             if (data != null)
             {
-                FreeLicensesToRequest = JsonConvert.DeserializeObject<Dictionary<uint, uint>>(data);
+                FreeLicensesToRequest = JsonConvert.DeserializeObject<ConcurrentDictionary<uint, uint>>(data);
             }
 
             if (FreeLicensesToRequest.Count == 0)
@@ -96,7 +97,7 @@ namespace SteamDatabaseBackend
 
                 foreach (var appid in appIDs)
                 {
-                    if (FreeLicensesToRequest.Remove(appid))
+                    if (FreeLicensesToRequest.TryRemove(appid, out _))
                     {
                         removed = true;
                     }
@@ -239,7 +240,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                FreeLicensesToRequest.Remove(subId);
+                FreeLicensesToRequest.TryRemove(subId, out _);
             }
 
             TaskManager.Run(Save);
@@ -410,7 +411,7 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            FreeLicensesToRequest.Add(subId, appId);
+            FreeLicensesToRequest.TryAdd(subId, appId);
             TaskManager.Run(Save);
         }
 
