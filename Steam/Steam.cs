@@ -74,13 +74,12 @@ namespace SteamDatabaseBackend
             if (!Settings.IsFullRun)
             {
                 Handlers.Add(new ClanState(CallbackManager));
-
-                WatchdogHandle = new Watchdog();
             }
 
             FreeLicense = new FreeLicense(CallbackManager);
             PICSChanges = new PICSChanges(CallbackManager);
             DepotProcessor = new DepotProcessor(Client);
+            WatchdogHandle = new Watchdog();
 
             IsRunning = true;
         }
