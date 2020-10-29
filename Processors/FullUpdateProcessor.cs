@@ -89,7 +89,11 @@ namespace SteamDatabaseBackend
                             }
                             while (response["have_more_results"].AsBoolean());
 
-                            apps = apps.Union(apiApps).Union(storeApiApps).ToList();
+                            apps = apps
+                                .Union(apiApps)
+                                .Union(storeApiApps)
+                                .OrderByDescending(x => x)
+                                .ToList();
                         }
                         catch (Exception)
                         {
@@ -99,6 +103,7 @@ namespace SteamDatabaseBackend
 
                     packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC"))
                         .Union(LicenseList.OwnedSubs.Keys)
+                        .OrderByDescending(x => x)
                         .ToList();
                 }
             }
