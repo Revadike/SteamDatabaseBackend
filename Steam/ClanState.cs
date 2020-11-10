@@ -39,7 +39,17 @@ namespace SteamDatabaseBackend
 
             foreach (var announcement in callback.Announcements)
             {
-                IRC.Instance.SendMain($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} https://steamcommunity.com/gid/{callback.ClanID.AccountID}/announcements/detail/{announcement.ID}");
+                var url = $"https://steamcommunity.com/gid/{callback.ClanID.AccountID}/announcements/detail/{announcement.ID}";
+
+                IRC.Instance.SendMain($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} {url}");
+
+                _ = TaskManager.Run(async () => await Utils.SendWebhook(new
+                {
+                    Type = "GroupAnnouncement",
+                    Title = announcement.Headline,
+                    Group = groupName,
+                    Url = url,
+                }));
 
                 Log.WriteInfo(nameof(ClanState), $"{groupName} \"{announcement.Headline}\"");
             }

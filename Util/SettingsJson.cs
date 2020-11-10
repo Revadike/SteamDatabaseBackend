@@ -90,6 +90,9 @@ namespace SteamDatabaseBackend
         [JsonProperty(Required = Required.Always)]
         public Uri RawBaseURL;
 
+        [JsonProperty(Required = Required.Default)]
+        public Uri WebhookURL;
+
         [JsonProperty(Required = Required.Always)]
         public string ConnectionString;
 

@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using SteamKit2;
 
@@ -112,6 +113,29 @@ namespace SteamDatabaseBackend
             JsonifyKeyValue(w, keys.Children);
 
             return sw.ToString();
+        }
+
+        public static async Task SendWebhook(object payload)
+        {
+            if (Settings.Current.WebhookURL == null)
+            {
+                return;
+            }
+
+            var json = JsonConvert.SerializeObject(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
+            {
+                var result = await HttpClient.PostAsync(Settings.Current.WebhookURL, content);
+                var output = await result.Content.ReadAsStringAsync();
+
+                Log.WriteDebug("Webhook", $"Result: {output}");
+            }
+            catch (Exception e)
+            {
+                ErrorReporter.Notify("Webhook", e);
+            }
         }
 
         private static void JsonifyKeyValue(JsonWriter w, List<KeyValue> keys)

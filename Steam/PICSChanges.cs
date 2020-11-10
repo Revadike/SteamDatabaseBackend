@@ -338,15 +338,16 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.AnnounceImportantAppUpdate(app, $"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
 
-                if (Settings.IsMillhaven)
+                var url = $"{SteamDB.GetAppUrl(app, "history")}?changeid={callback.CurrentChangeNumber}";
+
+                TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
-                    Steam.Instance.UnifiedMessages.SendMessage("ChatRoom.SendChatMessage#1", new CChatRoom_SendChatMessage_Request
-                    {
-                        chat_group_id = 1147,
-                        chat_id = 10208600,
-                        message = $"{appType} update: {appName}\n<{SteamDB.GetAppUrl(app, "history")}?changeid={callback.CurrentChangeNumber}>"
-                    });
-                }
+                    Type = "ImportantAppUpdate",
+                    AppID = app,
+                    AppName = appName,
+                    AppType = appType,
+                    Url = url,
+                }));
             }
 
             // Packages
@@ -354,7 +355,17 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                IRC.Instance.SendMain($"Package update: {Colors.BLUE}{Steam.GetPackageName(package)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
+                var subName = Steam.GetPackageName(package);
+
+                IRC.Instance.SendMain($"Package update: {Colors.BLUE}{subName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
+
+                TaskManager.Run(async () => await Utils.SendWebhook(new
+                {
+                    Type = "ImportantSubUpdate",
+                    SubID = package,
+                    SubName = subName,
+                    Url = $"{SteamDB.GetPackageUrl(package, "history")}?changeid={callback.CurrentChangeNumber}",
+                }));
             }
         }
 

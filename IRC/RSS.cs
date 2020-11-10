@@ -96,6 +96,13 @@ namespace SteamDatabaseBackend
 
                 await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
 
+                _ = TaskManager.Run(async () => await Utils.SendWebhook(new
+                {
+                    Type = "RSS",
+                    item.Title,
+                    Url = item.Link,
+                }));
+
                 if (!Settings.IsMillhaven)
                 {
                     continue;

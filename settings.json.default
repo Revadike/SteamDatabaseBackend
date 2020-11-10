@@ -3,6 +3,7 @@
 
 	"RawBaseURL": "http://example.com/raw/",
 	"BaseURL": "http://example.com",
+	"WebhookURL": "",
 	
 	"FullRun": 0,
 	"LogToFile": true,
