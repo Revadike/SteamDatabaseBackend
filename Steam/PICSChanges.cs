@@ -335,10 +335,9 @@ namespace SteamDatabaseBackend
             foreach (var app in important)
             {
                 var appName = Steam.GetAppName(app, out var appType);
+                var changeNumber = callback.AppChanges[app].ChangeNumber;
 
                 IRC.Instance.AnnounceImportantAppUpdate(app, $"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
-
-                var url = $"{SteamDB.GetAppUrl(app, "history")}?changeid={callback.CurrentChangeNumber}";
 
                 TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
@@ -346,7 +345,8 @@ namespace SteamDatabaseBackend
                     AppID = app,
                     AppName = appName,
                     AppType = appType,
-                    Url = url,
+                    ChangeNumber = changeNumber,
+                    Url = $"{SteamDB.GetAppUrl(app, "history")}?changeid={changeNumber}",
                 }));
             }
 
@@ -356,6 +356,7 @@ namespace SteamDatabaseBackend
             foreach (var package in important)
             {
                 var subName = Steam.GetPackageName(package);
+                var changeNumber = callback.PackageChanges[package].ChangeNumber;
 
                 IRC.Instance.SendMain($"Package update: {Colors.BLUE}{subName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
 
@@ -364,7 +365,8 @@ namespace SteamDatabaseBackend
                     Type = "ImportantSubUpdate",
                     SubID = package,
                     SubName = subName,
-                    Url = $"{SteamDB.GetPackageUrl(package, "history")}?changeid={callback.CurrentChangeNumber}",
+                    ChangeNumber = changeNumber,
+                    Url = $"{SteamDB.GetPackageUrl(package, "history")}?changeid={changeNumber}",
                 }));
             }
         }
