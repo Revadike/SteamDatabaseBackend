@@ -41,7 +41,7 @@ namespace SteamDatabaseBackend
             {
                 var url = $"https://steamcommunity.com/gid/{callback.ClanID.AccountID}/announcements/detail/{announcement.ID}";
 
-                IRC.Instance.SendMain($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} {url}");
+                IRC.Instance.SendAnnounce($"{Colors.BLUE}{groupName}{Colors.NORMAL} announcement: {Colors.OLIVE}{announcement.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} {url}");
 
                 _ = TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
@@ -66,7 +66,7 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
-                IRC.Instance.SendMain(
+                IRC.Instance.SendAnnounce(
                     $"{Colors.BLUE}{groupName}{Colors.NORMAL} event: {Colors.OLIVE}{groupEvent.Headline}{Colors.NORMAL} -{Colors.DARKBLUE} {link} {Colors.DARKGRAY}({groupEvent.EventTime.ToString("s", CultureInfo.InvariantCulture).Replace("T", " ")})"
                 );
 

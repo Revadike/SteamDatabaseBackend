@@ -85,7 +85,6 @@ namespace SteamDatabaseBackend
 
             Client.LogIn(Settings.Current.IRC.Nickname, Settings.Current.BaseURL.AbsoluteUri, Settings.Current.IRC.Nickname, "4", null, Settings.Current.IRC.Password);
             Client.Join(Settings.Current.IRC.Channel.Ops);
-            Client.Join(Settings.Current.IRC.Channel.Main);
             Client.Join(Settings.Current.IRC.Channel.Announce);
         }
 
@@ -131,14 +130,6 @@ namespace SteamDatabaseBackend
             if (Settings.Current.IRC.Enabled)
             {
                 Client.Message(Settings.Current.IRC.Channel.Announce, str);
-            }
-        }
-
-        public void SendMain(string str)
-        {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Client.Message(Settings.Current.IRC.Channel.Main, string.Concat(Settings.Current.IRC.PrioritySendPrefix, str));
             }
         }
 

@@ -66,9 +66,6 @@ namespace SteamDatabaseBackend
             public string Ops;
 
             [JsonProperty(Required = Required.Always)]
-            public string Main;
-
-            [JsonProperty(Required = Required.Always)]
             public string Announce;
         }
 

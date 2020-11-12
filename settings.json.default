@@ -29,7 +29,6 @@
 		"Channel":
 		{
 			"Ops": "#steamdb-test",
-			"Main": "#steamdb-test",
 			"Announce": "#steamdb-test"
 		},
 		"Admins":
