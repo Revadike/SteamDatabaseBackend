@@ -105,8 +105,6 @@ namespace SteamDatabaseBackend
             
             Log.WriteInfo(nameof(Steam), $"Disconnected from Steam. Retrying in {RETRY_DELAY} seconds... {(callback.UserInitiated ? " (user initiated)" : "")}");
 
-            IRC.Instance.SendEmoteAnnounce($"disconnected from Steam. Retrying in {RETRY_DELAY} seconds…");
-
             ReconnectionTimer.Start();
         }
 
@@ -141,16 +139,12 @@ namespace SteamDatabaseBackend
             {
                 Log.WriteInfo(nameof(Steam), $"Failed to login: {callback.Result}");
 
-                IRC.Instance.SendEmoteAnnounce($"failed to log in: {callback.Result}");
-
                 return;
             }
 
             LastSuccessfulLogin = DateTime.Now;
 
             Log.WriteInfo(nameof(Steam), $"Logged in, current Valve time is {callback.ServerTime:R}");
-
-            IRC.Instance.SendEmoteAnnounce($"logged in. Valve time: {callback.ServerTime:R}");
 
             await Steam.Instance.DepotProcessor.UpdateContentServerList();
 
@@ -171,8 +165,6 @@ namespace SteamDatabaseBackend
         private void OnLoggedOff(SteamUser.LoggedOffCallback callback)
         {
             Log.WriteInfo(nameof(Steam), $"Logged out of Steam: {callback.Result}");
-
-            IRC.Instance.SendEmoteAnnounce($"logged out of Steam: {callback.Result}");
         }
 
         private async void OnMachineAuth(SteamUser.UpdateMachineAuthCallback callback)

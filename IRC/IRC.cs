@@ -69,7 +69,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            SendEmoteAnnounce("is exiting…");
             Client.LogOut();
             Client.Close();
         }
@@ -148,14 +147,6 @@ namespace SteamDatabaseBackend
             {
                 Client.Message("#steamlug", message);
                 Client.Message("#gamingonlinux", message);
-            }
-        }
-
-        public void SendEmoteAnnounce(string str)
-        {
-            if (Settings.Current.IRC.Enabled)
-            {
-                Client.ChatAction(Settings.Current.IRC.Channel.Announce, str);
             }
         }
 
