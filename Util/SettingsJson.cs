@@ -55,9 +55,6 @@ namespace SteamDatabaseBackend
 
             [JsonProperty(Required = Required.Always)]
             public IrcChannelsJson Channel = new IrcChannelsJson();
-
-            [JsonProperty(Required = Required.Always)]
-            public string PrioritySendPrefix;
         }
 
         public sealed class IrcChannelsJson

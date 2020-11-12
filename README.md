@@ -26,7 +26,6 @@ There are some modules that are particularly useful to have:
 * [keepnick](http://wiki.znc.in/Keepnick)
 * [kickrejoin](http://wiki.znc.in/Kickrejoin)
 * [stickychan](http://wiki.znc.in/Stickychan)
-* [prioritysend](https://github.com/xPaw/znc-prioritysend) *(custom module)*
 
 ## License
 Use of SteamDB Updater is governed by a BSD-style license that can be found in the LICENSE file.

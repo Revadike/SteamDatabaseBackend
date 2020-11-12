@@ -115,13 +115,13 @@ namespace SteamDatabaseBackend
             if (notice)
             {
                 // Reset formatting since some clients might put notices in a different color
-                message = $"{Settings.Current.IRC.PrioritySendPrefix}{Colors.NORMAL}{message}";
+                message = $"{Colors.NORMAL}{message}";
 
                 Client.Notice(recipient, message);
             }
             else
             {
-                Client.Message(recipient, string.Concat(Settings.Current.IRC.PrioritySendPrefix, message));
+                Client.Message(recipient, message);
             }
         }
 
@@ -137,7 +137,7 @@ namespace SteamDatabaseBackend
         {
             if (Settings.Current.IRC.Enabled)
             {
-                Client.Message(Settings.Current.IRC.Channel.Ops, string.Concat(Settings.Current.IRC.PrioritySendPrefix, str));
+                Client.Message(Settings.Current.IRC.Channel.Ops, str);
             }
         }
 
