@@ -168,26 +168,6 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void AnnounceImportantAppUpdate(uint appID, string str)
-        {
-            if (!Settings.Current.IRC.Enabled)
-            {
-                return;
-            }
-
-            if (!Application.ImportantApps.TryGetValue(appID, out var channels))
-            {
-                return;
-            }
-
-            str = string.Concat(Settings.Current.IRC.PrioritySendPrefix, str);
-
-            foreach (var channel in channels)
-            {
-                Client.Message(channel, str);
-            }
-        }
-
         private static readonly char[] ChannelCharacters = { '#', '!', '+', '&' };
 
         public static bool IsRecipientChannel(string recipient)

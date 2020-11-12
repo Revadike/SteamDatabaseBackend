@@ -330,14 +330,14 @@ namespace SteamDatabaseBackend
         private static void PrintImportants(SteamApps.PICSChangesCallback callback)
         {
             // Apps
-            var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps.Keys);
+            var important = callback.AppChanges.Keys.Intersect(Application.ImportantApps);
 
             foreach (var app in important)
             {
                 var appName = Steam.GetAppName(app, out var appType);
                 var changeNumber = callback.AppChanges[app].ChangeNumber;
 
-                IRC.Instance.AnnounceImportantAppUpdate(app, $"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
+                IRC.Instance.SendMain($"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
 
                 TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
@@ -351,7 +351,7 @@ namespace SteamDatabaseBackend
             }
 
             // Packages
-            important = callback.PackageChanges.Keys.Intersect(Application.ImportantSubs.Keys);
+            important = callback.PackageChanges.Keys.Intersect(Application.ImportantSubs);
 
             foreach (var package in important)
             {

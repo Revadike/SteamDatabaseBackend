@@ -18,8 +18,8 @@ namespace SteamDatabaseBackend
         private static Thread IrcThread;
         private static RSS RssReader;
 
-        public static Dictionary<uint, List<string>> ImportantApps { get; private set; }
-        public static Dictionary<uint, byte> ImportantSubs { get; private set; }
+        public static HashSet<uint> ImportantApps { get; private set; }
+        public static HashSet<uint> ImportantSubs { get; private set; }
 
         public static string Path { get; }
 
@@ -30,8 +30,8 @@ namespace SteamDatabaseBackend
 
         public static async Task Init()
         {
-            ImportantApps = new Dictionary<uint, List<string>>();
-            ImportantSubs = new Dictionary<uint, byte>();
+            ImportantApps = new HashSet<uint>();
+            ImportantSubs = new HashSet<uint>();
 
             await ReloadImportant();
             await KeyNameCache.Init();
@@ -69,25 +69,9 @@ namespace SteamDatabaseBackend
         private static async Task ReloadImportant()
         {
             await using var db = await Database.GetConnectionAsync();
-            var importantApps = (await db.QueryAsync<Important>("SELECT `AppID` as `ID`, `Channel` FROM `ImportantApps`")).ToList();
-            ImportantSubs = (await db.QueryAsync<Important>("SELECT `SubID` as `ID` FROM `ImportantSubs`")).ToDictionary(x => x.ID, _ => (byte)1);
 
-            lock (ImportantApps)
-            {
-                ImportantApps.Clear();
-
-                foreach (var app in importantApps)
-                {
-                    if (ImportantApps.ContainsKey(app.ID))
-                    {
-                        ImportantApps[app.ID].Add(app.Channel);
-                    }
-                    else
-                    {
-                        ImportantApps.Add(app.ID, new List<string> { app.Channel });
-                    }
-                }
-            }
+            ImportantApps = (await db.QueryAsync<uint>("SELECT `AppID` as `ID` FROM `ImportantApps`")).ToHashSet();
+            ImportantSubs = (await db.QueryAsync<uint>("SELECT `SubID` as `ID` FROM `ImportantSubs`")).ToHashSet();
 
             Log.WriteInfo(nameof(Application), $"Loaded {ImportantApps.Count} important apps and {ImportantSubs.Count} packages");
         }
