@@ -10,19 +10,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
-using SteamKit2.Internal;
 using Timer = System.Timers.Timer;
 
 namespace SteamDatabaseBackend
 {
     internal class PICSChanges : SteamHandler
     {
-        private class IrcChangelistGroup
-        {
-            public List<uint> Apps { get; } = new List<uint>();
-            public List<uint> Packages { get; } = new List<uint>();
-        }
-
         public uint PreviousChangeNumber { get; set; }
         private uint LastStoredChangeNumber;
         private uint TickerHash;
@@ -38,10 +31,6 @@ namespace SteamDatabaseBackend
             EBillingType.OEMTicket,
             EBillingType.RecurringOption, // Not sure if should be ignored
         };
-
-        private const uint CHANGELIST_BURST_MIN = 50;
-        private uint ChangelistBurstCount;
-        private DateTime ChangelistBurstTime;
 
         public PICSChanges(CallbackManager manager)
         {
@@ -166,8 +155,6 @@ namespace SteamDatabaseBackend
 
             if (callback.AppChanges.Count == 0 && callback.PackageChanges.Count == 0)
             {
-                IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} Changelist {Colors.BLUE}{PreviousChangeNumber}{Colors.DARKGRAY} (empty)");
-
                 return;
             }
 
@@ -227,8 +214,6 @@ namespace SteamDatabaseBackend
                 _ = TaskManager.Run(async () => await HandlePackages(callback));
                 _ = TaskManager.Run(async () => await HandlePackagesChangelists(callback));
             }
-
-            _ = TaskManager.Run(async () => await SendChangelistsToIRC(callback));
 
             if (PreviousChangeNumber - LastStoredChangeNumber >= 1000)
             {
@@ -368,106 +353,6 @@ namespace SteamDatabaseBackend
                     ChangeNumber = changeNumber,
                     Url = $"{SteamDB.GetPackageUrl(package, "history")}?changeid={changeNumber}",
                 }));
-            }
-        }
-
-        private async Task SendChangelistsToIRC(SteamApps.PICSChangesCallback callback)
-        {
-            if (DateTime.Now > ChangelistBurstTime)
-            {
-                ChangelistBurstTime = DateTime.Now.AddMinutes(5);
-                ChangelistBurstCount = 0;
-            }
-
-            // Group apps and package changes by changelist number
-            var changelists = new Dictionary<uint, IrcChangelistGroup>();
-
-            foreach (var app in callback.AppChanges.Values)
-            {
-                if (!changelists.ContainsKey(app.ChangeNumber))
-                {
-                    changelists[app.ChangeNumber] = new IrcChangelistGroup();
-                }
-
-                changelists[app.ChangeNumber].Apps.Add(app.ID);
-            }
-
-            foreach (var package in callback.PackageChanges.Values)
-            {
-                if (!changelists.ContainsKey(package.ChangeNumber))
-                {
-                    changelists[package.ChangeNumber] = new IrcChangelistGroup();
-                }
-
-                changelists[package.ChangeNumber].Packages.Add(package.ID);
-            }
-
-            foreach (var (changeNumber, changeList) in changelists.OrderBy(x => x.Key))
-            {
-                var appCount = changeList.Apps.Count;
-                var packageCount = changeList.Packages.Count;
-
-                var message = $"Changelist {Colors.BLUE}{changeNumber}{Colors.NORMAL} {Colors.DARKGRAY}({appCount:N0} apps and {packageCount:N0} packages)";
-
-                var changesCount = appCount + packageCount;
-
-                if (changesCount >= 50)
-                {
-                    IRC.Instance.SendMain($"Big {message}{Colors.DARKBLUE} {SteamDB.GetChangelistUrl(changeNumber)}");
-                }
-
-                if (ChangelistBurstCount++ >= CHANGELIST_BURST_MIN || changesCount > 300)
-                {
-                    if (appCount > 0)
-                    {
-                        message += $" (Apps: {string.Join(", ", changeList.Apps)})";
-                    }
-
-                    if (packageCount > 0)
-                    {
-                        message += $" (Packages: {string.Join(", ", changeList.Packages)})";
-                    }
-
-                    IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} {message}");
-
-                    continue;
-                }
-
-                IRC.Instance.SendAnnounce($"{Colors.RED}»{Colors.NORMAL} {message}");
-
-                if (appCount > 0)
-                {
-                    Dictionary<uint, App> apps;
-
-                    await using (var db = await Database.GetConnectionAsync())
-                    {
-                        apps = (await db.QueryAsync<App>("SELECT `AppID`, `Name`, `LastKnownName` FROM `Apps` WHERE `AppID` IN @Ids", new { Ids = changeList.Apps })).ToDictionary(x => x.AppID, x => x);
-                    }
-
-                    foreach (var appId in changeList.Apps)
-                    {
-                        apps.TryGetValue(appId, out var data);
-
-                        IRC.Instance.SendAnnounce($"  App: {Colors.BLUE}{appId}{Colors.NORMAL} - {Steam.FormatAppName(appId, data)}");
-                    }
-                }
-
-                if (packageCount > 0)
-                {
-                    Dictionary<uint, Package> packages;
-
-                    await using (var db = await Database.GetConnectionAsync())
-                    {
-                        packages = (await db.QueryAsync<Package>("SELECT `SubID`, `Name`, `LastKnownName` FROM `Subs` WHERE `SubID` IN @Ids", new { Ids = changeList.Packages })).ToDictionary(x => x.SubID, x => x);
-                    }
-
-                    foreach (var packageId in changeList.Packages)
-                    {
-                        packages.TryGetValue(packageId, out var data);
-
-                        IRC.Instance.SendAnnounce($"  Package: {Colors.BLUE}{packageId}{Colors.NORMAL} - {Steam.FormatPackageName(packageId, data)}");
-                    }
-                }
             }
         }
     }
