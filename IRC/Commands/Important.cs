@@ -34,6 +34,18 @@ namespace SteamDatabaseBackend
 
                         return;
 
+                    case "fullrun":
+                        _ = TaskManager.Run(async () =>
+                        {
+                            command.Reply("Started full metadata scan, this will take a while…");
+                            await FullUpdateProcessor.FullUpdateAppsMetadata(true);
+                            command.Reply("App full scan finished, starting packages, this will take even longer…");
+                            await FullUpdateProcessor.FullUpdatePackagesMetadata();
+                            command.Reply("Full metadata scan finished.");
+                        });
+
+                        return;
+
                     case "add":
                         if (count < 3)
                         {
@@ -144,7 +156,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            command.Reply($"Usage:{Colors.OLIVE} important reload {Colors.NORMAL}or{Colors.OLIVE} important <add/remove> <app/sub> <id>");
+            command.Reply($"Usage:{Colors.OLIVE} important reload {Colors.NORMAL}or{Colors.OLIVE} important <add/remove> <app/sub> <id> {Colors.NORMAL}or{Colors.OLIVE} important fullrun");
         }
     }
 }
