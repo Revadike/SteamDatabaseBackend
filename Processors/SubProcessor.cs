@@ -231,7 +231,7 @@ namespace SteamDatabaseBackend
                         }
                         else
                         {
-                            await ProcessKey(keyName, children.Name, children.Value);
+                            await ProcessKey(keyName, children.Name, children.Value ?? "null");
                         }
                     }
                 }

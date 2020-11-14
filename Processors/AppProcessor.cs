@@ -159,7 +159,7 @@ namespace SteamDatabaseBackend
                         }
                         else if (!string.IsNullOrEmpty(keyvalue.Value))
                         {
-                            await ProcessKey(keyName, keyvalue.Name, keyvalue.Value);
+                            await ProcessKey(keyName, keyvalue.Name, keyvalue.Value ?? "null");
                         }
                     }
                 }
