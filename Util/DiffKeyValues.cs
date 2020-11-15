@@ -74,7 +74,15 @@ namespace SteamDatabaseBackend
             var flat = new Dictionary<string, string>();
             var key = $"{path}{kv.Name}";
 
-            if (kv.Children.Count > 0)
+            if (kv.Value != null)
+            {
+                flat.Add(key, kv.Value);
+            }
+            else if (kv.Children.Count == 0)
+            {
+                flat.Add(key, string.Empty);
+            }
+            else
             {
                 var flatChildren = FlattenKeyValue(kv.Children, key);
 
@@ -82,10 +90,6 @@ namespace SteamDatabaseBackend
                 {
                     flat.Add(childKey, childValue);
                 }
-            }
-            else if (kv.Value != null)
-            {
-                flat.Add(key, kv.Value);
             }
 
             return flat;
