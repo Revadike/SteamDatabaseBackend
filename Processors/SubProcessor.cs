@@ -225,13 +225,13 @@ namespace SteamDatabaseBackend
                     {
                         var keyName = $"{sectionName}_{children.Name}";
 
-                        if (children.Children.Count > 0)
+                        if (children.Value != null)
                         {
-                            await ProcessKey(keyName, children.Name, Utils.JsonifyKeyValue(children), true);
+                            await ProcessKey(keyName, children.Name, children.Value);
                         }
                         else
                         {
-                            await ProcessKey(keyName, children.Name, children.Value ?? "null");
+                            await ProcessKey(keyName, children.Name, Utils.JsonifyKeyValue(children), true);
                         }
                     }
                 }

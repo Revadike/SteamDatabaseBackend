@@ -144,15 +144,15 @@ namespace SteamDatabaseBackend
 
             foreach (var keyval in keys)
             {
-                if (keyval.Children.Count > 0)
-                {
-                    w.WritePropertyName(keyval.Name);
-                    JsonifyKeyValue(w, keyval.Children);
-                }
-                else if (keyval.Value != null) // TODO: Should we be writing null keys anyway?
+                if (keyval.Value != null)
                 {
                     w.WritePropertyName(keyval.Name);
                     w.WriteValue(keyval.Value);
+                }
+                else
+                {
+                    w.WritePropertyName(keyval.Name);
+                    JsonifyKeyValue(w, keyval.Children);
                 }
             }
 
