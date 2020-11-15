@@ -157,7 +157,7 @@ namespace SteamDatabaseBackend
                         {
                             await ProcessKey(keyName, keyvalue.Name, Utils.JsonifyKeyValue(keyvalue), keyvalue);
                         }
-                        else if (!string.IsNullOrEmpty(keyvalue.Value))
+                        else
                         {
                             await ProcessKey(keyName, keyvalue.Name, keyvalue.Value ?? "null");
                         }
