@@ -305,7 +305,7 @@ namespace SteamDatabaseBackend
 
             await using (var fs = downloadPath.Open(FileMode.Open, FileAccess.ReadWrite))
             {
-                checksum = sha.ComputeHash(fs);
+                checksum = await sha.ComputeHashAsync(fs, chunkCancellation.Token);
             }
 
             if (!file.FileHash.SequenceEqual(checksum))

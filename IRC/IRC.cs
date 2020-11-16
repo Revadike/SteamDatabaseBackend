@@ -100,10 +100,9 @@ namespace SteamDatabaseBackend
 
         private void OnError(object sender, IrcErrorEventArgs e)
         {
-            switch (e.Error)
+            if (e.Error == IrcReplyCode.MissingMOTD)
             {
-                case IrcReplyCode.MissingMOTD:
-                    return;
+                return;
             }
 
             Log.WriteError(nameof(IRC), $"Error: {e.Error} ({string.Join(", ", e.Data.Parameters)})");

@@ -22,8 +22,6 @@ namespace SteamDatabaseBackend
 
         public static string GetBlogUrl(string postId) => new Uri(Settings.Current.BaseURL, $"/blog/{postId}/").AbsoluteUri;
 
-        public static string GetChangelistUrl(uint changeNumber) => new Uri(Settings.Current.BaseURL, $"/changelist/{changeNumber}/").AbsoluteUri;
-
         public static string GetRawAppUrl(uint appId) => new Uri(Settings.Current.RawBaseURL, $"/app/{appId}.vdf").AbsoluteUri;
 
         public static string GetRawPackageUrl(uint subId) => new Uri(Settings.Current.RawBaseURL, $"/sub/{subId}.vdf").AbsoluteUri;

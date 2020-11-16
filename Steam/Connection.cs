@@ -67,7 +67,7 @@ namespace SteamDatabaseBackend
                 "SELECT `ConfigKey`, `Value` FROM `LocalConfig` WHERE `ConfigKey` IN ('backend.sentryhash', 'backend.loginkey')"
             )).ToDictionary(x => x.Item1, x => x.Item2);
 
-            Log.WriteInfo(nameof(Steam), $"Connected, logging in...");
+            Log.WriteInfo(nameof(Steam), "Connected, logging in...");
 
             if (Settings.Current.Steam.Username == "anonymous")
             {
@@ -179,14 +179,14 @@ namespace SteamDatabaseBackend
             byte[] sentryHash;
             int sentryFileSize;
 
-            using (var stream = new MemoryStream(callback.BytesToWrite))
+            await using (var stream = new MemoryStream(callback.BytesToWrite))
             {
                 stream.Seek(callback.Offset, SeekOrigin.Begin);
                 stream.Write(callback.Data, 0, callback.BytesToWrite);
                 stream.Seek(0, SeekOrigin.Begin);
                 
                 using var sha = SHA1.Create();
-                sentryHash = sha.ComputeHash(stream);
+                sentryHash = await sha.ComputeHashAsync(stream);
                 sentryFileSize = (int)stream.Length;
             }
 

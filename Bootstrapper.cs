@@ -90,7 +90,7 @@ namespace SteamDatabaseBackend
 
         private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs args)
         {
-            args.Exception?.Flatten().Handle(e =>
+            args.Exception.Flatten().Handle(e =>
             {
                 ErrorReporter.Notify(nameof(Bootstrapper), e);
 
