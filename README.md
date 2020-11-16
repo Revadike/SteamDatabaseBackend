@@ -7,7 +7,7 @@ This source code is provided as-is for reference. It is highly tuned for SteamDB
 If you plan on running this yourself, keep in mind that we won't provide support for it.
 
 ## Requirements
-* [.NET Core](https://dot.net)
+* [.NET 5+](https://dot.net)
 * [MySQL](https://www.mysql.com/) or [MariaDB](https://mariadb.org/) server
 
 ## Installation
@@ -16,16 +16,6 @@ If you plan on running this yourself, keep in mind that we won't provide support
 3. Edit `settings.json` as needed: database connection string and Steam credentials.
 
 Use `anonymous` as the Steam username if you need to debug quickly.
-
-## IRC
-
-We use [ZNC](http://znc.in) in front of our IRC bot to handle reconnections, staying in channels, flood protection and stuff like that.
-
-There are some modules that are particularly useful to have:
-
-* [keepnick](http://wiki.znc.in/Keepnick)
-* [kickrejoin](http://wiki.znc.in/Kickrejoin)
-* [stickychan](http://wiki.znc.in/Stickychan)
 
 ## License
 Use of SteamDB Updater is governed by a BSD-style license that can be found in the LICENSE file.
