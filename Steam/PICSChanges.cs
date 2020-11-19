@@ -319,20 +319,18 @@ namespace SteamDatabaseBackend
 
             foreach (var app in important)
             {
-                var appName = Steam.GetAppName(app, out var appType);
                 var changeNumber = callback.AppChanges[app].ChangeNumber;
-
-                IRC.Instance.SendAnnounce($"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
 
                 TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
                     Type = "ImportantAppUpdate",
                     AppID = app,
-                    AppName = appName,
-                    AppType = appType,
                     ChangeNumber = changeNumber,
                     Url = $"{SteamDB.GetAppUrl(app, "history")}?changeid={changeNumber}",
                 }));
+
+                var appName = Steam.GetAppName(app, out var appType);
+                IRC.Instance.SendAnnounce($"{appType} update: {Colors.BLUE}{appName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(app, "history")}");
             }
 
             // Packages
@@ -340,19 +338,18 @@ namespace SteamDatabaseBackend
 
             foreach (var package in important)
             {
-                var subName = Steam.GetPackageName(package);
                 var changeNumber = callback.PackageChanges[package].ChangeNumber;
-
-                IRC.Instance.SendAnnounce($"Package update: {Colors.BLUE}{subName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
 
                 TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
                     Type = "ImportantSubUpdate",
                     SubID = package,
-                    SubName = subName,
                     ChangeNumber = changeNumber,
                     Url = $"{SteamDB.GetPackageUrl(package, "history")}?changeid={changeNumber}",
                 }));
+
+                var subName = Steam.GetPackageName(package);
+                IRC.Instance.SendAnnounce($"Package update: {Colors.BLUE}{subName}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(package, "history")}");
             }
         }
     }
