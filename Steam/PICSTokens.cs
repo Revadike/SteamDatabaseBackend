@@ -155,6 +155,11 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps($"{Colors.RED}[Tokens] Bot got an app token that mismatches the one in database:{Colors.BLUE} {id} {Colors.NORMAL}({existingToken} != {accessToken})");
 
                 AppTokens[id] = accessToken;
+
+                using var db = Database.Get();
+                db.Execute("UPDATE `PICSTokens` SET `Token` = @Token, `Date` = NOW() WHERE `AppID` = @AppID",
+                    new PICSToken { AppID = id, Token = accessToken }
+                );
             }
         }
 
