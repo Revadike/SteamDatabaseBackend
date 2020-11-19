@@ -28,8 +28,10 @@ namespace SteamDatabaseBackend
                 switch (s[0])
                 {
                     case "reload":
-                        await Application.ReloadImportant(command);
-                        PICSTokens.Reload(command);
+                        await Application.ReloadImportant();
+                        await PICSTokens.Reload();
+
+                        command.Notice("Reloaded important apps and pics tokens");
 
                         return;
 

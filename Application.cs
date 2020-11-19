@@ -34,6 +34,7 @@ namespace SteamDatabaseBackend
             ImportantSubs = new HashSet<uint>();
 
             await ReloadImportant();
+            await PICSTokens.Reload();
             await KeyNameCache.Init();
 
             if (Settings.IsFullRun)
@@ -59,14 +60,7 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public static async Task ReloadImportant(CommandArguments command)
-        {
-            await ReloadImportant();
-
-            command.Notice($"Reloaded {ImportantApps.Count} important apps and {ImportantSubs.Count} packages");
-        }
-
-        private static async Task ReloadImportant()
+        public static async Task ReloadImportant()
         {
             await using var db = await Database.GetConnectionAsync();
 

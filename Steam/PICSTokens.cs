@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Dapper;
 using SteamKit2;
 
@@ -32,27 +33,16 @@ namespace SteamDatabaseBackend
         public PICSTokens(CallbackManager manager)
         {
             manager.Subscribe<SteamApps.PICSTokensCallback>(OnPICSTokens);
-
-            Reload();
         }
 
-        public static void Reload(CommandArguments command)
-        {
-            Reload();
-
-            command.Notice($"Reloaded {AppTokens.Count} app tokens and {PackageTokens.Count} package tokens");
-        }
-
-        private static void Reload()
+        public static async Task Reload()
         {
             var oldAppTokens = AppTokens;
             var oldSubTokens = PackageTokens;
 
-            using (var db = Database.Get())
-            {
-                AppTokens = db.Query<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`").ToDictionary(x => x.AppID, x => x.Token);
-                PackageTokens = db.Query<PICSToken>("SELECT `SubID`, `Token` FROM `PICSTokensSubs`").ToDictionary(x => x.SubID, x => x.Token);
-            }
+            await using var db = await Database.GetConnectionAsync();
+            AppTokens = (await db.QueryAsync<PICSToken>("SELECT `AppID`, `Token` FROM `PICSTokens`")).ToDictionary(x => x.AppID, x => x.Token);
+            PackageTokens = (await db.QueryAsync<PICSToken>("SELECT `SubID`, `Token` FROM `PICSTokensSubs`")).ToDictionary(x => x.SubID, x => x.Token);
 
             var apps = Enumerable.Empty<SteamApps.PICSRequest>();
             var subs = Enumerable.Empty<SteamApps.PICSRequest>();
