@@ -46,8 +46,6 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            string name;
-
             if (!uint.TryParse(command.Message, out var appID))
             {
                 appID = await TrySearchAppId(command);
@@ -58,33 +56,16 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            var tokenTask = Steam.Instance.Apps.PICSGetAccessTokens(appID, null);
-            tokenTask.Timeout = TimeSpan.FromSeconds(10);
-            var tokenCallback = await tokenTask;
-            SteamApps.PICSRequest request;
+            var info = await GetAppData(appID);
 
-            if (tokenCallback.AppTokens.ContainsKey(appID))
-            {
-                request = PICSTokens.NewAppRequest(appID, tokenCallback.AppTokens[appID]);
-            }
-            else
-            {
-                request = PICSTokens.NewAppRequest(appID);
-            }
-
-            var infoTask = Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
-            infoTask.Timeout = TimeSpan.FromSeconds(10);
-            var job = await infoTask;
-            var callback = job.Results?.FirstOrDefault(x => x.Apps.ContainsKey(appID));
-
-            if (callback == null)
+            if (info == null)
             {
                 command.Reply($"Unknown AppID: {Colors.BLUE}{appID}{(LicenseList.OwnedApps.ContainsKey(appID) ? SteamDB.StringCheckmark : string.Empty)}");
 
                 return;
             }
 
-            var info = callback.Apps[appID];
+            string name;
 
             if (info.KeyValues["common"]["name"].Value != null)
             {
@@ -103,6 +84,29 @@ namespace SteamDatabaseBackend
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(info.ID));
             }
+        }
+
+        public static async Task<SteamApps.PICSProductInfoCallback.PICSProductInfo> GetAppData(uint appID)
+        {
+            var tokenTask = Steam.Instance.Apps.PICSGetAccessTokens(appID, null);
+            tokenTask.Timeout = TimeSpan.FromSeconds(10);
+            var tokenCallback = await tokenTask;
+            SteamApps.PICSRequest request;
+
+            if (tokenCallback.AppTokens.ContainsKey(appID))
+            {
+                request = PICSTokens.NewAppRequest(appID, tokenCallback.AppTokens[appID]);
+            }
+            else
+            {
+                request = PICSTokens.NewAppRequest(appID);
+            }
+
+            var infoTask = Steam.Instance.Apps.PICSGetProductInfo(new List<SteamApps.PICSRequest> { request }, Enumerable.Empty<SteamApps.PICSRequest>());
+            infoTask.Timeout = TimeSpan.FromSeconds(10);
+            var job = await infoTask;
+
+            return job.Results?.FirstOrDefault(x => x.Apps.ContainsKey(appID))?.Apps[appID];
         }
 
         public static async Task<uint> TrySearchAppId(CommandArguments command)

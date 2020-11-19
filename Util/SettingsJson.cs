@@ -98,6 +98,9 @@ namespace SteamDatabaseBackend
 
         [JsonProperty(Required = Required.Always)]
         public bool OnlyOwnedDepots;
+
+        [JsonProperty(Required = Required.Always)]
+        public uint BuiltInHttpServerPort;
     }
 #pragma warning restore 0649
 }

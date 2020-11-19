@@ -8,6 +8,7 @@
 	"FullRun": 0,
 	"LogToFile": true,
 	"OnlyOwnedDepots": true,
+	"BuiltInHttpServerPort": 0,
 	
 	"Steam":
 	{

@@ -17,6 +17,7 @@ namespace SteamDatabaseBackend
     {
         private static Thread IrcThread;
         private static RSS RssReader;
+        private static HttpServer HttpServer;
 
         public static HashSet<uint> ImportantApps { get; private set; }
         public static HashSet<uint> ImportantSubs { get; private set; }
@@ -36,6 +37,11 @@ namespace SteamDatabaseBackend
             await ReloadImportant();
             await PICSTokens.Reload();
             await KeyNameCache.Init();
+
+            if (Settings.Current.BuiltInHttpServerPort > 0)
+            {
+                HttpServer = new HttpServer(Settings.Current.BuiltInHttpServerPort);
+            }
 
             if (Settings.IsFullRun)
             {
@@ -83,6 +89,11 @@ namespace SteamDatabaseBackend
             catch (Exception e)
             {
                 ErrorReporter.Notify(nameof(Application), e);
+            }
+
+            if (Settings.Current.BuiltInHttpServerPort > 0)
+            {
+                HttpServer.Dispose();
             }
 
             if (Settings.Current.IRC.Enabled)

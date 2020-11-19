@@ -30,6 +30,29 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            var info = await GetPackageData(subID);
+
+            if (info == null)
+            {
+                command.Reply($"Unknown SubID: {Colors.BLUE}{subID}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
+
+                return;
+            }
+
+            if (!info.KeyValues.Children.Any())
+            {
+                command.Reply($"No package info returned for SubID: {Colors.BLUE}{subID}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
+
+                return;
+            }
+
+            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", $"{info.ID}.vdf"), false);
+
+            command.Reply($"{Colors.BLUE}{Steam.GetPackageName(info.ID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawPackageUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
+        }
+
+        public static async Task<SteamApps.PICSProductInfoCallback.PICSProductInfo> GetPackageData(uint subID)
+        {
             var tokenTask = Steam.Instance.Apps.PICSGetAccessTokens(null, subID);
             tokenTask.Timeout = TimeSpan.FromSeconds(10);
             var tokenCallback = await tokenTask;
@@ -47,27 +70,8 @@ namespace SteamDatabaseBackend
             var infoTask = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), new List<SteamApps.PICSRequest> { request });
             infoTask.Timeout = TimeSpan.FromSeconds(10);
             var job = await infoTask;
-            var callback = job.Results?.FirstOrDefault(x => x.Packages.ContainsKey(subID));
 
-            if (callback == null)
-            {
-                command.Reply($"Unknown SubID: {Colors.BLUE}{subID}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
-
-                return;
-            }
-
-            var info = callback.Packages[subID];
-
-            if (!info.KeyValues.Children.Any())
-            {
-                command.Reply($"No package info returned for SubID: {Colors.BLUE}{subID}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(subID) ? SteamDB.StringCheckmark : string.Empty)}");
-
-                return;
-            }
-
-            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", $"{info.ID}.vdf"), false);
-
-            command.Reply($"{Colors.BLUE}{Steam.GetPackageName(info.ID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawPackageUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
+            return job.Results?.FirstOrDefault(x => x.Packages.ContainsKey(subID))?.Packages[subID];
         }
     }
 }
