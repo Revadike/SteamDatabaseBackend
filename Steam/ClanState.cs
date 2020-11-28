@@ -24,17 +24,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            var groupName = callback.ClanName;
+            var groupName = callback.ClanName ?? Steam.Instance.Friends.GetClanName(callback.ClanID);
+            var groupAvatar = Utils.ByteArrayToString(callback.AvatarHash ?? Steam.Instance.Friends.GetClanAvatar(callback.ClanID) ?? System.Array.Empty<byte>()).ToLowerInvariant();
             
             if (string.IsNullOrEmpty(groupName))
             {
-                groupName = Steam.Instance.Friends.GetClanName(callback.ClanID);
-
-                // Check once more, because that can fail too
-                if (string.IsNullOrEmpty(groupName))
-                {
-                    groupName = "Group";
-                }
+                groupName = "Group";
             }
 
             foreach (var announcement in callback.Announcements)
@@ -48,6 +43,7 @@ namespace SteamDatabaseBackend
                     Type = "GroupAnnouncement",
                     Title = announcement.Headline,
                     Group = groupName,
+                    Avatar = groupAvatar,
                     Url = url,
                 }));
 
@@ -79,6 +75,7 @@ namespace SteamDatabaseBackend
                     Type = "GroupAnnouncement",
                     Title = groupEvent.Headline,
                     Group = groupName,
+                    Avatar = groupAvatar,
                     Url = link,
                 }));
 
