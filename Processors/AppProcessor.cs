@@ -221,7 +221,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for appid {AppID} ({newAppName}) is invalid");
             }
 
-            if (Settings.IsMillhaven && app.AppType == 0 && newAppType == 18)
+            if (Settings.IsMillhaven && !Settings.IsFullRun && app.AppType == 0 && newAppType == 18)
             {
                 var betaAppId = ProductInfo.KeyValues["extended"]["betaforappid"].AsUnsignedInteger();
 
