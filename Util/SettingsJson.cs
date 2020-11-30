@@ -91,9 +91,6 @@ namespace SteamDatabaseBackend
         public string ConnectionString;
 
         [JsonProperty(Required = Required.Always)]
-        public FullRunState FullRun;
-
-        [JsonProperty(Required = Required.Always)]
         public bool LogToFile;
 
         [JsonProperty(Required = Required.Always)]

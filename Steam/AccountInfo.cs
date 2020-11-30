@@ -29,7 +29,7 @@ namespace SteamDatabaseBackend
 
             if (Settings.IsFullRun)
             {
-                InGameShorcut.game_extra_info = $"\u23E9 Full run: {Settings.Current.FullRun.ToString()}";
+                InGameShorcut.game_extra_info = $"\u23E9 Full run: {Settings.FullRun}";
             }
         }
 

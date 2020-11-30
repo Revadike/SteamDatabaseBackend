@@ -5,7 +5,6 @@
 	"BaseURL": "http://example.com",
 	"WebhookURL": "",
 	
-	"FullRun": 0,
 	"LogToFile": true,
 	"OnlyOwnedDepots": true,
 	"BuiltInHttpServerPort": 0,

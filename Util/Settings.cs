@@ -15,7 +15,9 @@ namespace SteamDatabaseBackend
     {
         public static SettingsJson Current { get; private set; } = new SettingsJson();
 
-        public static bool IsFullRun { get; private set; }
+        public static FullRunState FullRun { get; set; }
+
+        public static bool IsFullRun => FullRun != FullRunState.None;
 
         public static bool IsMillhaven { get; private set; }
 
@@ -30,10 +32,8 @@ namespace SteamDatabaseBackend
 
             Current = JsonConvert.DeserializeObject<SettingsJson>(await File.ReadAllTextAsync(settingsFile), new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error }) ?? new SettingsJson();
 
-            if (Current.FullRun != FullRunState.None)
+            if (FullRun != FullRunState.None)
             {
-                IsFullRun = true;
-
                 // Don't log full runs, regardless of setting
                 Current.LogToFile = false;
             }
@@ -62,7 +62,7 @@ namespace SteamDatabaseBackend
 
         private static bool CanConnectToIRC()
         {
-            if (Current.FullRun != FullRunState.None)
+            if (FullRun != FullRunState.None)
             {
                 // Don't connect to IRC while doing a full run
                 return false;

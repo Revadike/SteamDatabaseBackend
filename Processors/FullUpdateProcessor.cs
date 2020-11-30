@@ -20,22 +20,22 @@ namespace SteamDatabaseBackend
 
         public static async Task PerformSync()
         {
-            Log.WriteInfo(nameof(Settings), $"Running full update with option \"{Settings.Current.FullRun}\"");
+            Log.WriteInfo(nameof(Settings), $"Running full update with option \"{Settings.FullRun}\"");
 
-            if (Settings.Current.FullRun == FullRunState.NormalUsingMetadata)
+            if (Settings.FullRun == FullRunState.NormalUsingMetadata)
             {
                 await FullUpdateAppsMetadata();
                 await FullUpdatePackagesMetadata();
 
                 return;
             }
-            else if (Settings.Current.FullRun == FullRunState.Enumerate)
+            else if (Settings.FullRun == FullRunState.Enumerate)
             {
                 await FullUpdateEnumeration();
 
                 return;
             }
-            else if (Settings.Current.FullRun == FullRunState.ImportantOnly)
+            else if (Settings.FullRun == FullRunState.ImportantOnly)
             {
                 await RequestUpdateForList(Application.ImportantApps.ToList(), Application.ImportantSubs.ToList());
 
@@ -47,7 +47,7 @@ namespace SteamDatabaseBackend
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                if (Settings.Current.FullRun == FullRunState.TokensOnly)
+                if (Settings.FullRun == FullRunState.TokensOnly)
                 {
                     Log.WriteInfo(nameof(FullUpdateProcessor), $"Enumerating {PICSTokens.AppTokens.Count} apps and {PICSTokens.PackageTokens.Count} packages that have a token.");
 
@@ -58,7 +58,7 @@ namespace SteamDatabaseBackend
                 {
                     Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update on all apps and packages in the database.");
 
-                    if (Settings.Current.FullRun == FullRunState.PackagesNormal)
+                    if (Settings.FullRun == FullRunState.PackagesNormal)
                     {
                         apps = new List<uint>();
                     }
@@ -131,7 +131,7 @@ namespace SteamDatabaseBackend
                 while (IsBusy());
             }
 
-            if (Settings.Current.FullRun == FullRunState.WithForcedDepots)
+            if (Settings.FullRun == FullRunState.WithForcedDepots)
             {
                 return;
             }

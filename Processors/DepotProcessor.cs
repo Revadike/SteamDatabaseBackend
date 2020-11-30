@@ -252,7 +252,7 @@ namespace SteamDatabaseBackend
 
                         if (dbDepot.LastManifestID == request.ManifestID
                         && dbDepot.ManifestID == request.ManifestID
-                        && Settings.Current.FullRun != FullRunState.WithForcedDepots
+                        && Settings.FullRun != FullRunState.WithForcedDepots
                         && !dbDepot.FilenamesEncrypted && request.DepotKey != null)
                         {
                             // Update depot name if changed
