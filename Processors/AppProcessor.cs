@@ -221,7 +221,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for appid {AppID} ({newAppName}) is invalid");
             }
 
-            if (Settings.IsMillhaven && !Settings.IsFullRun && app.AppType == 0 && newAppType == 18)
+            if (Settings.IsMillhaven && newAppType == 18 && !LicenseList.OwnedApps.ContainsKey(AppID))
             {
                 var betaAppId = ProductInfo.KeyValues["extended"]["betaforappid"].AsUnsignedInteger();
 
@@ -230,19 +230,9 @@ namespace SteamDatabaseBackend
                     betaAppId = ProductInfo.KeyValues["common"]["parent"].AsUnsignedInteger();
                 }
 
-                Log.WriteDebug(nameof(AppProcessor), $"Requesting beta access for {AppID} ({betaAppId})");
+                Log.WriteDebug(nameof(AppProcessor), $"Adding beta access request for app {AppID} ({betaAppId})");
                 
-                var response = await WebAuth.PerformRequest(
-                    HttpMethod.Post,
-                    new Uri($"https://store.steampowered.com/ajaxrequestplaytestaccess/{betaAppId}"),
-                    new List<KeyValuePair<string, string>>
-                    {
-                        new KeyValuePair<string, string>("sessionid", nameof(SteamDatabaseBackend))
-                    }
-                );
-                var data = await response.Content.ReadAsStringAsync();
-
-                Log.WriteDebug(nameof(AppProcessor), $"Beta {AppID}: {data}");
+                Steam.Instance.FreeLicense.AddBeta(betaAppId);
             }
         }
 

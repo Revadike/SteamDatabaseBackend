@@ -24,6 +24,7 @@ namespace SteamDatabaseBackend
         private const int REQUEST_RATE_LIMIT = 25; // Steam actually limits at 50, but we're not in a hurry
 
         public ConcurrentDictionary<uint, uint> FreeLicensesToRequest { get; } = new ConcurrentDictionary<uint, uint>();
+        private HashSet<uint> BetasToRequest { get; } = new HashSet<uint>();
 
         private static int AppsRequestedInHour;
         private static Timer FreeLicenseTimer;
@@ -52,12 +53,19 @@ namespace SteamDatabaseBackend
                 FreeLicensesToRequest = JsonConvert.DeserializeObject<ConcurrentDictionary<uint, uint>>(data);
             }
 
-            if (FreeLicensesToRequest.Count == 0)
+            data = db.ExecuteScalar<string>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = 'backend.beta.requests'");
+
+            if (data != null)
+            {
+                BetasToRequest = JsonConvert.DeserializeObject<HashSet<uint>>(data);
+            }
+
+            if (FreeLicensesToRequest.IsEmpty && BetasToRequest.Count == 0)
             {
                 return;
             }
 
-            Log.WriteInfo(nameof(FreeLicense), $"There are {FreeLicensesToRequest.Count} free licenses to request");
+            Log.WriteInfo(nameof(FreeLicense), $"There are {FreeLicensesToRequest.Count} free licenses and {BetasToRequest.Count} betas to request");
 
             if (!Settings.IsFullRun)
             {
@@ -216,6 +224,12 @@ namespace SteamDatabaseBackend
                 return;
             }
 
+            if (FreeLicensesToRequest.IsEmpty)
+            {
+                TaskManager.Run(RequestBetas);
+                return;
+            }
+
             var list = FreeLicensesToRequest.Take(REQUEST_RATE_LIMIT).ToList();
             var now = DateUtils.DateTimeToUnixTime(DateTime.UtcNow) - 60;
             Dictionary<uint, ulong> startTimes;
@@ -244,6 +258,7 @@ namespace SteamDatabaseBackend
             }
 
             TaskManager.Run(Save);
+            TaskManager.Run(RequestBetas);
 
             var appids = list.Select(x => x.Value).Distinct();
 
@@ -253,7 +268,7 @@ namespace SteamDatabaseBackend
 
             JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(appids));
 
-            if (FreeLicensesToRequest.Count > 0)
+            if (!FreeLicensesToRequest.IsEmpty)
             {
                 lock (FreeLicenseTimer)
                 {
@@ -262,13 +277,65 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void RequestFromPackage(uint subId, KeyValue kv)
+        private async Task RequestBetas()
         {
-            if (!Settings.IsMillhaven)
+            var removed = false;
+
+            foreach (var appId in BetasToRequest)
+            {
+                Log.WriteDebug(nameof(FreeLicense), $"Requesting beta {appId}");
+
+                try
+                {
+                    var response = await WebAuth.PerformRequest(
+                        HttpMethod.Post,
+                        new Uri($"https://store.steampowered.com/ajaxrequestplaytestaccess/{appId}"),
+                        new List<KeyValuePair<string, string>>
+                        {
+                            new KeyValuePair<string, string>("sessionid", nameof(SteamDatabaseBackend))
+                        }
+                    );
+                    var data = await response.Content.ReadAsStringAsync();
+
+                    BetasToRequest.Remove(appId);
+                    removed = true;
+
+                    Log.WriteDebug(nameof(FreeLicense), $"Beta {appId}: {data}");
+                }
+                catch (Exception e)
+                {
+                    ErrorReporter.Notify(nameof(FreeLicense), e);
+                }
+            }
+
+            if (removed)
+            {
+                await SaveBetas();
+            }
+        }
+
+        public void AddBeta(uint appId)
+        {
+            if (BetasToRequest.Contains(appId))
             {
                 return;
             }
 
+            BetasToRequest.Add(appId);
+
+            lock (FreeLicenseTimer)
+            {
+                if (!Settings.IsFullRun && !FreeLicenseTimer.Enabled)
+                {
+                    FreeLicenseTimer.Start();
+                }
+            }
+
+            TaskManager.Run(SaveBetas);
+        }
+
+        public void RequestFromPackage(uint subId, KeyValue kv)
+        {
             if ((EBillingType)kv["billingtype"].AsInteger() != EBillingType.FreeOnDemand)
             {
                 return;
@@ -418,6 +485,11 @@ namespace SteamDatabaseBackend
         private Task Save()
         {
             return LocalConfig.Update("backend.freelicense.requests", JsonConvert.SerializeObject(FreeLicensesToRequest));
+        }
+
+        private Task SaveBetas()
+        {
+            return LocalConfig.Update("backend.beta.requests", JsonConvert.SerializeObject(BetasToRequest));
         }
     }
 }
