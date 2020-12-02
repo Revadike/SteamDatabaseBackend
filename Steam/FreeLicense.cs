@@ -304,7 +304,7 @@ namespace SteamDatabaseBackend
                 }
                 catch (Exception e)
                 {
-                    ErrorReporter.Notify(nameof(FreeLicense), e);
+                    Log.WriteWarn(nameof(FreeLicense), $"Failed to request beta {appId}: {e.Message}");
                 }
             }
 
