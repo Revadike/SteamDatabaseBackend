@@ -24,7 +24,10 @@ namespace SteamDatabaseBackend
             HttpListener = new HttpListener();
             HttpListener.Prefixes.Add($"http://localhost:{port}/");
 
-            ServerThread = new Thread(ListenAsync);
+            ServerThread = new Thread(ListenAsync)
+            {
+                Name = nameof(HttpServer)
+            };
             ServerThread.Start();
         }
 
