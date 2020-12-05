@@ -139,7 +139,8 @@ namespace SteamDatabaseBackend
 
             if (job.Packages.Count == 0)
             {
-                if (job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode)
+                if (job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode
+                && job.PurchaseResultDetail != EPurchaseResultDetail.RestrictedCountry)
                 {
                     IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
                 }
