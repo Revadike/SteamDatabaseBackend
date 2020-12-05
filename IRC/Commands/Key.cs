@@ -48,11 +48,11 @@ namespace SteamDatabaseBackend
                 return;
             }
 
-            List<string> keys;
+            List<SteamKeyRow> keys;
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                keys = (await db.QueryAsync<string>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `ID` ASC LIMIT 25")).ToList();
+                keys = (await db.QueryAsync<SteamKeyRow>($"SELECT `SteamKey` FROM `SteamKeys` WHERE `Result` IN (-1,{(int)EPurchaseResultDetail.RateLimited}) ORDER BY `ID` ASC LIMIT 25")).ToList();
             }
 
             if (keys.Count == 0)
@@ -64,7 +64,7 @@ namespace SteamDatabaseBackend
 
             foreach (var key in keys)
             {
-                var result = await ActivateKey(key);
+                var result = await ActivateKey(key.SteamKey, key.ID);
 
                 if (result == EPurchaseResultDetail.RateLimited)
                 {
@@ -98,7 +98,7 @@ namespace SteamDatabaseBackend
             command.Reply(result.ToString());
         }
 
-        private async Task<EPurchaseResultDetail> ActivateKey(string key)
+        private async Task<EPurchaseResultDetail> ActivateKey(string key, uint id = 0)
         {
             var msg = new ClientMsgProtobuf<CMsgClientRegisterKey>(EMsg.ClientRegisterKey)
             {
@@ -122,15 +122,17 @@ namespace SteamDatabaseBackend
                 return EPurchaseResultDetail.Timeout;
             }
 
-            await using (var db = await Database.GetConnectionAsync())
+            if (id > 0)
             {
+                await using var db = await Database.GetConnectionAsync();
                 using var sha = SHA1.Create();
-                await db.ExecuteAsync("UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @PurchaseResultDetail WHERE `SteamKey` = @SteamKey OR `SteamKey` = @HashedKey",
+                await db.ExecuteAsync(
+                    "UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @Result WHERE `ID` = @ID",
                     new
                     {
-                        job.PurchaseResultDetail,
+                        ID = id,
+                        Result = job.PurchaseResultDetail,
                         SubID = job.Packages.Count > 0 ? (int)job.Packages.First().Key : -1,
-                        SteamKey = key,
                         HashedKey = Utils.ByteArrayToString(sha.ComputeHash(Encoding.ASCII.GetBytes(key)))
                     });
             }
