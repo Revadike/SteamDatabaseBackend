@@ -121,10 +121,11 @@ namespace SteamDatabaseBackend
             {
                 return EPurchaseResultDetail.Timeout;
             }
+            
+            await using var db = await Database.GetConnectionAsync();
 
             if (id > 0)
             {
-                await using var db = await Database.GetConnectionAsync();
                 using var sha = SHA1.Create();
                 await db.ExecuteAsync(
                     "UPDATE `SteamKeys` SET `SteamKey` = @HashedKey, `SubID` = @SubID, `Result` = @Result WHERE `ID` = @ID",
@@ -152,36 +153,38 @@ namespace SteamDatabaseBackend
             && job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
             && job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
             {
-                var response = job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail ?
-                    $"{Colors.GREEN}Key activated" : $"{Colors.BLUE}{job.PurchaseResultDetail}";
-
-                IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} {response}{Colors.NORMAL}. Packages:{Colors.OLIVE} {string.Join(", ", job.Packages.Select(x => $"{x.Key}: {x.Value}"))}");
+                _ = TaskManager.Run(async () => await Utils.SendWebhook(new
+                {
+                    Type = "KeyActivated",
+                    Key = id,
+                    job.Result,
+                    job.PurchaseResultDetail,
+                    job.Packages,
+                    ResultString = job.PurchaseResultDetail.ToString(),
+                }));
             }
 
-            await using (var db = await Database.GetConnectionAsync())
+            foreach (var (subid, name) in job.Packages)
             {
-                foreach (var (subid, name) in job.Packages)
+                var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subid })).FirstOrDefault() ?? string.Empty;
+
+                if (databaseName.Equals(name, StringComparison.CurrentCultureIgnoreCase))
                 {
-                    var databaseName = (await db.QueryAsync<string>("SELECT `LastKnownName` FROM `Subs` WHERE `SubID` = @SubID", new { SubID = subid })).FirstOrDefault() ?? string.Empty;
-
-                    if (databaseName.Equals(name, StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = subid, Name = name });
-
-                    await db.ExecuteAsync(SubProcessor.HistoryQuery,
-                        new PICSHistory
-                        {
-                            ID = subid,
-                            Key = SteamDB.DatabaseNameType,
-                            OldValue = "key activation",
-                            NewValue = name,
-                            Action = "created_info"
-                        }
-                    );
+                    continue;
                 }
+
+                await db.ExecuteAsync("UPDATE `Subs` SET `LastKnownName` = @Name WHERE `SubID` = @SubID", new { SubID = subid, Name = name });
+
+                await db.ExecuteAsync(SubProcessor.HistoryQuery,
+                    new PICSHistory
+                    {
+                        ID = subid,
+                        Key = SteamDB.DatabaseNameType,
+                        OldValue = "key activation",
+                        NewValue = name,
+                        Action = "created_info"
+                    }
+                );
             }
 
             return job.PurchaseResultDetail;
