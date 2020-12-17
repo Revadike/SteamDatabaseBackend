@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using SteamKit2;
 
 namespace SteamDatabaseBackend
 {
@@ -104,6 +105,7 @@ namespace SteamDatabaseBackend
 
                     default:
                         context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                        await WriteJsonResponse("No such route", context.Response);
                         break;
                 }
             }
@@ -134,7 +136,12 @@ namespace SteamDatabaseBackend
 
             var result = await Steam.Instance.UserStats.GetNumberOfCurrentPlayers(uint.Parse(appid));
 
-            await WriteJsonResponse(result, context.Response);
+            await WriteJsonResponse(
+            new {
+                Success = result.Result == EResult.OK,
+                result.Result,
+                result.NumPlayers,
+            }, context.Response);
         }
         
         private static async Task GetApp(HttpListenerContext context)
