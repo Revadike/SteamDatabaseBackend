@@ -324,7 +324,7 @@ namespace SteamDatabaseBackend
                     }
                 }
 
-                if (appsRemoved)
+                if (packageOwned && appsRemoved)
                 {
                     LicenseList.RefreshApps();
                 }
