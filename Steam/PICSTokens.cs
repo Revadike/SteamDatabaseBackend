@@ -50,14 +50,14 @@ namespace SteamDatabaseBackend
             if (oldAppTokens != null)
             {
                 apps = AppTokens
-                    .Where(x => !oldAppTokens.ContainsKey(x.Key))
+                    .Where(app => !oldAppTokens.TryGetValue(app.Key, out var token) || token != app.Value)
                     .Select(app => NewAppRequest(app.Key, app.Value));
             }
 
             if (oldSubTokens != null)
             {
                 subs = PackageTokens
-                    .Where(x => !oldSubTokens.ContainsKey(x.Key))
+                    .Where(sub => !oldSubTokens.TryGetValue(sub.Key, out var token) || token != sub.Value)
                     .Select(sub => NewPackageRequest(sub.Key, sub.Value));
             }
 
