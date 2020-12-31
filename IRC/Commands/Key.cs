@@ -141,6 +141,7 @@ namespace SteamDatabaseBackend
             if (job.Packages.Count == 0)
             {
                 if (job.PurchaseResultDetail != EPurchaseResultDetail.BadActivationCode
+                && job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
                 && job.PurchaseResultDetail != EPurchaseResultDetail.RestrictedCountry)
                 {
                     IRC.Instance.SendOps($"{Colors.GREEN}[Keys]{Colors.NORMAL} Key not activated:{Colors.OLIVE} {job.Result} - {job.PurchaseResultDetail}");
@@ -149,18 +150,13 @@ namespace SteamDatabaseBackend
                 return job.PurchaseResultDetail;
             }
 
-            if (job.PurchaseResultDetail != EPurchaseResultDetail.AlreadyPurchased
-            && job.PurchaseResultDetail != EPurchaseResultDetail.DuplicateActivationCode
-            && job.PurchaseResultDetail != EPurchaseResultDetail.DoesNotOwnRequiredApp)
+            if (job.PurchaseResultDetail == EPurchaseResultDetail.NoDetail)
             {
                 _ = TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
                     Type = "KeyActivated",
                     Key = id,
-                    job.Result,
-                    job.PurchaseResultDetail,
                     job.Packages,
-                    ResultString = job.PurchaseResultDetail.ToString(),
                 }));
             }
 
