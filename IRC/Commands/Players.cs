@@ -78,27 +78,28 @@ namespace SteamDatabaseBackend
 
             switch (appType)
             {
-                case "Tool":
-                case "Config":
-                case "Application":
+                case EAppType.Tool:
+                case EAppType.Config:
+                case EAppType.Application:
                     type = "using";
                     break;
 
-                case "Legacy Media":
-                case "Series":
-                case "Video":
+                case EAppType.Media:
+                case EAppType.Series:
+                case EAppType.Video:
                     type = "watching";
                     break;
 
-                case "Demo":
+                case EAppType.Demo:
                     type = "demoing";
                     break;
 
-                case "Guide":
+                case EAppType.Guide:
+                case EAppType.Comic:
                     type = "reading";
                     break;
 
-                case "Hardware":
+                case EAppType.Hardware:
                     type = "bricking";
                     break;
             }

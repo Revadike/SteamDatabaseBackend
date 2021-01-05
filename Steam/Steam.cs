@@ -144,16 +144,16 @@ namespace SteamDatabaseBackend
             return FormatAppName(appID, data);
         }
 
-        public static string GetAppName(uint appID, out string appType)
+        public static string GetAppName(uint appID, out EAppType appType)
         {
             App data;
 
             using (var db = Database.Get())
             {
-                data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `Apps`.`AppType`, `AppsTypes`.`DisplayName` as `AppTypeString` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
+                data = db.Query<App>("SELECT `AppID`, `Apps`.`Name`, `LastKnownName`, `Apps`.`AppType` FROM `Apps` WHERE `AppID` = @AppID", new { AppID = appID }).SingleOrDefault();
             }
 
-            appType = data.AppID == 0 || data.AppType == 0 ? "App" : data.AppTypeString;
+            appType = data.AppID == 0 || data.AppType == EAppType.Invalid ? EAppType.Application : data.AppType;
 
             return FormatAppName(appID, data);
         }

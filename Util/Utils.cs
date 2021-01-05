@@ -106,6 +106,29 @@ namespace SteamDatabaseBackend
             return input.Substring(0, 100) + "…";
         }
 
+        public static EAppType GetAppType(string appType) => appType switch
+        {
+            "invalid"     => EAppType.Invalid,
+            "game"        => EAppType.Game,
+            "application" => EAppType.Application,
+            "tool"        => EAppType.Tool,
+            "demo"        => EAppType.Demo,
+            "media"       => EAppType.Media,
+            "dlc"         => EAppType.DLC,
+            "guide"       => EAppType.Guide,
+            "driver"      => EAppType.Driver,
+            "config"      => EAppType.Config,
+            "hardware"    => EAppType.Hardware,
+            "franchise"   => EAppType.Franchise,
+            "video"       => EAppType.Video,
+            "plugin"      => EAppType.Plugin,
+            "music"       => EAppType.MusicAlbum,
+            "series"      => EAppType.Series,
+            "comic"       => EAppType.Comic,
+            "beta"        => EAppType.Beta,
+            _             => throw new NotImplementedException($"Unimplemented apptype: {appType}"),
+        };
+
         public static string JsonifyKeyValue(KeyValue keys)
         {
             using var sw = new StringWriter(new StringBuilder());

@@ -163,7 +163,7 @@ namespace SteamDatabaseBackend
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                appID = await db.ExecuteScalarAsync<uint>("SELECT `AppID` FROM `Apps` LEFT JOIN `AppsTypes` ON `Apps`.`AppType` = `AppsTypes`.`AppType` WHERE (`AppsTypes`.`Name` IN ('game', 'application', 'video', 'hardware') AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppsTypes`.`Name` = 'unknown' AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
+                appID = await db.ExecuteScalarAsync<uint>($"SELECT `AppID` FROM `Apps` WHERE (`AppType` IN ({EAppType.Game:d},{EAppType.Application:d},{EAppType.Video:d}) AND (`Apps`.`StoreName` LIKE @Name OR `Apps`.`Name` LIKE @Name)) OR (`AppType` = {EAppType.Invalid:d} AND `Apps`.`LastKnownName` LIKE @Name) ORDER BY `LastUpdated` DESC LIMIT 1", new { Name = name });
             }
 
             if (appID == 0)

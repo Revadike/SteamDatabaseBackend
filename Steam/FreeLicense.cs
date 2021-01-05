@@ -423,7 +423,7 @@ namespace SteamDatabaseBackend
             using (var db = Database.Get())
             {
                 available = db.ExecuteScalar<bool>("SELECT IFNULL(`Value`, \"\") = \"released\" FROM `Apps` LEFT JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` AND `Key` = @Key WHERE `Apps`.`AppID` = @AppID", new { Key = KeyNameCache.GetAppKeyID("common_releasestate"), AppID = appId });
-                parentAppId = db.ExecuteScalar<uint>("SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = @Key AND `Apps`.`AppID` = @AppID AND `AppType` NOT IN (3, 15)", new { Key = KeyNameCache.GetAppKeyID("common_parent"), AppID = appId });
+                parentAppId = db.ExecuteScalar<uint>($"SELECT `Value` FROM `Apps` JOIN `AppsInfo` ON `Apps`.`AppID` = `AppsInfo`.`AppID` WHERE `Key` = @Key AND `Apps`.`AppID` = @AppID AND `AppType` NOT IN ({EAppType.Demo:d},{EAppType.MusicAlbum:d})", new { Key = KeyNameCache.GetAppKeyID("common_parent"), AppID = appId });
             }
 
             if (!available)

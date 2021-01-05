@@ -10,7 +10,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE IF NOT EXISTS `Apps` (
   `AppID` int(7) UNSIGNED NOT NULL,
-  `AppType` tinyint(2) UNSIGNED NOT NULL DEFAULT 0,
+  `AppType` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `Name` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SteamDB Unknown App',
   `StoreName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   `LastKnownName` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
@@ -42,33 +42,6 @@ CREATE TABLE IF NOT EXISTS `AppsInfo` (
   UNIQUE KEY `AppID` (`AppID`,`Key`),
   KEY `Key` (`Key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
-CREATE TABLE IF NOT EXISTS `AppsTypes` (
-  `AppType` tinyint(2) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `Name` varbinary(15) NOT NULL,
-  `DisplayName` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`AppType`),
-  UNIQUE KEY `Name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
-INSERT INTO `AppsTypes` (`AppType`, `Name`, `DisplayName`) VALUES
-(0, 'unknown', 'Unknown'),
-(1, 'game', 'Game'),
-(2, 'application', 'Application'),
-(3, 'demo', 'Demo'),
-(4, 'dlc', 'DLC'),
-(5, 'tool', 'Tool'),
-(6, 'depotonly', 'Depot (not used)'),
-(7, 'guide', 'Guide'),
-(8, 'media', 'Legacy Media'),
-(9, 'config', 'Config'),
-(10, 'driver', 'Driver'),
-(13, 'video', 'Video'),
-(14, 'plugin', 'Plugin'),
-(15, 'music', 'Music'),
-(16, 'hardware', 'Hardware'),
-(17, 'series', 'Series'),
-(18, 'beta', 'Beta');
 
 CREATE TABLE IF NOT EXISTS `Builds` (
   `BuildID` int(8) UNSIGNED NOT NULL,

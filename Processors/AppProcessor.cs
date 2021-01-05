@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using Dapper;
 using Newtonsoft.Json;
@@ -67,31 +66,24 @@ namespace SteamDatabaseBackend
             var app = (await DbConnection.QueryAsync<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID })).SingleOrDefault();
 
             var newAppName = ProductInfo.KeyValues["common"]["name"].AsString();
-            var newAppType = -1;
+            var newAppType = EAppType.Invalid;
 
             if (newAppName != null)
             {
                 var currentType = ProductInfo.KeyValues["common"]["type"].AsString().ToLowerInvariant();
 
-                newAppType = await DbConnection.ExecuteScalarAsync<int?>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType }) ?? -1;
+                newAppType = Utils.GetAppType(currentType);
                 var modifiedNameOrType = false;
-
-                if (newAppType == -1)
-                {
-                    await DbConnection.ExecuteAsync("INSERT INTO `AppsTypes` (`Name`, `DisplayName`) VALUES(@Name, @DisplayName)",
-                        new { Name = currentType, DisplayName = ProductInfo.KeyValues["common"]["type"].AsString() }); // We don't need to lower display name
-
-                    Log.WriteInfo(nameof(AppProcessor), $"Creating new apptype \"{currentType}\" (AppID {AppID})");
-
-                    IRC.Instance.SendOps($"New app type: {Colors.BLUE}{currentType}{Colors.NORMAL} - {SteamDB.GetAppUrl(AppID, "history")}");
-
-                    newAppType = await DbConnection.ExecuteScalarAsync<int>("SELECT `AppType` FROM `AppsTypes` WHERE `Name` = @Type LIMIT 1", new { Type = currentType });
-                }
 
                 if (string.IsNullOrEmpty(app.Name) || app.Name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal))
                 {
                     await DbConnection.ExecuteAsync("INSERT INTO `Apps` (`AppID`, `AppType`, `Name`, `LastKnownName`) VALUES (@AppID, @Type, @AppName, @AppName) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`), `LastKnownName` = VALUES(`LastKnownName`), `AppType` = VALUES(`AppType`)",
-                        new { AppID, Type = newAppType, AppName = newAppName }
+                        new
+                        {
+                            AppID,
+                            Type = (int)newAppType,
+                            AppName = newAppName
+                        }
                     );
 
                     await MakeHistory("created_app");
@@ -107,28 +99,25 @@ namespace SteamDatabaseBackend
                     modifiedNameOrType = true;
                 }
 
-                if (app.AppType == 0 || app.AppType != newAppType)
+                if (app.AppType != newAppType)
                 {
-                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID", new { AppID, Type = newAppType });
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `AppType` = @Type WHERE `AppID` = @AppID", new { AppID, Type = (int)newAppType });
 
-                    if (app.AppType == 0)
+                    if (app.AppType == EAppType.Invalid)
                     {
-                        await MakeHistory("created_info", SteamDB.DatabaseAppType, string.Empty, newAppType.ToString());
+                        await MakeHistory("created_info", SteamDB.DatabaseAppType, string.Empty, newAppType.ToString("d"));
                     }
                     else
                     {
-                        await MakeHistory("modified_info", SteamDB.DatabaseAppType, app.AppType.ToString(), newAppType.ToString());
+                        await MakeHistory("modified_info", SteamDB.DatabaseAppType, app.AppType.ToString(), newAppType.ToString("d"));
                     }
 
                     modifiedNameOrType = true;
                 }
 
-                if (modifiedNameOrType)
+                if (modifiedNameOrType && Triggers.Any(newAppName.Contains))
                 {
-                    if ((newAppType > 9 && newAppType != 13 && newAppType != 15 && newAppType != 17 && newAppType != 18) || Triggers.Any(newAppName.Contains))
-                    {
-                        IRC.Instance.SendOps($"New {currentType}: {Colors.BLUE}{Utils.LimitStringLength(newAppName)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(AppID, "history")}");
-                    }
+                    IRC.Instance.SendOps($"New {newAppType}: {Colors.BLUE}{Utils.LimitStringLength(newAppName)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(AppID, "history")}");
                 }
             }
 
@@ -199,8 +188,9 @@ namespace SteamDatabaseBackend
                 }
                 else if (!app.Name.StartsWith(SteamDB.UnknownAppName, StringComparison.Ordinal)) // We do have the app, replace it with default name
                 {
-                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = 0 WHERE `AppID` = @AppID", new {
+                    await DbConnection.ExecuteAsync("UPDATE `Apps` SET `Name` = @AppName, `AppType` = @AppType WHERE `AppID` = @AppID", new {
                         AppID,
+                        AppType = (int)EAppType.Invalid,
                         AppName = $"{SteamDB.UnknownAppName} {AppID}"
                     });
                     await MakeHistory("deleted_app", 0, app.Name);
@@ -221,7 +211,7 @@ namespace SteamDatabaseBackend
                 IRC.Instance.SendOps($"[Tokens] Looks like the overridden token for appid {AppID} ({newAppName}) is invalid");
             }
 
-            if (Settings.IsMillhaven && newAppType == 18 && !LicenseList.OwnedApps.ContainsKey(AppID))
+            if (Settings.IsMillhaven && newAppType == EAppType.Beta && !LicenseList.OwnedApps.ContainsKey(AppID))
             {
                 var betaAppId = ProductInfo.KeyValues["extended"]["betaforappid"].AsUnsignedInteger();
 
@@ -400,7 +390,7 @@ namespace SteamDatabaseBackend
         {
             var name = Steam.GetAppName(AppID, out var appType);
 
-            if (appType != "Game" && appType != "Application")
+            if (appType != EAppType.Game && appType != EAppType.Application)
             {
                 return;
             }
