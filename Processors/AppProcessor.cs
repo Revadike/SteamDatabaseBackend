@@ -65,6 +65,7 @@ namespace SteamDatabaseBackend
 
             var app = (await DbConnection.QueryAsync<App>("SELECT `Name`, `AppType` FROM `Apps` WHERE `AppID` = @AppID LIMIT 1", new { AppID })).SingleOrDefault();
 
+            var isPublicOnly = false;
             var newAppName = ProductInfo.KeyValues["common"]["name"].AsString();
             var newAppType = EAppType.Invalid;
 
@@ -155,6 +156,8 @@ namespace SteamDatabaseBackend
                 }
                 else if (sectionName == "public_only")
                 {
+                    isPublicOnly = section.Value == "1";
+
                     await ProcessKey($"root_{sectionName}", section.Name, section.Value);
                 }
                 else
@@ -171,8 +174,26 @@ namespace SteamDatabaseBackend
             // If app gets hidden but we already have data, do not delete the already existing app info
             if (newAppName != null)
             {
-                foreach (var data in CurrentData.Values.Where(data => !data.Processed && !data.KeyName.StartsWith("website", StringComparison.Ordinal)))
+                foreach (var data in CurrentData.Values)
                 {
+                    // This key still exists in appinfo and was correctly processed above
+                    if (data.Processed)
+                    {
+                        continue;
+                    }
+
+                    // This is a key that is created and handled by steamdb.info; not in appinfo
+                    if (data.KeyName.StartsWith("website", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    // If this app requires a token, but previously was public and we had stored data, keep it around
+                    if (isPublicOnly && !data.KeyName.StartsWith("common", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
                     await DbConnection.ExecuteAsync("DELETE FROM `AppsInfo` WHERE `AppID` = @AppID AND `Key` = @Key", new { AppID, data.Key });
                     await MakeHistory("removed_key", data.Key, data.Value);
                 }
