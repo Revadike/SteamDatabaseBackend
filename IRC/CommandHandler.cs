@@ -22,7 +22,6 @@ namespace SteamDatabaseBackend
         {
             RegisteredCommands = new List<Command>
             {
-                new BlogCommand(),
                 new PlayersCommand(),
                 new AppCommand(),
                 new PackageCommand(),
