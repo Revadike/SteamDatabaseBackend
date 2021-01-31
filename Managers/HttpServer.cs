@@ -103,6 +103,10 @@ namespace SteamDatabaseBackend
                         await ReloadImportant(context);
                         break;
 
+                    case "/FullRun":
+                        await FullRun(context);
+                        break;
+
                     default:
                         context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         await WriteJsonResponse("No such route", context.Response);
@@ -184,6 +188,17 @@ namespace SteamDatabaseBackend
             await Application.ReloadImportant();
 
             await WriteJsonResponse("Important lists reloaded", context.Response);
+        }
+
+        private static async Task FullRun(HttpListenerContext context)
+        {
+            _ = TaskManager.Run(async () =>
+            {
+                await FullUpdateProcessor.FullUpdateAppsMetadata(true);
+                await FullUpdateProcessor.FullUpdatePackagesMetadata();
+            });
+
+            await WriteJsonResponse("Triggered full run", context.Response);
         }
     }
 }
