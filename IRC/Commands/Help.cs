@@ -31,7 +31,7 @@ namespace SteamDatabaseBackend
             }
 
             var commands = Commands
-                .Where(cmd => cmd != this && (!cmd.IsAdminCommand || command.IsUserAdmin))
+                .Where(cmd => cmd != this)
                 .Select(cmd => cmd.Trigger);
 
             command.Notice($"Available commands: {Colors.OLIVE}{string.Join($"{Colors.NORMAL}, {Colors.OLIVE}", commands)}");

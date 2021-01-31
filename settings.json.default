@@ -29,20 +29,11 @@
 		{
 			"Ops": "#steamdb-test",
 			"Announce": "#steamdb-test"
-		},
-		"Admins":
-		[
-			"ident@host"
-		]
+		}
 	},
 
 	"RssFeeds":
 	[
 		
-	],
-	
-	"SteamAdmins":
-	[
-		76561197960287930
 	]
 }

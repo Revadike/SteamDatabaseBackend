@@ -19,10 +19,7 @@ namespace SteamDatabaseBackend
     internal abstract class Command
     {
         public string Trigger { get; protected set; }
-
-        public bool IsAdminCommand { get; protected set; }
         public bool IsSteamCommand { get; protected set; }
-
         public abstract Task OnCommand(CommandArguments command);
     }
 
@@ -34,7 +31,6 @@ namespace SteamDatabaseBackend
         public IrcIdentity SenderIdentity { get; set; }
         public ECommandType CommandType { get; set; }
         public SteamID SenderID { get; set; }
-        public bool IsUserAdmin { get; set; }
 
         public void Notice(string message)
         {

@@ -39,9 +39,6 @@ namespace SteamDatabaseBackend
             public string Server;
 
             [JsonProperty(Required = Required.Always)]
-            public List<string> Admins = new List<string>();
-
-            [JsonProperty(Required = Required.Always)]
             public int Port;
 
             [JsonProperty(Required = Required.Always)]
@@ -65,9 +62,6 @@ namespace SteamDatabaseBackend
             [JsonProperty(Required = Required.Always)]
             public string Announce;
         }
-
-        [JsonProperty(Required = Required.Always)]
-        public List<ulong> SteamAdmins = new List<ulong>();
 
         [JsonProperty(Required = Required.Always)]
         public SteamJson Steam = new SteamJson();

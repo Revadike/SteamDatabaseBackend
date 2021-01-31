@@ -80,7 +80,7 @@ namespace SteamDatabaseBackend
 
             command.Reply($"{Colors.BLUE}{name}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawAppUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
 
-            if (command.IsUserAdmin && !LicenseList.OwnedApps.ContainsKey(info.ID))
+            if (command.Recipient == Settings.Current.IRC.Channel.Ops && !LicenseList.OwnedApps.ContainsKey(info.ID))
             {
                 JobManager.AddJob(() => Steam.Instance.Apps.RequestFreeLicense(info.ID));
             }
