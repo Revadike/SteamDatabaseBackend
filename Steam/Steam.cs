@@ -36,6 +36,7 @@ namespace SteamDatabaseBackend
 
         private readonly List<SteamHandler> Handlers;
         private Watchdog WatchdogHandle;
+        private KeyActivator KeyActivatorHandle;
 
         private Steam()
         {
@@ -74,6 +75,11 @@ namespace SteamDatabaseBackend
             if (!Settings.IsFullRun)
             {
                 Handlers.Add(new ClanState(CallbackManager));
+
+                if (Settings.IsMillhaven)
+                {
+                    KeyActivatorHandle = new KeyActivator();
+                }
             }
 
             FreeLicense = new FreeLicense(CallbackManager);
@@ -102,6 +108,12 @@ namespace SteamDatabaseBackend
             {
                 FreeLicense.Dispose();
                 FreeLicense = null;
+            }
+
+            if (KeyActivatorHandle != null)
+            {
+                KeyActivatorHandle.Dispose();
+                KeyActivatorHandle = null;
             }
         }
 

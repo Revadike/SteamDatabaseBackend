@@ -40,7 +40,6 @@ namespace SteamDatabaseBackend
             if (Settings.IsMillhaven)
             {
                 RegisteredCommands.Add(new QueueCommand());
-                RegisteredCommands.Add(new KeyCommand());
             }
 
             // Register help command last so we can pass the list of the commands

@@ -17,16 +17,12 @@ using SteamKit2.Internal;
 
 namespace SteamDatabaseBackend
 {
-    internal class KeyCommand : Command, IDisposable
+    internal class KeyActivator : SteamHandler, IDisposable
     {
         private Timer ActivationTimer;
 
-        public KeyCommand()
+        public KeyActivator()
         {
-            Trigger = "key";
-            IsAdminCommand = true;
-            IsSteamCommand = true;
-
             ActivationTimer = new Timer(TimeSpan.FromMinutes(30).TotalMilliseconds);
             ActivationTimer.Elapsed += OnTimer;
             ActivationTimer.Start();
@@ -80,22 +76,6 @@ namespace SteamDatabaseBackend
             // Restart timer as rate limit runs from first activation
             ActivationTimer.Stop();
             ActivationTimer.Start();
-        }
-
-        public override async Task OnCommand(CommandArguments command)
-        {
-            var key = command.Message.Trim().ToUpperInvariant();
-
-            if (key.Length < 17)
-            {
-                command.Reply($"Usage:{Colors.OLIVE} key <steam key>");
-
-                return;
-            }
-
-            var result = await ActivateKey(key);
-
-            command.Reply(result.ToString());
         }
 
         private async Task<EPurchaseResultDetail> ActivateKey(string key, uint id = 0)
