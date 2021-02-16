@@ -75,10 +75,11 @@ namespace SteamDatabaseBackend
             {
                 name = Steam.GetAppName(info.ID);
             }
+            
+            var filename = $"{Utils.ByteArrayToString(info.SHAHash)}.vdf";
+            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", filename), false);
 
-            info.KeyValues.SaveToFile(Path.Combine(Application.Path, "app", $"{info.ID}.vdf"), false);
-
-            command.Reply($"{Colors.BLUE}{name}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawAppUrl(info.ID)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
+            command.Reply($"{Colors.BLUE}{name}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetAppUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawAppUrl(filename)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedApps.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
 
             if (command.Recipient == Settings.Current.IRC.Channel.Ops && !LicenseList.OwnedApps.ContainsKey(info.ID))
             {

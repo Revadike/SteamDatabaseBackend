@@ -20,9 +20,9 @@ namespace SteamDatabaseBackend
         public static readonly string StringNeedToken = $" {Colors.DARKGRAY}(needs token){Colors.NORMAL}";
         public static readonly string StringCheckmark = $" {Colors.DARKGRAY}✓{Colors.NORMAL}";
 
-        public static string GetRawAppUrl(uint appId) => new Uri(Settings.Current.RawBaseURL, $"/app/{appId}.vdf").AbsoluteUri;
+        public static string GetRawAppUrl(string filename) => new Uri(Settings.Current.RawBaseURL, $"/app/{filename}").AbsoluteUri;
 
-        public static string GetRawPackageUrl(uint subId) => new Uri(Settings.Current.RawBaseURL, $"/sub/{subId}.vdf").AbsoluteUri;
+        public static string GetRawPackageUrl(string filename) => new Uri(Settings.Current.RawBaseURL, $"/sub/{filename}").AbsoluteUri;
 
         public static string GetPublishedFileRawUrl(ulong id) => new Uri(Settings.Current.RawBaseURL, $"/ugc/{id}.json").AbsoluteUri;
 
