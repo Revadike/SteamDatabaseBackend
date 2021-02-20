@@ -34,7 +34,7 @@ namespace SteamDatabaseBackend
                 .Where(cmd => cmd != this)
                 .Select(cmd => cmd.Trigger);
 
-            command.Notice($"Available commands: {Colors.OLIVE}{string.Join($"{Colors.NORMAL}, {Colors.OLIVE}", commands)}");
+            command.Reply($"Available commands: {Colors.OLIVE}{string.Join($"{Colors.NORMAL}, {Colors.OLIVE}", commands)}");
         }
     }
 }

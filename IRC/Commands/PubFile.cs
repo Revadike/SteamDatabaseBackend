@@ -84,7 +84,7 @@ namespace SteamDatabaseBackend
 
             command.Reply($"{(EWorkshopFileType)details.file_type}, Title: {Colors.BLUE}{(string.IsNullOrWhiteSpace(details.title) ? "[no title]" : details.title)}{Colors.NORMAL}, Creator: {Colors.BLUE}{new SteamID(details.creator).Render()}{Colors.NORMAL}, App: {Colors.BLUE}{details.creator_appid}{(details.creator_appid == details.consumer_appid ? "" : $" (consumer {details.consumer_appid})")}{Colors.NORMAL}, File UGC: {Colors.BLUE}{details.hcontent_file}{Colors.NORMAL}, Preview UGC: {Colors.BLUE}{details.hcontent_preview}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPublishedFileRawUrl(details.publishedfileid)}");
 
-            command.Notice($"{details.file_url} - https://steamcommunity.com/sharedfiles/filedetails/?id={details.publishedfileid}");
+            command.Reply($"<{details.file_url}> - <https://steamcommunity.com/sharedfiles/filedetails/?id={details.publishedfileid}>");
         }
     }
 }

@@ -49,7 +49,7 @@ namespace SteamDatabaseBackend
             var filename = $"{Utils.ByteArrayToString(info.SHAHash)}.vdf";
             info.KeyValues.SaveToFile(Path.Combine(Application.Path, "sub", filename), false);
 
-            command.Reply($"{Colors.BLUE}{Steam.GetPackageName(info.ID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(info.ID)}{Colors.NORMAL} - Dump:{Colors.DARKBLUE} {SteamDB.GetRawPackageUrl(filename)}{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
+            command.Reply($"{Colors.BLUE}{Steam.GetPackageName(info.ID)}{Colors.NORMAL} -{Colors.DARKBLUE} <{SteamDB.GetPackageUrl(info.ID)}>{Colors.NORMAL} - Dump:{Colors.DARKBLUE} <{SteamDB.GetRawPackageUrl(filename)}>{Colors.NORMAL}{(info.MissingToken ? SteamDB.StringNeedToken : string.Empty)}{(LicenseList.OwnedSubs.ContainsKey(info.ID) ? SteamDB.StringCheckmark : string.Empty)}");
         }
 
         public static async Task<SteamApps.PICSProductInfoCallback.PICSProductInfo> GetPackageData(uint subID)

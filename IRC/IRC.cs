@@ -108,19 +108,9 @@ namespace SteamDatabaseBackend
             Log.WriteError(nameof(IRC), $"Error: {e.Error} ({string.Join(", ", e.Data.Parameters)})");
         }
 
-        public void SendReply(string recipient, string message, bool notice)
+        public void SendReply(string recipient, string message)
         {
-            if (notice)
-            {
-                // Reset formatting since some clients might put notices in a different color
-                message = $"{Colors.NORMAL}{message}";
-
-                Client.Notice(recipient, message);
-            }
-            else
-            {
-                Client.Message(recipient, message);
-            }
+            Client.Message(recipient, message);
         }
 
         public void SendAnnounce(string str)

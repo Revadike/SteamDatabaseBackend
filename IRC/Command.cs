@@ -31,18 +31,8 @@ namespace SteamDatabaseBackend
         public IrcIdentity SenderIdentity { get; set; }
         public ECommandType CommandType { get; set; }
         public SteamID SenderID { get; set; }
-
-        public void Notice(string message)
-        {
-            ReplyToCommand(message, true);
-        }
-
+        
         public void Reply(string message)
-        {
-            ReplyToCommand(message, false);
-        }
-
-        private void ReplyToCommand(string message, bool notice)
         {
             switch (CommandType)
             {
@@ -52,21 +42,14 @@ namespace SteamDatabaseBackend
 
                     if (isChannelMessage)
                     {
-                        if (!notice)
-                        {
-                            message = $"{Nickname}: {message}";
-                        }
-                        else
-                        {
-                            recipient = SenderIdentity.Nickname.ToString();
-                        }
+                        message = $"{Nickname}: {message}";
                     }
                     else
                     {
                         recipient = SenderIdentity.Nickname.ToString();
                     }
 
-                    IRC.Instance.SendReply(recipient, message, notice);
+                    IRC.Instance.SendReply(recipient, message);
 
                     break;
 
