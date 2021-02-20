@@ -126,15 +126,7 @@ namespace SteamDatabaseBackend
                         Packages = packageIDs.ToList()
                     });
 
-                TaskManager.Run(async () =>
-                {
-                    await RefreshPackageNames();
-
-                    foreach (var subID in packageIDs)
-                    {
-                        IRC.Instance.SendAnnounce($"New free license granted: {Colors.BLUE}{Steam.GetPackageName(subID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPackageUrl(subID)}");
-                    }
-                });
+                TaskManager.Run(RefreshPackageNames);
             }
         }
 
