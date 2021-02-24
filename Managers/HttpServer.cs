@@ -5,8 +5,11 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,7 +71,7 @@ namespace SteamDatabaseBackend
 
         private static async Task ProcessAsync(HttpListenerContext context)
         {
-            Log.WriteInfo(nameof(HttpServer), $"Processing {context.Request.RawUrl}");
+            Log.WriteInfo(nameof(HttpServer), $"Processing {context.Request.HttpMethod} {context.Request.RawUrl}");
 
             context.Response.ContentType = "application/json; charset=utf-8";
 
@@ -178,7 +181,20 @@ namespace SteamDatabaseBackend
 
         private static async Task ReloadTokens(HttpListenerContext context)
         {
+            if (context.Request.HttpMethod != HttpMethod.Post.ToString())
+            {
+                throw new MethodAccessException("Must be a POST request.");
+            }
+
             await PICSTokens.Reload();
+
+            var body = await new StreamReader(context.Request.InputStream).ReadToEndAsync();
+            var apps = JsonConvert.DeserializeObject<HashSet<uint>>(body);
+
+            if (apps.Count > 0)
+            {
+                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetAccessTokens(apps, Enumerable.Empty<uint>()));
+            }
 
             await WriteJsonResponse("Tokens reloaded", context.Response);
         }
