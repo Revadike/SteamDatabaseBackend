@@ -329,11 +329,6 @@ namespace SteamDatabaseBackend
 
         private static async Task GetDepotDecryptionKey(SteamApps instance, ManifestJob depot, uint appID)
         {
-            if (!LicenseList.OwnedApps.ContainsKey(depot.DepotID))
-            {
-                return;
-            }
-
             var task = instance.GetDepotDecryptionKey(depot.DepotID, appID);
             task.Timeout = TimeSpan.FromMinutes(15);
 
@@ -382,9 +377,14 @@ namespace SteamDatabaseBackend
             {
                 if (depot.DepotKey == null)
                 {
+                    if (Settings.Current.OnlyOwnedDepots && !LicenseList.OwnedDepots.ContainsKey(depot.DepotID))
+                    {
+                        return;
+                    }
+
                     await GetDepotDecryptionKey(Steam.Instance.Apps, depot, appID);
 
-                    if (depot.DepotKey == null && (depot.LastManifestID == depot.ManifestID || Settings.Current.OnlyOwnedDepots))
+                    if (depot.DepotKey == null && depot.LastManifestID == depot.ManifestID)
                     {
                         RemoveLock(depot.DepotID);
 

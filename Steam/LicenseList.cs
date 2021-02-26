@@ -15,6 +15,7 @@ namespace SteamDatabaseBackend
     {
         public static Dictionary<uint, byte> OwnedApps { get; private set; }
         public static Dictionary<uint, byte> OwnedSubs { get; private set; }
+        public static Dictionary<uint, byte> OwnedDepots { get; private set; }
 
         static LicenseList()
         {
@@ -115,6 +116,11 @@ namespace SteamDatabaseBackend
 
             using var db = Database.Get();
             OwnedApps = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `Type` = 'app' AND `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, _ => (byte)1);
+
+            if (Settings.Current.OnlyOwnedDepots)
+            {
+                OwnedDepots = db.Query<App>("SELECT DISTINCT `AppID` FROM `SubsApps` WHERE `Type` = 'depot' AND `SubID` IN @Ids", new { Ids = OwnedSubs.Keys }).ToDictionary(x => x.AppID, _ => (byte)1);
+            }
         }
     }
 }
