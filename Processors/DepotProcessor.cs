@@ -617,6 +617,8 @@ namespace SteamDatabaseBackend
                         OldFile = oldFile
                     }, transaction);
                 }
+                
+                await MakeHistory(db, transaction, request, string.Empty, "files_decrypted");
 
                 filesOld = decryptedFilesOld;
             }

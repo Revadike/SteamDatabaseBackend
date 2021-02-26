@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `DepotsHistory` (
   `ManifestID` bigint(20) UNSIGNED NOT NULL,
   `DepotID` int(10) UNSIGNED NOT NULL,
   `Time` datetime NOT NULL DEFAULT current_timestamp(),
-  `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `Action` enum('added','removed','modified','modified_flags','manifest_change','added_to_sub','removed_from_sub','files_decrypted') CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `File` varchar(260) COLLATE utf8mb4_bin NOT NULL,
   `OldValue` bigint(20) UNSIGNED NOT NULL,
   `NewValue` bigint(20) UNSIGNED NOT NULL,
