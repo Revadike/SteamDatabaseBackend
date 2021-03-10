@@ -78,6 +78,7 @@ namespace SteamDatabaseBackend
                     Group = groupName,
                     Avatar = groupAvatar,
                     Url = link,
+                    GroupID = callback.ClanID.AccountID,
                 }));
 
             }
