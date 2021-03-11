@@ -210,7 +210,7 @@ namespace SteamDatabaseBackend
         {
             _ = TaskManager.Run(async () =>
             {
-                await FullUpdateProcessor.FullUpdateAppsMetadata(true);
+                await FullUpdateProcessor.FullUpdateAppsMetadata();
                 await FullUpdateProcessor.FullUpdatePackagesMetadata();
             });
 

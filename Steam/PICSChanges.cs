@@ -139,7 +139,7 @@ namespace SteamDatabaseBackend
 
                         // When full update flag is set, presumably Steam client start hammering the servers
                         // and the PICS service just does not return any data for a while until it clears up
-                        await FullUpdateProcessor.FullUpdateAppsMetadata(true);
+                        await FullUpdateProcessor.FullUpdateAppsMetadata();
                     }
 
                     if (callback.RequiresFullPackageUpdate)

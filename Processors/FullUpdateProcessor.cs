@@ -49,15 +49,11 @@ namespace SteamDatabaseBackend
             {
                 if (Settings.FullRun == FullRunState.TokensOnly)
                 {
-                    Log.WriteInfo(nameof(FullUpdateProcessor), $"Enumerating {PICSTokens.AppTokens.Count} apps and {PICSTokens.PackageTokens.Count} packages that have a token.");
-
                     apps = PICSTokens.AppTokens.Keys.ToList();
                     packages = PICSTokens.PackageTokens.Keys.ToList();
                 }
                 else
                 {
-                    Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update on all apps and packages in the database.");
-
                     if (Settings.FullRun == FullRunState.PackagesNormal)
                     {
                         apps = new List<uint>();
@@ -65,7 +61,7 @@ namespace SteamDatabaseBackend
                     else
                     {
                         apps = (await db.QueryAsync<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC")).ToList();
-                        
+
                         try
                         {
                             using var steamApps = Steam.Configuration.GetAsyncWebAPIInterface("ISteamApps");
@@ -101,124 +97,37 @@ namespace SteamDatabaseBackend
                         }
                     }
 
-                    packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC"))
-                        .Union(LicenseList.OwnedSubs.Keys)
-                        .OrderByDescending(x => x)
-                        .ToList();
+                    if (Settings.FullRun != FullRunState.WithForcedDepots)
+                    {
+                        packages = (await db.QueryAsync<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC"))
+                            .Union(LicenseList.OwnedSubs.Keys)
+                            .OrderByDescending(x => x)
+                            .ToList();
+                    }
+                    else
+                    {
+                        packages = new List<uint>();
+                    }
                 }
             }
 
             await RequestUpdateForList(apps, packages);
         }
 
-        private static async Task RequestUpdateForList(List<uint> appIDs, List<uint> packageIDs)
+        public static async Task FullUpdateAppsMetadata()
         {
-            Log.WriteInfo(nameof(FullUpdateProcessor), $"Requesting info for {appIDs.Count} apps and {packageIDs.Count} packages");
-
-            foreach (var list in appIDs.Split(200))
-            {
-                JobManager.AddJob(
-                    () => Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>()),
-                    new PICSTokens.RequestedTokens
-                    {
-                        Apps = list.ToList()
-                    });
-
-                do
-                {
-                    await Task.Delay(100);
-                }
-                while (IsBusy());
-            }
-
-            if (Settings.FullRun == FullRunState.WithForcedDepots)
-            {
-                return;
-            }
-
-            foreach (var list in packageIDs.Split(1000))
-            {
-                JobManager.AddJob(
-                    () => Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list),
-                    new PICSTokens.RequestedTokens
-                    {
-                        Packages = list.ToList()
-                    });
-
-                do
-                {
-                    await Task.Delay(100);
-                }
-                while (IsBusy());
-            }
-        }
-
-        public static async Task FullUpdateAppsMetadata(bool fromChangelist = false)
-        {
-            Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for apps using metadata requests");
-
             await using var db = await Database.GetConnectionAsync();
             var apps = db.Query<uint>("(SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC) UNION DISTINCT (SELECT `AppID` FROM `SubsApps` WHERE `Type` = 'app') ORDER BY `AppID` DESC").ToList();
 
-            foreach (var list in apps.Split(fromChangelist ? 1000 : IdsPerMetadataRequest))
-            {
-                do
-                {
-                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
-
-                    try
-                    {
-                        job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
-                        job.Timeout = TimeSpan.FromMinutes(fromChangelist ? 2 : 1);
-                        await job;
-                        break;
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Apps metadata request timed out, job: {job?.JobID}");
-                    }
-                } while (true);
-
-                do
-                {
-                    await Task.Delay(500);
-                }
-                while (IsBusy());
-            }
+            await RequestUpdateForList(apps, Enumerable.Empty<uint>().ToList());
         }
 
         public static async Task FullUpdatePackagesMetadata()
         {
-            Log.WriteInfo(nameof(FullUpdateProcessor), "Doing a full update for packages using metadata requests");
-
             await using var db = await Database.GetConnectionAsync();
             var subs = db.Query<uint>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC").ToList();
 
-            foreach (var list in subs.Split(IdsPerMetadataRequest))
-            {
-                do
-                {
-                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
-                    
-                    try
-                    {
-                        job = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
-                        job.Timeout = TimeSpan.FromMinutes(1);
-                        await job;
-                        break;
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Package metadata request timed out, job: {job?.JobID}");
-                    }
-                } while (true);
-
-                do
-                {
-                    await Task.Delay(500);
-                }
-                while (IsBusy());
-            }
+            await RequestUpdateForList(Enumerable.Empty<uint>().ToList(), subs);
         }
 
         public static async Task HandleMetadataInfo(SteamApps.PICSProductInfoCallback callback)
@@ -259,6 +168,10 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
+            else if (callback.UnknownApps.Any())
+            {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info only for {callback.UnknownApps.Count} unknown apps ({callback.UnknownApps.First()}...{callback.UnknownApps.Last()}), job: {callback.JobID}");
+            }
 
             if (callback.Packages.Any())
             {
@@ -292,6 +205,10 @@ namespace SteamDatabaseBackend
                     }
                 }
             }
+            else if (callback.UnknownPackages.Any())
+            {
+                Log.WriteDebug(nameof(FullUpdateProcessor), $"Received metadata only product info only for {callback.UnknownPackages.Count} unknown packages ({callback.UnknownPackages.First()}...{callback.UnknownPackages.Last()}), job: {callback.JobID}");
+            }
 
             if (apps.Any() || subs.Any())
             {
@@ -324,17 +241,35 @@ namespace SteamDatabaseBackend
             var lastAppId = 50000 + db.ExecuteScalar<int>("SELECT `AppID` FROM `Apps` ORDER BY `AppID` DESC LIMIT 1");
             var lastSubId = 10000 + db.ExecuteScalar<int>("SELECT `SubID` FROM `Subs` ORDER BY `SubID` DESC LIMIT 1");
 
-            Log.WriteInfo(nameof(FullUpdateProcessor), $"Will enumerate {lastAppId} apps and {lastSubId} packages");
-
             // greatest code you've ever seen
-            var apps = Enumerable.Range(0, lastAppId).Reverse().Select(i => (uint)i);
-            var subs = Enumerable.Range(0, lastSubId).Reverse().Select(i => (uint)i);
+            var apps = Enumerable.Range(0, lastAppId).Reverse().Select(i => (uint)i).ToList();
+            var subs = Enumerable.Range(0, lastSubId).Reverse().Select(i => (uint)i).ToList();
+
+            await RequestUpdateForList(apps, subs);
+        }
+
+        private static async Task RequestUpdateForList(List<uint> apps, List<uint> packages)
+        {
+            Log.WriteInfo(nameof(FullUpdateProcessor), $"Requesting info for {apps.Count} apps and {packages.Count} packages");
 
             foreach (var list in apps.Split(IdsPerMetadataRequest))
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting app range: {list.First()}-{list.Last()}");
+                do
+                {
+                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
 
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true));
+                    try
+                    {
+                        job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
+                        job.Timeout = TimeSpan.FromMinutes(2);
+                        await job;
+                        break;
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Apps metadata request timed out, job: {job?.JobID}");
+                    }
+                } while (true);
 
                 do
                 {
@@ -343,11 +278,24 @@ namespace SteamDatabaseBackend
                 while (IsBusy());
             }
 
-            foreach (var list in subs.Split(IdsPerMetadataRequest))
+            foreach (var list in packages.Split(IdsPerMetadataRequest))
             {
-                Log.WriteDebug(nameof(FullUpdateProcessor), $"Requesting package range: {list.First()}-{list.Last()}");
+                do
+                {
+                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
 
-                JobManager.AddJob(() => Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true));
+                    try
+                    {
+                        job = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
+                        job.Timeout = TimeSpan.FromMinutes(2);
+                        await job;
+                        break;
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Package metadata request timed out, job: {job?.JobID}");
+                    }
+                } while (true);
 
                 do
                 {
