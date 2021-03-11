@@ -37,7 +37,7 @@ namespace SteamDatabaseBackend
             }
             else if (Settings.FullRun == FullRunState.ImportantOnly)
             {
-                await RequestUpdateForList(Application.ImportantApps.ToList(), Application.ImportantSubs.ToList());
+                await RequestUpdateForList(Application.ImportantApps.ToList(), Application.ImportantSubs.ToList(), true);
 
                 return;
             }
@@ -111,7 +111,7 @@ namespace SteamDatabaseBackend
                 }
             }
 
-            await RequestUpdateForList(apps, packages);
+            await RequestUpdateForList(apps, packages, true);
         }
 
         public static async Task FullUpdateAppsMetadata()
@@ -248,26 +248,34 @@ namespace SteamDatabaseBackend
             await RequestUpdateForList(apps, subs);
         }
 
-        private static async Task RequestUpdateForList(List<uint> apps, List<uint> packages)
+        private static async Task RequestUpdateForList(List<uint> apps, List<uint> packages, bool requestTokens = false)
         {
             Log.WriteInfo(nameof(FullUpdateProcessor), $"Requesting info for {apps.Count} apps and {packages.Count} packages");
 
-            foreach (var list in apps.Split(IdsPerMetadataRequest))
+            foreach (var list in apps.Split(requestTokens ? 100 : IdsPerMetadataRequest))
             {
                 do
                 {
-                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
-
                     try
                     {
-                        job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
-                        job.Timeout = TimeSpan.FromMinutes(2);
-                        await job;
+                        if (requestTokens)
+                        {
+                            var job = Steam.Instance.Apps.PICSGetAccessTokens(list, Enumerable.Empty<uint>());
+                            job.Timeout = TimeSpan.FromMinutes(2);
+                            await job;
+                        }
+                        else
+                        {
+                            var job = Steam.Instance.Apps.PICSGetProductInfo(list.Select(PICSTokens.NewAppRequest), Enumerable.Empty<SteamApps.PICSRequest>(), true);
+                            job.Timeout = TimeSpan.FromMinutes(2);
+                            await job;
+                        }
+
                         break;
                     }
                     catch (TaskCanceledException)
                     {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Apps metadata request timed out, job: {job?.JobID}");
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Apps metadata request timed out");
                     }
                 } while (true);
 
@@ -278,22 +286,30 @@ namespace SteamDatabaseBackend
                 while (IsBusy());
             }
 
-            foreach (var list in packages.Split(IdsPerMetadataRequest))
+            foreach (var list in packages.Split(requestTokens ? 200 : IdsPerMetadataRequest))
             {
                 do
                 {
-                    AsyncJobMultiple<SteamApps.PICSProductInfoCallback> job = null;
-
                     try
                     {
-                        job = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
-                        job.Timeout = TimeSpan.FromMinutes(2);
-                        await job;
+                        if (requestTokens)
+                        {
+                            var job = Steam.Instance.Apps.PICSGetAccessTokens(Enumerable.Empty<uint>(), list);
+                            job.Timeout = TimeSpan.FromMinutes(2);
+                            await job;
+                        }
+                        else
+                        {
+                            var job = Steam.Instance.Apps.PICSGetProductInfo(Enumerable.Empty<SteamApps.PICSRequest>(), list.Select(PICSTokens.NewPackageRequest), true);
+                            job.Timeout = TimeSpan.FromMinutes(2);
+                            await job;
+                        }
+                        
                         break;
                     }
                     catch (TaskCanceledException)
                     {
-                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Package metadata request timed out, job: {job?.JobID}");
+                        Log.WriteWarn(nameof(FullUpdateProcessor), $"Package metadata request timed out");
                     }
                 } while (true);
 
