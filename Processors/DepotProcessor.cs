@@ -375,13 +375,13 @@ namespace SteamDatabaseBackend
 
             foreach (var depot in depots)
             {
+                if (Settings.Current.OnlyOwnedDepots && !LicenseList.OwnedDepots.ContainsKey(depot.DepotID))
+                {
+                    continue;
+                }
+
                 if (depot.DepotKey == null)
                 {
-                    if (Settings.Current.OnlyOwnedDepots && !LicenseList.OwnedDepots.ContainsKey(depot.DepotID))
-                    {
-                        return;
-                    }
-
                     await GetDepotDecryptionKey(Steam.Instance.Apps, depot, appID);
 
                     if (depot.DepotKey == null && depot.LastManifestID == depot.ManifestID)
