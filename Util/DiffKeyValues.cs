@@ -120,9 +120,18 @@ namespace SteamDatabaseBackend
         {
             if (token.Type == JTokenType.Object)
             {
-                foreach (var prop in token.Children<JProperty>())
+                var children = token.Children<JProperty>();
+
+                if (prefix != null && !children.Any())
                 {
-                    FillDictionaryFromJToken(dict, prop.Value, prefix == null ? prop.Name : $"{prefix}/{prop.Name}");
+                    dict.Add(prefix, string.Empty);
+                }
+                else
+                {
+                    foreach (var prop in children)
+                    {
+                        FillDictionaryFromJToken(dict, prop.Value, prefix == null ? prop.Name : $"{prefix}/{prop.Name}");
+                    }
                 }
             }
             else
