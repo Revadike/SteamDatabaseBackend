@@ -29,8 +29,8 @@ namespace SteamDatabaseBackend
 
         public class GenericFeed
         {
-            public string Title { get; set; }
-            public List<GenericFeedItem> Items { get; set; }
+            public string Title { get; set; } = string.Empty;
+            public List<GenericFeedItem> Items { get; } = new();
         }
 
         public class GenericFeedItem
@@ -38,6 +38,7 @@ namespace SteamDatabaseBackend
             public string Title { get; set; }
             public string Link { get; set; }
             public string Content { get; set; }
+            public DateTime PubDate { get; set; }
         }
 
         public Timer Timer { get; private set; }
@@ -90,11 +91,15 @@ namespace SteamDatabaseBackend
 
             foreach (var item in newItems)
             {
-                Log.WriteInfo(nameof(RSS), $"[{feed.Title}] {item.Title}: {item.Link}");
+                Log.WriteInfo(nameof(RSS), $"[{feed.Title}] {item.Title}: {item.Link} ({item.PubDate})");
 
                 IRC.Instance.SendAnnounce($"{Colors.BLUE}{feed.Title}{Colors.NORMAL}: {item.Title} -{Colors.DARKBLUE} {item.Link}");
 
-                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { item.Link, item.Title });
+                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`, `Date`) VALUES(@Link, @Title, @PubDate)", new {
+                    item.Link,
+                    item.Title,
+                    item.PubDate,
+                });
 
                 _ = TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
@@ -215,7 +220,7 @@ namespace SteamDatabaseBackend
         private static async Task<GenericFeed> LoadRSS(Uri url)
         {
             var requestUri = url.ToString();
-            
+
             if (!requestUri.EndsWith("/rss.xml"))
             {
                 requestUri += $"?_={DateTime.UtcNow.Ticks}";
@@ -238,12 +243,7 @@ namespace SteamDatabaseBackend
         // http://www.nullskull.com/a/1177/everything-rss--atom-feed-parser.aspx
         private static GenericFeed ReadFeedItems(XmlTextReader reader)
         {
-            var feed = new GenericFeed
-            {
-                Title = string.Empty,
-                Items = new List<GenericFeedItem>()
-            };
-
+            var feed = new GenericFeed();
             GenericFeedItem currentItem = null;
 
             while (reader.Read())
@@ -277,6 +277,9 @@ namespace SteamDatabaseBackend
                             case "content":
                             case "content:encoded":
                                 currentItem.Content = reader.Value;
+                                break;
+                            case "pubdate":
+                                currentItem.PubDate = DateTime.Parse(reader.Value);
                                 break;
                         }
                     }
