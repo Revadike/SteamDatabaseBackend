@@ -6,6 +6,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -64,12 +65,21 @@ namespace SteamDatabaseBackend
 
         private static async void Tick(object sender, ElapsedEventArgs e)
         {
-            var tasks = Settings.Current.RssFeeds.Select(ProcessFeed);
+            DateTime lastPostDate;
+
+            await using (var db = await Database.GetConnectionAsync())
+            {
+                lastPostDate = db.ExecuteScalar<DateTime>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = @Key", new { Key = "backend.lastrsspost" });
+            }
+
+            await LocalConfig.Update("backend.lastrsspost", DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
+
+            var tasks = Settings.Current.RssFeeds.Select(uri => ProcessFeed(uri, lastPostDate));
 
             await Task.WhenAll(tasks);
         }
 
-        private static async Task ProcessFeed(Uri feedUrl)
+        private static async Task ProcessFeed(Uri feedUrl, DateTime lastPostDate)
         {
             var feed = await LoadRSS(feedUrl);
 
@@ -87,7 +97,7 @@ namespace SteamDatabaseBackend
             await using var db = await Database.GetConnectionAsync();
             var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = feed.Items.Select(x => x.Link) })).ToDictionary(x => x.Link, _ => (byte)1);
 
-            var newItems = feed.Items.Where(item => !items.ContainsKey(item.Link));
+            var newItems = feed.Items.Where(item => item.PubDate > lastPostDate && !items.ContainsKey(item.Link));
 
             foreach (var item in newItems)
             {
@@ -95,7 +105,8 @@ namespace SteamDatabaseBackend
 
                 IRC.Instance.SendAnnounce($"{Colors.BLUE}{feed.Title}{Colors.NORMAL}: {item.Title} -{Colors.DARKBLUE} {item.Link}");
 
-                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`, `Date`) VALUES(@Link, @Title, @PubDate)", new {
+                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`, `Date`) VALUES(@Link, @Title, @PubDate)", new
+                {
                     item.Link,
                     item.Title,
                     item.PubDate,
