@@ -69,8 +69,13 @@ namespace SteamDatabaseBackend
 
                 Log.WriteInfo(nameof(ClanState), $"{groupName} Event \"{groupEvent.Headline}\" {link}");
 
-                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`) VALUES(@Link, @Title)", new { Link = link, Title = groupEvent.Headline });
-
+                await db.ExecuteAsync("INSERT INTO `RSS` (`Link`, `Title`, `Date`) VALUES(@Link, @Title, @EventTime)", new
+                {
+                    Link = link,
+                    Title = groupEvent.Headline,
+                    groupEvent.EventTime,
+                });
+                
                 _ = TaskManager.Run(async () => await Utils.SendWebhook(new
                 {
                     Type = "GroupAnnouncement",
