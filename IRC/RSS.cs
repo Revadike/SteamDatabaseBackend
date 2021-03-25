@@ -72,35 +72,45 @@ namespace SteamDatabaseBackend
                 lastPostDate = db.ExecuteScalar<DateTime>("SELECT `Value` FROM `LocalConfig` WHERE `ConfigKey` = @Key", new { Key = "backend.lastrsspost" });
             }
 
-            await LocalConfig.Update("backend.lastrsspost", DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
-
             var tasks = Settings.Current.RssFeeds.Select(uri => ProcessFeed(uri, lastPostDate));
 
-            await Task.WhenAll(tasks);
+            var dates = await Task.WhenAll(tasks);
+            var maxDate = dates.Max();
+
+            if (maxDate > lastPostDate)
+            {
+                await LocalConfig.Update("backend.lastrsspost", maxDate.ToString(CultureInfo.InvariantCulture));
+            }
         }
 
-        private static async Task ProcessFeed(Uri feedUrl, DateTime lastPostDate)
+        private static async Task<DateTime> ProcessFeed(Uri feedUrl, DateTime lastPostDate)
         {
             var feed = await LoadRSS(feedUrl);
 
             if (feed == null)
             {
-                return;
+                return DateTime.MinValue;
             }
 
             if (feed.Items.Count == 0)
             {
                 Log.WriteError(nameof(RSS), $"Did not find any items in {feedUrl}");
-                return;
+                return DateTime.MinValue;
             }
 
             await using var db = await Database.GetConnectionAsync();
             var items = (await db.QueryAsync<GenericFeedItem>("SELECT `Link` FROM `RSS` WHERE `Link` IN @Ids", new { Ids = feed.Items.Select(x => x.Link) })).ToDictionary(x => x.Link, _ => (byte)1);
 
             var newItems = feed.Items.Where(item => item.PubDate > lastPostDate && !items.ContainsKey(item.Link));
+            var maxDate = DateTime.MinValue;
 
             foreach (var item in newItems)
             {
+                if (maxDate < item.PubDate)
+                {
+                    maxDate = item.PubDate;
+                }
+
                 Log.WriteInfo(nameof(RSS), $"[{feed.Title}] {item.Title}: {item.Link} ({item.PubDate})");
 
                 IRC.Instance.SendAnnounce($"{Colors.BLUE}{feed.Title}{Colors.NORMAL}: {item.Title} -{Colors.DARKBLUE} {item.Link}");
@@ -226,6 +236,8 @@ namespace SteamDatabaseBackend
                     IRC.Instance.SendAnnounce($"\u2699 Official patch notes:{Colors.BLUE} {Steam.GetAppName(build.AppID)}{Colors.NORMAL} -{Colors.DARKBLUE} {SteamDB.GetPatchnotesUrl(build.BuildID)}");
                 }
             }
+
+            return maxDate;
         }
 
         private static async Task<GenericFeed> LoadRSS(Uri url)
