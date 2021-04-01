@@ -134,7 +134,7 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo(nameof(PICSTokens), $"New token for appid {id}");
 
                 using var db = Database.Get();
-                db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token)",
+                db.Execute("INSERT INTO `PICSTokens` (`AppID`, `Token`) VALUES(@AppID, @Token) ON DUPLICATE KEY UPDATE `Token` = VALUES(`Token`)",
                     new PICSToken { AppID = id, Token = accessToken }
                 );
             }
@@ -162,7 +162,7 @@ namespace SteamDatabaseBackend
                 Log.WriteInfo(nameof(PICSTokens), $"New token for subid {id}");
 
                 using var db = Database.Get();
-                db.Execute("INSERT INTO `PICSTokensSubs` (`SubID`, `Token`) VALUES(@SubID, @Token)",
+                db.Execute("INSERT INTO `PICSTokensSubs` (`SubID`, `Token`) VALUES(@SubID, @Token) ON DUPLICATE KEY UPDATE `Token` = VALUES(`Token`)",
                     new PICSToken { SubID = id, Token = accessToken }
                 );
             }
