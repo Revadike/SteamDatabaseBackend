@@ -748,13 +748,14 @@ namespace SteamDatabaseBackend
 
             await db.ExecuteAsync(
                 request.LastManifestID == request.ManifestID ?
-                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `FilenamesEncrypted` = @FilenamesEncrypted, `SizeOriginal` = @SizeOriginal, `SizeCompressed` = @SizeCompressed WHERE `DepotID` = @DepotID" :
-                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `FilenamesEncrypted` = @FilenamesEncrypted, `SizeOriginal` = @SizeOriginal, `SizeCompressed` = @SizeCompressed, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID",
+                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `ManifestDate` = @ManifestDate, `FilenamesEncrypted` = @FilenamesEncrypted, `SizeOriginal` = @SizeOriginal, `SizeCompressed` = @SizeCompressed WHERE `DepotID` = @DepotID" :
+                    "UPDATE `Depots` SET `LastManifestID` = @ManifestID, `ManifestDate` = @ManifestDate, `FilenamesEncrypted` = @FilenamesEncrypted, `SizeOriginal` = @SizeOriginal, `SizeCompressed` = @SizeCompressed, `LastUpdated` = CURRENT_TIMESTAMP() WHERE `DepotID` = @DepotID",
                 new
                 {
                     request.DepotID,
                     request.ManifestID,
                     depotManifest.FilenamesEncrypted,
+                    ManifestDate = depotManifest.CreationTime,
                     SizeOriginal = depotManifest.TotalUncompressedSize,
                     SizeCompressed = depotManifest.TotalCompressedSize,
                 }, transaction);
