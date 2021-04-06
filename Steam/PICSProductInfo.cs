@@ -29,6 +29,17 @@ namespace SteamDatabaseBackend
             }
         }
 
+        public static Dictionary<uint, Task>.KeyCollection CurrentlyProcessingKeys
+        {
+            get
+            {
+                lock (CurrentlyProcessing)
+                {
+                    return CurrentlyProcessing.Keys;
+                }
+            }
+        }
+
         public PICSProductInfo(CallbackManager manager)
         {
             manager.Subscribe<SteamApps.PICSProductInfoCallback>(OnPICSProductInfo);

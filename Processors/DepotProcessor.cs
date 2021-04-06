@@ -49,6 +49,7 @@ namespace SteamDatabaseBackend
         private List<CDNClient.Server> CDNServers;
 
         public int DepotLocksCount => DepotLocks.Count;
+        public Dictionary<uint,byte>.KeyCollection DepotLocksKeys => DepotLocks.Keys;
         public DateTime LastServerRefreshTime { get; private set; } = DateTime.Now;
 
         public DepotProcessor(SteamClient client)

@@ -110,6 +110,10 @@ namespace SteamDatabaseBackend
                         await FullRun(context);
                         break;
 
+                    case "/Debug":
+                        await Debug(context);
+                        break;
+
                     default:
                         context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                         await WriteJsonResponse("No such route", context.Response);
@@ -215,6 +219,23 @@ namespace SteamDatabaseBackend
             });
 
             await WriteJsonResponse("Triggered full run", context.Response);
+        }
+
+        private static async Task Debug(HttpListenerContext context)
+        {
+            var debugObject = new
+            {
+                SteamID = Steam.Instance.Client.SteamID?.ToString(),
+                CurrentEndPoint = Steam.Instance.Client.CurrentEndPoint?.ToString(),
+                Connection.LastSuccessfulLogin,
+                Steam.Instance.DepotProcessor.LastServerRefreshTime,
+                JobManager.JobsCount,
+                TaskManager.TasksCount,
+                PICSProductInfo.CurrentlyProcessingKeys,
+                Steam.Instance.DepotProcessor.DepotLocksKeys,
+            };
+
+            await WriteJsonResponse(debugObject, context.Response);
         }
     }
 }
