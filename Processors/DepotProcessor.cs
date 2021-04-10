@@ -13,6 +13,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -40,7 +41,7 @@ namespace SteamDatabaseBackend
         public const string HistoryQuery = "INSERT INTO `DepotsHistory` (`ManifestID`, `ChangeID`, `DepotID`, `File`, `Action`, `OldValue`, `NewValue`) VALUES (@ManifestID, @ChangeID, @DepotID, @File, @Action, @OldValue, @NewValue)";
 
         private static readonly object UpdateScriptLock = new object();
-        
+
         private readonly Dictionary<uint, byte> DepotLocks = new Dictionary<uint, byte>();
         private SemaphoreSlim ManifestDownloadSemaphore = new SemaphoreSlim(15);
         private readonly string UpdateScript;
@@ -49,8 +50,11 @@ namespace SteamDatabaseBackend
         private List<CDNClient.Server> CDNServers;
 
         public int DepotLocksCount => DepotLocks.Count;
-        public Dictionary<uint,byte>.KeyCollection DepotLocksKeys => DepotLocks.Keys;
+        public Dictionary<uint, byte>.KeyCollection DepotLocksKeys => DepotLocks.Keys;
         public DateTime LastServerRefreshTime { get; private set; } = DateTime.Now;
+
+        private Regex DepotNameStart;
+        private Regex DepotNameEnd;
 
         public DepotProcessor(SteamClient client)
         {
@@ -64,6 +68,9 @@ namespace SteamDatabaseBackend
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
 
             FileDownloader.SetCDNClient(CDNClient);
+
+            DepotNameStart = new Regex("^(\u00dalo\u017ei\u0161t\u011b \u2013|\u0425\u0440\u0430\u043d\u0438\u043b\u0438\u0449\u0435|D\u00e9p\u00f4t :|Depot|Depot:|Repositorio) ", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
+            DepotNameEnd = new Regex(" (- magazyn zawarto\u015bci|\u03bd\u03c4\u03b5\u03c0\u03cc|\u0441\u0445\u043e\u0432\u0438\u0449\u0435|\u0e14\u0e35\u0e42\u0e1b|\u2013 depot|\u30c7\u30dd|\u4e2a Depot|\uac1c\uc758 \ub514\ud3ec|dep\u00e5|dep\u00f3|Depo|Depot|depot|depotti)$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture);
         }
 
         public void Dispose()
@@ -141,16 +148,11 @@ namespace SteamDatabaseBackend
         public async Task Process(uint appID, uint changeNumber, KeyValue depots)
         {
             var requests = new List<ManifestJob>();
+            var dlcNames = new Dictionary<uint, string>();
 
             // Get data in format we want first
             foreach (var depot in depots.Children)
             {
-                // Ignore these for now, parent app should be updated too anyway
-                if (depot["depotfromapp"].Value != null)
-                {
-                    continue;
-                }
-
                 var request = new ManifestJob
                 {
                     ChangeNumber = changeNumber,
@@ -162,11 +164,24 @@ namespace SteamDatabaseBackend
                     continue;
                 }
 
+                // Ignore these for now, parent app should be updated too anyway
+                if (depot["depotfromapp"].Value != null)
+                {
+                    continue;
+                }
+
                 request.DepotName = depot["name"].AsString();
 
                 if (string.IsNullOrEmpty(request.DepotName))
                 {
                     request.DepotName = $"SteamDB Unnamed Depot {request.DepotID}";
+                }
+                else if (depot["dlcappid"].Value != null)
+                {
+                    if (uint.TryParse(depot["dlcappid"].Value, out var dlcAppId))
+                    {
+                        dlcNames[dlcAppId] = request.DepotName;
+                    }
                 }
 
                 // TODO: instead of locking we could wait for current process to finish
@@ -206,6 +221,11 @@ namespace SteamDatabaseBackend
                 }
 
                 requests.Add(request);
+            }
+
+            if (dlcNames.Any())
+            {
+                await ProcessDlcNames(appID, changeNumber, dlcNames);
             }
 
             if (requests.Count == 0)
@@ -472,7 +492,7 @@ namespace SteamDatabaseBackend
 
                 processTasks.Add(task);
             }
-            
+
             if (!anyFilesDownloaded && !willDownloadFiles)
             {
                 foreach (var task in processTasks)
@@ -611,7 +631,7 @@ namespace SteamDatabaseBackend
                         OldFile = oldFile
                     }, transaction);
                 }
-                
+
                 await MakeHistory(db, transaction, request, string.Empty, "files_decrypted");
 
                 filesOld = decryptedFilesOld;
@@ -763,6 +783,67 @@ namespace SteamDatabaseBackend
             var decryptedFilename = CryptoHelper.SymmetricDecrypt(encryptedFilename, depotKey);
 
             return Encoding.UTF8.GetString(decryptedFilename).TrimEnd(new[] { '\0' }).Replace('\\', '/');
+        }
+
+        private async Task ProcessDlcNames(uint parentAppId, uint changeNumber, Dictionary<uint, string> dlcNames)
+        {
+            // TODO: Track name changes?
+            await using var db = await Database.GetConnectionAsync();
+            var dlcApps = await db.QueryAsync<App>("SELECT `AppID` FROM `Apps` WHERE `AppID` IN @Ids AND `LastKnownName` = \"\"", new { Ids = dlcNames.Keys });
+            var parentKey = KeyNameCache.GetAppKeyID("common_parent");
+
+            foreach (var dlcApp in dlcApps)
+            {
+                Log.WriteInfo(nameof(DepotProcessor), $"Got a name for app {dlcApp.AppID} from parent app {parentAppId}");
+
+                var name = dlcNames[dlcApp.AppID];
+                name = DepotNameStart.Replace(name, string.Empty);
+                name = DepotNameEnd.Replace(name, string.Empty);
+
+                var dlcAppIdEnding = $" ({dlcApp.AppID})";
+
+                if (name.EndsWith(dlcAppIdEnding))
+                {
+                    name = name.Substring(0, name.Length - dlcAppIdEnding.Length);
+                }
+
+                name = name.Trim();
+                
+                await db.ExecuteAsync("UPDATE `Apps` SET `LastKnownName` = @AppName WHERE `AppID` = @AppID", new
+                {
+                    dlcApp.AppID,
+                    AppName = name,
+                });
+
+                await db.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new {
+                    dlcApp.AppID,
+                    Key = parentKey,
+                    Value = parentAppId.ToString(),
+                });
+
+                await db.ExecuteAsync(AppProcessor.HistoryQuery,
+                    new PICSHistory
+                    {
+                        ID = dlcApp.AppID,
+                        ChangeID = changeNumber,
+                        Key = SteamDB.DatabaseNameType,
+                        NewValue = name,
+                        OldValue = "Depot name",
+                        Action = "created_info",
+                    }
+                );
+
+                await db.ExecuteAsync(AppProcessor.HistoryQuery,
+                    new PICSHistory
+                    {
+                        ID = dlcApp.AppID,
+                        ChangeID = changeNumber,
+                        Key = parentKey,
+                        NewValue = parentAppId.ToString(),
+                        Action = "created_key",
+                    }
+                );
+            }
         }
 
         private static Task MakeHistory(IDbConnection db, IDbTransaction transaction, ManifestJob request, string file, string action, ulong oldValue = 0, ulong newValue = 0)
