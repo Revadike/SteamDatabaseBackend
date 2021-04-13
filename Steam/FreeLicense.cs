@@ -306,14 +306,16 @@ namespace SteamDatabaseBackend
             }
         }
 
-        public void AddBeta(uint appId)
+        public void AddBeta(uint betaAppId, uint parentAppId)
         {
-            if (BetasToRequest.Contains(appId))
+            if (BetasToRequest.Contains(betaAppId))
             {
                 return;
             }
 
-            BetasToRequest.Add(appId);
+            Log.WriteDebug(nameof(AppProcessor), $"Adding beta access request for app {parentAppId} ({betaAppId})");
+
+            BetasToRequest.Add(betaAppId);
 
             lock (FreeLicenseTimer)
             {

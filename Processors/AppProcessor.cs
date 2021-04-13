@@ -241,9 +241,10 @@ namespace SteamDatabaseBackend
                     betaAppId = ProductInfo.KeyValues["common"]["parent"].AsUnsignedInteger();
                 }
 
-                Log.WriteDebug(nameof(AppProcessor), $"Adding beta access request for app {AppID} ({betaAppId})");
-                
-                Steam.Instance.FreeLicense.AddBeta(betaAppId);
+                if (betaAppId > 0)
+                {
+                    Steam.Instance.FreeLicense.AddBeta(AppID, betaAppId);
+                }
             }
         }
 
