@@ -432,11 +432,11 @@ namespace SteamDatabaseBackend
                         RemoveErroredServer(depot.Server);
                     }
 
-                    depot.Server = GetContentServer();
-
                     if (depotManifest == null && i < 5)
                     {
                         await Task.Delay(Utils.ExponentionalBackoff(i + 1));
+
+                        depot.Server = GetContentServer();
                     }
                 }
 
@@ -808,14 +808,15 @@ namespace SteamDatabaseBackend
                 }
 
                 name = name.Trim();
-                
+
                 await db.ExecuteAsync("UPDATE `Apps` SET `LastKnownName` = @AppName WHERE `AppID` = @AppID", new
                 {
                     dlcApp.AppID,
                     AppName = name,
                 });
 
-                await db.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new {
+                await db.ExecuteAsync("INSERT INTO `AppsInfo` (`AppID`, `Key`, `Value`) VALUES (@AppID, @Key, @Value) ON DUPLICATE KEY UPDATE `AppID` = `AppID`", new
+                {
                     dlcApp.AppID,
                     Key = parentKey,
                     Value = parentAppId.ToString(),
