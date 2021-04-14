@@ -23,6 +23,8 @@ namespace SteamDatabaseBackend
 {
     internal class DepotProcessor : IDisposable
     {
+        private const string DefaultServer = "origin1-sea1.steamcontent.com";
+
         public class ManifestJob
         {
             public uint ChangeNumber;
@@ -62,7 +64,7 @@ namespace SteamDatabaseBackend
             CDNClient = new CDNClient(client);
             CDNServers = new List<CDNClient.Server>
             {
-                new DnsEndPoint("valve500.steamcontent.com", 80)
+                new DnsEndPoint(DefaultServer, 80)
             };
 
             CDNClient.RequestTimeout = TimeSpan.FromSeconds(30);
@@ -892,7 +894,7 @@ namespace SteamDatabaseBackend
             // Always have one server in the list in case we run out
             if (CDNServers.Count == 0)
             {
-                CDNServers.Add(new DnsEndPoint("valve500.steamcontent.com", 80));
+                CDNServers.Add(new DnsEndPoint(DefaultServer, 80));
             }
         }
 
