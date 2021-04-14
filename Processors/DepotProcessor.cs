@@ -524,6 +524,8 @@ namespace SteamDatabaseBackend
                     {
                         Log.WriteWarn(nameof(DepotProcessor), $"Download failed for {depot.DepotID}: {depot.Result}");
 
+                        RemoveErroredServer(depot.Server);
+
                         // Mark this depot for redownload
                         using var db = Database.Get();
                         db.Execute("UPDATE `Depots` SET `LastManifestID` = 0 WHERE `DepotID` = @DepotID", new { depot.DepotID });
