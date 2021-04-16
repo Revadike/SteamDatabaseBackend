@@ -166,7 +166,20 @@ namespace SteamDatabaseBackend
 
             var result = await AppCommand.GetAppData(uint.Parse(appid));
 
-            await WriteJsonResponse(result, context.Response);
+            if (result == null)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                await WriteJsonResponse("App not found", context.Response);
+                return;
+            }
+
+            context.Response.ContentType = "text/vdf; charset=utf-8";
+            context.Response.Headers[HttpResponseHeader.ETag] = $"\"{Utils.ByteArrayToString(result.SHAHash)}\"";
+
+            await using var kvMemory = new MemoryStream();
+            result.KeyValues.SaveToStream(kvMemory, false);
+            kvMemory.Position = 0;
+            await kvMemory.CopyToAsync(context.Response.OutputStream);
         }
         
         private static async Task GetPackage(HttpListenerContext context)
@@ -180,7 +193,20 @@ namespace SteamDatabaseBackend
 
             var result = await PackageCommand.GetPackageData(uint.Parse(subid));
 
-            await WriteJsonResponse(result, context.Response);
+            if (result == null)
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                await WriteJsonResponse("App not found", context.Response);
+                return;
+            }
+
+            context.Response.ContentType = "text/vdf; charset=utf-8";
+            context.Response.Headers[HttpResponseHeader.ETag] = $"\"{Utils.ByteArrayToString(result.SHAHash)}\"";
+
+            await using var kvMemory = new MemoryStream();
+            result.KeyValues.SaveToStream(kvMemory, false);
+            kvMemory.Position = 0;
+            await kvMemory.CopyToAsync(context.Response.OutputStream);
         }
 
         private static async Task ReloadTokens(HttpListenerContext context)
