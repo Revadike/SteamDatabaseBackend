@@ -239,7 +239,7 @@ namespace SteamDatabaseBackend
 
             await using (var db = await Database.GetConnectionAsync())
             {
-                await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
+                await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`, `Public`) VALUES (@BuildID, @ChangeNumber, @AppID, 1) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
                 new
                 {
                     requests[0].BuildID,

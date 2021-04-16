@@ -43,12 +43,14 @@ CREATE TABLE IF NOT EXISTS `AppsInfo` (
   KEY `Key` (`Key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
-CREATE TABLE IF NOT EXISTS `Builds` (
-  `BuildID` int(10) UNSIGNED NOT NULL,
-  `ChangeID` int(10) UNSIGNED NOT NULL,
-  `AppID` int(10) UNSIGNED NOT NULL,
+CREATE TABLE `Builds` (
+  `BuildID` int(10) unsigned NOT NULL,
+  `ChangeID` int(10) unsigned NOT NULL,
+  `AppID` int(10) unsigned NOT NULL,
+  `Public` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`BuildID`),
-  KEY `AppID` (`AppID`)
+  KEY `AppID` (`AppID`),
+  KEY `Public` (`Public`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 CREATE TABLE IF NOT EXISTS `Changelists` (
