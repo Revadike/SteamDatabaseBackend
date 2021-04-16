@@ -147,7 +147,7 @@ namespace SteamDatabaseBackend
             Log.WriteInfo(nameof(DepotProcessor), $"Received {newServers.Count} download servers");
         }
 
-        public async Task Process(uint appID, uint changeNumber, KeyValue depots)
+        public async Task Process(IDbConnection db, uint appID, uint changeNumber, KeyValue depots)
         {
             var requests = new List<ManifestJob>();
             var dlcNames = new Dictionary<uint, string>();
@@ -207,7 +207,6 @@ namespace SteamDatabaseBackend
 
                     if (branch == null || !ulong.TryParse(branch.Value, out request.ManifestID))
                     {
-                        await using var db = await Database.GetConnectionAsync();
                         await db.ExecuteAsync("INSERT INTO `Depots` (`DepotID`, `Name`) VALUES (@DepotID, @DepotName) ON DUPLICATE KEY UPDATE `DepotID` = VALUES(`DepotID`)", new { request.DepotID, request.DepotName });
 
                         continue;
@@ -230,6 +229,22 @@ namespace SteamDatabaseBackend
                 await ProcessDlcNames(appID, changeNumber, dlcNames);
             }
 
+            foreach (var branch in depots["branches"].Children)
+            {
+                var isPublic = branch.Name != null && branch.Name.Equals("public", StringComparison.OrdinalIgnoreCase);
+
+                await db.ExecuteAsync(isPublic ?
+                        "INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`, `Public`) VALUES (@BuildID, @ChangeNumber, @AppID, 1) ON DUPLICATE KEY UPDATE `ChangeID` = IF(`Public` = 0, VALUES(`ChangeID`), `ChangeID`), `Public` = 1"
+                        :
+                        "INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
+                    new
+                    {
+                        BuildID = branch["buildid"].AsInteger(),
+                        ChangeNumber = changeNumber,
+                        AppID = appID,
+                    });
+            }
+
             if (requests.Count == 0)
             {
                 return;
@@ -237,94 +252,83 @@ namespace SteamDatabaseBackend
 
             var depotsToDownload = new List<ManifestJob>();
 
-            await using (var db = await Database.GetConnectionAsync())
+            var depotIds = requests.Select(x => x.DepotID).ToList();
+            var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID`, `FilenamesEncrypted` FROM `Depots` WHERE `DepotID` IN @depotIds", new { depotIds }))
+                .ToDictionary(x => x.DepotID, x => x);
+
+            var decryptionKeys = (await db.QueryAsync<DepotKey>("SELECT `DepotID`, `Key` FROM `DepotsKeys` WHERE `DepotID` IN @depotIds", new { depotIds }))
+                .ToDictionary(x => x.DepotID, x => Utils.StringToByteArray(x.Key));
+
+            foreach (var request in requests)
             {
-                await db.ExecuteAsync("INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`, `Public`) VALUES (@BuildID, @ChangeNumber, @AppID, 1) ON DUPLICATE KEY UPDATE `AppID` = VALUES(`AppID`)",
-                new
+                Depot dbDepot;
+
+                decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
+
+                if (dbDepots.ContainsKey(request.DepotID))
                 {
-                    requests[0].BuildID,
-                    requests[0].ChangeNumber,
-                    appID
-                });
+                    dbDepot = dbDepots[request.DepotID];
 
-                var depotIds = requests.Select(x => x.DepotID).ToList();
-                var dbDepots = (await db.QueryAsync<Depot>("SELECT `DepotID`, `Name`, `BuildID`, `ManifestID`, `LastManifestID`, `FilenamesEncrypted` FROM `Depots` WHERE `DepotID` IN @depotIds", new { depotIds }))
-                    .ToDictionary(x => x.DepotID, x => x);
-
-                var decryptionKeys = (await db.QueryAsync<DepotKey>("SELECT `DepotID`, `Key` FROM `DepotsKeys` WHERE `DepotID` IN @depotIds", new { depotIds }))
-                    .ToDictionary(x => x.DepotID, x => Utils.StringToByteArray(x.Key));
-
-                foreach (var request in requests)
-                {
-                    Depot dbDepot;
-
-                    decryptionKeys.TryGetValue(request.DepotID, out request.DepotKey);
-
-                    if (dbDepots.ContainsKey(request.DepotID))
+                    if (dbDepot.BuildID > request.BuildID)
                     {
-                        dbDepot = dbDepots[request.DepotID];
+                        // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
 
-                        if (dbDepot.BuildID > request.BuildID)
-                        {
-                            // buildid went back in time? this either means a rollback, or a shared depot that isn't synced properly
+                        Log.WriteDebug(nameof(DepotProcessor), $"Skipping depot {request.DepotID} due to old buildid: {dbDepot.BuildID} > {request.BuildID}");
 
-                            Log.WriteDebug(nameof(DepotProcessor), $"Skipping depot {request.DepotID} due to old buildid: {dbDepot.BuildID} > {request.BuildID}");
-
-                            continue;
-                        }
-
-                        if (dbDepot.LastManifestID == request.ManifestID
-                        && dbDepot.ManifestID == request.ManifestID
-                        && Settings.FullRun != FullRunState.WithForcedDepots
-                        && !dbDepot.FilenamesEncrypted && request.DepotKey != null)
-                        {
-                            // Update depot name if changed
-                            if (request.DepotName != dbDepot.Name)
-                            {
-                                await db.ExecuteAsync("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
-                            }
-
-                            continue;
-                        }
-
-                        request.StoredFilenamesEncrypted = dbDepot.FilenamesEncrypted;
-                        request.LastManifestID = dbDepot.LastManifestID;
-                    }
-                    else
-                    {
-                        dbDepot = new Depot();
-                    }
-
-                    if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || request.DepotName != dbDepot.Name)
-                    {
-                        await db.ExecuteAsync(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
-                                    ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = VALUES(`Name`), `BuildID` = VALUES(`BuildID`), `ManifestID` = VALUES(`ManifestID`)",
-                        new
-                        {
-                            request.DepotID,
-                            request.DepotName,
-                            request.BuildID,
-                            request.ManifestID
-                        });
-                    }
-
-                    if (dbDepot.ManifestID != request.ManifestID)
-                    {
-                        await MakeHistory(db, null, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
-                    }
-
-                    if (Settings.Current.OnlyOwnedDepots && !LicenseList.OwnedDepots.ContainsKey(request.DepotID))
-                    {
                         continue;
                     }
 
-                    lock (DepotLocks)
+                    if (dbDepot.LastManifestID == request.ManifestID
+                    && dbDepot.ManifestID == request.ManifestID
+                    && Settings.FullRun != FullRunState.WithForcedDepots
+                    && !dbDepot.FilenamesEncrypted && request.DepotKey != null)
                     {
-                        DepotLocks.Add(request.DepotID, 1);
+                        // Update depot name if changed
+                        if (request.DepotName != dbDepot.Name)
+                        {
+                            await db.ExecuteAsync("UPDATE `Depots` SET `Name` = @DepotName WHERE `DepotID` = @DepotID", new { request.DepotID, request.DepotName });
+                        }
+
+                        continue;
                     }
 
-                    depotsToDownload.Add(request);
+                    request.StoredFilenamesEncrypted = dbDepot.FilenamesEncrypted;
+                    request.LastManifestID = dbDepot.LastManifestID;
                 }
+                else
+                {
+                    dbDepot = new Depot();
+                }
+
+                if (dbDepot.BuildID != request.BuildID || dbDepot.ManifestID != request.ManifestID || request.DepotName != dbDepot.Name)
+                {
+                    await db.ExecuteAsync(@"INSERT INTO `Depots` (`DepotID`, `Name`, `BuildID`, `ManifestID`) VALUES (@DepotID, @DepotName, @BuildID, @ManifestID)
+                                ON DUPLICATE KEY UPDATE `LastUpdated` = CURRENT_TIMESTAMP(), `Name` = VALUES(`Name`), `BuildID` = VALUES(`BuildID`), `ManifestID` = VALUES(`ManifestID`)",
+                    new
+                    {
+                        request.DepotID,
+                        request.DepotName,
+                        request.BuildID,
+                        request.ManifestID
+                    });
+                }
+
+                if (dbDepot.ManifestID != request.ManifestID)
+                {
+                    await MakeHistory(db, null, request, string.Empty, "manifest_change", dbDepot.ManifestID, request.ManifestID);
+                }
+
+                if (Settings.Current.OnlyOwnedDepots && !LicenseList.OwnedDepots.ContainsKey(request.DepotID))
+                {
+                    continue;
+                }
+
+                lock (DepotLocks)
+                {
+                    DepotLocks.Add(request.DepotID, 1);
+                }
+
+                depotsToDownload.Add(request);
             }
 
             if (depotsToDownload.Count > 0)

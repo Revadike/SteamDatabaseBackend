@@ -217,13 +217,10 @@ namespace SteamDatabaseBackend
                     await MakeHistory("deleted_app", 0, app.Name);
                 }
             }
-
-            // Close the connection as it's no longer needed going into depot processor
-            DbConnection.Close();
-
+            
             if (ProductInfo.KeyValues["depots"].Children.Any())
             {
-                await Steam.Instance.DepotProcessor.Process(AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
+                await Steam.Instance.DepotProcessor.Process(DbConnection, AppID, ChangeNumber, ProductInfo.KeyValues["depots"]);
             }
 
             if (ProductInfo.MissingToken && PICSTokens.HasAppToken(AppID))
