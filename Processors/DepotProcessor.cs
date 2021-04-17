@@ -231,6 +231,13 @@ namespace SteamDatabaseBackend
 
             foreach (var branch in depots["branches"].Children)
             {
+                var buildId = branch["buildid"].AsInteger();
+
+                if (buildId < 1)
+                {
+                    continue;
+                }
+
                 var isPublic = branch.Name != null && branch.Name.Equals("public", StringComparison.OrdinalIgnoreCase);
 
                 await db.ExecuteAsync(isPublic ?
@@ -239,7 +246,7 @@ namespace SteamDatabaseBackend
                         "INSERT INTO `Builds` (`BuildID`, `ChangeID`, `AppID`) VALUES (@BuildID, @ChangeNumber, @AppID) ON DUPLICATE KEY UPDATE `AppID` = `AppID`",
                     new
                     {
-                        BuildID = branch["buildid"].AsInteger(),
+                        BuildID = buildId,
                         ChangeNumber = changeNumber,
                         AppID = appID,
                     });
